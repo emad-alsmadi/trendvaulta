@@ -1,5 +1,4 @@
 'use client';
-
 import { useMemo, useState } from 'react';
 import { TemplateCard } from '@/components/TemplateCard';
 import { FilterSidebar } from '@/components/FilterSidebar';

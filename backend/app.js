@@ -31,6 +31,15 @@ app.use('/api/', require('./routes/users'));
 app.use('/api/', require('./routes/password'));
 app.use('/api/', require('./routes/orders'));
 
+// Health Check Endpoint for Render
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
 //Error Handler Middlewares
 app.use((req, res, next) => {
   const error = new Error(`Not Found - ${req.originalUrl}`);
