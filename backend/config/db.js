@@ -19,12 +19,23 @@ function withDbName(mongoUrl, dbName) {
 // function Connnection To Database
 const connectToDB = async () => {
   try {
+    // Avoid buffering requests when DB is down (fail fast instead of timing out)
+    mongoose.set('bufferCommands', false);
+
     const dbName = process.env.DB_NAME || 'template_store';
     const mongoUrl = withDbName(process.env.MONGO_URL, dbName);
-    await mongoose.connect(mongoUrl);
+    if (!mongoUrl) {
+      throw new Error('Missing MONGO_URL env var');
+    }
+
+    await mongoose.connect(mongoUrl, {
+      serverSelectionTimeoutMS: 10_000,
+      connectTimeoutMS: 10_000,
+    });
     console.log('Connected to MongoDB');
   } catch (error) {
     console.log('Connection Failed To MongoDB', error);
+    throw error;
   }
 };
 

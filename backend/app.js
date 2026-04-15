@@ -4,9 +4,6 @@ const cors = require('cors');
 require('dotenv').config();
 const { connectToDB } = require('./config/db');
 
-// function Connnection To Database
-connectToDB();
-
 // Init App
 const app = express();
 
@@ -55,10 +52,24 @@ app.use((err, req, res, next) => {
 
 // Running Server
 const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(
-    `Server is running in ${process.env.NODE_ENV} mode on port ${port}`,
-  );
-});
+
+async function start() {
+  try {
+    // function Connnection To Database
+    await connectToDB();
+
+    app.listen(port, () => {
+      console.log(
+        `Server is running in ${process.env.NODE_ENV} mode on port ${port}`,
+      );
+    });
+  } catch (err) {
+    console.error('Fatal: failed to start server due to DB connection error');
+    console.error(err);
+    process.exit(1);
+  }
+}
+
+start();
 
 module.exports = app;
