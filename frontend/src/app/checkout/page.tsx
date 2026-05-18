@@ -11,7 +11,7 @@ import { useToast } from '@/components/ui/Toast';
 import { useCart } from '@/lib/cartStore';
 import axios from 'axios';
 import { paymentsApi } from '@/lib/api';
-import { useCreateOrderMutation } from '@/lib/ordersQuery';
+import { useCreateOrderMutation } from '@/hooks/orders/ordersQuery';
 import {
   getUserFacingErrorMessage,
   logErrorForDev,

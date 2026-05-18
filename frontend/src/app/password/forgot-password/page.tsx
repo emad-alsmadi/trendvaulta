@@ -14,7 +14,7 @@ import {
   type ForgotPasswordValues,
 } from '@/lib/validation';
 import { useRouter } from 'next/navigation';
-import { useForgotPasswordMutation } from '@/lib/passwordQuery';
+import { useForgotPasswordMutation } from '@/hooks/password/passwordQuery';
 import {
   getUserFacingErrorMessage,
   logErrorForDev,

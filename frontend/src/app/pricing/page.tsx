@@ -9,12 +9,12 @@ import {
   useSubscribeCheckoutMutation,
   useSubscription,
   useSubscriptionSetupStatus,
-} from '@/lib/subscriptionQuery';
+} from '@/hooks/subscriptions/subscriptionQuery';
 import {
   getUserFacingErrorMessage,
   logErrorForDev,
 } from '@/lib/userFacingError';
-import { useMe } from '@/lib/authQuery';
+import { useMe } from '@/hooks/auth/authQuery';
 
 export default function PricingPage() {
   const { toast } = useToast();

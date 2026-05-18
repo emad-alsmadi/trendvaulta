@@ -13,12 +13,12 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { useLogout, useMe } from '@/lib/authQuery';
+import { useLogout, useMe } from '@/hooks/auth/authQuery';
 import { useToast } from '@/components/ui/Toast';
 import {
   useBillingPortalMutation,
   useSubscription,
-} from '@/lib/subscriptionQuery';
+} from '@/hooks/subscriptions/subscriptionQuery';
 import {
   getUserFacingErrorMessage,
   logErrorForDev,

@@ -5,7 +5,7 @@ import { Creator, CreatorsQuery } from '@/types';
 import { Loader2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AuthorCard } from '@/components/cards/AuthorCard';
-import { useCreators } from '@/lib/authorsQuery';
+import { useCreators } from '@/hooks/authors/authorsQuery';
 import { Pagination } from '@/components/ui/Pagination';
 
 export default function AuthorsPage() {

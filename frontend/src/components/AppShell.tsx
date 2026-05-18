@@ -7,7 +7,7 @@ import { navItems, Navbar } from '@/components/navigation/Navbar';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { cn } from '@/lib/utils';
 import { LogIn, LogOut, MoreHorizontal, User } from 'lucide-react';
-import { useLogout, useMe } from '@/lib/authQuery';
+import { useLogout, useMe } from '@/hooks/auth/authQuery';
 import { useConfirm } from '@/components/confirm/ConfirmProvider';
 
 export function AppShell({ children }: { children: React.ReactNode }) {

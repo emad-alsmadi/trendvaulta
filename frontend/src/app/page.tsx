@@ -8,7 +8,7 @@ import { Template } from '@/types';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import type { TemplatesQuery } from '@/types';
-import { useTemplates } from '@/lib/templatesQuery';
+import { useTemplates } from '@/hooks/templates/templatesQuery';
 
 export default function HomePage() {
   const [query, setQuery] = useState<TemplatesQuery>({

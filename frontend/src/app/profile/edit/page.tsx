@@ -10,7 +10,7 @@ import { useToast } from '@/components/ui/Toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { editProfileSchema, type EditProfileValues } from '@/lib/validation';
-import { useMe, useUpdateProfile } from '@/lib/authQuery';
+import { useMe, useUpdateProfile } from '@/hooks/auth/authQuery';
 import {
   getUserFacingErrorMessage,
   logErrorForDev,

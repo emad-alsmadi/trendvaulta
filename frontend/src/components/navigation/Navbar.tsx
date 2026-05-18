@@ -18,7 +18,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useLogout, useMe } from '@/lib/authQuery';
+import { useLogout, useMe } from '@/hooks/auth/authQuery';
 import { useCart } from '@/lib/cartStore';
 import { useConfirm } from '@/components/confirm/ConfirmProvider';
 

@@ -13,7 +13,7 @@ import {
   User,
   Package,
 } from 'lucide-react';
-import { useOrderById } from '@/lib/ordersQuery';
+import { useOrderById } from '@/hooks/orders/ordersQuery';
 import {
   getUserFacingErrorMessage,
   logErrorForDev,

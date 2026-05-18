@@ -4,7 +4,7 @@ import { Suspense, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { useOrderById } from '@/lib/ordersQuery';
+import { useOrderById } from '@/hooks/orders/ordersQuery';
 import { clearCart } from '@/lib/cartStore';
 
 function CheckoutSuccessInner() {

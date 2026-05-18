@@ -16,7 +16,7 @@ import {
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { useTemplateById } from '@/lib/templatesQuery';
+import { useTemplateById } from '@/hooks/templates/templatesQuery';
 import { useCart } from '@/lib/cartStore';
 import { normalizeRemoteImageSrc, remoteCoverLoader } from '@/lib/utils';
 

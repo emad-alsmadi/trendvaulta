@@ -12,7 +12,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useCreatorById } from '@/lib/authorsQuery';
+import { useCreatorById } from '@/hooks/authors/authorsQuery';
 
 export default function CreatorDetailPage() {
   const params = useParams();

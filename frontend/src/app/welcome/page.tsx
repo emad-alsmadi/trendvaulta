@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Sparkles, ArrowRight, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { useLogout, useMe } from '@/lib/authQuery';
+import { useLogout, useMe } from '@/hooks/auth/authQuery';
 import { useConfirm } from '@/components/confirm/ConfirmProvider';
 
 export default function WelcomePage() {

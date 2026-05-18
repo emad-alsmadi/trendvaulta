@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Loader2, Receipt, ArrowRight } from 'lucide-react';
-import { useMyOrders } from '@/lib/ordersQuery';
+import { useMyOrders } from '@/hooks/orders/ordersQuery';
 import {
   getUserFacingErrorMessage,
   logErrorForDev,

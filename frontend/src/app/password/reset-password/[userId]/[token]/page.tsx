@@ -14,7 +14,7 @@ import {
   resetPasswordSchema,
   type ResetPasswordValues,
 } from '@/lib/validation';
-import { useResetPasswordMutation } from '@/lib/passwordQuery';
+import { useResetPasswordMutation } from '@/hooks/password/passwordQuery';
 import {
   getUserFacingErrorMessage,
   logErrorForDev,

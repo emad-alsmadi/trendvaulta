@@ -10,7 +10,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginValues } from '@/lib/validation';
 import { useToast } from '@/components/ui/Toast';
-import { useLoginMutation, useMe } from '@/lib/authQuery';
+import { useLoginMutation, useMe } from '@/hooks/auth/authQuery';
 import {
   getUserFacingErrorMessage,
   logErrorForDev,
