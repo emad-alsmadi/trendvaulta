@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { motion } from 'framer-motion';
@@ -28,6 +28,16 @@ type CheckoutValues = {
   notes: string;
   delivery: boolean;
 };
+
+const DIGITAL_SHIPPING = {
+  address: 'Digital delivery – no physical shipping',
+  city: 'N/A',
+  zip: '00000',
+} as const;
+
+/** Only for local/dev: complete checkout without opening Stripe (creates an unpaid order). */
+const allowCheckoutWithoutStripe =
+  process.env.NEXT_PUBLIC_ALLOW_CHECKOUT_WITHOUT_STRIPE === 'true';
 
 function isStripeUnavailableForFallback(stripeErr: unknown): boolean {
   if (!axios.isAxiosError(stripeErr)) return false;
@@ -62,6 +72,8 @@ export default function CheckoutPage() {
     register,
     handleSubmit,
     watch,
+    getValues,
+    clearErrors,
     formState: { errors, isSubmitting },
   } = useForm<CheckoutValues>({
     defaultValues: {
@@ -74,21 +86,29 @@ export default function CheckoutPage() {
       delivery: false,
     },
     mode: 'onTouched',
+    shouldUnregister: true,
   });
 
   const deliverySelected = Boolean(watch('delivery'));
   const shippingPrice = deliverySelected ? 5 : 0;
   const total = subtotal + shippingPrice;
 
+  useEffect(() => {
+    if (!deliverySelected) {
+      clearErrors(['address', 'city', 'zip']);
+    }
+  }, [deliverySelected, clearErrors]);
+
   const runCheckout = async (values: CheckoutValues) => {
+    const usePhysicalAddress = Boolean(values.delivery);
     const payload = {
       items: items.map((i) => ({ templateId: i.templateId, qty: i.qty })),
       shippingAddress: {
         name: values.name,
         phone: values.phone,
-        address: values.address,
-        city: values.city,
-        zip: values.zip,
+        address: usePhysicalAddress ? values.address : DIGITAL_SHIPPING.address,
+        city: usePhysicalAddress ? values.city : DIGITAL_SHIPPING.city,
+        zip: usePhysicalAddress ? values.zip : DIGITAL_SHIPPING.zip,
         notes: values.notes,
       },
       shippingPrice: values.delivery ? 5 : 0,
@@ -106,15 +126,37 @@ export default function CheckoutPage() {
         stripeReady = false;
       }
 
-      if (stripeReady) {
+      if (!stripeReady) {
+        if (!allowCheckoutWithoutStripe) {
+          toast(
+            'Card payment is not configured on the server. Add STRIPE_SECRET_KEY to the backend environment, restart the API, then try again.',
+            {
+              title: 'Payment unavailable',
+              variant: 'error',
+            },
+          );
+          return;
+        }
+      } else {
         try {
           const session = await paymentsApi.createCheckoutSession(payload);
           if (session?.url) {
             window.location.assign(session.url);
             return;
           }
+          toast('No checkout URL returned. Please try again shortly.', {
+            title: 'Checkout failed',
+            variant: 'error',
+          });
+          return;
         } catch (stripeErr: unknown) {
-          if (!isStripeUnavailableForFallback(stripeErr)) {
+          if (
+            allowCheckoutWithoutStripe &&
+            isStripeUnavailableForFallback(stripeErr)
+          ) {
+            logErrorForDev(stripeErr);
+            // Dev-only: fall through to direct order creation below
+          } else {
             logErrorForDev(stripeErr);
             const msg = getUserFacingErrorMessage(
               stripeErr,
@@ -126,13 +168,24 @@ export default function CheckoutPage() {
         }
       }
 
+      if (!allowCheckoutWithoutStripe) {
+        toast(
+          'Could not start secure checkout. Confirm Stripe keys and try again.',
+          { title: 'Checkout failed', variant: 'error' },
+        );
+        return;
+      }
+
       const order = await createOrder.mutateAsync(payload);
 
       cart.clearCart();
-      toast('Order created successfully.', {
-        title: 'Success',
-        variant: 'success',
-      });
+      toast(
+        'Order saved without card payment (dev mode). Use Stripe in production.',
+        {
+          title: 'Dev checkout',
+          variant: 'info',
+        },
+      );
       router.push(`/orders/${order._id}`);
     } catch (err: unknown) {
       logErrorForDev(err);
@@ -181,12 +234,12 @@ export default function CheckoutPage() {
           Checkout
         </div>
         <h1 className='mt-4 text-3xl font-extrabold tracking-tight text-indigo-950 sm:text-4xl'>
-          Shipping details
+          Contact &amp; checkout
         </h1>
         <p className='mt-2 text-sm font-semibold text-indigo-950/80'>
-          When card checkout is enabled, you&apos;ll complete payment on a secure
-          Stripe page. If it&apos;s not set up yet, your order is placed directly
-          after you confirm.
+          After you confirm, you&apos;ll finish payment on Stripe&apos;s secure page
+          (card or wallet). Physical delivery fields only apply if you add local
+          delivery — digital templates use your contact info only.
         </p>
       </div>
 
@@ -252,80 +305,92 @@ export default function CheckoutPage() {
             </div>
 
             <div>
-              <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                Address
+              <label className='inline-flex items-center gap-2 text-sm font-extrabold text-indigo-950/80'>
+                <input
+                  type='checkbox'
+                  className='h-4 w-4'
+                  {...register('delivery')}
+                />
+                Add local delivery (+$5) — requires a full shipping address below
               </label>
-              <Input
-                placeholder='Street, building, apartment'
-                {...register('address', {
-                  required: 'Address is required',
-                  minLength: {
-                    value: 5,
-                    message: 'Use at least 5 characters',
-                  },
-                  maxLength: {
-                    value: 300,
-                    message: 'Maximum 300 characters',
-                  },
-                })}
-              />
-              {errors.address?.message && (
-                <div className='mt-2 text-sm font-semibold text-rose-700'>
-                  {errors.address.message}
-                </div>
-              )}
             </div>
 
-            <div className='grid gap-4 sm:grid-cols-2'>
-              <div>
-                <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                  City
-                </label>
-                <Input
-                  placeholder='City'
-                  {...register('city', {
-                    required: 'City is required',
-                    minLength: {
-                      value: 2,
-                      message: 'Use at least 2 characters',
-                    },
-                    maxLength: {
-                      value: 100,
-                      message: 'Maximum 100 characters',
-                    },
-                  })}
-                />
-                {errors.city?.message && (
-                  <div className='mt-2 text-sm font-semibold text-rose-700'>
-                    {errors.city.message}
+            {deliverySelected ? (
+              <>
+                <div>
+                  <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+                    Street address
+                  </label>
+                  <Input
+                    placeholder='Street, building, apartment'
+                    {...register('address', {
+                      validate: (v) =>
+                        !getValues('delivery') ||
+                        (typeof v === 'string' && v.trim().length >= 5) ||
+                        'Address is required',
+                      maxLength: {
+                        value: 300,
+                        message: 'Maximum 300 characters',
+                      },
+                    })}
+                  />
+                  {errors.address?.message && (
+                    <div className='mt-2 text-sm font-semibold text-rose-700'>
+                      {errors.address.message}
+                    </div>
+                  )}
+                </div>
+
+                <div className='grid gap-4 sm:grid-cols-2'>
+                  <div>
+                    <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+                      City
+                    </label>
+                    <Input
+                      placeholder='City'
+                      {...register('city', {
+                        validate: (v) =>
+                          !getValues('delivery') ||
+                          (typeof v === 'string' && v.trim().length >= 2) ||
+                          'City is required',
+                        maxLength: {
+                          value: 100,
+                          message: 'Maximum 100 characters',
+                        },
+                      })}
+                    />
+                    {errors.city?.message && (
+                      <div className='mt-2 text-sm font-semibold text-rose-700'>
+                        {errors.city.message}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              <div>
-                <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                  ZIP
-                </label>
-                <Input
-                  placeholder='ZIP'
-                  {...register('zip', {
-                    required: 'ZIP is required',
-                    minLength: {
-                      value: 2,
-                      message: 'Use at least 2 characters',
-                    },
-                    maxLength: {
-                      value: 20,
-                      message: 'Maximum 20 characters',
-                    },
-                  })}
-                />
-                {errors.zip?.message && (
-                  <div className='mt-2 text-sm font-semibold text-rose-700'>
-                    {errors.zip.message}
+                  <div>
+                    <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+                      ZIP / postal code
+                    </label>
+                    <Input
+                      placeholder='ZIP'
+                      {...register('zip', {
+                        validate: (v) =>
+                          !getValues('delivery') ||
+                          (typeof v === 'string' && v.trim().length >= 2) ||
+                          'ZIP is required',
+                        maxLength: {
+                          value: 20,
+                          message: 'Maximum 20 characters',
+                        },
+                      })}
+                    />
+                    {errors.zip?.message && (
+                      <div className='mt-2 text-sm font-semibold text-rose-700'>
+                        {errors.zip.message}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
+                </div>
+              </>
+            ) : null}
 
             <div>
               <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
@@ -340,17 +405,6 @@ export default function CheckoutPage() {
                   },
                 })}
               />
-            </div>
-
-            <div>
-              <label className='inline-flex items-center gap-2 text-sm font-extrabold text-indigo-950/80'>
-                <input
-                  type='checkbox'
-                  className='h-4 w-4'
-                  {...register('delivery')}
-                />
-                Add local delivery (optional)
-              </label>
             </div>
 
             <Button

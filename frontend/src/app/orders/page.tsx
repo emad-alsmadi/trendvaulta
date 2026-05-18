@@ -35,7 +35,7 @@ function statusLabel(status: string) {
 }
 
 function paymentBadgeClass(paymentStatus?: string) {
-  const p = paymentStatus ?? 'paid';
+  const p = paymentStatus ?? 'pending';
   switch (p) {
     case 'paid':
       return 'bg-emerald-500/12 text-emerald-900 border-emerald-200';
@@ -48,7 +48,7 @@ function paymentBadgeClass(paymentStatus?: string) {
 }
 
 function paymentBadgeLabel(paymentStatus?: string) {
-  const p = paymentStatus ?? 'paid';
+  const p = paymentStatus ?? 'pending';
   switch (p) {
     case 'paid':
       return 'Paid';
@@ -159,16 +159,13 @@ export default function OrdersPage() {
                 </div>
 
                 <div className='flex flex-wrap items-center gap-2 sm:gap-3'>
-                  {(o.paymentStatus === 'pending' ||
-                    o.paymentStatus === 'unpaid') && (
-                    <div
-                      className={`rounded-full border px-3 py-1 text-xs font-extrabold ${paymentBadgeClass(
-                        o.paymentStatus,
-                      )}`}
-                    >
-                      {paymentBadgeLabel(o.paymentStatus)}
-                    </div>
-                  )}
+                  <div
+                    className={`rounded-full border px-3 py-1 text-xs font-extrabold ${paymentBadgeClass(
+                      o.paymentStatus,
+                    )}`}
+                  >
+                    {paymentBadgeLabel(o.paymentStatus)}
+                  </div>
                   <div
                     className={`rounded-full border px-3 py-1 text-xs font-extrabold ${statusClass(
                       o.status,

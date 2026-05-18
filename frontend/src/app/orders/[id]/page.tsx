@@ -20,6 +20,23 @@ import {
 } from '@/lib/userFacingError';
 import { normalizeRemoteImageSrc, remoteCoverLoader } from '@/lib/utils';
 
+function formatPaymentStatus(payment?: string) {
+  switch (payment) {
+    case 'paid':
+      return 'Paid';
+    case 'unpaid':
+      return 'Awaiting payment';
+    case 'pending':
+      return 'Awaiting payment';
+    case 'failed':
+      return 'Payment failed';
+    case 'refunded':
+      return 'Refunded';
+    default:
+      return payment ? payment.replace(/-/g, ' ') : 'Unknown';
+  }
+}
+
 function formatDate(value: string) {
   try {
     return new Date(value).toLocaleString();
@@ -27,7 +44,6 @@ function formatDate(value: string) {
     return value;
   }
 }
-
 export default function OrderDetailPage() {
   const params = useParams();
   const id = params.id as string | undefined;
@@ -159,10 +175,10 @@ export default function OrderDetailPage() {
                 <div className='text-xs font-extrabold uppercase tracking-wider text-indigo-950/65'>
                   Payment
                 </div>
-                <div className='mt-1 text-sm font-extrabold capitalize text-indigo-950'>
-                  {(order.paymentStatus ?? 'paid').replace('-', ' ')}
+                <div className='mt-1 text-sm font-extrabold text-indigo-950'>
+                  {formatPaymentStatus(order.paymentStatus ?? 'pending')}
                 </div>
-                {order.paidAt ? (
+                {order.paymentStatus === 'paid' && order.paidAt ? (
                   <div className='mt-1 text-xs font-semibold text-indigo-950/70'>
                     Paid {formatDate(order.paidAt)}
                   </div>
@@ -185,17 +201,28 @@ export default function OrderDetailPage() {
                 {order.shippingAddress.phone}
               </div>
               <div className='flex items-start gap-2 text-sm font-semibold text-indigo-950/80'>
-                <MapPin className='mt-0.5 h-4 w-4 text-cyan-700' />
+                <MapPin className='mt-0.5 h-4 w-4 shrink-0 text-cyan-700' />
                 <div>
-                  <div>{order.shippingAddress.address}</div>
-                  <div className='mt-1 text-xs font-semibold text-indigo-950/70'>
-                    {order.shippingAddress.city} • {order.shippingAddress.zip}
+                  <div className='text-sm font-semibold text-indigo-950/80'>
+                    {(order.shippingAddress.address || '').startsWith(
+                      'Digital delivery',
+                    )
+                      ? 'Digital delivery — no physical shipping.'
+                      : order.shippingAddress.address}
                   </div>
-                  {order.shippingAddress.notes && (
+                  {(order.shippingAddress.address || '').startsWith(
+                    'Digital delivery',
+                  ) ? null : (
+                    <div className='mt-1 text-xs font-semibold text-indigo-950/70'>
+                      {order.shippingAddress.city} •{' '}
+                      {order.shippingAddress.zip}
+                    </div>
+                  )}
+                  {order.shippingAddress.notes ? (
                     <div className='mt-2 text-xs font-semibold text-indigo-950/70'>
                       Notes: {order.shippingAddress.notes}
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>
