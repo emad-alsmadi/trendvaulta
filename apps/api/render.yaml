@@ -1,0 +1,45 @@
+services:
+  # Backend API Service
+  - type: web
+    name: craftify-backend
+    env: node
+    plan: free
+    region: oregon
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    
+    # Environment Variables (Configure in Render Dashboard)
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGO_URL
+        sync: false  # Set this in Render dashboard
+      - key: DB_NAME
+        value: craftify_templates
+      - key: JWT_SECRET_KEY
+        sync: false  # Set this in Render dashboard
+      - key: JWT_EXPIRE
+        value: 30d
+      - key: EMAIL_HOST
+        value: smtp.gmail.com
+      - key: EMAIL_PORT
+        value: 587
+      - key: EMAIL_USER
+        sync: false  # Set this in Render dashboard
+      - key: EMAIL_PASS
+        sync: false  # Set this in Render dashboard
+      - key: FROM_EMAIL
+        value: noreply@craftify.com
+      - key: FROM_NAME
+        value: Craftify Templates
+      - key: FRONTEND_URL
+        sync: false  # Set this in Render dashboard
+
+# Add health check endpoint to app.js
+databases:
+  # MongoDB Atlas (External) - No need to create database on Render
+  # We'll use MongoDB Atlas connection string
