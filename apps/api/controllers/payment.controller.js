@@ -3,7 +3,10 @@ const { Order, validateCreateOrder } = require('../models/Order');
 const { Template } = require('../models/Template');
 const StripeWebhookEvent = require('../models/StripeWebhookEvent');
 const Subscription = require('../models/Subscription');
-const { getStripeOrThrow, getFrontendBaseUrl } = require('../services/stripe.service');
+const {
+  getStripeOrThrow,
+  getFrontendBaseUrl,
+} = require('../services/stripe.service');
 
 function dollarsToCents(amount) {
   return Math.round(Number(amount) * 100);
@@ -92,7 +95,8 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
   const shippingPrice = Number(value.shippingPrice ?? 0);
   const taxPrice = Number(value.taxPrice ?? 0);
 
-  const { normalizedItems, itemsPrice } = await buildNormalizedOrderLines(items);
+  const { normalizedItems, itemsPrice } =
+    await buildNormalizedOrderLines(items);
   const totalPrice = itemsPrice + shippingPrice + taxPrice;
 
   const order = await Order.create({
@@ -261,7 +265,10 @@ async function handleCheckoutSessionCompleted(session) {
     return;
   }
 
-  if (session.metadata?.kind === 'order_payment' || session.mode === 'payment') {
+  if (
+    session.metadata?.kind === 'order_payment' ||
+    session.mode === 'payment'
+  ) {
     await markOrderPaidFromSession(session);
   }
 }
@@ -286,7 +293,9 @@ const stripeWebhook = asyncHandler(async (req, res) => {
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
   } catch (err) {
-    return res.status(400).send(`Webhook signature verification failed: ${err.message}`);
+    return res
+      .status(400)
+      .send(`Webhook signature verification failed: ${err.message}`);
   }
 
   try {
@@ -332,8 +341,72 @@ const stripeWebhook = asyncHandler(async (req, res) => {
   res.status(200).json({ received: true });
 });
 
+/**
+ * Verify payment status from Stripe and update order if paid
+ * @desc Manually verify payment status (fallback for webhook issues)
+ * @route POST /api/payments/verify-payment
+ * @method POST
+ * @access Private (Bearer token)
+ */
+const verifyPaymentStatus = asyncHandler(async (req, res) => {
+  const stripe = getStripeOrThrow();
+  const userId = req.user?.id ?? req.user?._id;
+  if (!userId) {
+    return res.status(401).json({ message: 'Token is not valid!' });
+  }
+
+  const { orderId } = req.body;
+  if (!orderId) {
+    return res.status(400).json({ message: 'Order ID is required' });
+  }
+
+  const order = await Order.findById(orderId);
+  if (!order) {
+    return res.status(404).json({ message: 'Order not found' });
+  }
+
+  if (order.user.toString() !== userId) {
+    return res
+      .status(403)
+      .json({ message: 'Not authorized to access this order' });
+  }
+
+  if (order.paymentStatus === 'paid') {
+    return res.status(200).json({ paymentStatus: 'paid', alreadyPaid: true });
+  }
+
+  if (!order.stripeSessionId) {
+    return res
+      .status(400)
+      .json({ message: 'No Stripe session associated with this order' });
+  }
+
+  try {
+    const session = await stripe.checkout.sessions.retrieve(
+      order.stripeSessionId,
+    );
+
+    if (session.payment_status === 'paid' && session.status === 'complete') {
+      await markOrderPaidFromSession(session);
+      return res.status(200).json({ paymentStatus: 'paid', verified: true });
+    } else {
+      return res.status(200).json({
+        paymentStatus: session.payment_status,
+        sessionStatus: session.status,
+        verified: false,
+      });
+    }
+  } catch (stripeErr) {
+    console.error('Stripe session retrieval error:', stripeErr);
+    return res
+      .status(500)
+      .json({ message: 'Failed to verify payment status with Stripe' });
+  }
+});
+
 module.exports = {
   getPaymentsSetupStatus,
   createCheckoutSession,
   stripeWebhook,
+  verifyPaymentStatus,
 };

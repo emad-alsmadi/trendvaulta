@@ -179,6 +179,17 @@ export const paymentsApi = {
     const { data } = await api.post('/payments/checkout-session', payload);
     return data;
   },
+  verifyPaymentStatus: async (
+    orderId: string,
+  ): Promise<{
+    paymentStatus: string;
+    verified?: boolean;
+    alreadyPaid?: boolean;
+    sessionStatus?: string;
+  }> => {
+    const { data } = await api.post('/payments/verify-payment', { orderId });
+    return data;
+  },
 };
 
 export type SubscriptionSetupStatus = {

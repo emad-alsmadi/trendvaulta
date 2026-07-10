@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useOrderById } from '@/hooks/orders/ordersQuery';
 import { clearCart } from '@/lib/cartStore';
+import { paymentsApi } from '@/lib/api';
 
 function CheckoutSuccessInner() {
   const sp = useSearchParams();
@@ -22,10 +23,29 @@ function CheckoutSuccessInner() {
 
   useEffect(() => {
     if (!orderId || order?.paymentStatus === 'paid') return;
+
+    // Function to manually verify payment with Stripe
+    const verifyPayment = async () => {
+      try {
+        const result = await paymentsApi.verifyPaymentStatus(orderId);
+        if (result.verified || result.alreadyPaid) {
+          q.refetch();
+        }
+      } catch (error) {
+        console.error('Payment verification failed:', error);
+      }
+    };
+
+    // Initial verification
+    verifyPayment();
+
+    // Poll for payment status
     const id = window.setInterval(() => {
+      void verifyPayment();
       void q.refetch();
-    }, 2500);
-    const stop = window.setTimeout(() => window.clearInterval(id), 90000);
+    }, 3000);
+
+    const stop = window.setTimeout(() => window.clearInterval(id), 120000);
     return () => {
       window.clearInterval(id);
       window.clearTimeout(stop);
