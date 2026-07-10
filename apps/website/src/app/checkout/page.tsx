@@ -158,11 +158,25 @@ export default function CheckoutPage() {
             // Dev-only: fall through to direct order creation below
           } else {
             logErrorForDev(stripeErr);
-            const msg = getUserFacingErrorMessage(
-              stripeErr,
-              'Could not start checkout',
-            );
-            toast(msg, { title: 'Checkout failed', variant: 'error' });
+            // Handle 502 and other server errors with user-friendly message
+            if (
+              axios.isAxiosError(stripeErr) &&
+              stripeErr.response?.status === 502
+            ) {
+              toast(
+                'We could not open the secure payment page. Please try again shortly.',
+                {
+                  title: 'Checkout failed',
+                  variant: 'error',
+                },
+              );
+            } else {
+              const msg = getUserFacingErrorMessage(
+                stripeErr,
+                'Could not start checkout',
+              );
+              toast(msg, { title: 'Checkout failed', variant: 'error' });
+            }
             return;
           }
         }
@@ -237,9 +251,9 @@ export default function CheckoutPage() {
           Contact &amp; checkout
         </h1>
         <p className='mt-2 text-sm font-semibold text-indigo-950/80'>
-          After you confirm, you&apos;ll finish payment on Stripe&apos;s secure page
-          (card or wallet). Physical delivery fields only apply if you add local
-          delivery — digital templates use your contact info only.
+          After you confirm, you&apos;ll finish payment on Stripe&apos;s secure
+          page (card or wallet). Physical delivery fields only apply if you add
+          local delivery — digital templates use your contact info only.
         </p>
       </div>
 
@@ -311,7 +325,8 @@ export default function CheckoutPage() {
                   className='h-4 w-4'
                   {...register('delivery')}
                 />
-                Add local delivery (+$5) — requires a full shipping address below
+                Add local delivery (+$5) — requires a full shipping address
+                below
               </label>
             </div>
 
@@ -411,15 +426,11 @@ export default function CheckoutPage() {
               type='submit'
               size='lg'
               disabled={
-                isSubmitting ||
-                createOrder.isPending ||
-                stripeRedirecting
+                isSubmitting || createOrder.isPending || stripeRedirecting
               }
               className='w-full rounded-full bg-gradient-to-r from-indigo-600 via-fuchsia-600 to-cyan-500 text-white shadow-md transition hover:brightness-110 active:brightness-95'
             >
-              {isSubmitting ||
-              createOrder.isPending ||
-              stripeRedirecting ? (
+              {isSubmitting || createOrder.isPending || stripeRedirecting ? (
                 <span className='inline-flex items-center gap-2'>
                   <Loader2 className='h-4 w-4 animate-spin' />
                   Continuing...
