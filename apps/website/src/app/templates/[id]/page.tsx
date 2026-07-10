@@ -4,6 +4,9 @@ import { useParams, useRouter } from 'next/navigation';
 import { Template } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { WishlistButton } from '@/components/WishlistButton';
+import { StarRating } from '@/components/StarRating';
+import { ReviewForm } from '@/components/ReviewForm';
+import { ReviewList } from '@/components/ReviewList';
 import { useToast } from '@/components/ui/Toast';
 import {
   Loader2,
@@ -20,6 +23,15 @@ import Image from 'next/image';
 import { useTemplateById } from '@/hooks/templates/templatesQuery';
 import { useCart } from '@/lib/cartStore';
 import { normalizeRemoteImageSrc, remoteCoverLoader } from '@/lib/utils';
+import { useState } from 'react';
+import {
+  useTemplateReviews,
+  useMyReview,
+  useCreateReviewMutation,
+  useUpdateReviewMutation,
+  useDeleteReviewMutation,
+} from '@/hooks/reviews/reviewsQuery';
+import { getAuthToken } from '@/lib/authCookies';
 
 export default function TemplateDetailPage() {
   const params = useParams();
@@ -32,6 +44,21 @@ export default function TemplateDetailPage() {
   const template: Template | null = templateQuery.data || null;
   const loading = templateQuery.isLoading;
   const error = (templateQuery.error as any)?.message || null;
+
+  // Review state
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [editingReview, setEditingReview] = useState<any>(null);
+
+  // Review queries and mutations
+  const reviewsQuery = useTemplateReviews(id || '');
+  const myReviewQuery = useMyReview(id || '');
+  const createReviewMutation = useCreateReviewMutation();
+  const updateReviewMutation = useUpdateReviewMutation();
+  const deleteReviewMutation = useDeleteReviewMutation();
+
+  const reviews = reviewsQuery.data || [];
+  const myReview = myReviewQuery.data || null;
+  const token = getAuthToken();
 
   if (loading) {
     return (
@@ -84,6 +111,60 @@ export default function TemplateDetailPage() {
       title: 'Cart',
       variant: 'success',
     });
+  };
+
+  const handleCreateReview = async (data: any) => {
+    try {
+      await createReviewMutation.mutateAsync(data);
+      toast('Review submitted successfully!', {
+        title: 'Success',
+        variant: 'success',
+      });
+      setShowReviewForm(false);
+    } catch (error) {
+      toast('Failed to submit review. Please try again.', {
+        title: 'Error',
+        variant: 'error',
+      });
+    }
+  };
+
+  const handleUpdateReview = async (data: any) => {
+    try {
+      await updateReviewMutation.mutateAsync({
+        reviewId: editingReview._id,
+        payload: data,
+      });
+      toast('Review updated successfully!', {
+        title: 'Success',
+        variant: 'success',
+      });
+      setEditingReview(null);
+      setShowReviewForm(false);
+    } catch (error) {
+      toast('Failed to update review. Please try again.', {
+        title: 'Error',
+        variant: 'error',
+      });
+    }
+  };
+
+  const handleDeleteReview = async (reviewId: string) => {
+    try {
+      await deleteReviewMutation.mutateAsync({
+        reviewId,
+        templateId: template._id,
+      });
+      toast('Review deleted successfully!', {
+        title: 'Success',
+        variant: 'success',
+      });
+    } catch (error) {
+      toast('Failed to delete review. Please try again.', {
+        title: 'Error',
+        variant: 'error',
+      });
+    }
   };
 
   return (
@@ -189,6 +270,19 @@ export default function TemplateDetailPage() {
                 {template.description}
               </p>
 
+              <div className='mt-4 flex items-center gap-3'>
+                <StarRating
+                  rating={template.averageRating}
+                  size={18}
+                />
+                {template.reviewCount > 0 && (
+                  <span className='text-sm font-semibold text-gray-600'>
+                    ({template.reviewCount}{' '}
+                    {template.reviewCount === 1 ? 'review' : 'reviews'})
+                  </span>
+                )}
+              </div>
+
               <div className='mt-6 grid gap-3 sm:grid-cols-2'>
                 <Button
                   className='w-full rounded-full bg-gradient-to-r from-indigo-600 via-fuchsia-600 to-cyan-500 text-white shadow-md transition hover:brightness-110 active:brightness-95'
@@ -274,6 +368,62 @@ export default function TemplateDetailPage() {
               </motion.section>
             </div>
           </div>
+        </motion.section>
+
+        {/* Reviews Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.65, delay: 0.2, ease: 'easeOut' }}
+          className='rounded-3xl border border-white/30 bg-white/35 p-6 shadow-sm backdrop-blur-xl sm:p-8'
+        >
+          <div className='flex items-center justify-between mb-6'>
+            <h2 className='text-2xl font-extrabold text-indigo-950'>Reviews</h2>
+            {token && !myReview && !showReviewForm && (
+              <Button
+                onClick={() => setShowReviewForm(true)}
+                className='rounded-full bg-gradient-to-r from-indigo-600 via-fuchsia-600 to-cyan-500 text-white'
+              >
+                Write a Review
+              </Button>
+            )}
+          </div>
+
+          {/* Review Form */}
+          {showReviewForm && (
+            <div className='mb-8 rounded-2xl border border-white/30 bg-white/50 p-6'>
+              <h3 className='text-lg font-extrabold text-indigo-950 mb-4'>
+                {editingReview ? 'Edit Your Review' : 'Write a Review'}
+              </h3>
+              <ReviewForm
+                templateId={template._id}
+                existingReview={editingReview}
+                onSubmit={
+                  editingReview ? handleUpdateReview : handleCreateReview
+                }
+                onCancel={() => {
+                  setShowReviewForm(false);
+                  setEditingReview(null);
+                }}
+                isSubmitting={
+                  createReviewMutation.isPending ||
+                  updateReviewMutation.isPending
+                }
+              />
+            </div>
+          )}
+
+          {/* Review List */}
+          <ReviewList
+            reviews={reviews}
+            currentUserId={myReview?.user._id}
+            onEdit={(review) => {
+              setEditingReview(review);
+              setShowReviewForm(true);
+            }}
+            onDelete={handleDeleteReview}
+            isDeleting={deleteReviewMutation.isPending}
+          />
         </motion.section>
       </div>
     </div>
