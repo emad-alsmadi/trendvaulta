@@ -1,8 +1,8 @@
 'use client';
 
 import { useMyWishlist } from '@/hooks/wishlist/wishlistQuery';
-import { WishlistGrid } from '@/components/WishlistGrid';
-import { WishlistEmptyState } from '@/components/WishlistEmptyState';
+import { WishlistGrid } from '@/components/page/wishlist/WishlistGrid';
+import { WishlistEmptyState } from '@/components/page/wishlist/WishlistEmptyState';
 import { Loader2, Heart } from 'lucide-react';
 import { getAuthToken } from '@/lib/authCookies';
 import { useRouter } from 'next/navigation';
@@ -46,14 +46,19 @@ export default function WishlistPage() {
     <div className='space-y-6'>
       <div className='flex items-center gap-3'>
         <div className='rounded-full bg-gradient-to-br from-fuchsia-500/20 via-indigo-500/20 to-cyan-500/20 p-3'>
-          <Heart className='h-6 w-6 text-indigo-600' fill='none' strokeWidth={2} />
+          <Heart
+            className='h-6 w-6 text-indigo-600'
+            fill='none'
+            strokeWidth={2}
+          />
         </div>
         <div>
           <h1 className='text-3xl font-extrabold tracking-tight text-indigo-950'>
             My Wishlist
           </h1>
           <p className='text-sm font-semibold text-indigo-900/70'>
-            {wishlist?.length || 0} {wishlist?.length === 1 ? 'template' : 'templates'} saved
+            {wishlist?.length || 0}{' '}
+            {wishlist?.length === 1 ? 'template' : 'templates'} saved
           </p>
         </div>
       </div>

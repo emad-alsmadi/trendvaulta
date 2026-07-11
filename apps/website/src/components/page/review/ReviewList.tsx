@@ -1,7 +1,7 @@
 import { Review } from '@/types';
-import { StarRating } from './StarRating';
+import { StarRating } from '../rating/StarRating';
 import { Trash2, Edit2 } from 'lucide-react';
-import { Button } from './ui/Button';
+import { Button } from '../../ui/Button';
 
 interface ReviewListProps {
   reviews: Review[];

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { LicenseSelector } from '@/components/LicenseSelector';
+import { LicenseSelector } from '@/components/page/license/LicenseSelector';
 
 export default function TestLicensesPage() {
   const [selectedLicense, setSelectedLicense] = useState('personal');

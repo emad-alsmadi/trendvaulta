@@ -3,10 +3,10 @@
 import { useParams, useRouter } from 'next/navigation';
 import { Template } from '@/types';
 import { Button } from '@/components/ui/Button';
-import { WishlistButton } from '@/components/WishlistButton';
-import { StarRating } from '@/components/StarRating';
-import { ReviewForm } from '@/components/ReviewForm';
-import { ReviewList } from '@/components/ReviewList';
+import { WishlistButton } from '@/components/page/wishlist/WishlistButton';
+import { StarRating } from '@/components/page/rating/StarRating';
+import { ReviewForm } from '@/components/page/review/ReviewForm';
+import { ReviewList } from '@/components/page/review/ReviewList';
 import { useToast } from '@/components/ui/Toast';
 import {
   Loader2,

@@ -88,9 +88,9 @@ export default function HomePage() {
 
       <Testimonials />
 
-      <TopCreators />
-
       <CTASection />
+      
+      <TopCreators />
     </div>
   );
 }

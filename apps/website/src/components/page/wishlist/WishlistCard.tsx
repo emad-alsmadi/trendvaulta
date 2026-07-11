@@ -2,8 +2,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { normalizeRemoteImageSrc, remoteCoverLoader } from '@/lib/utils';
 import { WishlistItem } from '@/types';
-import { Button } from './ui/Button';
-import { WishlistButton } from './WishlistButton';
+import { Button } from '@/components/ui/Button';
+import { WishlistButton } from '@/components/page/wishlist/WishlistButton';
 import { motion } from 'framer-motion';
 
 interface WishlistCardProps {
@@ -12,10 +12,11 @@ interface WishlistCardProps {
 
 export function WishlistCard({ item }: WishlistCardProps) {
   const template = item.template;
+  if (!template) return null;
   const creatorName =
-    typeof template.author === 'string'
-      ? template.author
-      : template.author.name;
+    typeof template.auther === 'string'
+      ? template.auther
+      : template.auther.name;
 
   return (
     <motion.div
@@ -36,7 +37,11 @@ export function WishlistCard({ item }: WishlistCardProps) {
             />
           </Link>
           <div className='absolute top-3 right-3'>
-            <WishlistButton templateId={template._id} variant='icon' className='bg-white/90 text-indigo-950 hover:bg-white' />
+            <WishlistButton
+              templateId={template._id}
+              variant='icon'
+              className='bg-white/90 text-indigo-950 hover:bg-white'
+            />
           </div>
         </div>
 
@@ -55,7 +60,10 @@ export function WishlistCard({ item }: WishlistCardProps) {
             </p>
           </div>
           <div className='flex gap-2'>
-            <Link href={`/templates/${template._id}`} className='flex-1'>
+            <Link
+              href={`/templates/${template._id}`}
+              className='flex-1'
+            >
               <Button className='w-full'>View Details</Button>
             </Link>
           </div>

@@ -2,9 +2,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { normalizeRemoteImageSrc, remoteCoverLoader } from '@/lib/utils';
 import { Template } from '@/types';
-import { Button } from './ui/Button';
-import { WishlistButton } from './WishlistButton';
-import { StarRating } from './StarRating';
+import { Button } from '../../ui/Button';
+import { WishlistButton } from '../wishlist/WishlistButton';
+import { StarRating } from '../rating/StarRating';
 import { motion } from 'framer-motion';
 import { ShoppingCart, Eye } from 'lucide-react';
 
