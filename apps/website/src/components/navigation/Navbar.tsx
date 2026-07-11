@@ -19,6 +19,7 @@ import {
   Shield,
   Heart,
   Download,
+  MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLogout, useMe } from '@/hooks/auth/authQuery';
@@ -33,6 +34,7 @@ export const navItems = [
   { href: '/cart', label: 'Cart', icon: ShoppingCart },
   { href: '/orders', label: 'Orders', icon: Receipt },
   { href: '/downloads', label: 'Downloads', icon: Download },
+  { href: '/reviews', label: 'Reviews', icon: MessageSquare },
   { href: '/wishlist', label: 'Wishlist', icon: Heart },
   { href: '/about', label: 'About', icon: Info },
 ];
