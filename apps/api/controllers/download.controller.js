@@ -9,7 +9,7 @@ const Order = require('../models/Order');
  * @access  Private
  */
 const getMyDownloads = asyncHandler(async (req, res) => {
-  const downloads = await Download.find({ user: req.user._id })
+  const downloads = await Download.find({ user: req.user.id })
     .populate('template', 'title cover price category')
     .populate('order', 'status paymentStatus createdAt')
     .sort({ createdAt: -1 });
@@ -33,7 +33,7 @@ const getDownloadById = asyncHandler(async (req, res) => {
   }
 
   // Check ownership
-  if (download.user.toString() !== req.user._id.toString()) {
+  if (download.user.toString() !== req.user.id.toString()) {
     res.status(403);
     throw new Error('Not authorized to access this download');
   }
@@ -55,7 +55,7 @@ const recordDownload = asyncHandler(async (req, res) => {
   }
 
   // Check ownership
-  if (download.user.toString() !== req.user._id.toString()) {
+  if (download.user.toString() !== req.user.id.toString()) {
     res.status(403);
     throw new Error('Not authorized to access this download');
   }
@@ -102,7 +102,7 @@ const createDownload = asyncHandler(async (req, res) => {
     throw new Error('Order not found');
   }
 
-  if (order.user.toString() !== req.user._id.toString()) {
+  if (order.user.toString() !== req.user.id.toString()) {
     res.status(403);
     throw new Error('Not authorized to create download for this order');
   }
@@ -130,7 +130,7 @@ const createDownload = asyncHandler(async (req, res) => {
 
   // Check if download already exists
   const existingDownload = await Download.findOne({
-    user: req.user._id,
+    user: req.user.id,
     template: templateId,
     order: orderId,
   });
@@ -142,14 +142,14 @@ const createDownload = asyncHandler(async (req, res) => {
 
   // Create download entry
   const download = await Download.create({
-    user: req.user._id,
+    user: req.user.id,
     template: templateId,
     order: orderId,
     downloadCount: 0,
     downloadLimit: 10, // Default limit
   });
 
-  const populatedDownload = await Download.findById(download._id)
+  const populatedDownload = await Download.findById(download.id)
     .populate('template', 'title cover price category')
     .populate('order', 'status paymentStatus createdAt');
 
@@ -170,7 +170,7 @@ const deleteDownload = asyncHandler(async (req, res) => {
   }
 
   // Check ownership
-  if (download.user.toString() !== req.user._id.toString()) {
+  if (download.user.toString() !== req.user.id.toString()) {
     res.status(403);
     throw new Error('Not authorized to delete this download');
   }

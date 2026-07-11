@@ -7,14 +7,14 @@ const {
   createDownload,
   deleteDownload,
 } = require('../controllers/download.controller');
-const { verfiyToken } = require('../middlewares/authMiddleware');
+const { verfiyToken } = require('../middlewares/verfiyToken');
 
 // All routes require authentication
 router.use(verfiyToken);
 
-router.route('/').post(createDownload);
-router.route('/my').get(getMyDownloads);
-router.route('/:id').get(getDownloadById).delete(deleteDownload);
-router.route('/:id/download').post(recordDownload);
+router.route('/downloads').post(createDownload);
+router.route('/downloads/my').get(getMyDownloads);
+router.route('/downloads/:id').get(getDownloadById).delete(deleteDownload);
+router.route('/downloads/:id/download').post(recordDownload);
 
 module.exports = router;
