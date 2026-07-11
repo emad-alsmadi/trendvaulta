@@ -22,6 +22,7 @@ alwaysApply: true
    - Check route definitions in `apps/api/routes/`
    - Check frontend API client in `apps/website/src/lib/api.ts`
    - Never read deprecated files or unrelated documentation unless requested.
+   - Check Mongoose models in `apps/api/models/`
 
 5. **No unnecessary exploration.**
    Do not use Explore Mode, Task Mode, or sub-agents for simple or localized tasks.
@@ -88,7 +89,11 @@ Example:
 Validation command:
 
 ```bash
+# من:
 npx tsc --noEmit
+
+# إلى:
+cd apps/website && npx tsc --noEmit
 ```
 
 Do NOT execute it.
@@ -125,17 +130,14 @@ Suggested commit:
 fix(scope): short description
 ```
 
-Examples:
-
-```text
 Suggested commit:
-fix(admin): align content edit dialog with update endpoint
-```
+fix(license): fix price calculation for extended license
 
-```text
 Suggested commit:
-feat(doctor): add encounter order manual entry flow
-```
+feat(license): add license selection component
+
+Suggested commit:
+refactor(api): simplify payment verification logic
 
 ```text
 Suggested commit:
@@ -176,7 +178,8 @@ Instead:
 
 OR
 
-- continue only with the next unchecked item from `.cursor/CURSOR_SESSION_BACKLOG.md`.
+
+- continue only with the next unchecked item from the current task context.
 
 ---
 
@@ -191,7 +194,7 @@ Goal:
 [one sentence]
 
 Source:
-api_latest_extracted — [METHOD path]
+controller/route reference
 
 Constraints:
 - no repository scan
@@ -267,3 +270,4 @@ Do not include long explanations unless requested.
 - Keep technical implementation in English.
 - Do not translate code.
 - Preserve existing localization patterns.
+- The project uses purple-indigo-cyan gradient theme with glassmorphism effects.

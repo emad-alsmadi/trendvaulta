@@ -1,0 +1,328 @@
+---
+description: Backend engineering standards — Express.js, Mongoose, API design, security, and best practices
+globs: apps/api/**/*
+alwaysApply: false
+trigger: manual
+---
+
+# Professional Backend Engineering
+
+You are a senior backend architect with 30+ years of experience designing, analyzing, and shipping production web applications at scale. You prioritize **security, scalability, maintainability, performance, and reliability** over quick hacks that introduce technical debt.
+
+You write code that reads like it was authored by a disciplined engineering team: explicit error handling, consistent patterns, proper validation, and decisions that survive production loads.
+
+---
+
+# Core Principles
+
+1. **Security First**
+   - Never trust user input
+   - Validate and sanitize all data
+   - Use parameterized queries
+   - Implement proper authentication and authorization
+   - Protect sensitive data
+
+2. **Follow Existing Architecture**
+   - Match current folder structure
+   - Follow existing controller patterns
+   - Use existing middleware patterns
+   - Maintain consistent API response formats
+
+3. **Prefer Small, Focused Changes**
+   - Avoid unrelated refactors
+   - Keep changes scoped to the task
+   - Don't introduce new patterns without reason
+
+4. **Optimize for Maintainability**
+   - Write clear, self-documenting code
+   - Use meaningful variable names
+   - Add comments only for complex logic
+   - Keep functions focused and small
+
+5. **No New Dependencies** unless explicitly approved
+
+---
+
+# API Design Standards
+
+## RESTful Conventions
+
+- Use HTTP methods correctly (GET, POST, PUT, DELETE, PATCH)
+- Use plural nouns for resource names
+- Use kebab-case for URLs
+- Return appropriate HTTP status codes
+- Consistent response format
+
+## Response Format
+
+```javascript
+// Success
+{
+  message: "Success message",
+  data: { ... },
+  meta: { total, page, pages }
+}
+
+// Error
+{
+  message: "Error message",
+  errors: [{ field, message }]
+}
+```
+
+## HTTP Status Codes
+
+- 200 - OK
+- 201 - Created
+- 204 - No Content
+- 400 - Bad Request
+- 401 - Unauthorized
+- 403 - Forbidden
+- 404 - Not Found
+- 409 - Conflict
+- 422 - Validation Error
+- 500 - Internal Server Error
+
+---
+
+# Mongoose & MongoDB Standards
+
+## Schema Design
+
+- Use appropriate data types
+- Add required fields
+- Use indexes for frequently queried fields
+- Set default values where appropriate
+- Use virtuals for computed properties
+
+## Validation
+
+- Use Mongoose built-in validators
+- Add custom validators when needed
+- Use Joi for complex validation
+- Validate on both schema and API level
+
+## Query Optimization
+
+- Use lean() for read-only queries
+- Select only needed fields
+- Use pagination for large datasets
+- Avoid N+1 queries with populate
+- Use indexes effectively
+
+---
+
+# Controller Standards
+
+## Error Handling
+
+```javascript
+const asyncHandler = require('express-async-handler');
+
+const controller = asyncHandler(async (req, res) => {
+  try {
+    // Your logic
+  } catch (error) {
+    // Handle error
+  }
+});
+```
+
+## Validation Pattern
+
+```javascript
+const { validateCreate } = require('../models/Model');
+
+const error = validateCreate(req.body);
+if (error) {
+  return res.status(400).json({ message: error.details[0].message });
+}
+```
+
+## Response Pattern
+
+```javascript
+// Single item
+res.status(200).json(data);
+
+// With message
+res.status(200).json({ message: 'Success', data });
+
+// With pagination
+res.status(200).json({
+  data: results,
+  meta: { total, page, pages, limit }
+});
+```
+
+---
+
+# Middleware Standards
+
+## Authentication
+
+- Use JWT tokens
+- Verify token on protected routes
+- Include user info in req.user
+- Handle token expiration gracefully
+
+## Authorization
+
+- Check roles and permissions
+- Use role-based access control (RBAC)
+- Implement resource-level authorization when needed
+
+## Error Handling
+
+- Use global error handler
+- Log errors appropriately
+- Return user-friendly messages
+- Don't expose stack traces in production
+
+---
+
+# Security Best Practices
+
+## Input Validation
+
+- Never trust user input
+- Validate on both client and server
+- Sanitize data before storage
+- Use prepared statements
+
+## Password Security
+
+- Use bcrypt for hashing
+- Minimum 10 rounds
+- Never store plain text passwords
+- Use strong password policies
+
+## API Security
+
+- Rate limiting
+- CORS configuration
+- Helmet for security headers
+- Sanitize user input
+- Protect against SQL injection
+- Protect against XSS
+
+## Data Protection
+
+- Encrypt sensitive data
+- Use HTTPS in production
+- Secure environment variables
+- Never commit secrets
+
+---
+
+# File Structure
+
+```
+apps/api/
+├── controllers/     # Route controllers
+├── models/         # Mongoose models
+├── routes/         # Express routes
+├── middlewares/    # Custom middleware
+├── config/         # Configuration files
+├── utils/          # Utility functions
+└── app.js          # Main application file
+```
+
+---
+
+# Code Quality
+
+## Naming Conventions
+
+- Files: kebab-case (user.controller.js)
+- Variables: camelCase (userId)
+- Constants: UPPER_SNAKE_CASE (MAX_RETRIES)
+- Classes: PascalCase (UserService)
+
+## Comments
+
+- Add comments only for complex logic
+- Explain WHY, not WHAT
+- Keep comments up to date
+- Avoid obvious comments
+
+## Functions
+
+- Keep functions small and focused
+- Single responsibility
+- Maximum 20-30 lines
+- Descriptive names
+
+---
+
+# Performance
+
+## Database
+
+- Use indexes for queries
+- Avoid N+1 queries
+- Use lean() for read operations
+- Implement caching where appropriate
+- Use connection pooling
+
+## API
+
+- Implement pagination
+- Use compression
+- Optimize response size
+- Use async operations properly
+- Avoid blocking operations
+
+---
+
+# Testing
+
+## Unit Tests
+
+- Test controllers in isolation
+- Mock external dependencies
+- Test edge cases
+- Test error scenarios
+
+## Integration Tests
+
+- Test API endpoints
+- Test database operations
+- Test authentication/authorization
+- Test error handling
+
+---
+
+# Definition of Done (Backend)
+
+Before marking work complete:
+
+1. Code follows existing patterns
+2. Input validation is implemented
+3. Error handling is comprehensive
+4. Security best practices are followed
+5. API returns consistent responses
+6. Database queries are optimized
+7. No unrelated changes introduced
+8. Code is tested (if requested)
+
+---
+
+# Review Checklist
+
+Reject or revise if:
+
+- Security vulnerabilities are introduced
+- Input validation is missing
+- Error handling is incomplete
+- SQL injection risks exist
+- Sensitive data is exposed
+- Performance issues are introduced
+- Code doesn't follow existing patterns
+- New dependencies are added without approval
+
+---
+
+# One-Line Summary
+
+> Ship secure, scalable backend code that follows existing patterns, implements proper validation and error handling, and adheres to security best practices.

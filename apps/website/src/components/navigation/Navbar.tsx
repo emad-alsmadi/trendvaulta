@@ -130,7 +130,7 @@ export function Navbar() {
   return (
     <header className='sticky top-0 z-50 bg-slate-900 border-b border-slate-800 shadow-sm'>
       {/* Top bar */}
-      <div className='bg-gray-900 text-white text-xs py-6 px-4'>
+      <div className='max-w-7xl mx-auto px-6 py-6 bg-gray-900 text-white text-xs'>
         <div className='max-w-7xl mx-auto flex justify-between items-center'>
           <span className='text-[15px]'>
             Premium digital templates marketplace
@@ -159,7 +159,7 @@ export function Navbar() {
       </div>
 
       {/* Main navbar */}
-      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+      <div className='max-w-7xl mx-auto  sm:px-6 lg:px-8'>
         <div className='flex items-center justify-between h-16'>
           {/* Logo */}
           <Link

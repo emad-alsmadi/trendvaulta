@@ -1,7 +1,7 @@
 ---
 description: Frontend engineering standards — practical React architecture, loading UX, performance, and maintainability
-globs: frontend/**/*
-alwaysApply: false
+globs: apps/website/**/*
+trigger: manual
 ---
 
 # Professional Frontend Engineering
