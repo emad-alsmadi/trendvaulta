@@ -130,285 +130,287 @@ export function Navbar() {
   return (
     <header className='sticky top-0 z-50 bg-slate-900 border-b border-slate-800 shadow-sm'>
       {/* Top bar */}
-      <div className='max-w-7xl mx-auto px-6 py-6 bg-gray-900 text-white text-xs'>
-        <div className='max-w-7xl mx-auto flex justify-between items-center'>
-          <span className='text-[15px]'>
-            Premium digital templates marketplace
-          </span>
-          <div className='flex items-center gap-4'>
-            <Link
-              href='/about'
-              className='text-[15px] hover:text-gray-300 transition-colors'
-            >
-              About
-            </Link>
-            <Link
-              href='/pricing'
-              className='text-[15px] hover:text-gray-300 transition-colors'
-            >
-              Pricing
-            </Link>
-            <Link
-              href='/creators'
-              className='text-[15px] hover:text-gray-300 transition-colors'
-            >
-              Sell
-            </Link>
+      <div className='max-w-[1420px] mx-auto  sm:px-6 lg:px-8'>
+        <div className='py-4 bg-gray-900 text-white text-xs'>
+          <div className='flex justify-between items-center'>
+            <span className='text-[15px]'>
+              Premium digital templates marketplace
+            </span>
+            <div className='flex items-center gap-4'>
+              <Link
+                href='/about'
+                className='text-[15px] hover:text-gray-300 transition-colors'
+              >
+                About
+              </Link>
+              <Link
+                href='/pricing'
+                className='text-[15px] hover:text-gray-300 transition-colors'
+              >
+                Pricing
+              </Link>
+              <Link
+                href='/creators'
+                className='text-[15px] hover:text-gray-300 transition-colors'
+              >
+                Sell
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Main navbar */}
-      <div className='max-w-7xl mx-auto  sm:px-6 lg:px-8'>
-        <div className='flex items-center justify-between h-16'>
-          {/* Logo */}
-          <Link
-            href='/'
-            className='flex items-center gap-2'
-          >
-            <span className='inline-flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-fuchsia-600 via-indigo-600 to-cyan-500 text-white shadow-sm'>
-              <BookOpen className='h-5 w-5' />
-            </span>
-            <div className='leading-tight'>
-              <div className='text-xl font-extrabold tracking-tight text-white'>
-                Craftify
+        {/* Main navbar */}
+        <div className='pb-2'>
+          <div className='flex items-center justify-between h-16'>
+            {/* Logo */}
+            <Link
+              href='/'
+              className='flex items-center gap-2'
+            >
+              <span className='inline-flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-fuchsia-600 via-indigo-600 to-cyan-500 text-white shadow-sm'>
+                <BookOpen className='h-5 w-5' />
+              </span>
+              <div className='leading-tight'>
+                <div className='text-xl font-extrabold tracking-tight text-white'>
+                  Craftify
+                </div>
               </div>
-            </div>
-          </Link>
-
-          {/* Search bar - Desktop */}
-          <div className='hidden md:flex flex-1 max-w-xl mx-8'>
-            <form
-              onSubmit={handleSearch}
-              className='relative w-full'
-            >
-              <input
-                type='text'
-                placeholder='Search templates...'
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className='w-full pl-10 pr-4 py-2 border border-slate-600 bg-slate-800 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-slate-400'
-              />
-              <Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400' />
-            </form>
-          </div>
-
-          {/* Navigation - Desktop */}
-          <nav className='hidden md:flex items-center gap-6'>
-            <DropdownMenu.Root>
-              <DropdownMenu.Trigger asChild>
-                <button className='flex items-center gap-1 text-white hover:text-slate-200 font-medium transition-colors'>
-                  Categories
-                  <ChevronDown className='h-4 w-4' />
-                </button>
-              </DropdownMenu.Trigger>
-              <DropdownMenu.Portal>
-                <DropdownMenu.Content
-                  align='start'
-                  sideOffset={10}
-                  className='z-50 min-w-[200px] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg'
-                >
-                  {categories.map((category) => (
-                    <DropdownMenu.Item
-                      key={category.href}
-                      asChild
-                    >
-                      <Link
-                        href={category.href}
-                        className='block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
-                      >
-                        {category.name}
-                      </Link>
-                    </DropdownMenu.Item>
-                  ))}
-                </DropdownMenu.Content>
-              </DropdownMenu.Portal>
-            </DropdownMenu.Root>
-
-            <Link
-              href='/templates'
-              className='text-white hover:text-slate-200 font-medium transition-colors'
-            >
-              Templates
             </Link>
 
-            <Link
-              href='/creators'
-              className='text-white hover:text-slate-200 font-medium transition-colors'
-            >
-              Creators
-            </Link>
-          </nav>
-
-          {/* Right side */}
-          <div className='flex items-center gap-4'>
-            {/* Cart */}
-            <Link
-              href='/cart'
-              className='relative p-2 text-white hover:text-slate-200 transition-colors'
-            >
-              <ShoppingCart className='h-5 w-5' />
-              {cart.count > 0 && (
-                <span className='absolute -top-1 -right-1 h-5 w-5 bg-indigo-600 text-white text-xs rounded-full flex items-center justify-center font-bold'>
-                  {cart.count}
-                </span>
-              )}
-            </Link>
-
-            {/* Wishlist */}
-            <Link
-              href='/wishlist'
-              className='hidden sm:block p-2 text-white hover:text-slate-200 transition-colors'
-            >
-              <Heart className='h-5 w-5' />
-            </Link>
-
-            {/* Account */}
-            {!hydrated || !user ? (
-              <Link
-                href='/auth/login'
-                className='inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors'
+            {/* Search bar - Desktop */}
+            <div className='hidden md:flex flex-1 max-w-xl mx-8'>
+              <form
+                onSubmit={handleSearch}
+                className='relative w-full'
               >
-                <LogIn className='h-4 w-4' />
-                <span className='hidden sm:inline'>Sign In</span>
-              </Link>
-            ) : (
+                <input
+                  type='text'
+                  placeholder='Search templates...'
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className='w-full pl-10 pr-4 py-2 border border-slate-600 bg-slate-800 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-slate-400'
+                />
+                <Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400' />
+              </form>
+            </div>
+
+            {/* Navigation - Desktop */}
+            <nav className='hidden md:flex items-center gap-6'>
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger asChild>
-                  <button className='flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition-colors'>
-                    <span
-                      className={cn(
-                        'inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-extrabold text-white',
-                        avatarStyle.bg,
-                      )}
-                    >
-                      {initials}
-                    </span>
-                    <span className='hidden sm:block text-sm font-medium text-gray-700'>
-                      {user?.username || 'Account'}
-                    </span>
-                    <ChevronDown className='h-4 w-4 text-gray-400' />
+                  <button className='flex items-center gap-1 text-white hover:text-slate-200 font-medium transition-colors'>
+                    Categories
+                    <ChevronDown className='h-4 w-4' />
                   </button>
                 </DropdownMenu.Trigger>
-
                 <DropdownMenu.Portal>
                   <DropdownMenu.Content
-                    align='end'
+                    align='start'
                     sideOffset={10}
-                    className='z-50 min-w-[240px] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg'
+                    className='z-50 min-w-[200px] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg'
                   >
-                    <div className='px-4 py-3 border-b border-gray-200'>
-                      <div className='text-sm font-semibold text-gray-900'>
-                        {user?.username || 'Account'}
-                      </div>
-                      <div className='text-xs text-gray-500'>
-                        {user?.email || 'Signed in'}
-                      </div>
-                    </div>
-
-                    <DropdownMenu.Item asChild>
-                      <Link
-                        href='/profile'
-                        className='flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
+                    {categories.map((category) => (
+                      <DropdownMenu.Item
+                        key={category.href}
+                        asChild
                       >
-                        <User className='h-4 w-4' />
-                        Profile
-                      </Link>
-                    </DropdownMenu.Item>
-
-                    <DropdownMenu.Item asChild>
-                      <Link
-                        href='/orders'
-                        className='flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
-                      >
-                        <Receipt className='h-4 w-4' />
-                        Orders
-                      </Link>
-                    </DropdownMenu.Item>
-
-                    <DropdownMenu.Item asChild>
-                      <Link
-                        href='/downloads'
-                        className='flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
-                      >
-                        <Download className='h-4 w-4' />
-                        Downloads
-                      </Link>
-                    </DropdownMenu.Item>
-
-                    <DropdownMenu.Item asChild>
-                      <Link
-                        href='/reviews'
-                        className='flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
-                      >
-                        <MessageSquare className='h-4 w-4' />
-                        Reviews
-                      </Link>
-                    </DropdownMenu.Item>
-
-                    <DropdownMenu.Item asChild>
-                      <Link
-                        href='/wishlist'
-                        className='flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
-                      >
-                        <Heart className='h-4 w-4' />
-                        Wishlist
-                      </Link>
-                    </DropdownMenu.Item>
-
-                    {getUserRole() === 'admin' ||
-                    user?.roles?.includes('admin') ? (
-                      <DropdownMenu.Item asChild>
                         <Link
-                          href='/admin/dashboard'
-                          className='flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
+                          href={category.href}
+                          className='block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
                         >
-                          <Shield className='h-4 w-4' />
-                          Admin Dashboard
+                          {category.name}
                         </Link>
                       </DropdownMenu.Item>
-                    ) : null}
-
-                    <DropdownMenu.Separator className='my-1 h-px bg-gray-200' />
-
-                    <DropdownMenu.Item
-                      onSelect={(e) => {
-                        e.preventDefault();
-                        void confirm({
-                          variant: 'danger',
-                          title: 'Log out?',
-                          description:
-                            'You will need to sign in again to access your account.',
-                          confirmLabel: 'Log out',
-                          cancelLabel: 'Cancel',
-                          closeOnBackdrop: false,
-                          onConfirm: async () => {
-                            await logout();
-                            router.push('/');
-                          },
-                        });
-                      }}
-                      className='flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors'
-                    >
-                      <LogOut className='h-4 w-4' />
-                      Logout
-                    </DropdownMenu.Item>
+                    ))}
                   </DropdownMenu.Content>
                 </DropdownMenu.Portal>
               </DropdownMenu.Root>
-            )}
 
-            {/* Mobile menu button */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className='md:hidden p-2 text-gray-700 hover:text-gray-900'
-            >
-              {mobileMenuOpen ? (
-                <X className='h-6 w-6' />
+              <Link
+                href='/templates'
+                className='text-white hover:text-slate-200 font-medium transition-colors'
+              >
+                Templates
+              </Link>
+
+              <Link
+                href='/creators'
+                className='text-white hover:text-slate-200 font-medium transition-colors'
+              >
+                Creators
+              </Link>
+            </nav>
+
+            {/* Right side */}
+            <div className='flex items-center gap-4'>
+              {/* Cart */}
+              <Link
+                href='/cart'
+                className='relative p-2 text-white hover:text-slate-200 transition-colors'
+              >
+                <ShoppingCart className='h-5 w-5' />
+                {cart.count > 0 && (
+                  <span className='absolute -top-1 -right-1 h-5 w-5 bg-indigo-600 text-white text-xs rounded-full flex items-center justify-center font-bold'>
+                    {cart.count}
+                  </span>
+                )}
+              </Link>
+
+              {/* Wishlist */}
+              <Link
+                href='/wishlist'
+                className='hidden sm:block p-2 text-white hover:text-slate-200 transition-colors'
+              >
+                <Heart className='h-5 w-5' />
+              </Link>
+
+              {/* Account */}
+              {!hydrated || !user ? (
+                <Link
+                  href='/auth/login'
+                  className='inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors'
+                >
+                  <LogIn className='h-4 w-4' />
+                  <span className='hidden sm:inline'>Sign In</span>
+                </Link>
               ) : (
-                <Menu className='h-6 w-6' />
+                <DropdownMenu.Root>
+                  <DropdownMenu.Trigger asChild>
+                    <button className='flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition-colors'>
+                      <span
+                        className={cn(
+                          'inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-extrabold text-white',
+                          avatarStyle.bg,
+                        )}
+                      >
+                        {initials}
+                      </span>
+                      <span className='hidden sm:block text-sm font-medium text-gray-700'>
+                        {user?.username || 'Account'}
+                      </span>
+                      <ChevronDown className='h-4 w-4 text-gray-400' />
+                    </button>
+                  </DropdownMenu.Trigger>
+
+                  <DropdownMenu.Portal>
+                    <DropdownMenu.Content
+                      align='end'
+                      sideOffset={10}
+                      className='z-50 min-w-[240px] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg'
+                    >
+                      <div className='px-4 py-3 border-b border-gray-200'>
+                        <div className='text-sm font-semibold text-gray-900'>
+                          {user?.username || 'Account'}
+                        </div>
+                        <div className='text-xs text-gray-500'>
+                          {user?.email || 'Signed in'}
+                        </div>
+                      </div>
+
+                      <DropdownMenu.Item asChild>
+                        <Link
+                          href='/profile'
+                          className='flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
+                        >
+                          <User className='h-4 w-4' />
+                          Profile
+                        </Link>
+                      </DropdownMenu.Item>
+
+                      <DropdownMenu.Item asChild>
+                        <Link
+                          href='/orders'
+                          className='flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
+                        >
+                          <Receipt className='h-4 w-4' />
+                          Orders
+                        </Link>
+                      </DropdownMenu.Item>
+
+                      <DropdownMenu.Item asChild>
+                        <Link
+                          href='/downloads'
+                          className='flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
+                        >
+                          <Download className='h-4 w-4' />
+                          Downloads
+                        </Link>
+                      </DropdownMenu.Item>
+
+                      <DropdownMenu.Item asChild>
+                        <Link
+                          href='/reviews'
+                          className='flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
+                        >
+                          <MessageSquare className='h-4 w-4' />
+                          Reviews
+                        </Link>
+                      </DropdownMenu.Item>
+
+                      <DropdownMenu.Item asChild>
+                        <Link
+                          href='/wishlist'
+                          className='flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
+                        >
+                          <Heart className='h-4 w-4' />
+                          Wishlist
+                        </Link>
+                      </DropdownMenu.Item>
+
+                      {getUserRole() === 'admin' ||
+                      user?.roles?.includes('admin') ? (
+                        <DropdownMenu.Item asChild>
+                          <Link
+                            href='/admin/dashboard'
+                            className='flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
+                          >
+                            <Shield className='h-4 w-4' />
+                            Admin Dashboard
+                          </Link>
+                        </DropdownMenu.Item>
+                      ) : null}
+
+                      <DropdownMenu.Separator className='my-1 h-px bg-gray-200' />
+
+                      <DropdownMenu.Item
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          void confirm({
+                            variant: 'danger',
+                            title: 'Log out?',
+                            description:
+                              'You will need to sign in again to access your account.',
+                            confirmLabel: 'Log out',
+                            cancelLabel: 'Cancel',
+                            closeOnBackdrop: false,
+                            onConfirm: async () => {
+                              await logout();
+                              router.push('/');
+                            },
+                          });
+                        }}
+                        className='flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors'
+                      >
+                        <LogOut className='h-4 w-4' />
+                        Logout
+                      </DropdownMenu.Item>
+                    </DropdownMenu.Content>
+                  </DropdownMenu.Portal>
+                </DropdownMenu.Root>
               )}
-            </button>
+
+              {/* Mobile menu button */}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className='md:hidden p-2 text-gray-700 hover:text-gray-900'
+              >
+                {mobileMenuOpen ? (
+                  <X className='h-6 w-6' />
+                ) : (
+                  <Menu className='h-6 w-6' />
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
