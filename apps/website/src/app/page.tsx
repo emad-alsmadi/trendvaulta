@@ -77,99 +77,67 @@ export default function HomePage() {
           <div className='absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl translate-x-1/2 translate-y-1/2'></div>
         </div>
 
-        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 relative'>
-          <div className='grid grid-cols-1 lg:grid-cols-2 gap-12 items-center'>
-            {/* Left Side - Content */}
-            <div className='space-y-6'>
-              <h1 className='text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight'>
-                The #1 marketplace for premium web templates
-              </h1>
-              <p className='text-lg sm:text-xl text-white/90'>
-                Discover thousands of professionally designed templates for
-                websites, apps, and more. Start your next project with
-                confidence.
-              </p>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 relative'>
+          <div className='text-center max-w-4xl mx-auto space-y-8'>
+            <h1 className='text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight'>
+              The #1 marketplace for premium web templates
+            </h1>
+            <p className='text-lg sm:text-xl text-white/90 max-w-2xl mx-auto'>
+              Discover thousands of professionally designed templates for
+              websites, apps, and more. Start your next project with confidence.
+            </p>
 
-              {/* Search Box */}
-              <form
-                onSubmit={handleSearch}
-                className='relative max-w-xl'
+            {/* Search Box */}
+            <form
+              onSubmit={handleSearch}
+              className='relative max-w-2xl mx-auto'
+            >
+              <input
+                type='text'
+                placeholder='Search templates...'
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className='w-full pl-16 pr-40 py-5 rounded-lg border-0 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-white/30 shadow-lg text-lg'
+              />
+              <Search className='absolute left-5 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-400' />
+              <button
+                type='submit'
+                className='absolute right-2 top-1/2 -translate-y-1/2 px-8 py-3 bg-[#82b440] hover:bg-[#6a9a32] text-white rounded-md font-semibold transition-colors text-base'
               >
-                <input
-                  type='text'
-                  placeholder='Search templates...'
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className='w-full pl-12 pr-4 py-4 rounded-lg border-0 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-white/30 shadow-lg'
-                />
-                <Search className='absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400' />
-                <button
-                  type='submit'
-                  className='absolute right-2 top-1/2 -translate-y-1/2 px-6 py-2 bg-[#82b440] hover:bg-[#6a9a32] text-white rounded-md font-medium transition-colors'
-                >
-                  Search
-                </button>
-              </form>
+                Search
+              </button>
+            </form>
 
-              {/* Quick Links */}
-              <div className='flex flex-wrap gap-3'>
-                <Link
-                  href='/templates?category=website'
-                  className='inline-flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-md text-sm font-medium transition-colors'
-                >
-                  <LayoutGrid className='h-4 w-4' />
-                  Website Templates
-                </Link>
-                <Link
-                  href='/templates?category=wordpress'
-                  className='inline-flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-md text-sm font-medium transition-colors'
-                >
-                  <LayoutGrid className='h-4 w-4' />
-                  WordPress Themes
-                </Link>
-                <Link
-                  href='/templates?category=ecommerce'
-                  className='inline-flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-md text-sm font-medium transition-colors'
-                >
-                  <ShoppingCart className='h-4 w-4' />
-                  E-commerce
-                </Link>
-              </div>
-            </div>
-
-            {/* Right Side - Images */}
-            <div className='hidden lg:grid grid-cols-2 gap-4'>
-              <div className='space-y-4'>
-                <div className='aspect-[4/3] rounded-lg bg-white/10 backdrop-blur-sm overflow-hidden shadow-xl border border-white/20 hover:scale-105 transition-transform duration-300'>
-                  <div className='w-full h-full bg-gradient-to-br from-white/20 to-white/5 flex items-center justify-center'>
-                    <LayoutGrid className='h-16 w-16 text-white/60' />
-                  </div>
-                </div>
-                <div className='aspect-[4/3] rounded-lg bg-white/10 backdrop-blur-sm overflow-hidden shadow-xl border border-white/20 hover:scale-105 transition-transform duration-300'>
-                  <div className='w-full h-full bg-gradient-to-br from-white/20 to-white/5 flex items-center justify-center'>
-                    <Sparkles className='h-16 w-16 text-white/60' />
-                  </div>
-                </div>
-              </div>
-              <div className='space-y-4 mt-8'>
-                <div className='aspect-[4/3] rounded-lg bg-white/10 backdrop-blur-sm overflow-hidden shadow-xl border border-white/20 hover:scale-105 transition-transform duration-300'>
-                  <div className='w-full h-full bg-gradient-to-br from-white/20 to-white/5 flex items-center justify-center'>
-                    <Users className='h-16 w-16 text-white/60' />
-                  </div>
-                </div>
-                <div className='aspect-[4/3] rounded-lg bg-white/10 backdrop-blur-sm overflow-hidden shadow-xl border border-white/20 hover:scale-105 transition-transform duration-300'>
-                  <div className='w-full h-full bg-gradient-to-br from-white/20 to-white/5 flex items-center justify-center'>
-                    <Heart className='h-16 w-16 text-white/60' />
-                  </div>
-                </div>
-              </div>
+            {/* Quick Links */}
+            <div className='flex flex-wrap justify-center gap-3 pt-4'>
+              <Link
+                href='/templates?category=website'
+                className='inline-flex items-center gap-2 px-5 py-2.5 bg-white/20 hover:bg-white/30 rounded-md text-sm font-medium transition-colors'
+              >
+                <LayoutGrid className='h-4 w-4' />
+                Website Templates
+              </Link>
+              <Link
+                href='/templates?category=wordpress'
+                className='inline-flex items-center gap-2 px-5 py-2.5 bg-white/20 hover:bg-white/30 rounded-md text-sm font-medium transition-colors'
+              >
+                <LayoutGrid className='h-4 w-4' />
+                WordPress Themes
+              </Link>
+              <Link
+                href='/templates?category=ecommerce'
+                className='inline-flex items-center gap-2 px-5 py-2.5 bg-white/20 hover:bg-white/30 rounded-md text-sm font-medium transition-colors'
+              >
+                <ShoppingCart className='h-4 w-4' />
+                E-commerce
+              </Link>
             </div>
           </div>
         </div>
       </div>
 
       {/* Featured Categories Section */}
-      <div className='bg-white py-16'>
+      <div className='bg-white py-20'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
           <div className='text-center mb-12'>
             <h2 className='text-3xl font-bold text-gray-900 mb-4'>
@@ -277,7 +245,7 @@ export default function HomePage() {
       </div>
 
       {/* Trending Templates Section */}
-      <div className='bg-white py-16'>
+      <div className='bg-white py-20'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
           <div className='flex items-center justify-between mb-8'>
             <div>
@@ -316,7 +284,7 @@ export default function HomePage() {
       </div>
 
       {/* New Arrivals Section */}
-      <div className='bg-gray-50 py-16'>
+      <div className='bg-gray-50 py-20'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
           <div className='flex items-center justify-between mb-8'>
             <div>
@@ -355,7 +323,7 @@ export default function HomePage() {
       </div>
 
       {/* All Templates with Filters */}
-      <div className='bg-white py-16'>
+      <div className='bg-white py-20'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
           <div className='flex items-center justify-between mb-8'>
             <div>
@@ -447,7 +415,7 @@ export default function HomePage() {
       </div>
 
       {/* Top Creators Section */}
-      <div className='bg-white py-16'>
+      <div className='bg-white py-20'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
           <div className='flex items-center justify-between mb-8'>
             <div>
@@ -527,7 +495,7 @@ export default function HomePage() {
       </div>
 
       {/* CTA Section */}
-      <div className='bg-gradient-to-r from-[#82b440] to-[#5a8a2a] text-white py-16'>
+      <div className='bg-gradient-to-r from-[#82b440] to-[#5a8a2a] text-white py-20'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center'>
           <h2 className='text-3xl font-bold mb-4'>Ready to Start Selling?</h2>
           <p className='text-lg text-white/90 mb-8 max-w-2xl mx-auto'>
