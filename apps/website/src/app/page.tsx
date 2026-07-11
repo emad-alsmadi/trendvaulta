@@ -16,6 +16,10 @@ import {
   Globe,
   Palette,
   ArrowRight,
+  Shield,
+  Zap,
+  HeadphonesIcon,
+  Award,
 } from 'lucide-react';
 import { Template } from '@/types';
 import { motion } from 'framer-motion';
@@ -220,6 +224,62 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* Why Choose Us Section */}
+      <div className='bg-gray-50 py-20'>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+          <div className='text-center mb-12'>
+            <h2 className='text-3xl font-bold text-gray-900 mb-4'>
+              Why Choose Craftify?
+            </h2>
+            <p className='text-gray-600 text-lg'>
+              We provide the best template marketplace experience
+            </p>
+          </div>
+
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8'>
+            {[
+              {
+                icon: Shield,
+                title: 'Quality Assurance',
+                description:
+                  'All templates are reviewed and tested by our expert team',
+              },
+              {
+                icon: Zap,
+                title: 'Fast Delivery',
+                description:
+                  'Instant download access immediately after purchase',
+              },
+              {
+                icon: HeadphonesIcon,
+                title: '24/7 Support',
+                description: 'Our support team is always ready to help you',
+              },
+              {
+                icon: Award,
+                title: 'Best Prices',
+                description:
+                  'Competitive pricing with regular discounts and offers',
+              },
+            ].map((feature) => (
+              <motion.div
+                key={feature.title}
+                whileHover={{ y: -4 }}
+                className='bg-white rounded-lg p-6 text-center hover:shadow-lg transition-shadow duration-300 border border-gray-200'
+              >
+                <div className='inline-flex h-16 w-16 items-center justify-center rounded-lg bg-gradient-to-br from-[#82b440] to-[#5a8a2a] text-white mb-4'>
+                  <feature.icon className='h-8 w-8' />
+                </div>
+                <h3 className='font-semibold text-gray-900 mb-2 text-lg'>
+                  {feature.title}
+                </h3>
+                <p className='text-gray-600 text-sm'>{feature.description}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Stats Bar */}
       <div className='bg-gray-50 border-b border-gray-200'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
@@ -322,94 +382,79 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* All Templates with Filters */}
+      {/* Testimonials Section */}
       <div className='bg-white py-20'>
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
-          <div className='flex items-center justify-between mb-8'>
-            <div>
-              <h2 className='text-3xl font-bold text-gray-900 mb-2'>
-                All Templates
-              </h2>
-              <p className='text-gray-600'>Browse our complete collection</p>
-            </div>
+          <div className='text-center mb-12'>
+            <h2 className='text-3xl font-bold text-gray-900 mb-4'>
+              What Our Customers Say
+            </h2>
+            <p className='text-gray-600 text-lg'>
+              Join thousands of satisfied customers who trust Craftify
+            </p>
           </div>
 
-          <div className='grid grid-cols-1 gap-6 lg:grid-cols-[360px_1fr]'>
-            <aside className='lg:sticky lg:top-24 lg:self-start'>
-              <FilterSidebar
-                filters={query}
-                onFiltersChange={handleFiltersChange}
-              />
-            </aside>
-
-            <div className='min-w-0'>
-              {loading && (
-                <div className='rounded-lg border border-gray-200 bg-white p-5 shadow-sm'>
-                  <div className='flex items-center gap-3'>
-                    <Loader2 className='h-5 w-5 animate-spin text-[#82b440]' />
-                    <div className='text-sm font-semibold text-gray-700'>
-                      Loading templates...
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'>
+            {[
+              {
+                name: 'Sarah Johnson',
+                role: 'Web Developer',
+                content:
+                  'Craftify has been a game-changer for my freelance business. The templates are top-notch and save me countless hours of work.',
+                rating: 5,
+                avatar: 'SJ',
+              },
+              {
+                name: 'Michael Chen',
+                role: 'Agency Owner',
+                content:
+                  'The quality of templates on Craftify is unmatched. We use them for all our client projects and they always impress.',
+                rating: 5,
+                avatar: 'MC',
+              },
+              {
+                name: 'Emily Davis',
+                role: 'Startup Founder',
+                content:
+                  'As a startup, we needed professional templates on a budget. Craftify delivered exactly that with excellent support.',
+                rating: 5,
+                avatar: 'ED',
+              },
+            ].map((testimonial) => (
+              <motion.div
+                key={testimonial.name}
+                whileHover={{ y: -4 }}
+                className='bg-gray-50 rounded-lg p-6 hover:shadow-lg transition-shadow duration-300 border border-gray-200'
+              >
+                <div className='flex items-center gap-1 mb-4'>
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <svg
+                      key={i}
+                      className='h-5 w-5 text-yellow-400 fill-current'
+                      viewBox='0 0 20 20'
+                    >
+                      <path d='M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z' />
+                    </svg>
+                  ))}
+                </div>
+                <p className='text-gray-700 mb-6 leading-relaxed'>
+                  {testimonial.content}
+                </p>
+                <div className='flex items-center gap-3'>
+                  <div className='inline-flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#82b440] to-[#5a8a2a] text-white font-bold'>
+                    {testimonial.avatar}
+                  </div>
+                  <div>
+                    <div className='font-semibold text-gray-900'>
+                      {testimonial.name}
+                    </div>
+                    <div className='text-sm text-gray-500'>
+                      {testimonial.role}
                     </div>
                   </div>
-                  <div className='mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
-                    {Array.from({ length: 8 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className='h-[260px] animate-pulse rounded-lg border border-gray-200 bg-gray-100'
-                      />
-                    ))}
-                  </div>
                 </div>
-              )}
-
-              {error && (
-                <div className='rounded-lg border border-red-200 bg-red-50 p-6 text-red-900'>
-                  <p className='font-semibold'>{error}</p>
-                  <button
-                    onClick={() => templatesQuery.refetch()}
-                    className='mt-2 underline'
-                  >
-                    Try again
-                  </button>
-                </div>
-              )}
-
-              {!loading && !error && data && (
-                <>
-                  <div className='rounded-lg border border-gray-200 bg-white p-5 shadow-sm'>
-                    <p className='text-sm font-semibold text-gray-700'>
-                      Showing {data.data.length} of {data.meta.total} templates
-                    </p>
-                  </div>
-
-                  <motion.div
-                    variants={gridVariants}
-                    initial='hidden'
-                    animate='show'
-                    className='mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-                  >
-                    {data.data.map((template: Template) => (
-                      <motion.div
-                        key={template._id}
-                        variants={itemVariants}
-                      >
-                        <TemplateCard template={template} />
-                      </motion.div>
-                    ))}
-                  </motion.div>
-
-                  {data.meta.pages > 1 && (
-                    <div className='mt-8 flex justify-center'>
-                      <Pagination
-                        currentPage={data.meta.page}
-                        totalPages={data.meta.pages}
-                        onPageChange={handlePageChange}
-                      />
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+              </motion.div>
+            ))}
           </div>
         </div>
       </div>
