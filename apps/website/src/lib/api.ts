@@ -18,6 +18,11 @@ import {
   ReviewUpdatePayload,
   Download,
   DownloadPayload,
+  Coupon,
+  CouponsResponse,
+  CouponPayload,
+  CouponValidationRequest,
+  CouponValidationResponse,
 } from '@/types';
 import { getAuthToken } from '@/lib/authCookies';
 import { endpoints } from '@/lib/endpoints';
@@ -504,6 +509,50 @@ export const adminApi = {
     const { data } = await api.delete(endpoints.admin.users.delete(id));
     return data;
   },
+  /**
+   * Fetch coupons with admin-level access
+   * @param params - Query parameters for filtering and pagination
+   * @returns Paginated coupons response
+   */
+  getCoupons: async (
+    params: { page?: number; limit?: number } = {},
+  ): Promise<CouponsResponse> => {
+    const { data } = await api.get(endpoints.admin.coupons.list, {
+      params: { limit: 100, ...params },
+    });
+    return data;
+  },
+  /**
+   * Create a new coupon
+   * @param payload - Coupon creation data
+   * @returns Created coupon details
+   */
+  createCoupon: async (payload: CouponPayload): Promise<Coupon> => {
+    const { data } = await api.post(endpoints.admin.coupons.create, payload);
+    return data;
+  },
+  /**
+   * Update an existing coupon
+   * @param id - Coupon ID
+   * @param payload - Partial coupon update data
+   * @returns Updated coupon details
+   */
+  updateCoupon: async (
+    id: string,
+    payload: Partial<CouponPayload>,
+  ): Promise<Coupon> => {
+    const { data } = await api.put(endpoints.admin.coupons.update(id), payload);
+    return data;
+  },
+  /**
+   * Delete/deactivate a coupon
+   * @param id - Coupon ID
+   * @returns Deletion confirmation message
+   */
+  deleteCoupon: async (id: string): Promise<{ message: string }> => {
+    const { data } = await api.delete(endpoints.admin.coupons.delete(id));
+    return data;
+  },
 };
 
 /**
@@ -743,6 +792,46 @@ export const licensesApi = {
    */
   getUserLicenses: async (userId: string): Promise<any[]> => {
     const { data } = await api.get(endpoints.licenses.myPurchases(userId));
+    return data;
+  },
+};
+
+/**
+ * Coupons API - Handles coupon validation and management
+ */
+export const couponsApi = {
+  /**
+   * Validate a coupon code for a given order amount
+   * @param code - Coupon code
+   * @param orderAmount - Order total amount
+   * @returns Validation result with discount details
+   */
+  validateCoupon: async (
+    code: string,
+    orderAmount: number,
+  ): Promise<CouponValidationResponse> => {
+    const { data } = await api.post(endpoints.coupons.validate, {
+      code,
+      orderAmount,
+    });
+    return data;
+  },
+  /**
+   * Get coupon by code
+   * @param code - Coupon code
+   * @returns Coupon details
+   */
+  getCouponByCode: async (code: string): Promise<Coupon> => {
+    const { data } = await api.get(endpoints.coupons.byCode(code));
+    return data;
+  },
+  /**
+   * Increment coupon usage count
+   * @param couponId - Coupon ID
+   * @returns Updated coupon
+   */
+  incrementUsage: async (couponId: string): Promise<Coupon> => {
+    const { data } = await api.post(endpoints.coupons.incrementUsage(couponId));
     return data;
   },
 };

@@ -10,11 +10,19 @@ export type CartItem = {
   qty: number;
 };
 
-type CartState = {
-  items: CartItem[];
+export type AppliedCoupon = {
+  code: string;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  discountAmount: number;
 };
 
-const SERVER_SNAPSHOT: CartState = { items: [] };
+type CartState = {
+  items: CartItem[];
+  coupon: AppliedCoupon | null;
+};
+
+const SERVER_SNAPSHOT: CartState = { items: [], coupon: null };
 
 const STORAGE_KEY = 'craftify_cart_v1';
 
@@ -26,10 +34,11 @@ function emit() {
 }
 
 function safeParse(json: string | null): CartState {
-  if (!json) return { items: [] };
+  if (!json) return { items: [], coupon: null };
   try {
     const parsed = JSON.parse(json) as CartState;
-    if (!parsed || !Array.isArray(parsed.items)) return { items: [] };
+    if (!parsed || !Array.isArray(parsed.items))
+      return { items: [], coupon: null };
     // Migrate old templateId to templateId for compatibility
     const items = parsed.items.map((item: any) => ({
       ...item,
@@ -45,20 +54,21 @@ function safeParse(json: string | null): CartState {
           cover: String(x.cover ?? ''),
           qty: Math.max(1, Number(x.qty ?? 1)),
         })),
+      coupon: parsed.coupon || null,
     };
   } catch {
-    return { items: [] };
+    return { items: [], coupon: null };
   }
 }
 
 function readState(): CartState {
   //this function is called on the server and client
   // and important in next js beacase the code load on server SSR & ISR
-  if (typeof window === 'undefined') return { items: [] };
+  if (typeof window === 'undefined') return { items: [], coupon: null };
   return safeParse(window.localStorage.getItem(STORAGE_KEY));
 }
 
-let cachedClientState: CartState = { items: [] };
+let cachedClientState: CartState = { items: [], coupon: null };
 let cacheInitialized = false;
 
 // Get current status of cart
@@ -106,12 +116,15 @@ export function getCartState(): CartState {
 }
 
 export function clearCart() {
-  writeState({ items: [] });
+  writeState({ items: [], coupon: null });
 }
 
 export function removeFromCart(templateId: string) {
   const state = readState();
-  writeState({ items: state.items.filter((i) => i.templateId !== templateId) });
+  writeState({
+    items: state.items.filter((i) => i.templateId !== templateId),
+    coupon: state.coupon,
+  });
 }
 
 export function setCartQty(templateId: string, qty: number) {
@@ -121,6 +134,7 @@ export function setCartQty(templateId: string, qty: number) {
     items: state.items.map((i) =>
       i.templateId === templateId ? { ...i, qty: q } : i,
     ),
+    coupon: state.coupon,
   });
 }
 
@@ -134,6 +148,7 @@ export function addToCart(item: Omit<CartItem, 'qty'> & { qty?: number }) {
       items: state.items.map((i) =>
         i.templateId === item.templateId ? { ...i, qty: i.qty + qty } : i,
       ),
+      coupon: state.coupon,
     });
     return;
   }
@@ -149,6 +164,7 @@ export function addToCart(item: Omit<CartItem, 'qty'> & { qty?: number }) {
         qty,
       },
     ],
+    coupon: state.coupon,
   });
 }
 
@@ -158,6 +174,25 @@ export function getCartCount(state: CartState) {
 
 export function getCartSubtotal(state: CartState) {
   return state.items.reduce((sum, i) => sum + i.qty * i.price, 0);
+}
+
+export function getCartDiscount(state: CartState) {
+  if (!state.coupon) return 0;
+  const subtotal = getCartSubtotal(state);
+  if (state.coupon.discountType === 'percentage') {
+    return (subtotal * state.coupon.discountValue) / 100;
+  }
+  return Math.min(state.coupon.discountValue, subtotal);
+}
+
+export function setCartCoupon(coupon: AppliedCoupon | null) {
+  const state = readState();
+  writeState({ items: state.items, coupon });
+}
+
+export function removeCartCoupon() {
+  const state = readState();
+  writeState({ items: state.items, coupon: null });
 }
 
 export function useCart() {
@@ -172,12 +207,16 @@ export function useCart() {
     removeFromCart: useCallback(removeFromCart, []),
     setCartQty: useCallback(setCartQty, []),
     clearCart: useCallback(clearCart, []),
+    setCartCoupon: useCallback(setCartCoupon, []),
+    removeCartCoupon: useCallback(removeCartCoupon, []),
   };
 
   return {
     state,
     count: getCartCount(state),
     subtotal: getCartSubtotal(state),
+    discount: getCartDiscount(state),
+    coupon: state.coupon,
     ...actions,
   };
 }

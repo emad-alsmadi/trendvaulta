@@ -4,11 +4,13 @@ import type {
   CreatorPayload,
   TemplatePayload,
   UserUpdatePayload,
+  CouponPayload,
 } from '@/types';
 
 export const ADMIN_TEMPLATES_KEY = ['admin', 'templates'] as const;
 export const ADMIN_CREATORS_KEY = ['admin', 'creators'] as const;
 export const ADMIN_USERS_KEY = ['admin', 'users'] as const;
+export const ADMIN_COUPONS_KEY = ['admin', 'coupons'] as const;
 
 export function useAdminTemplates() {
   return useQuery({
@@ -30,6 +32,14 @@ export function useAdminUsers() {
   return useQuery({
     queryKey: ADMIN_USERS_KEY,
     queryFn: () => adminApi.getUsers(),
+    staleTime: 30_000,
+  });
+}
+
+export function useAdminCoupons() {
+  return useQuery({
+    queryKey: ADMIN_COUPONS_KEY,
+    queryFn: () => adminApi.getCoupons(),
     staleTime: 30_000,
   });
 }
@@ -115,13 +125,8 @@ export function useDeleteCreatorMutation() {
 export function useUpdateUserMutation() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      id,
-      payload,
-    }: {
-      id: string;
-      payload: UserUpdatePayload;
-    }) => adminApi.updateUser(id, payload),
+    mutationFn: ({ id, payload }: { id: string; payload: UserUpdatePayload }) =>
+      adminApi.updateUser(id, payload),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ADMIN_USERS_KEY });
     },
@@ -134,6 +139,42 @@ export function useDeleteUserMutation() {
     mutationFn: (id: string) => adminApi.deleteUser(id),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ADMIN_USERS_KEY });
+    },
+  });
+}
+
+export function useCreateCouponMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CouponPayload) => adminApi.createCoupon(payload),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ADMIN_COUPONS_KEY });
+    },
+  });
+}
+
+export function useUpdateCouponMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: Partial<CouponPayload>;
+    }) => adminApi.updateCoupon(id, payload),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ADMIN_COUPONS_KEY });
+    },
+  });
+}
+
+export function useDeleteCouponMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => adminApi.deleteCoupon(id),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ADMIN_COUPONS_KEY });
     },
   });
 }

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { motion } from 'framer-motion';
-import { Loader2, Truck, ShoppingBag } from 'lucide-react';
+import { Loader2, Truck, ShoppingBag, X, Check } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
@@ -12,6 +12,7 @@ import { useCart } from '@/lib/cartStore';
 import axios from 'axios';
 import { paymentsApi } from '@/lib/api';
 import { useCreateOrderMutation } from '@/hooks/orders/ordersQuery';
+import { useValidateCoupon } from '@/hooks/coupons/couponsQuery';
 import {
   getUserFacingErrorMessage,
   logErrorForDev,
@@ -64,9 +65,14 @@ export default function CheckoutPage() {
   const createOrder = useCreateOrderMutation();
   const confirm = useConfirm();
   const [stripeRedirecting, setStripeRedirecting] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   const items = cart.state.items;
   const subtotal = cart.subtotal;
+  const discountAmount = appliedCoupon?.discountAmount || 0;
+  const discountedSubtotal = Math.max(0, subtotal - discountAmount);
 
   const {
     register,
@@ -91,7 +97,42 @@ export default function CheckoutPage() {
 
   const deliverySelected = Boolean(watch('delivery'));
   const shippingPrice = deliverySelected ? 5 : 0;
-  const total = subtotal + shippingPrice;
+  const total = discountedSubtotal + shippingPrice;
+
+  const couponQuery = useValidateCoupon(couponCode, discountedSubtotal);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      toast('Please enter a coupon code', { variant: 'error' });
+      return;
+    }
+
+    setValidatingCoupon(true);
+    try {
+      const result = await couponQuery.refetch();
+      if (result.data?.valid && result.data.coupon) {
+        setAppliedCoupon(result.data.coupon);
+        toast('Coupon applied successfully', { variant: 'success' });
+        setCouponCode('');
+      } else {
+        toast(result.data?.message || 'Invalid coupon code', {
+          variant: 'error',
+        });
+      }
+    } catch (err) {
+      logErrorForDev(err);
+      toast(getUserFacingErrorMessage(err, 'Failed to validate coupon'), {
+        variant: 'error',
+      });
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    toast('Coupon removed', { variant: 'info' });
+  };
 
   useEffect(() => {
     if (!deliverySelected) {
@@ -462,6 +503,59 @@ export default function CheckoutPage() {
               <span>Subtotal</span>
               <span>${subtotal.toFixed(2)}</span>
             </div>
+
+            {appliedCoupon && (
+              <div className='flex items-center justify-between text-sm font-semibold text-green-700 bg-green-50 rounded-lg px-3 py-2'>
+                <div className='flex items-center gap-2'>
+                  <Check className='h-4 w-4' />
+                  <span>Coupon ({appliedCoupon.code})</span>
+                </div>
+                <div className='flex items-center gap-2'>
+                  <span>-${discountAmount.toFixed(2)}</span>
+                  <button
+                    type='button'
+                    onClick={handleRemoveCoupon}
+                    className='text-gray-500 hover:text-red-600 transition-colors'
+                  >
+                    <X className='h-4 w-4' />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!appliedCoupon && (
+              <div className='space-y-2'>
+                <div className='flex gap-2'>
+                  <Input
+                    placeholder='Coupon code'
+                    value={couponCode}
+                    onChange={(e) =>
+                      setCouponCode(e.target.value.toUpperCase())
+                    }
+                    className='flex-1'
+                    disabled={validatingCoupon}
+                  />
+                  <Button
+                    type='button'
+                    variant='outline'
+                    size='sm'
+                    onClick={handleApplyCoupon}
+                    disabled={validatingCoupon || !couponCode.trim()}
+                  >
+                    {validatingCoupon ? 'Checking...' : 'Apply'}
+                  </Button>
+                </div>
+                {couponQuery.error && (
+                  <div className='text-xs font-semibold text-rose-700'>
+                    {getUserFacingErrorMessage(
+                      couponQuery.error,
+                      'Invalid coupon',
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className='flex items-center justify-between text-sm font-semibold text-indigo-950/70'>
               <span>Shipping</span>
               <span>${shippingPrice.toFixed(2)}</span>

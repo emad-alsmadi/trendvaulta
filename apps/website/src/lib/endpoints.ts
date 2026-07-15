@@ -52,6 +52,12 @@ export const endpoints = {
       update: (id: string) => `/users/${id}`,
       delete: (id: string) => `/users/${id}`,
     },
+    coupons: {
+      list: '/coupons',
+      create: '/coupons',
+      update: (id: string) => `/coupons/${id}`,
+      delete: (id: string) => `/coupons/${id}`,
+    },
   },
   wishlist: {
     add: (templateId: string) => `/wishlist/${templateId}`,
@@ -80,5 +86,10 @@ export const endpoints = {
     calculatePrice: '/licenses/calculate-price',
     validate: '/licenses/validate',
     myPurchases: (userId: string) => `/licenses/purchases/${userId}`,
+  },
+  coupons: {
+    byCode: (code: string) => `/coupons/code/${code}`,
+    validate: '/coupons/validate',
+    incrementUsage: (id: string) => `/coupons/${id}/use`,
   },
 } as const;

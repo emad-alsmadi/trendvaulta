@@ -196,3 +196,58 @@ export interface DownloadPayload {
   templateId: string;
   orderId: string;
 }
+
+export type DiscountType = 'percentage' | 'fixed';
+
+export interface Coupon {
+  _id: string;
+  code: string;
+  discountType: DiscountType;
+  discountValue: number;
+  expirationDate: string;
+  usageLimit: number | null;
+  usedCount: number;
+  minimumOrderAmount: number;
+  isActive: boolean;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CouponsResponse {
+  data: Coupon[];
+  meta: {
+    total: number;
+    page: number;
+    pages: number;
+    limit: number;
+  };
+}
+
+export interface CouponPayload {
+  code: string;
+  discountType: DiscountType;
+  discountValue: number;
+  expirationDate: string;
+  usageLimit?: number | null;
+  minimumOrderAmount?: number;
+  isActive?: boolean;
+  description?: string;
+}
+
+export interface CouponValidationRequest {
+  code: string;
+  orderAmount: number;
+}
+
+export interface CouponValidationResponse {
+  valid: boolean;
+  message?: string;
+  coupon?: {
+    code: string;
+    discountType: DiscountType;
+    discountValue: number;
+    discountAmount: number;
+    expirationDate: string;
+  };
+}
