@@ -20,7 +20,6 @@ import {
   Heart,
   Download,
   MessageSquare,
-  Search,
   Menu,
   X,
   Globe,
@@ -143,7 +142,6 @@ export function Navbar() {
   const loading = meQuery.isLoading;
   const hydrated = true;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
 
   const avatarKey = user?.username || user?.email || 'user';
   const initials = getInitials(user?.username || user?.email);
@@ -158,67 +156,8 @@ export function Navbar() {
   const currentUsername =
     user?.username || getUsernameFromEmail(user?.email || '');
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/templates?q=${encodeURIComponent(searchQuery)}`);
-    }
-  };
-
   return (
     <header className='sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm'>
-      {/* Top bar */}
-      <div className='bg-gray-900 text-white text-xs'>
-        <div className='max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8'>
-          <div className='flex justify-between items-center py-2'>
-            <div className='flex items-center gap-6'>
-              <Link
-                href='/'
-                className='hover:text-gray-300 transition-colors font-medium'
-              >
-                Craftify Market
-              </Link>
-              <Link
-                href='/creators'
-                className='hover:text-gray-300 transition-colors'
-              >
-                Start Selling
-              </Link>
-              <div className='flex items-center gap-1'>
-                <span className='text-gray-400'>Our Products</span>
-                <ChevronDown className='h-3 w-3' />
-              </div>
-            </div>
-            <div className='flex items-center gap-4'>
-              <Link
-                href='/about'
-                className='hover:text-gray-300 transition-colors'
-              >
-                About
-              </Link>
-              <Link
-                href='/pricing'
-                className='hover:text-gray-300 transition-colors'
-              >
-                Pricing
-              </Link>
-              {!hydrated || !user ? (
-                <Link
-                  href='/auth/login'
-                  className='hover:text-gray-300 transition-colors font-medium'
-                >
-                  Sign In
-                </Link>
-              ) : (
-                <span className='text-gray-400'>
-                  {user?.username || 'Signed in'}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Main navbar */}
       <div className='bg-white'>
         <div className='max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8'>
@@ -237,23 +176,6 @@ export function Navbar() {
                 </div>
               </div>
             </Link>
-
-            {/* Search bar - Desktop */}
-            <div className='hidden md:flex flex-1 max-w-xl mx-8'>
-              <form
-                onSubmit={handleSearch}
-                className='relative w-full'
-              >
-                <input
-                  type='text'
-                  placeholder='Search templates...'
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className='w-full pl-10 pr-4 py-2 border border-gray-300 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-gray-400'
-                />
-                <Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400' />
-              </form>
-            </div>
 
             {/* Navigation - Desktop */}
             <nav className='hidden md:flex items-center gap-6'>
@@ -576,21 +498,6 @@ export function Navbar() {
       {mobileMenuOpen && (
         <div className='md:hidden border-t border-gray-200 bg-white'>
           <div className='px-4 py-4 space-y-4'>
-            {/* Mobile search */}
-            <form
-              onSubmit={handleSearch}
-              className='relative'
-            >
-              <input
-                type='text'
-                placeholder='Search templates...'
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className='w-full pl-10 pr-4 py-2 border border-gray-300 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400'
-              />
-              <Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400' />
-            </form>
-
             {/* Mobile nav */}
             <nav className='space-y-2'>
               <Link
