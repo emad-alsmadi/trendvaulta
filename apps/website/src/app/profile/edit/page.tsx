@@ -2,7 +2,6 @@
 import Link from 'next/link';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { ArrowLeft, Pencil, Save } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -48,143 +47,203 @@ export default function EditProfilePage() {
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [isDirty]);
 
-  if (meQuery.isLoading) return null;
+  if (meQuery.isLoading) {
+    return (
+      <div className='min-h-screen bg-gray-50'>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+          <div className='animate-pulse'>
+            <div className='h-8 bg-gray-200 rounded w-48 mb-8'></div>
+            <div className='h-64 bg-gray-200 rounded'></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) return null;
 
   return (
-    <div className='relative mx-auto max-w-6xl overflow-hidden rounded-3xl border border-white/25 bg-white/20 p-4 backdrop-blur-xl sm:p-6'>
-      <motion.div
-        aria-hidden
-        className='pointer-events-none absolute -inset-24 opacity-70'
-        animate={{ rotate: [0, -8, 0], scale: [1, 1.03, 1] }}
-        transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
-        style={{
-          background:
-            'radial-gradient(closest-side, rgba(245,158,11,0.18), transparent 70%), radial-gradient(closest-side, rgba(236,72,153,0.20), transparent 70%), radial-gradient(closest-side, rgba(99,102,241,0.20), transparent 70%)',
-        }}
-      />
+    <div className='min-h-screen bg-gray-50'>
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+        {/* Breadcrumb */}
+        <nav className='flex items-center gap-2 text-sm text-gray-600 mb-8'>
+          <Link
+            href='/'
+            className='hover:text-fuchsia-600'
+          >
+            Home
+          </Link>
+          <span>/</span>
+          <Link
+            href='/profile'
+            className='hover:text-fuchsia-600'
+          >
+            Profile
+          </Link>
+          <span>/</span>
+          <span className='text-gray-900'>Edit Profile</span>
+        </nav>
 
-      <div className='relative mx-auto max-w-3xl space-y-4'>
-        <Link
-          href='/profile'
-          onClick={(e) => {
-            if (!isDirty) return;
-            e.preventDefault();
-            void confirm({
-              variant: 'warning',
-              title: 'Discard your changes?',
-              description: 'You have unsaved edits. Leave without saving?',
-              confirmLabel: 'Discard',
-              cancelLabel: 'Keep editing',
-              onConfirm: async () => {
-                router.push('/profile');
-              },
-            });
-          }}
-          className='inline-flex items-center gap-2 text-sm font-extrabold text-indigo-700'
-        >
-          <ArrowLeft className='h-4 w-4' />
-          Back to profile
-        </Link>
+        <div className='flex gap-8'>
+          {/* Sidebar */}
+          <aside className='w-64 flex-shrink-0 hidden lg:block'>
+            <div className='bg-white rounded-lg border border-gray-200 p-4 sticky top-8'>
+              <h3 className='font-bold text-gray-900 mb-4'>Account</h3>
+              <nav className='space-y-1'>
+                <Link
+                  href='/profile'
+                  className='block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-fuchsia-600 transition'
+                >
+                  Profile
+                </Link>
+                <Link
+                  href='/orders'
+                  className='block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-fuchsia-600 transition'
+                >
+                  Orders
+                </Link>
+                <Link
+                  href='/downloads'
+                  className='block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-fuchsia-600 transition'
+                >
+                  Downloads
+                </Link>
+                <Link
+                  href='/wishlist'
+                  className='block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-fuchsia-600 transition'
+                >
+                  Wishlist
+                </Link>
+                <Link
+                  href='/reviews'
+                  className='block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-fuchsia-600 transition'
+                >
+                  Reviews
+                </Link>
+              </nav>
+            </div>
+          </aside>
 
-        <motion.section
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.65, ease: 'easeOut' }}
-          className='rounded-3xl border border-white/30 bg-white/35 p-6 shadow-sm backdrop-blur-xl sm:p-8'
-        >
-          <div className='flex items-start justify-between gap-4'>
-            <div className='min-w-0'>
-              <div className='inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/40 px-3 py-1 text-xs font-extrabold text-indigo-950'>
-                <Pencil className='h-4 w-4 text-fuchsia-700' />
-                Edit Profile
+          {/* Main Content */}
+          <div className='flex-1 max-w-2xl'>
+            <div className='mb-6'>
+              <Link
+                href='/profile'
+                onClick={(e) => {
+                  if (!isDirty) return;
+                  e.preventDefault();
+                  void confirm({
+                    variant: 'warning',
+                    title: 'Discard your changes?',
+                    description:
+                      'You have unsaved edits. Leave without saving?',
+                    confirmLabel: 'Discard',
+                    cancelLabel: 'Keep editing',
+                    onConfirm: async () => {
+                      router.push('/profile');
+                    },
+                  });
+                }}
+                className='inline-flex items-center gap-2 text-sm font-semibold text-fuchsia-600 hover:text-fuchsia-700 transition'
+              >
+                <ArrowLeft className='w-4 h-4' />
+                Back to profile
+              </Link>
+            </div>
+
+            <div className='bg-white rounded-lg border border-gray-200 p-6'>
+              <div className='flex items-center gap-2 mb-6'>
+                <Pencil className='w-5 h-5 text-fuchsia-600' />
+                <h1 className='text-2xl font-bold text-gray-900'>
+                  Edit Profile
+                </h1>
               </div>
-              <h1 className='mt-4 text-4xl font-extrabold tracking-tight text-indigo-950'>
-                Update your info
-              </h1>
-              <p className='mt-2 text-sm font-semibold text-indigo-950/80'>
-                Update your profile information below.
+
+              <p className='text-gray-600 mb-6'>
+                Update your profile information below. All fields are required.
               </p>
+
+              <form
+                onSubmit={handleSubmit((data) => {
+                  void confirm({
+                    variant: 'neutral',
+                    title: 'Save profile changes?',
+                    description:
+                      'Your username and email will be updated for this account.',
+                    confirmLabel: 'Save changes',
+                    cancelLabel: 'Keep editing',
+                    onConfirm: async () => {
+                      try {
+                        await updateProfile.mutateAsync({
+                          username: data.username || '',
+                          email: data.email || '',
+                        });
+                        toast('Profile updated successfully!', {
+                          title: 'Success',
+                          variant: 'success',
+                        });
+                      } catch (error: unknown) {
+                        logErrorForDev(error);
+                        const msg = getUserFacingErrorMessage(
+                          error,
+                          'Failed to update profile',
+                        );
+                        toast(msg, { title: 'Error', variant: 'error' });
+                        throw error;
+                      }
+                    },
+                  });
+                })}
+                className='space-y-6'
+              >
+                <div>
+                  <label className='block text-sm font-bold text-gray-900 mb-2'>
+                    Username
+                  </label>
+                  <Input
+                    placeholder='Your name'
+                    {...register('username')}
+                  />
+                  {errors.username?.message && (
+                    <div className='mt-2 text-sm font-semibold text-rose-700'>
+                      {errors.username.message}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className='block text-sm font-bold text-gray-900 mb-2'>
+                    Email
+                  </label>
+                  <Input
+                    type='email'
+                    placeholder='you@example.com'
+                    {...register('email')}
+                  />
+                  {errors.email?.message && (
+                    <div className='mt-2 text-sm font-semibold text-rose-700'>
+                      {errors.email.message}
+                    </div>
+                  )}
+                </div>
+
+                <div className='pt-4 border-t border-gray-200'>
+                  <Button
+                    type='submit'
+                    className='w-full bg-fuchsia-600 text-white hover:bg-fuchsia-700'
+                    size='lg'
+                    disabled={isSubmitting}
+                  >
+                    <span className='inline-flex items-center gap-2'>
+                      <Save className='w-4 h-4' />
+                      {isSubmitting ? 'Saving...' : 'Save changes'}
+                    </span>
+                  </Button>
+                </div>
+              </form>
             </div>
           </div>
-
-          <form
-            onSubmit={handleSubmit((data) => {
-              void confirm({
-                variant: 'neutral',
-                title: 'Save profile changes?',
-                description:
-                  'Your username and email will be updated for this account.',
-                confirmLabel: 'Save changes',
-                cancelLabel: 'Keep editing',
-                onConfirm: async () => {
-                  try {
-                    await updateProfile.mutateAsync({
-                      username: data.username || '',
-                      email: data.email || '',
-                    });
-                    toast('Profile updated successfully!', {
-                      title: 'Success',
-                      variant: 'success',
-                    });
-                  } catch (error: unknown) {
-                    logErrorForDev(error);
-                    const msg = getUserFacingErrorMessage(
-                      error,
-                      'Failed to update profile',
-                    );
-                    toast(msg, { title: 'Error', variant: 'error' });
-                    throw error;
-                  }
-                },
-              });
-            })}
-            className='mt-6 space-y-4'
-          >
-            <div>
-              <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                Username
-              </label>
-              <Input
-                placeholder='Your name'
-                {...register('username')}
-              />
-              {errors.username?.message && (
-                <div className='mt-2 text-sm font-semibold text-rose-700'>
-                  {errors.username.message}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                Email
-              </label>
-              <Input
-                type='email'
-                placeholder='you@example.com'
-                {...register('email')}
-              />
-              {errors.email?.message && (
-                <div className='mt-2 text-sm font-semibold text-rose-700'>
-                  {errors.email.message}
-                </div>
-              )}
-            </div>
-
-            <Button
-              type='submit'
-              className='w-full rounded-full bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 text-white shadow-md transition hover:brightness-110 active:brightness-95 disabled:opacity-60'
-              size='lg'
-              disabled={isSubmitting}
-            >
-              <span className='inline-flex items-center gap-2'>
-                <Save className='h-4 w-4' />
-                {isSubmitting ? 'Saving...' : 'Save changes'}
-              </span>
-            </Button>
-          </form>
-        </motion.section>
+        </div>
       </div>
     </div>
   );

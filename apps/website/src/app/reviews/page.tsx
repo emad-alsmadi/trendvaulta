@@ -11,6 +11,8 @@ import {
   Calendar,
   MessageSquare,
   FileText,
+  ExternalLink,
+  FolderOpen,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -43,8 +45,6 @@ export default function ReviewsPage() {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     });
   };
 
@@ -52,8 +52,8 @@ export default function ReviewsPage() {
     return Array.from({ length: 5 }).map((_, i) => (
       <Star
         key={i}
-        className={`w-5 h-5 ${
-          i < rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-600'
+        className={`w-4 h-4 ${
+          i < rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'
         }`}
       />
     ));
@@ -61,10 +61,12 @@ export default function ReviewsPage() {
 
   if (isLoading) {
     return (
-      <div className='min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-8'>
-        <div className='max-w-6xl mx-auto'>
-          <h1 className='text-3xl font-bold text-white mb-8'>My Reviews</h1>
-          <div className='text-white'>Loading...</div>
+      <div className='min-h-screen bg-gray-50'>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+          <div className='animate-pulse'>
+            <div className='h-8 bg-gray-200 rounded w-48 mb-8'></div>
+            <div className='h-64 bg-gray-200 rounded'></div>
+          </div>
         </div>
       </div>
     );
@@ -72,10 +74,11 @@ export default function ReviewsPage() {
 
   if (error) {
     return (
-      <div className='min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-8'>
-        <div className='max-w-6xl mx-auto'>
-          <h1 className='text-3xl font-bold text-white mb-8'>My Reviews</h1>
-          <div className='text-red-400'>Failed to load reviews</div>
+      <div className='min-h-screen bg-gray-50'>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+          <div className='bg-red-50 border border-red-200 rounded-lg p-4 text-red-800'>
+            Failed to load reviews
+          </div>
         </div>
       </div>
     );
@@ -83,16 +86,24 @@ export default function ReviewsPage() {
 
   if (!reviews || reviews.length === 0) {
     return (
-      <div className='min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-8'>
-        <div className='max-w-6xl mx-auto'>
-          <h1 className='text-3xl font-bold text-white mb-8'>My Reviews</h1>
-          <div className='bg-white/10 backdrop-blur-lg rounded-2xl p-12 text-center'>
-            <MessageSquare className='w-16 h-16 text-purple-400 mx-auto mb-4' />
-            <h2 className='text-xl text-white mb-2'>No reviews yet</h2>
-            <p className='text-gray-300'>
+      <div className='min-h-screen bg-gray-50'>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+          <h1 className='text-2xl font-bold text-gray-900 mb-8'>My Reviews</h1>
+          <div className='bg-white rounded-lg border border-gray-200 p-12 text-center'>
+            <MessageSquare className='w-16 h-16 text-gray-400 mx-auto mb-4' />
+            <h2 className='text-xl font-semibold text-gray-900 mb-2'>
+              No reviews yet
+            </h2>
+            <p className='text-gray-600 mb-6'>
               Start reviewing templates you've purchased to share your
               experience with others.
             </p>
+            <Link
+              href='/'
+              className='inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 text-white font-semibold rounded-lg hover:brightness-110 transition'
+            >
+              Browse Templates
+            </Link>
           </div>
         </div>
       </div>
@@ -100,85 +111,180 @@ export default function ReviewsPage() {
   }
 
   return (
-    <div className='min-h-screen p-8'>
-      <div className=''>
-        <div className='flex items-center justify-between mb-8'>
-          <h1 className='text-3xl font-bold text-white'>My Reviews</h1>
-          <div className='text-purple-300 text-sm'>
-            {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
-          </div>
-        </div>
+    <div className='min-h-screen bg-gray-50'>
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+        {/* Breadcrumb */}
+        <nav className='flex items-center gap-2 text-sm text-gray-600 mb-8'>
+          <Link
+            href='/'
+            className='hover:text-fuchsia-600'
+          >
+            Home
+          </Link>
+          <span>/</span>
+          <span className='text-gray-900'>My Reviews</span>
+        </nav>
 
-        <div className='grid gap-6'>
-          {reviews.map((review) => (
-            <div
-              key={review._id}
-              className='bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-purple-500/50 transition-all'
-            >
-              <div className='flex flex-col md:flex-row gap-6'>
-                {/* Template Info */}
-                <div className='flex-1'>
-                  <div className='flex items-start justify-between mb-4'>
-                    <div>
-                      <h3 className='text-xl font-semibold text-white mb-2'>
-                        Template Review
-                      </h3>
-                      <div className='flex items-center gap-1 mb-2'>
-                        {renderStars(review.rating)}
-                      </div>
-                    </div>
-                    <div className='flex items-center gap-2 text-sm text-gray-400'>
-                      <Calendar className='w-4 h-4' />
-                      <span>{formatDate(review.createdAt)}</span>
-                    </div>
-                  </div>
+        <div className='flex gap-8'>
+          {/* Sidebar */}
+          <aside className='w-64 flex-shrink-0 hidden lg:block'>
+            <div className='bg-white rounded-lg border border-gray-200 p-4 sticky top-8'>
+              <h3 className='font-bold text-gray-900 mb-4'>Account</h3>
+              <nav className='space-y-1'>
+                <Link
+                  href='/profile'
+                  className='block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-fuchsia-600 transition'
+                >
+                  Profile
+                </Link>
+                <Link
+                  href='/orders'
+                  className='block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-fuchsia-600 transition'
+                >
+                  Orders
+                </Link>
+                <Link
+                  href='/downloads'
+                  className='block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-fuchsia-600 transition'
+                >
+                  Downloads
+                </Link>
+                <Link
+                  href='/wishlist'
+                  className='block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-fuchsia-600 transition'
+                >
+                  Wishlist
+                </Link>
+                <Link
+                  href='/reviews'
+                  className='block px-4 py-2 rounded-lg bg-fuchsia-50 text-fuchsia-700 font-semibold'
+                >
+                  Reviews
+                </Link>
+              </nav>
+            </div>
+          </aside>
 
-                  {/* Comment */}
-                  <div className='bg-white/5 rounded-xl p-4 mb-4'>
-                    <div className='flex items-start gap-2'>
-                      <MessageSquare className='w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0' />
-                      <p className='text-gray-200 leading-relaxed'>
-                        {review.comment}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Template Link */}
-                  <Link
-                    href={`/templates/${getTemplateId(review.template)}`}
-                    className='inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-colors text-sm font-medium'
-                  >
-                    <FileText className='w-4 h-4' />
-                    View Template
-                  </Link>
-                </div>
-
-                {/* Actions */}
-                <div className='flex flex-col gap-2 justify-center md:w-32'>
-                  <Link
-                    href={`/templates/${getTemplateId(review.template)}`}
-                    className='flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-gray-300 hover:text-white hover:bg-white/10 transition-all text-sm'
-                  >
-                    <Edit className='w-4 h-4' />
-                    Edit
-                  </Link>
-
-                  <button
-                    onClick={() =>
-                      handleDelete(review._id, getTemplateId(review.template))
-                    }
-                    disabled={
-                      deletingId === review._id || deleteReview.isPending
-                    }
-                    className='flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all text-sm'
-                  >
-                    <Trash2 className='w-4 h-4' />
-                    {deletingId === review._id ? 'Deleting...' : 'Delete'}
-                  </button>
-                </div>
+          {/* Main Content */}
+          <div className='flex-1'>
+            <div className='flex items-center justify-between mb-6'>
+              <h1 className='text-2xl font-bold text-gray-900'>My Reviews</h1>
+              <div className='text-sm text-gray-600'>
+                {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
               </div>
             </div>
-          ))}
+
+            <div className='bg-white rounded-lg border border-gray-200 overflow-hidden'>
+              <table className='w-full'>
+                <thead className='bg-gray-50 border-b border-gray-200'>
+                  <tr>
+                    <th className='px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider'>
+                      Template
+                    </th>
+                    <th className='px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider'>
+                      Rating
+                    </th>
+                    <th className='px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider'>
+                      Comment
+                    </th>
+                    <th className='px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider'>
+                      Date
+                    </th>
+                    <th className='px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider'>
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className='divide-y divide-gray-200'>
+                  {reviews.map((review) => (
+                    <tr
+                      key={review._id}
+                      className='hover:bg-gray-50 transition'
+                    >
+                      <td className='px-6 py-4'>
+                        <Link
+                          href={`/templates/${getTemplateId(review.template)}`}
+                          className='font-semibold text-gray-900 hover:text-fuchsia-600 transition'
+                        >
+                          Template
+                        </Link>
+                      </td>
+                      <td className='px-6 py-4'>
+                        <div className='flex items-center gap-1'>
+                          {renderStars(review.rating)}
+                        </div>
+                      </td>
+                      <td className='px-6 py-4'>
+                        <div className='max-w-xs text-sm text-gray-600 line-clamp-2'>
+                          {review.comment}
+                        </div>
+                      </td>
+                      <td className='px-6 py-4'>
+                        <div className='flex items-center gap-2 text-sm text-gray-600'>
+                          <Calendar className='w-4 h-4' />
+                          <span>{formatDate(review.createdAt)}</span>
+                        </div>
+                      </td>
+                      <td className='px-6 py-4'>
+                        <div className='flex items-center gap-2'>
+                          <Link
+                            href={`/templates/${getTemplateId(review.template)}`}
+                            className='inline-flex items-center gap-1 px-3 py-1.5 text-sm font-semibold text-fuchsia-600 hover:text-fuchsia-700 transition'
+                          >
+                            <Edit className='w-4 h-4' />
+                            Edit
+                          </Link>
+                          <button
+                            onClick={() =>
+                              handleDelete(
+                                review._id,
+                                getTemplateId(review.template),
+                              )
+                            }
+                            disabled={
+                              deletingId === review._id ||
+                              deleteReview.isPending
+                            }
+                            className='inline-flex items-center gap-1 px-3 py-1.5 text-sm font-semibold text-gray-400 hover:text-red-600 transition disabled:opacity-50'
+                          >
+                            <Trash2 className='w-4 h-4' />
+                            {deletingId === review._id
+                              ? 'Deleting...'
+                              : 'Delete'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Help Section */}
+            <div className='mt-8 bg-gradient-to-br from-fuchsia-600 via-purple-600 to-cyan-500 rounded-lg p-6 text-white'>
+              <h3 className='font-bold mb-2'>Need help with your reviews?</h3>
+              <p className='text-white/90 text-sm mb-4'>
+                If you have questions about reviewing templates, please check
+                our FAQ or contact support.
+              </p>
+              <div className='flex gap-3'>
+                <Link
+                  href='/faq'
+                  className='inline-flex items-center gap-2 bg-white text-fuchsia-600 px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition text-sm'
+                >
+                  <FolderOpen className='w-4 h-4' />
+                  View FAQ
+                </Link>
+                <Link
+                  href='/contact'
+                  className='inline-flex items-center gap-2 bg-white/20 text-white px-4 py-2 rounded-lg font-semibold hover:bg-white/30 transition text-sm'
+                >
+                  <ExternalLink className='w-4 h-4' />
+                  Contact Support
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

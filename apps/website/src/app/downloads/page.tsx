@@ -1,9 +1,23 @@
 'use client';
 
-import { useMyDownloads, useRecordDownload, useDeleteDownload } from '@/hooks/downloads/downloadsQuery';
-import { Download } from '@/types';
-import { Download as DownloadIcon, Trash2, FileText, Calendar, Hash } from 'lucide-react';
+import {
+  useMyDownloads,
+  useRecordDownload,
+  useDeleteDownload,
+} from '@/hooks/downloads/downloadsQuery';
+import {
+  Download as DownloadIcon,
+  Trash2,
+  FileText,
+  Calendar,
+  Hash,
+  FolderOpen,
+  ExternalLink,
+  Star,
+} from 'lucide-react';
 import { useState } from 'react';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
 
 export default function DownloadsPage() {
   const { data: downloads, isLoading, error } = useMyDownloads();
@@ -11,11 +25,10 @@ export default function DownloadsPage() {
   const deleteDownload = useDeleteDownload();
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
-  const handleDownload = async (download: Download) => {
+  const handleDownload = async (download: any) => {
     setDownloadingId(download._id);
     try {
       const result = await recordDownload.mutateAsync(download._id);
-      // Open file URL in new tab
       if (result.fileUrl) {
         window.open(result.fileUrl, '_blank');
       }
@@ -41,17 +54,17 @@ export default function DownloadsPage() {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     });
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-8">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-3xl font-bold  mb-8">My Downloads</h1>
-          <div className="">Loading...</div>
+      <div className='min-h-screen bg-gray-50'>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+          <div className='animate-pulse'>
+            <div className='h-8 bg-gray-200 rounded w-48 mb-8'></div>
+            <div className='h-64 bg-gray-200 rounded'></div>
+          </div>
         </div>
       </div>
     );
@@ -59,10 +72,11 @@ export default function DownloadsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-8">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-3xl font-bold  mb-8">My Downloads</h1>
-          <div className="text-red-400">Failed to load downloads</div>
+      <div className='min-h-screen bg-gray-50'>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+          <div className='bg-red-50 border border-red-200 rounded-lg p-4 text-red-800'>
+            Failed to load downloads
+          </div>
         </div>
       </div>
     );
@@ -70,15 +84,25 @@ export default function DownloadsPage() {
 
   if (!downloads || downloads.length === 0) {
     return (
-      <div className="min-h-screen p-8">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-3xl font-bold  mb-8">My Downloads</h1>
-          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-12 text-center">
-            <DownloadIcon className="w-16 h-16 text-purple-400 mx-auto mb-4" />
-            <h2 className="text-xl  mb-2">No downloads yet</h2>
-            <p className="text-gray-300">
+      <div className='min-h-screen bg-gray-50'>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+          <h1 className='text-2xl font-bold text-gray-900 mb-8'>
+            My Downloads
+          </h1>
+          <div className='bg-white rounded-lg border border-gray-200 p-12 text-center'>
+            <DownloadIcon className='w-16 h-16 text-gray-400 mx-auto mb-4' />
+            <h2 className='text-xl font-semibold text-gray-900 mb-2'>
+              No downloads yet
+            </h2>
+            <p className='text-gray-600 mb-6'>
               After purchasing templates, they will appear here for download.
             </p>
+            <Link
+              href='/'
+              className='inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 text-white font-semibold rounded-lg hover:brightness-110 transition'
+            >
+              Browse Templates
+            </Link>
           </div>
         </div>
       </div>
@@ -86,100 +110,208 @@ export default function DownloadsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold  mb-8">My Downloads</h1>
+    <div className='min-h-screen bg-gray-50'>
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+        {/* Breadcrumb */}
+        <nav className='flex items-center gap-2 text-sm text-gray-600 mb-8'>
+          <Link
+            href='/'
+            className='hover:text-fuchsia-600'
+          >
+            Home
+          </Link>
+          <span>/</span>
+          <span className='text-gray-900'>My Downloads</span>
+        </nav>
 
-        <div className="grid gap-6">
-          {downloads.map((download) => {
-            const remainingDownloads = download.downloadLimit - download.downloadCount;
-            const isLimitReached = remainingDownloads <= 0;
+        <div className='flex gap-8'>
+          {/* Sidebar */}
+          <aside className='w-64 flex-shrink-0 hidden lg:block'>
+            <div className='bg-white rounded-lg border border-gray-200 p-4 sticky top-8'>
+              <h3 className='font-bold text-gray-900 mb-4'>Account</h3>
+              <nav className='space-y-1'>
+                <Link
+                  href='/profile'
+                  className='block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-fuchsia-600 transition'
+                >
+                  Profile
+                </Link>
+                <Link
+                  href='/orders'
+                  className='block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-fuchsia-600 transition'
+                >
+                  Orders
+                </Link>
+                <Link
+                  href='/downloads'
+                  className='block px-4 py-2 rounded-lg bg-fuchsia-50 text-fuchsia-700 font-semibold'
+                >
+                  Downloads
+                </Link>
+                <Link
+                  href='/wishlist'
+                  className='block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-fuchsia-600 transition'
+                >
+                  Wishlist
+                </Link>
+                <Link
+                  href='/reviews'
+                  className='block px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-fuchsia-600 transition'
+                >
+                  Reviews
+                </Link>
+              </nav>
+            </div>
+          </aside>
 
-            return (
-              <div
-                key={download._id}
-                className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 hover:border-purple-500/50 transition-all"
-              >
-                <div className="flex flex-col md:flex-row gap-6">
-                  {/* Template Image */}
-                  <div className="w-full md:w-32 h-32 flex-shrink-0">
-                    <img
-                      src={download.template.cover}
-                      alt={download.template.title}
-                      className="w-full h-full object-cover rounded-lg"
-                    />
-                  </div>
+          {/* Main Content */}
+          <div className='flex-1'>
+            <h1 className='text-2xl font-bold text-gray-900 mb-6'>
+              My Downloads
+            </h1>
 
-                  {/* Template Info */}
-                  <div className="flex-1">
-                    <h3 className="text-xl font-semibold  mb-2">
-                      {download.template.title}
-                    </h3>
-                    <p className="text-gray-300 text-sm mb-4 line-clamp-2">
-                      {download.template.description}
-                    </p>
+            <div className='bg-white rounded-lg border border-gray-200 overflow-hidden'>
+              <table className='w-full'>
+                <thead className='bg-gray-50 border-b border-gray-200'>
+                  <tr>
+                    <th className='px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider'>
+                      Item
+                    </th>
+                    <th className='px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider'>
+                      License
+                    </th>
+                    <th className='px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider'>
+                      Downloads
+                    </th>
+                    <th className='px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider'>
+                      Purchased
+                    </th>
+                    <th className='px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider'>
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className='divide-y divide-gray-200'>
+                  {downloads.map((download: any) => {
+                    const remainingDownloads =
+                      download.downloadLimit - download.downloadCount;
+                    const isLimitReached = remainingDownloads <= 0;
 
-                    {/* Download Stats */}
-                    <div className="flex flex-wrap gap-4 text-sm text-gray-400">
-                      <div className="flex items-center gap-2">
-                        <Hash className="w-4 h-4" />
-                        <span>Downloads: {download.downloadCount}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4" />
-                        <span>Remaining: {remainingDownloads}</span>
-                      </div>
-                      {download.lastDownloadDate && (
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4" />
-                          <span>Last: {formatDate(download.lastDownloadDate)}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                    return (
+                      <tr
+                        key={download._id}
+                        className='hover:bg-gray-50 transition'
+                      >
+                        <td className='px-6 py-4'>
+                          <div className='flex items-start gap-4'>
+                            <img
+                              src={download.template.cover}
+                              alt={download.template.title}
+                              className='w-16 h-16 object-cover rounded-lg'
+                            />
+                            <div className='min-w-0'>
+                              <Link
+                                href={`/templates/${download.template._id}`}
+                                className='font-semibold text-gray-900 hover:text-fuchsia-600 transition block mb-1'
+                              >
+                                {download.template.title}
+                              </Link>
+                              <p className='text-sm text-gray-600 line-clamp-1'>
+                                {download.template.description}
+                              </p>
+                              <div className='flex items-center gap-1 mt-1'>
+                                <Star className='w-4 h-4 text-amber-400 fill-amber-400' />
+                                <span className='text-sm text-gray-600'>
+                                  {download.template.averageRating?.toFixed(
+                                    1,
+                                  ) || '4.5'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className='px-6 py-4'>
+                          <span className='inline-flex items-center gap-1 px-3 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-semibold'>
+                            Regular
+                          </span>
+                        </td>
+                        <td className='px-6 py-4'>
+                          <div className='text-sm text-gray-600'>
+                            {download.downloadCount} / {download.downloadLimit}
+                          </div>
+                          {isLimitReached && (
+                            <div className='text-xs text-red-600 mt-1'>
+                              Limit reached
+                            </div>
+                          )}
+                        </td>
+                        <td className='px-6 py-4'>
+                          <div className='text-sm text-gray-600'>
+                            {formatDate(download.createdAt)}
+                          </div>
+                        </td>
+                        <td className='px-6 py-4'>
+                          <div className='flex items-center gap-2'>
+                            <button
+                              onClick={() => handleDownload(download)}
+                              disabled={
+                                isLimitReached ||
+                                downloadingId === download._id ||
+                                recordDownload.isPending
+                              }
+                              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
+                                isLimitReached
+                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                  : 'bg-fuchsia-600 text-white hover:bg-fuchsia-700'
+                              }`}
+                            >
+                              <DownloadIcon className='w-4 h-4' />
+                              {downloadingId === download._id
+                                ? 'Downloading...'
+                                : 'Download'}
+                            </button>
+                            <button
+                              onClick={() => handleDelete(download._id)}
+                              disabled={deleteDownload.isPending}
+                              className='p-2 text-gray-400 hover:text-red-600 transition'
+                              title='Remove'
+                            >
+                              <Trash2 className='w-4 h-4' />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
 
-                  {/* Actions */}
-                  <div className="flex flex-col gap-2 justify-center">
-                    <button
-                      onClick={() => handleDownload(download)}
-                      disabled={
-                        isLimitReached ||
-                        downloadingId === download._id ||
-                        recordDownload.isPending
-                      }
-                      className={`flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
-                        isLimitReached
-                          ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                          : 'bg-gradient-to-r from-purple-600 to-cyan-600  hover:from-purple-700 hover:to-cyan-700'
-                      }`}
-                    >
-                      <DownloadIcon className="w-5 h-5" />
-                      {downloadingId === download._id ? 'Downloading...' : 'Download'}
-                    </button>
-
-                    <button
-                      onClick={() => handleDelete(download._id)}
-                      disabled={deleteDownload.isPending}
-                      className="flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium text-gray-400 hover: hover:bg-white/10 transition-all"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                      Remove
-                    </button>
-                  </div>
-                </div>
-
-                {/* Limit Warning */}
-                {isLimitReached && (
-                  <div className="mt-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
-                    <p className="text-red-400 text-sm">
-                      Download limit reached. You have used all {download.downloadLimit}{' '}
-                      allowed downloads.
-                    </p>
-                  </div>
-                )}
+            {/* Help Section */}
+            <div className='mt-8 bg-gradient-to-br from-fuchsia-600 via-purple-600 to-cyan-500 rounded-lg p-6 text-white'>
+              <h3 className='font-bold mb-2'>Need help with your downloads?</h3>
+              <p className='text-white/90 text-sm mb-4'>
+                If you're having trouble downloading your files, please check
+                our FAQ or contact support.
+              </p>
+              <div className='flex gap-3'>
+                <Link
+                  href='/faq'
+                  className='inline-flex items-center gap-2 bg-white text-fuchsia-600 px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition text-sm'
+                >
+                  <FolderOpen className='w-4 h-4' />
+                  View FAQ
+                </Link>
+                <Link
+                  href='/contact'
+                  className='inline-flex items-center gap-2 bg-white/20 text-white px-4 py-2 rounded-lg font-semibold hover:bg-white/30 transition text-sm'
+                >
+                  <ExternalLink className='w-4 h-4' />
+                  Contact Support
+                </Link>
               </div>
-            );
-          })}
+            </div>
+          </div>
         </div>
       </div>
     </div>

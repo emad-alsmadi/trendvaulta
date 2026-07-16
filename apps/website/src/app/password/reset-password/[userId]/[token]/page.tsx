@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Lock, Sparkles, Loader2 } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { useToast } from '@/components/ui/Toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -72,127 +71,122 @@ export default function ResetPasswordPage() {
   });
 
   return (
-    <div className='relative mx-auto max-w-6xl overflow-hidden rounded-3xl border border-white/25 bg-white/20 p-4 backdrop-blur-xl sm:p-6'>
-      <motion.div
-        aria-hidden
-        className='pointer-events-none absolute -inset-24 opacity-70'
-        animate={{ rotate: [0, -8, 0], scale: [1, 1.03, 1] }}
-        transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
-        style={{
-          background:
-            'radial-gradient(closest-side, rgba(245,158,11,0.18), transparent 70%), radial-gradient(closest-side, rgba(236,72,153,0.20), transparent 70%), radial-gradient(closest-side, rgba(99,102,241,0.20), transparent 70%)',
-        }}
-      />
-
-      <div className='relative mx-auto max-w-3xl space-y-4'>
-        <Link
-          href='/auth/login'
-          className='inline-flex items-center gap-2 text-sm font-extrabold text-indigo-700'
-        >
-          <ArrowLeft className='h-4 w-4' />
-          Back to login
-        </Link>
-
-        <motion.section
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.65, ease: 'easeOut' }}
-          className='rounded-3xl border border-white/30 bg-white/35 p-6 shadow-sm backdrop-blur-xl sm:p-8'
-        >
-          <div className='inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/40 px-3 py-1 text-xs font-extrabold text-indigo-950'>
-            <Sparkles className='h-4 w-4 text-fuchsia-700' />
-            Reset password
-          </div>
-
-          <h1 className='mt-4 text-4xl font-extrabold tracking-tight text-indigo-950'>
-            Create a new password
-          </h1>
-          <p className='mt-2 text-sm font-semibold leading-7 text-indigo-950/80'>
-            Choose a strong password (at least 8 characters) and confirm it.
-          </p>
-
-          <form
-            onSubmit={onSubmit}
-            className='mt-8 space-y-4'
+    <div className='min-h-screen bg-gray-50'>
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+        {/* Breadcrumb */}
+        <nav className='flex items-center gap-2 text-sm text-gray-600 mb-8'>
+          <Link
+            href='/'
+            className='hover:text-fuchsia-600'
           >
-            <div>
-              <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                New password
-              </label>
-              <div className='relative'>
-                <Lock className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-indigo-950/60' />
-                <Input
-                  className='pl-10'
-                  type='password'
-                  {...register('password')}
-                />
-              </div>
-              {errors.password?.message && (
-                <div className='mt-2 text-sm font-semibold text-rose-700'>
-                  {errors.password.message}
-                </div>
-              )}
+            Home
+          </Link>
+          <span>/</span>
+          <span className='text-gray-900'>Reset Password</span>
+        </nav>
+
+        <div className='max-w-md mx-auto'>
+          <div className='bg-white rounded-lg border border-gray-200 p-8'>
+            <div className='flex items-center gap-2 mb-6'>
+              <Sparkles className='w-5 h-5 text-fuchsia-600' />
+              <h1 className='text-2xl font-bold text-gray-900'>
+                Reset Password
+              </h1>
             </div>
 
-            <div>
-              <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                Confirm password
-              </label>
-              <Input
-                type='password'
-                {...register('confirmPassword')}
-              />
-              {errors.confirmPassword?.message && (
-                <div className='mt-2 text-sm font-semibold text-rose-700'>
-                  {errors.confirmPassword.message}
-                </div>
-              )}
-            </div>
+            <p className='text-gray-600 mb-6'>
+              Choose a strong password (at least 8 characters) and confirm it.
+            </p>
 
-            {success && (
-              <motion.div
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className='rounded-2xl border border-emerald-200 bg-emerald-50/90 p-4 text-sm font-semibold text-emerald-900'
-              >
-                <div className='text-sm font-extrabold'>{success}</div>
-                <div className='mt-3 flex flex-col gap-2 sm:flex-row'>
-                  <Button
-                    type='button'
-                    size='sm'
-                    className='w-full sm:w-auto'
-                    onClick={() => router.push('/auth/login')}
-                  >
-                    Go to login
-                  </Button>
-                  <Button
-                    type='button'
-                    size='sm'
-                    className='w-full bg-white/40 text-indigo-950 hover:bg-white/55 sm:w-auto'
-                    onClick={() => router.push('/')}
-                  >
-                    Browse templates
-                  </Button>
-                </div>
-              </motion.div>
-            )}
-
-            <Button
-              type='submit'
-              className='w-full'
-              disabled={resetMutation.isPending || isSubmitting}
+            <form
+              onSubmit={onSubmit}
+              className='space-y-4'
             >
-              {resetMutation.isPending || isSubmitting ? (
-                <span className='inline-flex items-center gap-2'>
-                  <Loader2 className='h-4 w-4 animate-spin' />
-                  Saving...
-                </span>
-              ) : (
-                'Save new password'
+              <div>
+                <label className='block text-sm font-bold text-gray-900 mb-2'>
+                  New Password
+                </label>
+                <div className='relative'>
+                  <Lock className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' />
+                  <Input
+                    className='pl-10'
+                    type='password'
+                    {...register('password')}
+                  />
+                </div>
+                {errors.password?.message && (
+                  <div className='mt-2 text-sm font-semibold text-rose-700'>
+                    {errors.password.message}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className='block text-sm font-bold text-gray-900 mb-2'>
+                  Confirm Password
+                </label>
+                <Input
+                  type='password'
+                  {...register('confirmPassword')}
+                />
+                {errors.confirmPassword?.message && (
+                  <div className='mt-2 text-sm font-semibold text-rose-700'>
+                    {errors.confirmPassword.message}
+                  </div>
+                )}
+              </div>
+
+              {success && (
+                <div className='rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900'>
+                  <div className='font-bold'>{success}</div>
+                  <div className='mt-3 flex flex-col gap-2 sm:flex-row'>
+                    <Button
+                      type='button'
+                      size='sm'
+                      className='w-full sm:w-auto'
+                      onClick={() => router.push('/auth/login')}
+                    >
+                      Go to login
+                    </Button>
+                    <Button
+                      type='button'
+                      size='sm'
+                      className='w-full bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 sm:w-auto'
+                      onClick={() => router.push('/')}
+                    >
+                      Browse templates
+                    </Button>
+                  </div>
+                </div>
               )}
-            </Button>
-          </form>
-        </motion.section>
+
+              <Button
+                type='submit'
+                className='w-full bg-fuchsia-600 text-white hover:bg-fuchsia-700'
+                disabled={resetMutation.isPending || isSubmitting}
+              >
+                {resetMutation.isPending || isSubmitting ? (
+                  <span className='inline-flex items-center gap-2'>
+                    <Loader2 className='h-4 w-4 animate-spin' />
+                    Saving...
+                  </span>
+                ) : (
+                  'Save New Password'
+                )}
+              </Button>
+            </form>
+
+            <div className='mt-6 pt-6 border-t border-gray-200 text-center'>
+              <Link
+                href='/auth/login'
+                className='inline-flex items-center gap-2 text-sm font-semibold text-fuchsia-600 hover:text-fuchsia-700 transition'
+              >
+                <ArrowLeft className='w-4 h-4' />
+                Back to login
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

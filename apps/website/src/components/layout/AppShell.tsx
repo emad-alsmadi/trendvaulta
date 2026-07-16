@@ -26,7 +26,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className='min-h-screen bg-gray-50'>
       <Navbar />
       <div className='gap-6 py-6'>
-        <main className='min-w-0 pb-20 md:pb-0'>
+        <main className='min-w-0 px-20 pb-20 md:pb-0'>
           <AnimatePresence mode='wait'>
             <motion.div
               key={pathname}
