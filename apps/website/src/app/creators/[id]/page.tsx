@@ -3,6 +3,7 @@
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import type { Creator } from '@/types';
+import type { Template } from '@/types';
 import {
   Loader2,
   ArrowLeft,
@@ -10,9 +11,14 @@ import {
   User,
   Quote,
   Sparkles,
+  Star,
+  ShoppingCart,
+  TrendingUp,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useCreatorById } from '@/hooks/authors/authorsQuery';
+import { TemplateCard } from '@/components/page/template/TemplateCard';
+import { StarRating } from '@/components/page/rating/StarRating';
 
 export default function CreatorDetailPage() {
   const params = useParams();
@@ -21,6 +27,60 @@ export default function CreatorDetailPage() {
   const creator: Creator | null = creatorQuery.data || null;
   const loading = creatorQuery.isLoading;
   const error = (creatorQuery.error as any)?.message || null;
+
+  // Mock portfolio data
+  const portfolioTemplates: Template[] = [
+    {
+      _id: 'portfolio-1',
+      title: 'Modern Corporate Theme',
+      description: 'Professional corporate theme',
+      price: 49.99,
+      cover: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800',
+      creator: creator || { name: 'Creator', _id: '1' },
+      averageRating: 4.5,
+      reviewCount: 23,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      _id: 'portfolio-2',
+      title: 'Creative Portfolio',
+      description: 'Showcase your work',
+      price: 39.99,
+      cover:
+        'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800',
+      creator: creator || { name: 'Creator', _id: '1' },
+      averageRating: 4.8,
+      reviewCount: 45,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      _id: 'portfolio-3',
+      title: 'E-commerce Store',
+      description: 'Complete store solution',
+      price: 59.99,
+      cover: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800',
+      creator: creator || { name: 'Creator', _id: '1' },
+      averageRating: 4.6,
+      reviewCount: 67,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      _id: 'portfolio-4',
+      title: 'Blog Template',
+      description: 'Clean blog design',
+      price: 29.99,
+      cover:
+        'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800',
+      creator: creator || { name: 'Creator', _id: '1' },
+      averageRating: 4.3,
+      reviewCount: 31,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  ];
 
   if (loading) {
     return (
@@ -57,6 +117,7 @@ export default function CreatorDetailPage() {
         Back to Creators
       </Link>
 
+      {/* Creator Header */}
       <div className='relative overflow-hidden rounded-3xl border border-white/35 bg-white/35 p-8 shadow-sm backdrop-blur-xl'>
         <motion.div
           aria-hidden
@@ -84,18 +145,29 @@ export default function CreatorDetailPage() {
               <motion.div
                 whileHover={{ rotate: 2, y: -2 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                className='inline-flex h-16 w-16 items-center justify-center rounded-3xl bg-gradient-to-br from-indigo-600 via-fuchsia-600 to-cyan-500 text-white shadow-sm'
+                className='inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-fuchsia-600 via-purple-600 to-cyan-500 text-white shadow-sm'
               >
-                <User className='h-7 w-7' />
+                <User className='h-9 w-9' />
               </motion.div>
 
-              <div className='min-w-0'>
+              <div className='min-w-0 flex-1'>
                 <h1 className='text-4xl font-extrabold tracking-tight text-indigo-950'>
                   {creator.name}
                 </h1>
-                <div className='mt-3 inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/40 px-3 py-1 text-sm font-extrabold text-indigo-950/90'>
-                  <MapPin className='h-4 w-4 text-cyan-700' />
-                  {creator.country}
+                <div className='mt-3 flex items-center gap-3'>
+                  <div className='inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/40 px-3 py-1 text-sm font-extrabold text-indigo-950/90'>
+                    <MapPin className='h-4 w-4 text-cyan-700' />
+                    {creator.country}
+                  </div>
+                  <div className='flex items-center gap-1'>
+                    <StarRating
+                      rating={4.8}
+                      size={16}
+                    />
+                    <span className='text-sm font-semibold text-gray-600'>
+                      4.8
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -122,27 +194,33 @@ export default function CreatorDetailPage() {
             transition={{ duration: 0.6, ease: 'easeOut', delay: 0.05 }}
             className='space-y-4'
           >
+            {/* Stats */}
             <div className='rounded-3xl border border-white/35 bg-white/35 p-6'>
-              <div className='text-sm font-extrabold text-indigo-950'>
-                Profile highlights
+              <div className='text-sm font-extrabold text-indigo-950 mb-4'>
+                Creator Stats
               </div>
-              <div className='mt-4 grid gap-3'>
+              <div className='grid gap-3'>
                 {[
-                  { label: 'Country', value: creator.country },
-                  { label: 'Creator ID', value: creator._id },
-                ].map((x) => (
-                  <div
-                    key={x.label}
-                    className='rounded-2xl border border-white/35 bg-gradient-to-br from-white/20 via-white/15 to-white/10 p-4'
-                  >
-                    <div className='text-xs font-extrabold uppercase tracking-wider text-indigo-950/70'>
-                      {x.label}
+                  { label: 'Total Sales', value: '12.5K', icon: ShoppingCart },
+                  { label: 'Items Sold', value: '245', icon: TrendingUp },
+                  { label: 'Average Rating', value: '4.8', icon: Star },
+                ].map((stat) => {
+                  const Icon = stat.icon;
+                  return (
+                    <div
+                      key={stat.label}
+                      className='rounded-2xl border border-white/35 bg-gradient-to-br from-white/20 via-white/15 to-white/10 p-4'
+                    >
+                      <div className='flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-indigo-950/70'>
+                        <Icon className='h-3 w-3 text-fuchsia-600' />
+                        {stat.label}
+                      </div>
+                      <div className='mt-1 text-2xl font-extrabold text-indigo-950'>
+                        {stat.value}
+                      </div>
                     </div>
-                    <div className='mt-1 break-all text-sm font-extrabold text-indigo-950'>
-                      {x.value}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -172,6 +250,26 @@ export default function CreatorDetailPage() {
           </motion.aside>
         </div>
       </div>
+
+      {/* Portfolio Section */}
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className='bg-white rounded-3xl border border-gray-200 p-6'
+      >
+        <h2 className='text-2xl font-extrabold text-gray-900 mb-6'>
+          Portfolio ({portfolioTemplates.length} items)
+        </h2>
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
+          {portfolioTemplates.map((template) => (
+            <TemplateCard
+              key={template._id}
+              template={template}
+            />
+          ))}
+        </div>
+      </motion.section>
     </div>
   );
 }
