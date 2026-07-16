@@ -41,13 +41,13 @@ export function LicenseSelector({
               onClick={() => onLicenseSelect(license.slug)}
               className={`relative cursor-pointer rounded-lg border-2 p-6 transition-all duration-300 ${
                 isSelected
-                  ? 'border-indigo-500 bg-gradient-to-br from-indigo-50 to-fuchsia-50 shadow-lg'
-                  : 'border-slate-200 bg-white hover:border-indigo-300 hover:shadow-md'
+                  ? 'border-fuchsia-500 bg-gradient-to-br from-fuchsia-50 to-purple-50 shadow-lg'
+                  : 'border-slate-200 bg-white hover:border-fuchsia-300 hover:shadow-md'
               }`}
             >
               {isPopular && (
                 <div className='absolute -top-3 left-1/2 -translate-x-1/2'>
-                  <span className='inline-flex items-center rounded-full bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-500 px-3 py-1 text-xs font-bold text-white'>
+                  <span className='inline-flex items-center rounded-full bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 px-3 py-1 text-xs font-bold text-white'>
                     POPULAR
                   </span>
                 </div>
@@ -57,7 +57,7 @@ export function LicenseSelector({
                 <h3 className='text-xl font-bold text-gray-900 mb-2'>
                   {license.name}
                 </h3>
-                <div className='text-3xl font-bold bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-500 bg-clip-text text-transparent'>
+                <div className='text-3xl font-bold bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 bg-clip-text text-transparent'>
                   ${finalPrice}
                 </div>
               </div>
@@ -104,7 +104,7 @@ export function LicenseSelector({
                 <div
                   className={`w-full rounded-lg py-3 text-center font-medium transition-colors ${
                     isSelected
-                      ? 'bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-500 text-white'
+                      ? 'bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 text-white'
                       : 'bg-slate-100 text-gray-700 hover:bg-slate-200'
                   }`}
                 >

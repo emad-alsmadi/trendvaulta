@@ -25,7 +25,7 @@ export function LicenseInfo({ license, basePrice }: LicenseInfoProps) {
     <div className='bg-white rounded-lg border border-slate-200 p-6'>
       <div className='flex items-center justify-between mb-4'>
         <h3 className='text-xl font-bold text-gray-900'>{license.name}</h3>
-        <div className='text-2xl font-bold bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-500 bg-clip-text text-transparent'>
+        <div className='text-2xl font-bold bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 bg-clip-text text-transparent'>
           ${finalPrice}
         </div>
       </div>

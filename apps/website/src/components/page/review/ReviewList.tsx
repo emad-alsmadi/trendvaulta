@@ -72,7 +72,7 @@ export function ReviewList({
                       variant='ghost'
                       size='sm'
                       onClick={() => onEdit(review)}
-                      className='text-gray-600 hover:text-indigo-600'
+                      className='text-gray-600 hover:text-fuchsia-600'
                     >
                       <Edit2 size={16} />
                     </Button>
