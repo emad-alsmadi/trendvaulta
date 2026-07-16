@@ -36,48 +36,42 @@ import { useConfirm } from '@/components/confirm/ConfirmProvider';
 import { useState } from 'react';
 
 export const navItems = [
-  { href: '/', label: 'Templates', icon: LayoutGrid },
-  { href: '/creators', label: 'Creators', icon: Users },
-  { href: '/pricing', label: 'Pricing', icon: Sparkles },
+  { href: '/products', label: 'Products', icon: LayoutGrid },
+  { href: '/brands', label: 'Brands', icon: Users },
+  { href: '/offers', label: 'Offers', icon: Sparkles },
   { href: '/cart', label: 'Cart', icon: ShoppingCart },
 ];
 
 export const categories = [
   {
-    name: 'Website Templates',
-    href: '/templates?category=website',
-    subcategories: ['Corporate', 'Creative', 'Personal', 'Technology'],
+    name: 'Makeup',
+    href: '/products?category=makeup',
+    subcategories: ['Face', 'Eyes', 'Lips', 'Nails'],
   },
   {
-    name: 'WordPress Themes',
-    href: '/templates?category=wordpress',
-    subcategories: [
-      'Blog/Magazine',
-      'Corporate',
-      'Creative',
-      'eCommerce',
-      'Education',
-    ],
+    name: 'Perfumes',
+    href: '/products?category=perfumes',
+    subcategories: ['For Her', 'For Him', 'Unisex', 'Gift Sets'],
   },
   {
-    name: 'E-commerce',
-    href: '/templates?category=ecommerce',
-    subcategories: ['WooCommerce', 'Shopify', 'Magento'],
+    name: 'Clothing',
+    href: '/products?category=clothing',
+    subcategories: ['Women', 'Men', 'Kids', 'Accessories'],
   },
   {
-    name: 'UI Kits',
-    href: '/templates?category=uikits',
-    subcategories: ['Mobile', 'Web', 'Dashboard'],
+    name: 'Skincare',
+    href: '/products?category=skincare',
+    subcategories: ['Face Care', 'Body Care', 'Hair Care', 'Sun Care'],
   },
   {
-    name: 'Landing Pages',
-    href: '/templates?category=landing',
-    subcategories: ['SaaS', 'Product', 'Agency'],
+    name: 'Accessories',
+    href: '/products?category=accessories',
+    subcategories: ['Jewelry', 'Bags', 'Watches', 'Sunglasses'],
   },
   {
-    name: 'Admin Dashboards',
-    href: '/templates?category=admin',
-    subcategories: ['React', 'Vue', 'Angular'],
+    name: 'Home & Living',
+    href: '/products?category=home',
+    subcategories: ['Decor', 'Kitchen', 'Bedding', 'Lighting'],
   },
 ];
 
@@ -217,7 +211,7 @@ export function Navbar() {
                     </div>
                     <div className='border-t border-gray-200 p-4 bg-gray-50'>
                       <Link
-                        href='/templates'
+                        href='/products'
                         className='flex items-center justify-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-700 transition-colors'
                       >
                         View All Categories
@@ -229,26 +223,26 @@ export function Navbar() {
               </DropdownMenu.Root>
 
               <Link
-                href='/templates'
+                href='/products'
                 className='text-gray-700 hover:text-gray-900 font-medium transition-colors relative group'
               >
-                Templates
+                Products
                 <span className='absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 transition-all duration-300 group-hover:w-full'></span>
               </Link>
 
               <Link
-                href='/creators'
+                href='/brands'
                 className='text-gray-700 hover:text-gray-900 font-medium transition-colors relative group'
               >
-                Creators
+                Brands
                 <span className='absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 transition-all duration-300 group-hover:w-full'></span>
               </Link>
 
               <Link
-                href='/pricing'
+                href='/offers'
                 className='text-gray-700 hover:text-gray-900 font-medium transition-colors relative group'
               >
-                Pricing
+                Offers
                 <span className='absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 transition-all duration-300 group-hover:w-full'></span>
               </Link>
 
@@ -501,22 +495,22 @@ export function Navbar() {
             {/* Mobile nav */}
             <nav className='space-y-2'>
               <Link
-                href='/templates'
+                href='/products'
                 className='block px-4 py-2 text-medium text-gray-700 hover:bg-gray-100 rounded-lg'
               >
-                Templates
+                Products
               </Link>
               <Link
-                href='/creators'
+                href='/brands'
                 className='block px-4 py-2 text-medium text-gray-700 hover:bg-gray-100 rounded-lg'
               >
-                Creators
+                Brands
               </Link>
               <Link
-                href='/pricing'
+                href='/offers'
                 className='block px-4 py-2 text-medium text-gray-700 hover:bg-gray-100 rounded-lg'
               >
-                Pricing
+                Offers
               </Link>
               <div className='px-4 py-2 text-medium text-gray-900 font-semibold'>
                 More
