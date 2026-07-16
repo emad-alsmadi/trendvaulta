@@ -8,10 +8,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev:website\" \"npm run dev:dashboard\" \"npm run dev:backend\"",
+    "dev": "concurrently \"npm run dev:website\" \"npm run dev:dashboard\" \"npm run dev:api\"",
     "dev:website": "npm run dev --workspace=apps/website",
     "dev:dashboard": "npm run dev --workspace=apps/dashboard",
-    "dev:backend": "npm run dev --workspace=apps/backend",
+    "dev:api": "npm run dev --workspace=apps/api",
     "build": "npm run build --workspaces",
     "build:website": "npm run build --workspace=apps/website",
     "build:dashboard": "npm run build --workspace=apps/dashboard",

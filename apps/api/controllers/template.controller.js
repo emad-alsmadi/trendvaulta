@@ -39,7 +39,7 @@ const getAllTemplates = asyncHandler(async (req, res) => {
     if (maxPrice) query.price.$lte = Number(maxPrice);
   }
   if (creator) {
-    query.author = creator;
+    query.creator = creator;
   }
   if (q) {
     query.$or = [
@@ -61,7 +61,7 @@ const getAllTemplates = asyncHandler(async (req, res) => {
 
   const [templates, total] = await Promise.all([
     Template.find(query)
-      .populate('author', ['name', 'country', 'bio'])
+      .populate('creator', ['name', 'country', 'bio'])
       .sort(sortObj)
       .skip(skip)
       .limit(limitNum)
@@ -92,7 +92,7 @@ const getAllTemplates = asyncHandler(async (req, res) => {
  * @returns {Promise<void>} JSON template document
  */
 const getTemplateById = asyncHandler(async (req, res) => {
-  const template = await Template.findById(req.params.id).populate('author', [
+  const template = await Template.findById(req.params.id).populate('creator', [
     'name',
     'country',
     'bio',
@@ -122,7 +122,7 @@ const createTemplate = asyncHandler(async (req, res) => {
 
   const template = new Template({
     title: req.body.title,
-    author: req.body.author || '',
+    creator: req.body.creator || '',
     description: req.body.description || '',
     price: req.body.price || 0,
     cover: req.body.cover || '',
@@ -151,7 +151,7 @@ const updateTemplate = asyncHandler(async (req, res) => {
     req.params.id,
     {
       title: req.body.title,
-      author: req.body.author,
+      creator: req.body.creator,
       description: req.body.description,
       price: req.body.price,
       cover: req.body.cover,

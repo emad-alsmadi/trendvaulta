@@ -58,8 +58,7 @@ const BASE_TEMPLATES = [
     description:
       'A clean CV template with strong hierarchy, perfect for tech and business roles (PDF/Word).',
     price: 6.99,
-    cover:
-      'https://images.unsplash.com/photo-1522071820081-009f0129c71c',
+    cover: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c',
   },
   {
     title: 'SaaS Dashboard UI Kit',
@@ -67,8 +66,7 @@ const BASE_TEMPLATES = [
     description:
       'Figma UI kit for SaaS dashboards: charts, tables, cards, and settings screens.',
     price: 14.0,
-    cover:
-      'https://images.unsplash.com/photo-1551288049-bebda4e38f71',
+    cover: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71',
   },
   {
     title: 'Notion Habit Tracker',
@@ -76,8 +74,7 @@ const BASE_TEMPLATES = [
     description:
       'A Notion template to build habits, track streaks, and review weekly progress.',
     price: 4.5,
-    cover:
-      'https://images.unsplash.com/photo-1518976024611-4884d8d7b9a4',
+    cover: 'https://images.unsplash.com/photo-1518976024611-4884d8d7b9a4',
   },
   {
     title: 'Premium Icons Pack (200+)',
@@ -85,8 +82,7 @@ const BASE_TEMPLATES = [
     description:
       'A crisp icon pack for product UI (SVG/PNG), designed on a consistent grid.',
     price: 9.99,
-    cover:
-      'https://images.unsplash.com/photo-1526481280695-3c687fd643ed',
+    cover: 'https://images.unsplash.com/photo-1526481280695-3c687fd643ed',
   },
   {
     title: 'ATS Resume Template',
@@ -94,16 +90,14 @@ const BASE_TEMPLATES = [
     description:
       'An ATS-friendly resume template with multiple sections and easy customization.',
     price: 5.99,
-    cover:
-      'https://images.unsplash.com/photo-1521737604893-d14cc237f11d',
+    cover: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d',
   },
   {
     title: 'Neon Landing Page Kit',
     creatorIndex: 5,
     description: 'Landing sections, pricing, FAQs, and CTAs (Figma).',
     price: 11.5,
-    cover:
-      'https://images.unsplash.com/photo-1545239351-1141bd82e8a6',
+    cover: 'https://images.unsplash.com/photo-1545239351-1141bd82e8a6',
   },
   {
     title: 'Personal Finance Sheet',
@@ -111,8 +105,7 @@ const BASE_TEMPLATES = [
     description:
       'Google Sheets template for budgeting, expenses, and monthly saving goals.',
     price: 3.5,
-    cover:
-      'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c',
+    cover: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c',
   },
   {
     title: 'Brand Identity Starter Kit',
@@ -120,8 +113,7 @@ const BASE_TEMPLATES = [
     description:
       'Brand kit with logo grid, colors, typography, and presentation slides.',
     price: 12.99,
-    cover:
-      'https://images.unsplash.com/photo-1522202176988-66273c2fd55f',
+    cover: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f',
   },
 ];
 
@@ -145,7 +137,7 @@ function buildSeed(multiplier = 4) {
     BASE_TEMPLATES.forEach((t) => {
       nextTemplates.push({
         title: `${t.title} v${batch}`,
-        author: ids[t.creatorIndex],
+        creator: ids[t.creatorIndex],
         description: t.description,
         price: t.price,
         cover: t.cover,
