@@ -28,7 +28,7 @@ export function Pagination({
     'h-10 w-10 rounded-full border border-white/30 bg-white/50 text-sm font-extrabold text-indigo-950 shadow-sm backdrop-blur-xl transition hover:bg-white/70';
 
   const pageButtonActiveClass =
-    'border-transparent bg-gradient-to-r from-indigo-600 via-fuchsia-600 to-cyan-500 text-white shadow-md hover:brightness-110';
+    'border-transparent bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 text-white shadow-md hover:brightness-110';
 
   return (
     <div className='flex items-center justify-center gap-2'>

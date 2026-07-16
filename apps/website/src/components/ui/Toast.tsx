@@ -103,7 +103,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                     t.variant === 'error' &&
                       'bg-gradient-to-br from-rose-600 via-fuchsia-600 to-amber-500',
                     t.variant === 'info' &&
-                      'bg-gradient-to-br from-indigo-600 via-fuchsia-600 to-cyan-500',
+                      'bg-gradient-to-br from-fuchsia-600 via-purple-600 to-cyan-500',
                   )}
                 >
                   {t.variant === 'success' ? (

@@ -45,18 +45,48 @@ export const navItems = [
 ];
 
 export const categories = [
-  { name: 'Website Templates', href: '/templates?category=website' },
-  { name: 'WordPress Themes', href: '/templates?category=wordpress' },
-  { name: 'E-commerce', href: '/templates?category=ecommerce' },
-  { name: 'UI Kits', href: '/templates?category=uikits' },
-  { name: 'Landing Pages', href: '/templates?category=landing' },
-  { name: 'Admin Dashboards', href: '/templates?category=admin' },
+  {
+    name: 'Website Templates',
+    href: '/templates?category=website',
+    subcategories: ['Corporate', 'Creative', 'Personal', 'Technology'],
+  },
+  {
+    name: 'WordPress Themes',
+    href: '/templates?category=wordpress',
+    subcategories: [
+      'Blog/Magazine',
+      'Corporate',
+      'Creative',
+      'eCommerce',
+      'Education',
+    ],
+  },
+  {
+    name: 'E-commerce',
+    href: '/templates?category=ecommerce',
+    subcategories: ['WooCommerce', 'Shopify', 'Magento'],
+  },
+  {
+    name: 'UI Kits',
+    href: '/templates?category=uikits',
+    subcategories: ['Mobile', 'Web', 'Dashboard'],
+  },
+  {
+    name: 'Landing Pages',
+    href: '/templates?category=landing',
+    subcategories: ['SaaS', 'Product', 'Agency'],
+  },
+  {
+    name: 'Admin Dashboards',
+    href: '/templates?category=admin',
+    subcategories: ['React', 'Vue', 'Angular'],
+  },
 ];
 
 const AVATAR_STYLES = [
   {
-    bg: 'bg-gradient-to-br from-indigo-600 via-fuchsia-600 to-cyan-500',
-    ring: 'ring-indigo-500/25',
+    bg: 'bg-gradient-to-br from-fuchsia-600 via-purple-600 to-cyan-500',
+    ring: 'ring-fuchsia-500/25',
   },
   {
     bg: 'bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-500',
@@ -71,7 +101,7 @@ const AVATAR_STYLES = [
     ring: 'ring-amber-500/25',
   },
   {
-    bg: 'bg-gradient-to-br from-sky-600 via-indigo-600 to-fuchsia-600',
+    bg: 'bg-gradient-to-br from-sky-600 via-purple-600 to-fuchsia-600',
     ring: 'ring-sky-500/25',
   },
 ];
@@ -128,50 +158,73 @@ export function Navbar() {
   };
 
   return (
-    <header className='sticky top-0 z-50 bg-slate-900 border-b border-slate-800 shadow-sm'>
+    <header className='sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm'>
       {/* Top bar */}
-      <div className='max-w-[1420px] mx-auto  sm:px-6 lg:px-8'>
-        <div className='py-4 bg-gray-900 text-white text-xs'>
-          <div className='flex justify-between items-center'>
-            <span className='text-[15px]'>
-              Premium digital templates marketplace
-            </span>
+      <div className='bg-gray-900 text-white text-xs'>
+        <div className='max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8'>
+          <div className='flex justify-between items-center py-2'>
+            <div className='flex items-center gap-6'>
+              <Link
+                href='/'
+                className='hover:text-gray-300 transition-colors font-medium'
+              >
+                Craftify Market
+              </Link>
+              <Link
+                href='/creators'
+                className='hover:text-gray-300 transition-colors'
+              >
+                Start Selling
+              </Link>
+              <div className='flex items-center gap-1'>
+                <span className='text-gray-400'>Our Products</span>
+                <ChevronDown className='h-3 w-3' />
+              </div>
+            </div>
             <div className='flex items-center gap-4'>
               <Link
                 href='/about'
-                className='text-[15px] hover:text-gray-300 transition-colors'
+                className='hover:text-gray-300 transition-colors'
               >
                 About
               </Link>
               <Link
                 href='/pricing'
-                className='text-[15px] hover:text-gray-300 transition-colors'
+                className='hover:text-gray-300 transition-colors'
               >
                 Pricing
               </Link>
-              <Link
-                href='/creators'
-                className='text-[15px] hover:text-gray-300 transition-colors'
-              >
-                Sell
-              </Link>
+              {!hydrated || !user ? (
+                <Link
+                  href='/auth/login'
+                  className='hover:text-gray-300 transition-colors font-medium'
+                >
+                  Sign In
+                </Link>
+              ) : (
+                <span className='text-gray-400'>
+                  {user?.username || 'Signed in'}
+                </span>
+              )}
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Main navbar */}
-        <div className='pb-2'>
+      {/* Main navbar */}
+      <div className='bg-white'>
+        <div className='max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8'>
           <div className='flex items-center justify-between h-16'>
             {/* Logo */}
             <Link
               href='/'
               className='flex items-center gap-2'
             >
-              <span className='inline-flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-fuchsia-600 via-indigo-600 to-cyan-500 text-white shadow-sm'>
+              <span className='inline-flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-fuchsia-600 via-purple-600 to-cyan-500 text-white shadow-sm'>
                 <BookOpen className='h-5 w-5' />
               </span>
               <div className='leading-tight'>
-                <div className='text-xl font-extrabold tracking-tight text-white'>
+                <div className='text-xl font-extrabold tracking-tight text-gray-900'>
                   Craftify
                 </div>
               </div>
@@ -188,7 +241,7 @@ export function Navbar() {
                   placeholder='Search templates...'
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className='w-full pl-10 pr-4 py-2 border border-slate-600 bg-slate-800 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-slate-400'
+                  className='w-full pl-10 pr-4 py-2 border border-gray-300 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-gray-400'
                 />
                 <Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400' />
               </form>
@@ -198,7 +251,7 @@ export function Navbar() {
             <nav className='hidden md:flex items-center gap-6'>
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger asChild>
-                  <button className='flex items-center gap-1 text-white hover:text-slate-200 font-medium transition-colors'>
+                  <button className='flex items-center gap-1 text-gray-700 hover:text-gray-900 font-medium transition-colors'>
                     Categories
                     <ChevronDown className='h-4 w-4' />
                   </button>
@@ -207,37 +260,62 @@ export function Navbar() {
                   <DropdownMenu.Content
                     align='start'
                     sideOffset={10}
-                    className='z-50 min-w-[200px] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg'
+                    className='z-50 min-w-[400px] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl'
                   >
-                    {categories.map((category) => (
-                      <DropdownMenu.Item
-                        key={category.href}
-                        asChild
+                    <div className='p-4'>
+                      <div className='grid grid-cols-2 gap-4'>
+                        {categories.map((category) => (
+                          <DropdownMenu.Item
+                            key={category.href}
+                            asChild
+                          >
+                            <Link
+                              href={category.href}
+                              className='block p-3 rounded-lg hover:bg-gray-50 transition-colors group'
+                            >
+                              <div className='text-sm font-bold text-gray-900 group-hover:text-indigo-600 transition-colors mb-1'>
+                                {category.name}
+                              </div>
+                              <div className='text-xs text-gray-500 leading-relaxed'>
+                                {category.subcategories.slice(0, 3).join(', ')}
+                              </div>
+                            </Link>
+                          </DropdownMenu.Item>
+                        ))}
+                      </div>
+                    </div>
+                    <div className='border-t border-gray-200 p-4 bg-gray-50'>
+                      <Link
+                        href='/templates'
+                        className='flex items-center justify-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-700 transition-colors'
                       >
-                        <Link
-                          href={category.href}
-                          className='block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
-                        >
-                          {category.name}
-                        </Link>
-                      </DropdownMenu.Item>
-                    ))}
+                        View All Categories
+                        <ChevronDown className='h-4 w-4 rotate-[-90deg]' />
+                      </Link>
+                    </div>
                   </DropdownMenu.Content>
                 </DropdownMenu.Portal>
               </DropdownMenu.Root>
 
               <Link
                 href='/templates'
-                className='text-white hover:text-slate-200 font-medium transition-colors'
+                className='text-gray-700 hover:text-gray-900 font-medium transition-colors'
               >
                 Templates
               </Link>
 
               <Link
                 href='/creators'
-                className='text-white hover:text-slate-200 font-medium transition-colors'
+                className='text-gray-700 hover:text-gray-900 font-medium transition-colors'
               >
                 Creators
+              </Link>
+
+              <Link
+                href='/pricing'
+                className='text-gray-700 hover:text-gray-900 font-medium transition-colors'
+              >
+                Pricing
               </Link>
             </nav>
 
@@ -246,7 +324,7 @@ export function Navbar() {
               {/* Cart */}
               <Link
                 href='/cart'
-                className='relative p-2 text-white hover:text-slate-200 transition-colors'
+                className='relative p-2 text-gray-700 hover:text-gray-900 transition-colors'
               >
                 <ShoppingCart className='h-5 w-5' />
                 {cart.count > 0 && (
@@ -259,7 +337,7 @@ export function Navbar() {
               {/* Wishlist */}
               <Link
                 href='/wishlist'
-                className='hidden sm:block p-2 text-white hover:text-slate-200 transition-colors'
+                className='hidden sm:block p-2 text-gray-700 hover:text-gray-900 transition-colors'
               >
                 <Heart className='h-5 w-5' />
               </Link>
@@ -429,34 +507,47 @@ export function Navbar() {
                 placeholder='Search templates...'
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className='w-full pl-10 pr-4 py-2 border border-slate-600 bg-slate-800 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-slate-400'
+                className='w-full pl-10 pr-4 py-2 border border-gray-300 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400'
               />
-              <Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400' />
+              <Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400' />
             </form>
 
             {/* Mobile nav */}
             <nav className='space-y-2'>
               <Link
                 href='/templates'
-                className='block px-4 py-2 text-medium text-white hover:bg-slate-800 rounded-lg'
+                className='block px-4 py-2 text-medium text-gray-700 hover:bg-gray-100 rounded-lg'
               >
                 Templates
               </Link>
               <Link
                 href='/creators'
-                className='block px-4 py-2 text-medium text-white hover:bg-slate-800 rounded-lg'
+                className='block px-4 py-2 text-medium text-gray-700 hover:bg-gray-100 rounded-lg'
               >
                 Creators
               </Link>
-              <div className='px-4 py-2 text-medium text-white'>Categories</div>
+              <Link
+                href='/pricing'
+                className='block px-4 py-2 text-medium text-gray-700 hover:bg-gray-100 rounded-lg'
+              >
+                Pricing
+              </Link>
+              <div className='px-4 py-2 text-medium text-gray-900 font-semibold'>
+                Categories
+              </div>
               <div className='pl-8 space-y-2'>
                 {categories.map((category) => (
                   <Link
                     key={category.href}
                     href={category.href}
-                    className='block px-4 py-2 text-sm text-slate-300 hover:bg-slate-800 rounded-lg'
+                    className='block px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg'
                   >
-                    {category.name}
+                    <div className='font-medium text-gray-700'>
+                      {category.name}
+                    </div>
+                    <div className='text-xs text-gray-500'>
+                      {category.subcategories.join(' • ')}
+                    </div>
                   </Link>
                 ))}
               </div>
@@ -470,41 +561,41 @@ export function Navbar() {
                 Sign In
               </Link>
             ) : (
-              <nav className='space-y-2 pt-4 border-t border-slate-700'>
+              <nav className='space-y-2 pt-4 border-t border-gray-200'>
                 <Link
                   href='/profile'
-                  className='block px-4 py-2 text-medium text-white hover:bg-slate-800 rounded-lg'
+                  className='block px-4 py-2 text-medium text-gray-700 hover:bg-gray-100 rounded-lg'
                 >
                   Profile
                 </Link>
                 <Link
                   href='/orders'
-                  className='block px-4 py-2 text-medium text-white hover:bg-slate-800 rounded-lg'
+                  className='block px-4 py-2 text-medium text-gray-700 hover:bg-gray-100 rounded-lg'
                 >
                   Orders
                 </Link>
                 <Link
                   href='/downloads'
-                  className='block px-4 py-2 text-medium text-white hover:bg-slate-800 rounded-lg'
+                  className='block px-4 py-2 text-medium text-gray-700 hover:bg-gray-100 rounded-lg'
                 >
                   Downloads
                 </Link>
                 <Link
                   href='/reviews'
-                  className='block px-4 py-2 text-medium text-white hover:bg-slate-800 rounded-lg'
+                  className='block px-4 py-2 text-medium text-gray-700 hover:bg-gray-100 rounded-lg'
                 >
                   Reviews
                 </Link>
                 <Link
                   href='/wishlist'
-                  className='block px-4 py-2 text-medium text-white hover:bg-slate-800 rounded-lg'
+                  className='block px-4 py-2 text-medium text-gray-700 hover:bg-gray-100 rounded-lg'
                 >
                   Wishlist
                 </Link>
                 {getUserRole() === 'admin' || user?.roles?.includes('admin') ? (
                   <Link
                     href='/admin/dashboard'
-                    className='block px-4 py-2 text-medium text-white hover:bg-slate-800 rounded-lg'
+                    className='block px-4 py-2 text-medium text-gray-700 hover:bg-gray-100 rounded-lg'
                   >
                     Admin Dashboard
                   </Link>
