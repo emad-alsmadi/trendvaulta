@@ -9,8 +9,7 @@ import { cn } from '@/lib/utils';
 import { LogIn, LogOut, MoreHorizontal, User } from 'lucide-react';
 import { useLogout, useMe } from '@/hooks/auth/authQuery';
 import { useConfirm } from '@/components/confirm/ConfirmProvider';
-import { Footer } from '@/components/layout/Footer';
-import HomePage from '@/app/page';
+import { Footer } from '@/components/layout/Footer'
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

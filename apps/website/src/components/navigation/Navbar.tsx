@@ -37,10 +37,6 @@ export const navItems = [
   { href: '/creators', label: 'Creators', icon: Users },
   { href: '/pricing', label: 'Pricing', icon: Sparkles },
   { href: '/cart', label: 'Cart', icon: ShoppingCart },
-  { href: '/orders', label: 'Orders', icon: Receipt },
-  { href: '/downloads', label: 'Downloads', icon: Download },
-  { href: '/reviews', label: 'Reviews', icon: MessageSquare },
-  { href: '/wishlist', label: 'Wishlist', icon: Heart },
   { href: '/about', label: 'About', icon: Info },
 ];
 
@@ -149,6 +145,15 @@ export function Navbar() {
   const avatarKey = user?.username || user?.email || 'user';
   const initials = getInitials(user?.username || user?.email);
   const avatarStyle = pickAvatarStyle(avatarKey);
+
+  // Extract username from email (everything before @)
+  const getUsernameFromEmail = (email: string) => {
+    if (!email) return '';
+    return email.split('@')[0];
+  };
+
+  const currentUsername =
+    user?.username || getUsernameFromEmail(user?.email || '');
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -387,7 +392,7 @@ export function Navbar() {
 
                       <DropdownMenu.Item asChild>
                         <Link
-                          href='/profile'
+                          href={`/user/${currentUsername}`}
                           className='flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
                         >
                           <User className='h-4 w-4' />
@@ -397,7 +402,7 @@ export function Navbar() {
 
                       <DropdownMenu.Item asChild>
                         <Link
-                          href='/orders'
+                          href={`/user/${currentUsername}/orders`}
                           className='flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
                         >
                           <Receipt className='h-4 w-4' />
@@ -407,7 +412,7 @@ export function Navbar() {
 
                       <DropdownMenu.Item asChild>
                         <Link
-                          href='/downloads'
+                          href={`/user/${currentUsername}/downloads`}
                           className='flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
                         >
                           <Download className='h-4 w-4' />
@@ -417,7 +422,7 @@ export function Navbar() {
 
                       <DropdownMenu.Item asChild>
                         <Link
-                          href='/reviews'
+                          href={`/user/${currentUsername}/reviews`}
                           className='flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
                         >
                           <MessageSquare className='h-4 w-4' />
@@ -427,7 +432,7 @@ export function Navbar() {
 
                       <DropdownMenu.Item asChild>
                         <Link
-                          href='/wishlist'
+                          href={`/user/${currentUsername}/wishlist`}
                           className='flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
                         >
                           <Heart className='h-4 w-4' />
@@ -563,31 +568,31 @@ export function Navbar() {
             ) : (
               <nav className='space-y-2 pt-4 border-t border-gray-200'>
                 <Link
-                  href='/profile'
+                  href={`/user/${currentUsername}`}
                   className='block px-4 py-2 text-medium text-gray-700 hover:bg-gray-100 rounded-lg'
                 >
                   Profile
                 </Link>
                 <Link
-                  href='/orders'
+                  href={`/user/${currentUsername}/orders`}
                   className='block px-4 py-2 text-medium text-gray-700 hover:bg-gray-100 rounded-lg'
                 >
                   Orders
                 </Link>
                 <Link
-                  href='/downloads'
+                  href={`/user/${currentUsername}/downloads`}
                   className='block px-4 py-2 text-medium text-gray-700 hover:bg-gray-100 rounded-lg'
                 >
                   Downloads
                 </Link>
                 <Link
-                  href='/reviews'
+                  href={`/user/${currentUsername}/reviews`}
                   className='block px-4 py-2 text-medium text-gray-700 hover:bg-gray-100 rounded-lg'
                 >
                   Reviews
                 </Link>
                 <Link
-                  href='/wishlist'
+                  href={`/user/${currentUsername}/wishlist`}
                   className='block px-4 py-2 text-medium text-gray-700 hover:bg-gray-100 rounded-lg'
                 >
                   Wishlist
