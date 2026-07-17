@@ -573,6 +573,20 @@ export const reviewsApi = {
 };
 
 /**
+ * Brands API - Handles brand-related operations
+ */
+export const brandsApi = {
+  /**
+   * Get all brands
+   * @returns Array of brands
+   */
+  getBrands: async (): Promise<any[]> => {
+    const { data } = await api.get('/brands');
+    return data;
+  },
+};
+
+/**
  * Coupons API - Handles coupon validation and management
  */
 export const couponsApi = {
