@@ -65,6 +65,16 @@ export interface ProductsQuery {
   sort?: string;
 }
 
+export interface ProductsResponse {
+  data: Product[];
+  meta: {
+    total: number;
+    page: number;
+    pages: number;
+    limit: number;
+  };
+}
+
 export type AppRole = 'user' | 'admin' | 'moderator';
 
 export interface AdminUser {

@@ -16,10 +16,6 @@ import { Button } from '@/components/ui/Button';
 import { useLogout, useMe } from '@/hooks/auth/authQuery';
 import { useToast } from '@/components/ui/Toast';
 import {
-  useBillingPortalMutation,
-  useSubscription,
-} from '@/hooks/subscriptions/subscriptionQuery';
-import {
   getUserFacingErrorMessage,
   logErrorForDev,
 } from '@/lib/userFacingError';
@@ -33,8 +29,6 @@ export default function UserProfilePage() {
   const logout = useLogout();
   const confirm = useConfirm();
   const user = meQuery.data?.user || null;
-  const sub = useSubscription();
-  const portal = useBillingPortalMutation();
 
   if (meQuery.isLoading) {
     return (
@@ -98,96 +92,6 @@ export default function UserProfilePage() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Subscription Card */}
-      <div className='bg-white rounded-lg border border-gray-200 p-6 mb-6'>
-        <div className='flex items-center gap-2 mb-4'>
-          <Sparkles className='w-5 h-5 text-fuchsia-600' />
-          <h2 className='text-lg font-bold text-gray-900'>Subscription</h2>
-        </div>
-
-        {sub.isLoading ? (
-          <div className='flex items-center gap-2 text-gray-600'>
-            <Loader2 className='w-4 w-4 animate-spin text-fuchsia-600' />
-            Loading subscription…
-          </div>
-        ) : sub.data ? (
-          <div className='space-y-4'>
-            <div className='flex items-center justify-between p-4 bg-fuchsia-50 rounded-lg'>
-              <div>
-                <div className='font-semibold text-gray-900'>
-                  Status:{' '}
-                  <span className='capitalize text-fuchsia-700'>
-                    {sub.data.status}
-                  </span>
-                </div>
-                {sub.data.currentPeriodEnd && (
-                  <div className='text-sm text-gray-600 mt-1'>
-                    Renews on{' '}
-                    {new Date(sub.data.currentPeriodEnd).toLocaleDateString(
-                      'en-US',
-                      {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      },
-                    )}
-                  </div>
-                )}
-              </div>
-              <Button
-                size='sm'
-                disabled={portal.isPending}
-                onClick={async () => {
-                  try {
-                    const { url } = await portal.mutateAsync();
-                    if (url) window.location.assign(url);
-                  } catch (err) {
-                    logErrorForDev(err);
-                    toast(
-                      getUserFacingErrorMessage(
-                        err,
-                        'Billing portal unavailable',
-                      ),
-                      {
-                        title: 'Billing',
-                        variant: 'error',
-                      },
-                    );
-                  }
-                }}
-                className='bg-white text-fuchsia-600 border border-fuchsia-200 hover:bg-fuchsia-50'
-              >
-                {portal.isPending ? (
-                  <span className='inline-flex items-center gap-2'>
-                    <Loader2 className='w-4 w-4 animate-spin' />
-                    Opening…
-                  </span>
-                ) : (
-                  <span className='inline-flex items-center gap-2'>
-                    <ExternalLink className='w-4 w-4' />
-                    Manage
-                  </span>
-                )}
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className='p-4 bg-gray-50 rounded-lg'>
-            <p className='text-gray-600 mb-4'>
-              You don't have an active subscription. Upgrade to Craftify Pro for
-              exclusive benefits.
-            </p>
-            <Link
-              href='/pricing'
-              className='inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 text-white text-sm font-semibold rounded-lg hover:brightness-110 transition'
-            >
-              <Sparkles className='w-4 h-4' />
-              View Plans
-            </Link>
-          </div>
-        )}
       </div>
 
       {/* Quick Actions */}

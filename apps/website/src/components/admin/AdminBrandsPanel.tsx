@@ -159,7 +159,7 @@ export function AdminBrandsPanel() {
           headers={['Name', 'Slug', 'Country', 'Website', 'Actions']}
           empty={brands.length === 0}
         >
-          {brands.map((b) => (
+          {brands.map((b: any) => (
             <tr
               key={b._id}
               className='bg-white/30'
@@ -232,7 +232,12 @@ export function AdminBrandsPanel() {
         <AdminField label='Slug'>
           <AdminInput
             value={form.slug}
-            onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') }))}
+            onChange={(e) =>
+              setForm((f) => ({
+                ...f,
+                slug: e.target.value.toLowerCase().replace(/\s+/g, '-'),
+              }))
+            }
             placeholder='brand-slug'
           />
         </AdminField>
@@ -255,14 +260,18 @@ export function AdminBrandsPanel() {
         <AdminField label='Website'>
           <AdminInput
             value={form.website}
-            onChange={(e) => setForm((f) => ({ ...f, website: e.target.value }))}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, website: e.target.value }))
+            }
             placeholder='https://…'
           />
         </AdminField>
         <AdminField label='Country'>
           <AdminInput
             value={form.country}
-            onChange={(e) => setForm((f) => ({ ...f, country: e.target.value }))}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, country: e.target.value }))
+            }
             placeholder='Country of origin'
           />
         </AdminField>

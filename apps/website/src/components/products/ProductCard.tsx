@@ -17,7 +17,7 @@ interface ProductCardProps {
     averageRating: number;
     reviewCount: number;
     category: string;
-    subcategory: string;
+    subcategory?: string;
     brand?: {
       name: string;
       slug: string;

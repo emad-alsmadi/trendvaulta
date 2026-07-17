@@ -143,7 +143,11 @@ export default function CheckoutPage() {
   const runCheckout = async (values: CheckoutValues) => {
     const usePhysicalAddress = Boolean(values.delivery);
     const payload = {
-      items: items.map((i) => ({ templateId: i.templateId, qty: i.qty })),
+      items: items.map((i) => ({
+        productId: i.productId,
+        qty: i.qty,
+        variant: i.variant,
+      })),
       shippingAddress: {
         name: values.name,
         phone: values.phone,

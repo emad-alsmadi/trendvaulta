@@ -15,6 +15,7 @@ import {
   CouponValidationResponse,
 } from '@/types';
 import { getAuthToken } from '@/lib/authCookies';
+import { endpoints } from './endpoints';
 
 /**
  * Normalizes the API base URL to ensure it ends with /api
@@ -190,23 +191,6 @@ export const passwordApi = {
     });
     return data;
   },
-};
-
-/**
- * Order checkout payload type
- */
-export type OrderCheckoutPayload = {
-  items: { templateId: string; qty: number }[];
-  shippingAddress: {
-    name: string;
-    phone: string;
-    address: string;
-    city: string;
-    zip: string;
-    notes?: string;
-  };
-  shippingPrice?: number;
-  taxPrice?: number;
 };
 
 /**

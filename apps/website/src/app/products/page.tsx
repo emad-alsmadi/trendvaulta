@@ -27,7 +27,7 @@ export default function ProductsPage() {
   const meta = response?.meta || { total: 0, page: 1, pages: 1, limit };
 
   const filteredProducts = products.filter(
-    (product) =>
+    (product: any) =>
       product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.description.toLowerCase().includes(searchQuery.toLowerCase()),
   );
@@ -118,7 +118,7 @@ export default function ProductsPage() {
                   transition={{ delay: 0.2 }}
                   className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6'
                 >
-                  {filteredProducts.map((product) => (
+                  {filteredProducts.map((product: any) => (
                     <ProductCard
                       key={product._id}
                       product={product}

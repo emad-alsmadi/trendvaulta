@@ -81,7 +81,10 @@ export function AdminProductsPanel() {
     setEditing(product);
     setForm({
       title: product.title,
-      brand: typeof product.brand === 'string' ? product.brand : product.brand?._id || '',
+      brand:
+        typeof product.brand === 'string'
+          ? product.brand
+          : product.brand?._id || '',
       description: product.description,
       price: product.price,
       cover: product.cover,
@@ -187,7 +190,7 @@ export function AdminProductsPanel() {
           headers={['Title', 'Brand', 'Category', 'Price', 'Stock', 'Actions']}
           empty={products.length === 0}
         >
-          {products.map((p) => (
+          {products.map((p: any) => (
             <tr
               key={p._id}
               className='bg-white/30'
@@ -252,12 +255,10 @@ export function AdminProductsPanel() {
         <AdminField label='Brand'>
           <AdminSelect
             value={form.brand}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, brand: e.target.value }))
-            }
+            onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))}
           >
             <option value=''>Select brand</option>
-            {brands.map((b) => (
+            {brands.map((b: any) => (
               <option
                 key={b._id}
                 value={b._id}
@@ -275,7 +276,10 @@ export function AdminProductsPanel() {
             }
           >
             {categories.map((c) => (
-              <option key={c.value} value={c.value}>
+              <option
+                key={c.value}
+                value={c.value}
+              >
                 {c.label}
               </option>
             ))}
@@ -284,7 +288,9 @@ export function AdminProductsPanel() {
         <AdminField label='Subcategory'>
           <AdminInput
             value={form.subcategory}
-            onChange={(e) => setForm((f) => ({ ...f, subcategory: e.target.value }))}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, subcategory: e.target.value }))
+            }
             placeholder='e.g. Face, Eyes, For Her'
           />
         </AdminField>

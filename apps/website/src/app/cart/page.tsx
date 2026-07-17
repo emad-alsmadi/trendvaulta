@@ -117,7 +117,7 @@ export default function CartPage() {
             <AnimatePresence initial={false}>
               {items.map((item) => (
                 <motion.div
-                  key={item.templateId}
+                  key={item.productId}
                   variants={itemVariants}
                   initial='hidden'
                   animate='show'
@@ -154,12 +154,12 @@ export default function CartPage() {
                           onClick={() =>
                             void confirm({
                               variant: 'danger',
-                              title: 'Remove this template?',
+                              title: 'Remove this product?',
                               description: `"${item.title}" will be removed from your cart.`,
                               confirmLabel: 'Remove',
                               cancelLabel: 'Keep it',
                               onConfirm: async () => {
-                                removeFromCart(item.templateId);
+                                removeFromCart(item.productId);
                               },
                             })
                           }
@@ -176,7 +176,7 @@ export default function CartPage() {
                             size='icon'
                             className='h-9 w-9 rounded-full bg-white/60 text-indigo-950 transition hover:bg-white'
                             onClick={() =>
-                              setCartQty(item.templateId, item.qty - 1)
+                              setCartQty(item.productId, item.qty - 1)
                             }
                             disabled={item.qty <= 1}
                             aria-label='Decrease'
@@ -191,7 +191,7 @@ export default function CartPage() {
                             size='icon'
                             className='h-9 w-9 rounded-full bg-white/60 text-indigo-950 transition hover:bg-white'
                             onClick={() =>
-                              setCartQty(item.templateId, item.qty + 1)
+                              setCartQty(item.productId, item.qty + 1)
                             }
                             aria-label='Increase'
                           >
