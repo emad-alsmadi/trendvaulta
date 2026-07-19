@@ -22,7 +22,7 @@ const connectToDB = async () => {
     // Avoid buffering requests when DB is down (fail fast instead of timing out)
     mongoose.set('bufferCommands', false);
 
-    const dbName = process.env.DB_NAME || 'template_store';
+    const dbName = process.env.DB_NAME || 'trendvaulta';
     const mongoUrl = withDbName(process.env.MONGO_URL, dbName);
     if (!mongoUrl) {
       throw new Error('Missing MONGO_URL env var');
