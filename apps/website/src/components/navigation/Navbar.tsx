@@ -321,7 +321,7 @@ export function Navbar() {
 
               {/* Wishlist */}
               <Link
-                href='/wishlist'
+                href={`/user/${user?.username}/wishlist`}
                 className='hidden sm:block p-2 text-gray-700 hover:text-gray-900 transition-colors'
               >
                 <Heart className='h-5 w-5' />

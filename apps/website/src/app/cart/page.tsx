@@ -4,17 +4,30 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Trash2, Minus, Plus, ArrowLeft } from 'lucide-react';
+import {
+  ShoppingCart,
+  Trash2,
+  Minus,
+  Plus,
+  ArrowLeft,
+  Package,
+} from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useCart } from '@/lib/cartStore';
 import { normalizeRemoteImageSrc, remoteCoverLoader } from '@/lib/utils';
 import { useConfirm } from '@/components/confirm/ConfirmProvider';
+import { useState } from 'react';
 
 export default function CartPage() {
   const router = useRouter();
   const { state, subtotal, setCartQty, removeFromCart, clearCart } = useCart();
   const confirm = useConfirm();
   const items = state.items;
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+
+  const handleImageError = (productId: string) => {
+    setImageErrors((prev) => new Set(prev).add(productId));
+  };
 
   const gridVariants = {
     hidden: { opacity: 0 },
@@ -126,14 +139,21 @@ export default function CartPage() {
                 >
                   <div className='flex flex-col gap-4 sm:flex-row'>
                     <div className='relative h-28 w-24 overflow-hidden rounded-2xl border border-white/30 bg-white/20 sm:h-24 sm:w-20'>
-                      <Image
-                        loader={remoteCoverLoader}
-                        src={normalizeRemoteImageSrc(item.cover)}
-                        alt={item.title}
-                        fill
-                        className='object-cover'
-                        sizes='(max-width: 640px) 96px, 80px'
-                      />
+                      {imageErrors.has(item.productId) ? (
+                        <div className='flex h-full w-full items-center justify-center bg-gray-100'>
+                          <Package className='h-8 w-8 text-gray-400' />
+                        </div>
+                      ) : (
+                        <Image
+                          loader={remoteCoverLoader}
+                          src={normalizeRemoteImageSrc(item.cover)}
+                          alt={item.title}
+                          fill
+                          className='object-cover'
+                          sizes='(max-width: 640px) 96px, 80px'
+                          onError={() => handleImageError(item.productId)}
+                        />
+                      )}
                     </div>
 
                     <div className='min-w-0 flex-1'>
