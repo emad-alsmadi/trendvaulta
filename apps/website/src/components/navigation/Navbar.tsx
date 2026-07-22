@@ -399,17 +399,6 @@ export function Navbar() {
                           Orders
                         </Link>
                       </DropdownMenu.Item>
-
-                      <DropdownMenu.Item asChild>
-                        <Link
-                          href={`/user/${currentUsername}/downloads`}
-                          className='flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
-                        >
-                          <Download className='h-4 w-4' />
-                          Downloads
-                        </Link>
-                      </DropdownMenu.Item>
-
                       <DropdownMenu.Item asChild>
                         <Link
                           href={`/user/${currentUsername}/reviews`}
@@ -588,12 +577,6 @@ export function Navbar() {
                   className='block px-4 py-2 text-medium text-gray-700 hover:bg-gray-100 rounded-lg'
                 >
                   Orders
-                </Link>
-                <Link
-                  href={`/user/${currentUsername}/downloads`}
-                  className='block px-4 py-2 text-medium text-gray-700 hover:bg-gray-100 rounded-lg'
-                >
-                  Downloads
                 </Link>
                 <Link
                   href={`/user/${currentUsername}/reviews`}

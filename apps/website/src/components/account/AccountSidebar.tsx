@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-type ActivePage = 'profile' | 'orders' | 'downloads' | 'wishlist' | 'reviews';
+type ActivePage = 'profile' | 'orders' | 'wishlist' | 'reviews';
 
 interface AccountSidebarProps {
   activePage: ActivePage;
@@ -23,11 +23,6 @@ export default function AccountSidebar({
       href: `${basePath}/orders`,
       label: 'Orders',
       page: 'orders' as ActivePage,
-    },
-    {
-      href: `${basePath}/downloads`,
-      label: 'Downloads',
-      page: 'downloads' as ActivePage,
     },
     {
       href: `${basePath}/wishlist`,

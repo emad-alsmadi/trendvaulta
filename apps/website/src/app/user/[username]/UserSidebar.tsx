@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMe } from '@/hooks/auth/authQuery';
 
-type ActivePage = 'profile' | 'orders' | 'downloads' | 'wishlist' | 'reviews';
+type ActivePage = 'profile' | 'orders' | 'wishlist' | 'reviews';
 
 interface UserSidebarProps {
   username: string;
@@ -26,7 +26,6 @@ export default function UserSidebar({ username }: UserSidebarProps) {
 
   const getActivePage = (): ActivePage => {
     if (pathname.endsWith('/orders')) return 'orders';
-    if (pathname.endsWith('/downloads')) return 'downloads';
     if (pathname.endsWith('/wishlist')) return 'wishlist';
     if (pathname.endsWith('/reviews')) return 'reviews';
     return 'profile';
@@ -44,11 +43,6 @@ export default function UserSidebar({ username }: UserSidebarProps) {
       href: `/user/${currentUsername}/orders`,
       label: 'Orders',
       page: 'orders' as ActivePage,
-    },
-    {
-      href: `/user/${currentUsername}/downloads`,
-      label: 'Downloads',
-      page: 'downloads' as ActivePage,
     },
     {
       href: `/user/${currentUsername}/wishlist`,

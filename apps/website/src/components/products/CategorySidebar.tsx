@@ -9,32 +9,84 @@ const categories = [
   {
     name: 'Makeup',
     slug: 'makeup',
-    subcategories: ['Face', 'Eyes', 'Lips', 'Nails'],
+    subcategories: [
+      'foundation',
+      'lipstick',
+      'eyeshadow',
+      'mascara',
+      'blush',
+      'concealer',
+      'primer',
+      'setting-spray',
+    ],
   },
   {
     name: 'Perfumes',
     slug: 'perfumes',
-    subcategories: ['For Her', 'For Him', 'Unisex', 'Gift Sets'],
+    subcategories: [
+      'eau-de-parfum',
+      'eau-de-toilette',
+      'body-mist',
+      'gift-sets',
+      'cologne',
+      'roll-on',
+    ],
   },
   {
     name: 'Clothing',
     slug: 'clothing',
-    subcategories: ['Women', 'Men', 'Kids', 'Accessories'],
+    subcategories: [
+      'dresses',
+      'tops',
+      'pants',
+      'jackets',
+      'accessories',
+      'sweaters',
+      'skirts',
+      'activewear',
+    ],
   },
   {
     name: 'Skincare',
     slug: 'skincare',
-    subcategories: ['Face Care', 'Body Care', 'Hair Care', 'Sun Care'],
+    subcategories: [
+      'cleanser',
+      'moisturizer',
+      'serum',
+      'sunscreen',
+      'masks',
+      'toner',
+      'exfoliator',
+      'eye-cream',
+    ],
   },
   {
     name: 'Accessories',
     slug: 'accessories',
-    subcategories: ['Jewelry', 'Bags', 'Watches', 'Sunglasses'],
+    subcategories: [
+      'jewelry',
+      'bags',
+      'scarves',
+      'belts',
+      'watches',
+      'sunglasses',
+      'hats',
+      'wallets',
+    ],
   },
   {
-    name: 'Home & Living',
+    name: 'Home and Living',
     slug: 'home',
-    subcategories: ['Decor', 'Kitchen', 'Bedding', 'Lighting'],
+    subcategories: [
+      'decor',
+      'kitchen',
+      'bedding',
+      'lighting',
+      'furniture',
+      'rugs',
+      'curtains',
+      'organization',
+    ],
   },
 ];
 
@@ -121,7 +173,7 @@ export function CategorySidebar() {
                     {category.subcategories.map((sub) => (
                       <Link
                         key={sub}
-                        href={`/products?category=${category.slug}&subcategory=${sub.toLowerCase().replace(/\s+/g, '-')}`}
+                        href={`/products?category=${category.slug}&subcategory=${sub}`}
                         className='block px-3 py-1.5 text-xs text-gray-600 hover:text-fuchsia-600 transition-colors'
                       >
                         {sub}
@@ -201,7 +253,7 @@ export function CategorySidebar() {
         </div>
 
         {/* Color Filter */}
-        <div className='mb-6'>
+        <div className='mb-2'>
           <h4 className='text-sm font-medium text-gray-900 mb-3'>Color</h4>
           <div className='flex flex-wrap gap-2'>
             {colors.map((color) => (

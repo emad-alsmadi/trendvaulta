@@ -50,24 +50,24 @@ export function ProductCard({ product }: ProductCardProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -4 }}
-      className='bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden group'
+      className='bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden group w-full'
     >
       <Link href={`/products/${product._id}`}>
-        <div className='relative aspect-[4/3] overflow-hidden bg-gray-100'>
+        <div className='relative aspect-square overflow-hidden bg-gray-100'>
           <img
             src={product.cover}
             alt={product.title}
             className='w-full h-full object-cover group-hover:scale-105 transition-transform duration-300'
           />
           {discount > 0 && (
-            <div className='absolute top-3 left-3 bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white text-xs font-bold px-2 py-1 rounded-full'>
+            <div className='absolute top-2 left-2 bg-linear-to-r from-fuchsia-600 to-purple-600 text-white text-xs font-bold px-2 py-1 rounded-full'>
               -{discount}%
             </div>
           )}
         </div>
       </Link>
 
-      <div className='p-4'>
+      <div className='p-3'>
         {product.brand && (
           <Link
             href={`/brands/${product.brand.slug}`}

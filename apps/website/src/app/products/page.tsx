@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Filter, Search } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
@@ -8,11 +8,22 @@ import { Button } from '@/components/ui/Button';
 import { ProductCard } from '@/components/products/ProductCard';
 import { useProducts } from '@/hooks/products/productsQuery';
 import { CategorySidebar } from '@/components/products/CategorySidebar';
+import { Pagination } from '@/components/ui/Pagination';
+import { useSearchParams } from 'next/navigation';
 
 export default function ProductsPage() {
+  const searchParams = useSearchParams();
+  const category = searchParams.get('category') || undefined;
+  const subcategory = searchParams.get('subcategory') || undefined;
+
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const limit = 12;
+  const limit = 6;
+
+  // Reset page when category changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [category, subcategory]);
 
   const {
     data: response,
@@ -22,6 +33,8 @@ export default function ProductsPage() {
     page: currentPage,
     limit,
     sort: 'createdAt',
+    category,
+    subcategory,
   });
   const products = response?.data || [];
   const meta = response?.meta || { total: 0, page: 1, pages: 1, limit };
@@ -116,7 +129,7 @@ export default function ProductsPage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.2 }}
-                  className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6'
+                  className='grid grid-cols-3 gap-4'
                 >
                   {filteredProducts.map((product: any) => (
                     <ProductCard
@@ -132,43 +145,13 @@ export default function ProductsPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.3 }}
-                    className='flex items-center justify-center gap-2 mt-8'
+                    className='mt-8'
                   >
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                    >
-                      Previous
-                    </Button>
-
-                    {Array.from({ length: meta.pages }, (_, i) => i + 1).map(
-                      (page) => (
-                        <Button
-                          key={page}
-                          variant={currentPage === page ? 'default' : 'outline'}
-                          size='sm'
-                          onClick={() => handlePageChange(page)}
-                          className={
-                            currentPage === page
-                              ? 'bg-fuchsia-600 text-white'
-                              : ''
-                          }
-                        >
-                          {page}
-                        </Button>
-                      ),
-                    )}
-
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === meta.pages}
-                    >
-                      Next
-                    </Button>
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={meta.pages}
+                      onPageChange={handlePageChange}
+                    />
                   </motion.div>
                 )}
               </>
