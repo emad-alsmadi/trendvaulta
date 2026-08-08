@@ -92,7 +92,7 @@ export function GiftFinderSection({ config: configProp }: Props) {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-40px' }}
           transition={{ duration: 0.35 }}
-          className='overflow-hidden rounded-2xl border border-stone-200 bg-gradient-to-br from-rose-50 via-white to-amber-50'
+          className='overflow-hidden rounded-2xl border border-stone-200 bg-white'
         >
           <div className='grid grid-cols-1 lg:grid-cols-[1.1fr_1fr]'>
             <div className='p-6 sm:p-8 lg:p-10'>

@@ -35,7 +35,7 @@ export default function OffersPage() {
   ];
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-fuchsia-50 via-purple-50 to-cyan-50'>
+    <div className='min-h-screen bg-white'>
       <div className='container mx-auto px-4 py-12'>
         <motion.div
           initial={{ opacity: 0, y: 20 }}

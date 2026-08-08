@@ -51,7 +51,7 @@ export default function BrandDetailPage({ params }: { params: { id: string } }) 
   };
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-fuchsia-50 via-purple-50 to-cyan-50'>
+    <div className='min-h-screen bg-white'>
       {/* Brand Banner */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}

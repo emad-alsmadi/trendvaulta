@@ -9,9 +9,9 @@ import {
 import { useLookbooks } from '@/hooks/storefront/lookbooksQuery';
 
 const TONE_BG: Record<DemoLookbookStory['tone'], string> = {
-  rose: 'from-rose-50 via-white to-amber-50',
+  rose: 'from-stone-50 via-white to-stone-50',
   stone: 'from-stone-100 via-white to-neutral-50',
-  teal: 'from-teal-50 via-white to-cyan-50',
+  teal: 'from-stone-50 via-white to-neutral-50',
 };
 
 type Props = {

@@ -22,11 +22,7 @@ export function HeroSection({
   onSearchSubmit,
 }: HeroSectionProps) {
   return (
-    <div className='relative overflow-hidden'>
-      <div
-        aria-hidden
-        className='pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgba(217,70,239,0.08),_transparent_50%),radial-gradient(ellipse_at_bottom_right,_rgba(6,182,212,0.08),_transparent_45%)]'
-      />
+    <div className='relative overflow-hidden bg-white'>
       <div className='relative mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8'>
         <div className='grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-12'>
           <motion.div
