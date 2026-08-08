@@ -3,6 +3,7 @@
 import { Search, Sparkles, Shirt, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { HeroPromoCarousel } from '@/components/home/HeroPromoCarousel';
 
 interface HeroSectionProps {
   searchQuery: string;
@@ -27,7 +28,7 @@ export function HeroSection({
         className='pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgba(217,70,239,0.08),_transparent_50%),radial-gradient(ellipse_at_bottom_right,_rgba(6,182,212,0.08),_transparent_45%)]'
       />
       <div className='relative mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8'>
-        <div className='grid grid-cols-1 items-center gap-12 lg:grid-cols-2'>
+        <div className='grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-12'>
           <motion.div
             className='space-y-6 text-start'
             initial='hidden'
@@ -119,47 +120,13 @@ export function HeroSection({
           </motion.div>
 
           <motion.div
-            className='hidden grid-cols-2 gap-4 lg:grid'
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, delay: 0.15, ease: 'easeOut' }}
+            transition={{ duration: 0.55, delay: 0.12, ease: 'easeOut' }}
+            className='w-full'
           >
-            <div className='space-y-4'>
-              <div className='aspect-[4/3] overflow-hidden rounded-lg border border-white/20 shadow-xl transition-transform duration-300 hover:scale-[1.03]'>
-                <div
-                  className='h-full w-full bg-cover bg-center'
-                  style={{ backgroundImage: 'url(/images/4.webp)' }}
-                  role='img'
-                  aria-label='Lifestyle product mood'
-                />
-              </div>
-              <div className='aspect-[4/3] overflow-hidden rounded-lg border border-white/20 shadow-xl transition-transform duration-300 hover:scale-[1.03]'>
-                <div
-                  className='h-full w-full bg-cover bg-center'
-                  style={{ backgroundImage: 'url(/images/1.webp)' }}
-                  role='img'
-                  aria-label='Beauty product mood'
-                />
-              </div>
-            </div>
-            <div className='mt-8 space-y-4'>
-              <div className='aspect-[4/3] overflow-hidden rounded-lg border border-white/20 shadow-xl transition-transform duration-300 hover:scale-[1.03]'>
-                <div
-                  className='h-full w-full bg-cover bg-center'
-                  style={{ backgroundImage: 'url(/images/2.webp)' }}
-                  role='img'
-                  aria-label='Fashion product mood'
-                />
-              </div>
-              <div className='aspect-[4/3] overflow-hidden rounded-lg border border-white/20 shadow-xl transition-transform duration-300 hover:scale-[1.03]'>
-                <div
-                  className='h-full w-full bg-cover bg-center'
-                  style={{ backgroundImage: 'url(/images/3.webp)' }}
-                  role='img'
-                  aria-label='Home lifestyle mood'
-                />
-              </div>
-            </div>
+            {/* DEMO / CMS-ready promo carousel — local images only */}
+            <HeroPromoCarousel />
           </motion.div>
         </div>
       </div>

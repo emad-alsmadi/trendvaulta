@@ -8,6 +8,7 @@
  * TODO(api): GET /api/storefront/lookbooks
  * TODO(api): GET /api/products/:id/bundles
  * TODO(api): GET /api/storefront/help
+ * TODO(api): GET /api/storefront/hero
  */
 
 export type DemoBadge = 'bestseller' | 'lowStock' | 'new';
@@ -130,6 +131,61 @@ export const DEMO_DELIVER_REGIONS: DemoDeliverRegion[] = [
 ];
 
 export const DEMO_DEFAULT_DELIVER_REGION_ID = 'us';
+
+/** DEMO homepage hero promo slides — replace with CMS / GET /api/storefront/hero */
+export type DemoHeroSlide = {
+  id: string;
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  ctaLabel: string;
+  href: string;
+  imageUrl: string;
+  tone: 'rose' | 'stone' | 'teal' | 'indigo';
+};
+
+export const DEMO_HERO_SLIDES: DemoHeroSlide[] = [
+  {
+    id: 'hero-glow',
+    eyebrow: 'Beauty edit',
+    title: 'Soft-glow essentials for every routine',
+    subtitle: 'Skincare and makeup picks with clear prices.',
+    ctaLabel: 'Shop beauty',
+    href: '/products?category=beauty',
+    imageUrl: '/images/1.webp',
+    tone: 'rose',
+  },
+  {
+    id: 'hero-fashion',
+    eyebrow: 'Fashion',
+    title: 'Everyday pieces that feel elevated',
+    subtitle: 'Layer-ready looks without the noise.',
+    ctaLabel: 'Shop fashion',
+    href: '/products?category=fashion',
+    imageUrl: '/images/2.webp',
+    tone: 'indigo',
+  },
+  {
+    id: 'hero-offers',
+    eyebrow: "Today's offers",
+    title: 'Limited edits worth a second look',
+    subtitle: 'Seasonal deals curated for TrendVaulta shoppers.',
+    ctaLabel: 'See offers',
+    href: '/offers',
+    imageUrl: '/images/3.webp',
+    tone: 'teal',
+  },
+  {
+    id: 'hero-lifestyle',
+    eyebrow: 'Lifestyle',
+    title: 'Home & self-care that fits your pace',
+    subtitle: 'Thoughtful details for calm, polished days.',
+    ctaLabel: 'Explore lifestyle',
+    href: '/products?category=lifestyle',
+    imageUrl: '/images/4.webp',
+    tone: 'stone',
+  },
+];
 
 /** DEMO — Customer Service / Help Center topics (Amazon-like IA, TrendVaulta copy) */
 export const DEMO_HELP_TOPICS: DemoHelpTopic[] = [
