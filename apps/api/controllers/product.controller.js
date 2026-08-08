@@ -22,7 +22,8 @@ const {
  * - includeInactive: admin/moderator only — include inactive products
  * - isActive: admin/moderator only — filter by active flag (true|false)
  *
- * Product payloads include `badges`: curated + computed (`lowStock`, `new`).
+ * Product payloads include `badges`: curated + computed
+ * (`bestseller` from featured/salesCount, `lowStock`, `new`).
  *
  * @route GET /api/products
  * @access Public (staff filters require Bearer token)
@@ -209,7 +210,11 @@ const createProduct = asyncHandler(async (req, res) => {
   });
 
   const result = await product.save();
-  res.status(201).json(result);
+  const lean = result.toObject ? result.toObject() : result;
+  res.status(201).json({
+    ...lean,
+    badges: resolveProductBadges(lean),
+  });
 });
 
 /**
@@ -251,7 +256,11 @@ const updateProduct = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: 'Product not found' });
   }
 
-  res.status(200).json(product);
+  const lean = product.toObject ? product.toObject() : product;
+  res.status(200).json({
+    ...lean,
+    badges: resolveProductBadges(lean),
+  });
 });
 
 /**

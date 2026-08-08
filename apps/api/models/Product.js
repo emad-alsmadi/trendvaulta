@@ -4,6 +4,8 @@ const Joi = require('joi');
 const MERCHANDISING_BADGES = ['bestseller', 'new', 'lowStock'];
 const LOW_STOCK_THRESHOLD = 5;
 const NEW_PRODUCT_DAYS = 30;
+/** Auto-apply bestseller when units sold reach this threshold (curated badge still wins). */
+const BESTSELLER_SALES_THRESHOLD = 10;
 
 /**
  * Merge curated badges with computed merchandising signals.
@@ -16,6 +18,11 @@ const resolveProductBadges = (product) => {
       ? product.badges.filter((b) => MERCHANDISING_BADGES.includes(b))
       : [],
   );
+
+  const salesCount = Number(product?.salesCount) || 0;
+  if (product?.featured === true || salesCount >= BESTSELLER_SALES_THRESHOLD) {
+    badges.add('bestseller');
+  }
 
   const stock = Number(product?.stock) || 0;
   if (stock > 0 && stock <= LOW_STOCK_THRESHOLD) {
@@ -208,6 +215,9 @@ const ProductSchema = new mongoose.Schema(
   },
 );
 
+ProductSchema.index({ salesCount: -1, reviewCount: -1, createdAt: -1 });
+ProductSchema.index({ featured: 1, isActive: 1 });
+
 const Product = mongoose.model('Product', ProductSchema);
 
 const validateCreateProduct = (obj) => {
@@ -308,5 +318,8 @@ module.exports = {
   validateUpdateProduct,
   resolveProductBadges,
   MERCHANDISING_BADGES,
+  BESTSELLER_SALES_THRESHOLD,
+  LOW_STOCK_THRESHOLD,
+  NEW_PRODUCT_DAYS,
   LOW_STOCK_THRESHOLD,
 };
