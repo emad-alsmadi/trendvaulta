@@ -10,11 +10,16 @@ import {
   Plus,
   ArrowLeft,
   Package,
+  ShieldCheck,
+  Truck,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useCart } from '@/lib/cartStore';
 import { normalizeRemoteImageSrc, remoteCoverLoader } from '@/lib/utils';
 import { useConfirm } from '@/components/confirm/ConfirmProvider';
+import { TrustServiceStrip } from '@/components/home/TrustServiceStrip';
+import { DEMO_TRUST_ITEMS } from '@/data/demoStorefront';
 import { useState } from 'react';
 
 export default function CartPage() {
@@ -82,7 +87,7 @@ export default function CartPage() {
                     variant: 'warning',
                     title: 'Clear your cart?',
                     description:
-                      'All items will be removed. You can add templates again anytime.',
+                      'All items will be removed. You can add products again anytime.',
                     confirmLabel: 'Clear cart',
                     cancelLabel: 'Keep shopping',
                     onConfirm: async () => {
@@ -99,24 +104,35 @@ export default function CartPage() {
       </div>
 
       {items.length === 0 ? (
-        <div className='rounded-3xl border border-white/40 bg-white/50 p-8 text-center shadow-sm backdrop-blur-xl'>
-          <div className='mx-auto inline-flex h-14 w-14 items-center justify-center rounded-3xl bg-gradient-to-br from-indigo-600 via-fuchsia-600 to-cyan-500 text-white shadow-sm'>
-            <ShoppingCart className='h-6 w-6' />
+        <div className='space-y-6'>
+          <div className='rounded-3xl border border-white/40 bg-white/50 p-8 text-center shadow-sm backdrop-blur-xl'>
+            <div className='mx-auto inline-flex h-14 w-14 items-center justify-center rounded-3xl bg-gradient-to-br from-indigo-600 via-fuchsia-600 to-cyan-500 text-white shadow-sm'>
+              <ShoppingCart className='h-6 w-6' />
+            </div>
+            <div className='mt-4 text-lg font-extrabold text-indigo-950'>
+              Your cart is empty
+            </div>
+            <div className='mt-2 text-sm font-semibold text-indigo-950/75'>
+              Browse beauty, fashion, and lifestyle picks — then add what you
+              love.
+            </div>
+            <div className='mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row'>
+              <Link
+                href='/products'
+                className='inline-flex items-center justify-center rounded-full bg-gradient-to-r from-indigo-600 via-fuchsia-600 to-cyan-500 px-5 py-3 text-sm font-extrabold text-white shadow-md transition hover:brightness-110'
+              >
+                Browse catalog
+              </Link>
+              <Link
+                href='/offers'
+                className='inline-flex items-center justify-center rounded-full border border-white/35 bg-white/45 px-5 py-3 text-sm font-extrabold text-indigo-950 shadow-sm backdrop-blur-xl transition hover:bg-white/65'
+              >
+                See today&apos;s deals
+              </Link>
+            </div>
           </div>
-          <div className='mt-4 text-lg font-extrabold text-indigo-950'>
-            Your cart is empty
-          </div>
-          <div className='mt-2 text-sm font-semibold text-indigo-950/75'>
-            Browse templates and add something you like.
-          </div>
-          <div className='mt-6 flex justify-center'>
-            <Link
-              href='/'
-              className='inline-flex items-center justify-center rounded-full bg-gradient-to-r from-indigo-600 via-fuchsia-600 to-cyan-500 px-5 py-3 text-sm font-extrabold text-white shadow-md transition hover:brightness-110'
-            >
-              Browse templates
-            </Link>
-          </div>
+          {/* DEMO trust cues — swap via TrustServiceStrip API later */}
+          <TrustServiceStrip items={DEMO_TRUST_ITEMS} />
         </div>
       ) : (
         <div className='grid gap-6 lg:grid-cols-[1.1fr_0.9fr]'>
@@ -263,16 +279,32 @@ export default function CartPage() {
               </Button>
 
               <Link
-                href='/'
+                href='/products'
                 className='inline-flex items-center justify-center rounded-full border border-white/35 bg-white/45 px-5 py-3 text-sm font-extrabold text-indigo-950 shadow-sm backdrop-blur-xl transition hover:bg-white/65'
               >
                 Browse more
               </Link>
             </div>
 
-            <div className='mt-5 text-xs font-semibold text-indigo-950/60'>
-              Checkout uses Stripe when configured on the API; otherwise orders
-              are created locally for development.
+            {/* Trust near payment CTA — pattern only; no Stripe/payment changes */}
+            <ul className='mt-5 space-y-2 text-xs font-semibold text-indigo-950/70'>
+              <li className='flex items-center gap-2'>
+                <ShieldCheck className='h-3.5 w-3.5 shrink-0 text-fuchsia-700' aria-hidden />
+                Secure checkout
+              </li>
+              <li className='flex items-center gap-2'>
+                <Truck className='h-3.5 w-3.5 shrink-0 text-fuchsia-700' aria-hidden />
+                Tracked shipping on every order
+              </li>
+              <li className='flex items-center gap-2'>
+                <RefreshCw className='h-3.5 w-3.5 shrink-0 text-fuchsia-700' aria-hidden />
+                Easy returns within policy
+              </li>
+            </ul>
+
+            <div className='mt-4 text-xs font-semibold text-indigo-950/60'>
+              Coupons apply at checkout. Payment is processed securely when
+              Stripe is configured.
             </div>
           </div>
         </div>
