@@ -9,6 +9,7 @@
  * TODO(api): GET /api/products/:id/bundles
  * TODO(api): GET /api/storefront/help
  * TODO(api): GET /api/storefront/hero
+ * TODO(api): GET /api/products/:id/qa
  */
 
 export type DemoBadge = 'bestseller' | 'lowStock' | 'new';
@@ -186,6 +187,115 @@ export const DEMO_HERO_SLIDES: DemoHeroSlide[] = [
     tone: 'stone',
   },
 ];
+
+/** DEMO PDP Q&A — category-scoped FAQ (not live customer Q&A) */
+export type DemoProductQaItem = {
+  id: string;
+  question: string;
+  answer: string;
+};
+
+const DEMO_QA_COMMON: DemoProductQaItem[] = [
+  {
+    id: 'qa-ship',
+    question: 'How long does shipping usually take?',
+    answer:
+      'Most orders dispatch within 1–2 business days. Standard delivery is typically 5–7 business days; express options appear at checkout when available.',
+  },
+  {
+    id: 'qa-return',
+    question: 'Can I return this item?',
+    answer:
+      'Eligible unused items can usually be returned within 30 days in original packaging. See our returns policy for hygiene-sealed exceptions.',
+  },
+  {
+    id: 'qa-pay',
+    question: 'Is checkout secure?',
+    answer:
+      'Yes. Payments are processed through encrypted checkout (Stripe when configured). TrendVaulta never stores full card numbers in the storefront.',
+  },
+];
+
+const DEMO_QA_BY_CATEGORY: Record<string, DemoProductQaItem[]> = {
+  beauty: [
+    {
+      id: 'qa-beauty-skin',
+      question: 'Is this suitable for sensitive skin?',
+      answer:
+        'Always check the ingredient list on the product page. If you have sensitivities, patch-test first or ask our care team before full use.',
+    },
+    {
+      id: 'qa-beauty-expire',
+      question: 'How should I store this product?',
+      answer:
+        'Keep in a cool, dry place away from direct sun. Close lids tightly after use to protect texture and scent.',
+    },
+  ],
+  skincare: [
+    {
+      id: 'qa-skin-order',
+      question: 'When should I use this in my routine?',
+      answer:
+        'Most cleansers go first, then treatments/serums, then moisturizer and SPF by day. Follow any usage notes on the packaging.',
+    },
+  ],
+  makeup: [
+    {
+      id: 'qa-makeup-shade',
+      question: 'How do I choose the right shade?',
+      answer:
+        'Compare undertone (cool/warm/neutral) in natural light. If you are between shades, the lighter option is often easier to correct.',
+    },
+  ],
+  fashion: [
+    {
+      id: 'qa-fashion-fit',
+      question: 'How does sizing run?',
+      answer:
+        'Check the size guide and measurements on the product page when listed. If you prefer a relaxed fit, consider sizing up.',
+    },
+    {
+      id: 'qa-fashion-care',
+      question: 'How do I care for this piece?',
+      answer:
+        'Follow the care label. Many items prefer gentle wash or cool water; avoid high heat drying unless the label allows it.',
+    },
+  ],
+  clothing: [
+    {
+      id: 'qa-clothing-fit',
+      question: 'Will this shrink after washing?',
+      answer:
+        'Follow the garment care label. Natural fibers can relax or shrink with heat — cool wash and air dry when recommended.',
+    },
+  ],
+  lifestyle: [
+    {
+      id: 'qa-life-use',
+      question: 'Is this ready to use out of the box?',
+      answer:
+        'Most lifestyle pieces arrive ready for everyday use. Any assembly or care notes will be listed under product details when required.',
+    },
+  ],
+  home: [
+    {
+      id: 'qa-home-place',
+      question: 'Where does this work best at home?',
+      answer:
+        'Use on a stable, dry surface unless the listing says otherwise. Keep away from prolonged moisture if the material is not waterproof.',
+    },
+  ],
+};
+
+/**
+ * Pick DEMO Q&A for a product category (falls back to common retail FAQs).
+ * TODO(api): GET /api/products/:id/qa
+ */
+export function getDemoProductQa(category?: string | null): DemoProductQaItem[] {
+  const key = (category || '').toLowerCase().trim();
+  const specific = key ? DEMO_QA_BY_CATEGORY[key] : undefined;
+  return [...(specific ?? []), ...DEMO_QA_COMMON];
+}
 
 /** DEMO — Customer Service / Help Center topics (Amazon-like IA, TrendVaulta copy) */
 export const DEMO_HELP_TOPICS: DemoHelpTopic[] = [

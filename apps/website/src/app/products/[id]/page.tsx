@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 import { useCart } from '@/lib/cartStore';
 import { FrequentlyBoughtTogether } from '@/components/products/FrequentlyBoughtTogether';
+import { ProductQaSection } from '@/components/products/ProductQaSection';
 import { trackRecentlyViewed } from '@/lib/recentlyViewed';
 
 export default function ProductDetailPage({
@@ -437,6 +438,8 @@ export default function ProductDetailPage({
             )}
           </div>
         </motion.div>
+
+        <ProductQaSection category={product.category} />
 
         {/* Reviews Section */}
         <motion.div
