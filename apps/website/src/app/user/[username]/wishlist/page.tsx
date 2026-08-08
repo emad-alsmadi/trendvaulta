@@ -56,7 +56,7 @@ export default function UserWishlistPage() {
           </h1>
           <p className="text-sm text-gray-600">
             {wishlist?.length || 0}{' '}
-            {wishlist?.length === 1 ? 'template' : 'templates'} saved
+            {wishlist?.length === 1 ? 'product' : 'products'} saved
           </p>
         </div>
       </div>

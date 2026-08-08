@@ -140,7 +140,7 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Support */}
+          {/* Support — Amazon-like “Let Us Help You” IA, TrendVaulta links */}
           <div>
             <h3 className='text-sm font-semibold text-white uppercase tracking-wider mb-4'>
               Support
@@ -152,6 +152,22 @@ export function Footer() {
                   className='text-gray-400 hover:text-white text-sm transition-colors'
                 >
                   Help Center
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href='/shipping'
+                  className='text-gray-400 hover:text-white text-sm transition-colors'
+                >
+                  Shipping &amp; delivery
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href='/returns'
+                  className='text-gray-400 hover:text-white text-sm transition-colors'
+                >
+                  Returns &amp; refunds
                 </Link>
               </li>
               <li>

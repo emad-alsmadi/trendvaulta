@@ -7,6 +7,7 @@
  * TODO(api): GET /api/brands?featured=true
  * TODO(api): GET /api/storefront/lookbooks
  * TODO(api): GET /api/products/:id/bundles
+ * TODO(api): GET /api/storefront/help
  */
 
 export type DemoBadge = 'bestseller' | 'lowStock' | 'new';
@@ -79,6 +80,116 @@ export type DemoGiftFinderConfig = {
   recipients: DemoGiftOption[];
   budgets: DemoGiftOption[];
 };
+
+export type DemoHelpTopic = {
+  id: string;
+  title: string;
+  description: string;
+  href: string;
+  icon: 'truck' | 'refresh' | 'package' | 'shield' | 'gift' | 'headset' | 'user' | 'tag';
+};
+
+/** DEMO deliver-to regions — expectation messaging only (no geo/shipping engine) */
+export type DemoDeliverRegion = {
+  id: string;
+  label: string;
+  hint: string;
+};
+
+export const DEMO_DELIVER_REGIONS: DemoDeliverRegion[] = [
+  {
+    id: 'us',
+    label: 'United States',
+    hint: 'Standard & express options at checkout',
+  },
+  {
+    id: 'gb',
+    label: 'United Kingdom',
+    hint: 'Tracked delivery on eligible orders',
+  },
+  {
+    id: 'ae',
+    label: 'United Arab Emirates',
+    hint: 'Regional shipping estimates at checkout',
+  },
+  {
+    id: 'sa',
+    label: 'Saudi Arabia',
+    hint: 'Delivery windows vary by city',
+  },
+  {
+    id: 'lb',
+    label: 'Lebanon',
+    hint: 'Local delivery when selected at checkout',
+  },
+  {
+    id: 'ch',
+    label: 'Switzerland',
+    hint: 'International shipping notes may apply',
+  },
+];
+
+export const DEMO_DEFAULT_DELIVER_REGION_ID = 'us';
+
+/** DEMO — Customer Service / Help Center topics (Amazon-like IA, TrendVaulta copy) */
+export const DEMO_HELP_TOPICS: DemoHelpTopic[] = [
+  {
+    id: 'orders',
+    title: 'Your orders',
+    description: 'Track shipments, view history, and manage recent purchases.',
+    href: '/auth/login',
+    icon: 'package',
+  },
+  {
+    id: 'shipping',
+    title: 'Shipping & delivery',
+    description: 'Rates, timelines, and how tracked delivery works.',
+    href: '/shipping',
+    icon: 'truck',
+  },
+  {
+    id: 'returns',
+    title: 'Returns & refunds',
+    description: 'Return window, eligible items, and how refunds are processed.',
+    href: '/returns',
+    icon: 'refresh',
+  },
+  {
+    id: 'payments',
+    title: 'Secure payments',
+    description: 'Checkout, coupons, and how Stripe-secured payments work.',
+    href: '/faq',
+    icon: 'shield',
+  },
+  {
+    id: 'gifts',
+    title: 'Gifts & occasions',
+    description: 'Find gift-ready edits by occasion, recipient, and budget.',
+    href: '/#gift-finder',
+    icon: 'gift',
+  },
+  {
+    id: 'offers',
+    title: 'Offers & deals',
+    description: 'Browse limited-time promotions and seasonal edits.',
+    href: '/offers',
+    icon: 'tag',
+  },
+  {
+    id: 'account',
+    title: 'Account & wishlist',
+    description: 'Sign in to manage profile, wishlist, and reviews.',
+    href: '/auth/login',
+    icon: 'user',
+  },
+  {
+    id: 'contact',
+    title: 'Contact support',
+    description: 'Reach the care team for order or product questions.',
+    href: '/contact',
+    icon: 'headset',
+  },
+];
 
 /** DEMO — trust / service strip */
 export const DEMO_TRUST_ITEMS: DemoTrustItem[] = [

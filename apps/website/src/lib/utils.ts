@@ -13,9 +13,9 @@ const NEXT_IMAGE_STRIP_SEARCH_HOSTS = new Set([
 ]);
 
 /**
- * Custom loader so template covers load from the CDN directly (avoids `/_next/image` fetch
- * failures some environments hit with Unsplash).
- */
+  * Custom loader so product covers load from the CDN directly (avoids `/_next/image` fetch
+  * failures some environments hit with Unsplash).
+  */
 export function remoteCoverLoader({
   src,
   width,

@@ -29,6 +29,7 @@ import { useLogout, useMe } from '@/hooks/auth/authQuery';
 import { getUserRole } from '@/lib/authCookies';
 import { useCart } from '@/lib/cartStore';
 import { useConfirm } from '@/components/confirm/ConfirmProvider';
+import { DeliverToControl } from '@/components/navigation/DeliverToControl';
 import { useState } from 'react';
 
 export const navItems = [
@@ -162,28 +163,36 @@ export function Navbar() {
 
   return (
     <header className='sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm'>
-      {/* Utility strip — trust cues (TrendVaulta copy, not marketplace clone) */}
-      <div className='hidden border-b border-stone-200 bg-stone-50 text-stone-600 sm:block'>
-        <div className='mx-auto flex max-w-[1400px] items-center justify-between gap-4 px-4 py-1.5 text-xs sm:px-6 lg:px-8'>
-          <p className='inline-flex items-center gap-1.5'>
-            <Truck
-              className='h-3.5 w-3.5 text-stone-500'
-              aria-hidden
-            />
-            Fast shipping · Easy returns · Secure checkout
-          </p>
-          <div className='flex items-center gap-4'>
+      {/* Utility strip — demo Deliver to + help shortcuts (not a geo engine) */}
+      <div className='border-b border-stone-200 bg-stone-50 text-stone-600'>
+        <div className='mx-auto flex max-w-[1400px] items-center justify-between gap-3 px-4 py-1.5 text-xs sm:px-6 lg:px-8'>
+          <DeliverToControl />
+          <div className='hidden items-center gap-4 sm:flex'>
             <Link
-              href='/faq'
+              href='/offers'
+              className='inline-flex items-center gap-1 font-extrabold text-fuchsia-700 hover:text-fuchsia-800'
+            >
+              <Sparkles className='h-3.5 w-3.5' aria-hidden />
+              Today&apos;s offers
+            </Link>
+            <p className='inline-flex items-center gap-1.5 text-stone-500'>
+              <Truck
+                className='h-3.5 w-3.5'
+                aria-hidden
+              />
+              Fast shipping · Easy returns
+            </p>
+            <Link
+              href='/help'
               className='hover:text-stone-900'
             >
               Help
             </Link>
             <Link
-              href='/contact'
+              href='/shipping'
               className='hover:text-stone-900'
             >
-              Support
+              Shipping
             </Link>
             {user ? (
               <Link
@@ -551,6 +560,42 @@ export function Navbar() {
           </div>
         </div>
       </div>
+
+      {/* Secondary department strip — Amazon-like IA, TrendVaulta routes */}
+      <nav
+        aria-label='Quick shop links'
+        className='hidden border-t border-stone-100 bg-white md:block'
+      >
+        <div className='mx-auto flex max-w-[1400px] items-center gap-1 overflow-x-auto px-4 py-2 text-sm sm:px-6 lg:px-8'>
+          <Link
+            href='/offers'
+            className={cn(
+              'shrink-0 rounded-full px-3 py-1 font-extrabold transition',
+              pathname.startsWith('/offers')
+                ? 'bg-fuchsia-100 text-fuchsia-800'
+                : 'text-fuchsia-700 hover:bg-fuchsia-50',
+            )}
+          >
+            Today&apos;s offers
+          </Link>
+          {[
+            { href: '/products?category=beauty', label: 'Beauty' },
+            { href: '/products?category=fashion', label: 'Fashion' },
+            { href: '/products?category=lifestyle', label: 'Lifestyle' },
+            { href: '/brands', label: 'Brands' },
+            { href: '/#gift-finder', label: 'Gift finder' },
+            { href: '/help', label: 'Customer service' },
+          ].map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className='shrink-0 rounded-full px-3 py-1 font-semibold text-stone-700 transition hover:bg-stone-100 hover:text-stone-900'
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      </nav>
 
       {/* Mobile / tablet menu */}
       {mobileMenuOpen && (

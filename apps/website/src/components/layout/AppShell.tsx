@@ -111,10 +111,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
                 <DropdownMenu.Item asChild>
                   <Link
-                    href='/faq'
+                    href='/help'
                     className='flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 outline-none transition hover:bg-gray-100'
                   >
-                    Help
+                    Help Center
                   </Link>
                 </DropdownMenu.Item>
 

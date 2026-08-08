@@ -82,6 +82,7 @@ export function GiftFinderSection({ config: configProp }: Props) {
 
   return (
     <section
+      id='gift-finder'
       aria-labelledby='gift-finder-heading'
       className='border-t border-stone-200 bg-white py-12 sm:py-16'
     >

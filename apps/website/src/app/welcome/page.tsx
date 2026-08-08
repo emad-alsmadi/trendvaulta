@@ -47,29 +47,29 @@ export default function WelcomePage() {
           <h1 className='mt-5 text-4xl font-extrabold tracking-tight text-indigo-950 sm:text-5xl'>
             {user?.username
               ? `Welcome, ${user.username}`
-              : 'Welcome to Craftify'}
+              : 'Welcome to TrendVaulta'}
           </h1>
 
           <p className='mt-4 text-sm font-semibold leading-7 text-indigo-950/80'>
-            Your account is ready. Enjoy a modern, colorful browsing experience
-            with smooth transitions and live motion.
+            Your account is ready. Browse curated beauty, fashion, and lifestyle
+            picks — save favorites, track orders, and checkout securely.
           </p>
 
           <div className='mt-8 grid gap-3 sm:grid-cols-3'>
             {[
               {
-                title: 'Browse templates',
-                text: 'Explore the catalog with filters and pagination.',
+                title: 'Browse catalog',
+                text: 'Explore products with filters and pagination.',
                 tone: 'from-fuchsia-500/12 via-indigo-500/10 to-cyan-500/12',
               },
               {
-                title: 'Meet creators',
-                text: 'Discover profiles with rich sections and motion.',
+                title: 'Discover brands',
+                text: 'Shop featured houses across beauty and fashion.',
                 tone: 'from-amber-500/12 via-rose-500/10 to-fuchsia-500/12',
               },
               {
                 title: 'Your profile',
-                text: 'Review your session and account information.',
+                text: 'Wishlist, orders, and account details in one place.',
                 tone: 'from-cyan-500/12 via-emerald-500/10 to-lime-500/12',
               },
             ].map((c) => (
