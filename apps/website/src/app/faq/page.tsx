@@ -9,8 +9,8 @@ const faqs = [
     category: 'General',
     questions: [
       {
-        q: 'What is Craftify?',
-        a: 'Craftify is a premium e-commerce store where you can buy high-quality physical products including clothing, accessories, and lifestyle items from top brands.',
+        q: 'What is TrendVaulta?',
+        a: 'TrendVaulta is a premium retail store for beauty, fashion, and lifestyle products from curated brands — with secure checkout and tracked delivery.',
       },
       {
         q: 'How do I purchase a product?',
@@ -61,7 +61,7 @@ const faqs = [
     questions: [
       {
         q: 'How do I get support for my order?',
-        a: 'You can contact our support team through the contact page or by emailing support@craftify.com. We typically respond within 24 hours.',
+        a: 'You can contact our support team through the contact page or by emailing support@trendvaulta.com. We typically respond within 24 hours.',
       },
       {
         q: 'Do you offer custom orders?',
@@ -105,7 +105,7 @@ export default function FAQPage() {
             Frequently Asked Questions
           </h1>
           <p className='text-lg text-gray-600 max-w-2xl mx-auto'>
-            Find answers to common questions about Craftify, licensing,
+            Find answers to common questions about TrendVaulta, shipping,
             payments, and support
           </p>
         </motion.div>

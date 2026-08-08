@@ -85,15 +85,15 @@ export default function LoginPage() {
               Sign in to your account
             </h1>
             <p className='mt-3 text-sm text-white/90'>
-              Access your profile and continue exploring templates with a modern
-              experience.
+              Access your profile, wishlist, and orders — then keep shopping
+              beauty, fashion, and lifestyle picks.
             </p>
 
             <div className='mt-8 grid gap-3'>
               {[
-                'Animated, vibrant UI with smooth transitions',
-                'Catalog filters, pagination and detail pages',
-                'Auth flows ready to plug into your backend',
+                'Save favorites and track your orders',
+                'Browse curated beauty and fashion catalog',
+                'Secure checkout when you are ready',
               ].map((t) => (
                 <div
                   key={t}

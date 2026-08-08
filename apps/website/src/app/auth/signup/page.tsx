@@ -78,7 +78,7 @@ export default function SignupPage() {
                 Create Account
               </div>
               <div className='mt-1 text-sm font-semibold text-indigo-950/80'>
-                Join the templates marketplace experience with a modern UI.
+                Join TrendVaulta to shop beauty, fashion, and lifestyle.
               </div>
             </div>
             {meQuery.data?.user && (
@@ -195,15 +195,15 @@ export default function SignupPage() {
               Create your profile
             </h1>
             <p className='mt-3 text-sm text-white/90'>
-              Register in seconds and enjoy a colorful, modern templates
-              marketplace.
+              Create an account in seconds and shop curated beauty, fashion, and
+              lifestyle products.
             </p>
 
             <div className='mt-8 grid gap-3'>
               {[
-                'Premium colors with motion layers',
-                'Professional sections and transitions',
-                'Designed to scale with your backend',
+                'Wishlist and order history in one place',
+                'Deals, brands, and gift-ready edits',
+                'Secure checkout with Stripe when configured',
               ].map((t) => (
                 <div
                   key={t}

@@ -4,7 +4,15 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { motion } from 'framer-motion';
-import { Loader2, Truck, ShoppingBag, X, Check } from 'lucide-react';
+import {
+  Loader2,
+  Truck,
+  ShoppingBag,
+  X,
+  Check,
+  ShieldCheck,
+  RefreshCw,
+} from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
@@ -299,8 +307,8 @@ export default function CheckoutPage() {
         </h1>
         <p className='mt-2 text-sm font-semibold text-indigo-950/80'>
           After you confirm, you&apos;ll finish payment on Stripe&apos;s secure
-          page (card or wallet). Physical delivery fields only apply if you add
-          local delivery — digital templates use your contact info only.
+          page (card or wallet). Add delivery details if you need shipping —
+          otherwise we use your contact info for the order.
         </p>
       </div>
 
@@ -486,6 +494,30 @@ export default function CheckoutPage() {
                 'Pay now'
               )}
             </Button>
+
+            <ul className='space-y-2 text-xs font-semibold text-indigo-950/70'>
+              <li className='flex items-center gap-2'>
+                <ShieldCheck
+                  className='h-3.5 w-3.5 shrink-0 text-fuchsia-700'
+                  aria-hidden
+                />
+                Secure payment via Stripe
+              </li>
+              <li className='flex items-center gap-2'>
+                <Truck
+                  className='h-3.5 w-3.5 shrink-0 text-fuchsia-700'
+                  aria-hidden
+                />
+                Tracked shipping when delivery is selected
+              </li>
+              <li className='flex items-center gap-2'>
+                <RefreshCw
+                  className='h-3.5 w-3.5 shrink-0 text-fuchsia-700'
+                  aria-hidden
+                />
+                Easy returns within store policy
+              </li>
+            </ul>
           </form>
         </motion.section>
 
