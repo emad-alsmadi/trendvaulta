@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Sparkles, Mail, Phone, MapPin, Send, CheckCircle } from 'lucide-react';
 
@@ -45,8 +46,8 @@ export default function ContactPage() {
             Contact Us
           </h1>
           <p className='text-lg text-gray-600 max-w-2xl mx-auto'>
-            Have questions? We'd love to hear from you. Send us a message and
-            we'll respond as soon as possible.
+            Questions about orders, products, or returns? Send a message — the
+            TrendVaulta care team usually replies within 24 hours.
           </p>
         </motion.div>
 
@@ -69,7 +70,7 @@ export default function ContactPage() {
                   <div>
                     <div className='font-semibold text-gray-900'>Email</div>
                     <div className='text-sm text-gray-600'>
-                      support@craftify.com
+                      support@trendvaulta.com
                     </div>
                   </div>
                 </div>
@@ -89,11 +90,11 @@ export default function ContactPage() {
                     <MapPin className='h-5 w-5 text-fuchsia-600' />
                   </div>
                   <div>
-                    <div className='font-semibold text-gray-900'>Address</div>
+                    <div className='font-semibold text-gray-900'>Studio</div>
                     <div className='text-sm text-gray-600'>
-                      123 Template Street
+                      120 Market Avenue
                       <br />
-                      Design City, DC 12345
+                      Retail District, NY 10001
                     </div>
                   </div>
                 </div>
@@ -101,13 +102,24 @@ export default function ContactPage() {
             </div>
 
             <div className='bg-gradient-to-br from-indigo-600 via-purple-600 to-cyan-500 rounded-2xl p-6 text-white'>
-              <h3 className='font-bold mb-2'>Need Help?</h3>
+              <h3 className='font-bold mb-2'>Need help faster?</h3>
               <p className='text-sm text-white/90 mb-4'>
-                Check our FAQ section for quick answers to common questions.
+                Browse the Help Center for shipping, returns, and order guides.
               </p>
-              <button className='inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg text-sm font-semibold transition-colors'>
-                Visit FAQ
-              </button>
+              <div className='flex flex-wrap gap-2'>
+                <Link
+                  href='/help'
+                  className='inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg text-sm font-semibold transition-colors'
+                >
+                  Help Center
+                </Link>
+                <Link
+                  href='/faq'
+                  className='inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-semibold transition-colors'
+                >
+                  FAQ
+                </Link>
+              </div>
             </div>
           </motion.div>
 
@@ -192,10 +204,10 @@ export default function ContactPage() {
                       className='w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors'
                     >
                       <option value=''>Select a subject</option>
-                      <option value='general'>General Inquiry</option>
-                      <option value='support'>Technical Support</option>
-                      <option value='billing'>Billing Question</option>
-                      <option value='partnership'>Partnership</option>
+                      <option value='order'>Order or tracking</option>
+                      <option value='product'>Product question</option>
+                      <option value='return'>Return or refund</option>
+                      <option value='billing'>Payment / billing</option>
                       <option value='other'>Other</option>
                     </select>
                   </div>

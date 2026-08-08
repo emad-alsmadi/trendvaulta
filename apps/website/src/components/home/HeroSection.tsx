@@ -4,11 +4,13 @@ import { Search, Sparkles, Shirt, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { HeroPromoCarousel } from '@/components/home/HeroPromoCarousel';
+import type { DemoHeroSlide } from '@/data/demoStorefront';
 
 interface HeroSectionProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
   onSearchSubmit: (e: React.FormEvent) => void;
+  heroSlides?: DemoHeroSlide[];
 }
 
 const fadeUp = {
@@ -20,6 +22,7 @@ export function HeroSection({
   searchQuery,
   onSearchChange,
   onSearchSubmit,
+  heroSlides,
 }: HeroSectionProps) {
   return (
     <div className='relative overflow-hidden bg-white'>
@@ -121,8 +124,8 @@ export function HeroSection({
             transition={{ duration: 0.55, delay: 0.12, ease: 'easeOut' }}
             className='w-full'
           >
-            {/* DEMO / CMS-ready promo carousel — local images only */}
-            <HeroPromoCarousel />
+            {/* Live hero slides from GET /api/storefront/home; demo fallback in carousel */}
+            <HeroPromoCarousel slides={heroSlides} />
           </motion.div>
         </div>
       </div>

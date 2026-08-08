@@ -26,8 +26,7 @@ type Props = {
 };
 
 /**
- * Homepage promo carousel (CMS-ready demo).
- * TODO(api): GET /api/storefront/hero → replace DEMO_HERO_SLIDES
+ * Homepage promo carousel — slides from GET /api/storefront/home when provided.
  */
 export function HeroPromoCarousel({
   slides = DEMO_HERO_SLIDES,

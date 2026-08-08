@@ -20,7 +20,7 @@ export default function PrivacyPage() {
           <h1 className='text-4xl font-extrabold text-gray-900 mb-4'>
             Privacy Policy
           </h1>
-          <p className='text-lg text-gray-600'>Last updated: January 1, 2024</p>
+          <p className='text-lg text-gray-600'>Last updated: August 8, 2026</p>
         </motion.div>
 
         {/* Content */}
@@ -125,7 +125,7 @@ export default function PrivacyPage() {
             </p>
             <p className='text-gray-600 leading-relaxed'>
               To exercise these rights, please contact us at
-              support@craftify.com with your request.
+              support@trendvaulta.com with your request.
             </p>
           </section>
 
@@ -158,7 +158,7 @@ export default function PrivacyPage() {
             </h2>
             <p className='text-gray-600 leading-relaxed'>
               If you have any questions about this Privacy Policy, please
-              contact us at support@craftify.com
+              contact us at support@trendvaulta.com
             </p>
           </section>
         </motion.div>

@@ -968,3 +968,48 @@ export const whyChooseUsApi = {
     return data;
   },
 };
+
+export type StorefrontHeroSlide = {
+  id: string;
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+  href?: string;
+  imageUrl?: string;
+  tone?: 'rose' | 'stone' | 'teal' | 'indigo';
+};
+
+export type StorefrontHomeModule = {
+  key: string;
+  type: string;
+  active?: boolean;
+  sortOrder?: number;
+  title?: string;
+  subtitle?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+  imageUrl?: string;
+  limit?: number;
+  sort?: string;
+  slides?: StorefrontHeroSlide[];
+  items?: StorefrontTrustItem[];
+};
+
+export type StorefrontHomeResponse = {
+  message: string;
+  modules: StorefrontHomeModule[];
+};
+
+/**
+ * Homepage CMS/config — GET /api/storefront/home
+ */
+export const storefrontHomeApi = {
+  getHome: async (): Promise<StorefrontHomeResponse> => {
+    const { data } = await api.get<StorefrontHomeResponse>(
+      endpoints.storefront.home,
+    );
+    return data;
+  },
+};

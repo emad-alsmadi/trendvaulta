@@ -561,10 +561,10 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Secondary department strip — Amazon-like IA, TrendVaulta routes */}
+      {/* Secondary department strip — desktop + mobile horizontal scroll */}
       <nav
         aria-label='Quick shop links'
-        className='hidden border-t border-stone-100 bg-white md:block'
+        className='border-t border-stone-100 bg-white'
       >
         <div className='mx-auto flex max-w-[1400px] items-center gap-1 overflow-x-auto px-4 py-2 text-sm sm:px-6 lg:px-8'>
           <Link

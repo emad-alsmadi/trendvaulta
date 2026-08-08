@@ -34,6 +34,7 @@ const emptyForm = {
   logo: '',
   website: '',
   country: '',
+  featured: false,
 };
 
 export function AdminBrandsPanel() {
@@ -68,6 +69,7 @@ export function AdminBrandsPanel() {
       logo: brand.logo || '',
       website: brand.website || '',
       country: brand.country || '',
+      featured: Boolean(brand.featured),
     });
     setOpen(true);
   }
@@ -87,12 +89,17 @@ export function AdminBrandsPanel() {
       return;
     }
 
+    const payload = {
+      ...form,
+      featured: Boolean(form.featured),
+    };
+
     try {
       if (editing) {
-        await updateMut.mutateAsync({ id: editing._id, payload: form });
+        await updateMut.mutateAsync({ id: editing._id, payload });
         toast('Brand updated.', { title: 'Saved', variant: 'success' });
       } else {
-        await createMut.mutateAsync(form);
+        await createMut.mutateAsync(payload);
         toast('Brand created.', { title: 'Created', variant: 'success' });
       }
       closeModal();
@@ -274,6 +281,18 @@ export function AdminBrandsPanel() {
             }
             placeholder='Country of origin'
           />
+        </AdminField>
+        <AdminField label='Homepage'>
+          <label className='inline-flex items-center gap-2 text-sm text-slate-700'>
+            <input
+              type='checkbox'
+              checked={form.featured}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, featured: e.target.checked }))
+              }
+            />
+            Featured brand (shows in homepage strip)
+          </label>
         </AdminField>
       </AdminModal>
     </>

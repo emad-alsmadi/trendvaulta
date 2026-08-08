@@ -39,6 +39,8 @@ const emptyForm = {
   subcategory: '',
   stock: 0,
   sku: '',
+  featured: false,
+  badgeBestseller: false,
 };
 
 const categories = [
@@ -79,6 +81,9 @@ export function AdminProductsPanel() {
 
   function openEdit(product: any) {
     setEditing(product);
+    const curatedBadges: string[] = Array.isArray(product.badges)
+      ? product.badges
+      : [];
     setForm({
       title: product.title,
       brand:
@@ -92,6 +97,8 @@ export function AdminProductsPanel() {
       subcategory: product.subcategory,
       stock: product.stock,
       sku: product.sku || '',
+      featured: Boolean(product.featured),
+      badgeBestseller: curatedBadges.includes('bestseller'),
     });
     setOpen(true);
   }
@@ -111,12 +118,19 @@ export function AdminProductsPanel() {
       return;
     }
 
+    const { badgeBestseller, ...rest } = form;
+    const payload = {
+      ...rest,
+      featured: Boolean(form.featured),
+      badges: badgeBestseller ? (['bestseller'] as const) : [],
+    };
+
     try {
       if (editing) {
-        await updateMut.mutateAsync({ id: editing._id, payload: form });
+        await updateMut.mutateAsync({ id: editing._id, payload });
         toast('Product updated.', { title: 'Saved', variant: 'success' });
       } else {
-        await createMut.mutateAsync(form);
+        await createMut.mutateAsync(payload);
         toast('Product created.', { title: 'Created', variant: 'success' });
       }
       closeModal();
@@ -337,6 +351,37 @@ export function AdminProductsPanel() {
             onChange={(e) => setForm((f) => ({ ...f, cover: e.target.value }))}
             placeholder='https://…'
           />
+        </AdminField>
+        <AdminField label='Merchandising'>
+          <div className='flex flex-col gap-2 text-sm text-slate-700'>
+            <label className='inline-flex items-center gap-2'>
+              <input
+                type='checkbox'
+                checked={form.featured}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, featured: e.target.checked }))
+                }
+              />
+              Featured on homepage rails
+            </label>
+            <label className='inline-flex items-center gap-2'>
+              <input
+                type='checkbox'
+                checked={form.badgeBestseller}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    badgeBestseller: e.target.checked,
+                  }))
+                }
+              />
+              Curated “Bestseller” badge
+            </label>
+            <p className='text-xs text-slate-500'>
+              “New” and “Low stock” badges are computed automatically from
+              created date and stock.
+            </p>
+          </div>
         </AdminField>
       </AdminModal>
     </>
