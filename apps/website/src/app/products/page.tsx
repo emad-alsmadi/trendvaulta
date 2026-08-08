@@ -8,12 +8,14 @@ import { Button } from '@/components/ui/Button';
 import { ProductCard } from '@/components/products/ProductCard';
 import { useProducts } from '@/hooks/products/productsQuery';
 import { CategorySidebar } from '@/components/products/CategorySidebar';
+import { ProductFiltersDrawer } from '@/components/products/ProductFiltersDrawer';
 import { Pagination } from '@/components/ui/Pagination';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { getDemoBadgesForIndex } from '@/data/demoStorefront';
 
 const sortOptions = [
   { value: 'createdAt', label: 'Featured' },
+  { value: 'bestselling', label: 'Best Sellers' },
   { value: 'price', label: 'Price: Low to High' },
   { value: '-price', label: 'Price: High to Low' },
   { value: '-averageRating', label: 'Avg. Customer Review' },
@@ -48,6 +50,9 @@ export default function ProductsPage() {
   const colorParam = searchParams.get('color');
   const selectedSizes = sizeParam ? sizeParam.split(',').filter(Boolean) : [];
   const selectedColors = colorParam ? colorParam.split(',').filter(Boolean) : [];
+  const inStockOnly = searchParams.get('inStock') === '1';
+  const onSaleOnly = searchParams.get('onSale') === '1';
+  const brandParam = searchParams.get('brand') || '';
 
   const [searchInput, setSearchInput] = useState(qParam);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -122,6 +127,31 @@ export default function ProductsPage() {
       if (minRating != null && !Number.isNaN(minRating)) {
         if ((product.averageRating || 0) < minRating) return false;
       }
+      if (inStockOnly && product.stock !== undefined && product.stock <= 0) {
+        return false;
+      }
+      if (onSaleOnly) {
+        const onSale =
+          typeof product.basePrice === 'number' &&
+          product.basePrice > product.price;
+        if (!onSale) return false;
+      }
+      if (brandParam) {
+        const brand = product.brand;
+        const name =
+          typeof brand === 'string'
+            ? brand
+            : brand && typeof brand === 'object' && 'name' in brand
+              ? String((brand as { name?: string }).name || '')
+              : '';
+        if (
+          name &&
+          !name.toLowerCase().includes(brandParam.toLowerCase())
+        ) {
+          return false;
+        }
+        if (!name) return false;
+      }
       if (selectedSizes.length > 0) {
         const sizes = (product.variants || [])
           .map((v) => v.size)
@@ -143,7 +173,15 @@ export default function ProductsPage() {
       }
       return true;
     });
-  }, [products, minRating, selectedSizes, selectedColors]);
+  }, [
+    products,
+    minRating,
+    inStockOnly,
+    onSaleOnly,
+    brandParam,
+    selectedSizes,
+    selectedColors,
+  ]);
 
   const activeChips = useMemo(() => {
     const chips: { key: string; label: string; clear: () => void }[] = [];
@@ -195,6 +233,39 @@ export default function ProductsPage() {
           }),
       });
     }
+    if (inStockOnly) {
+      chips.push({
+        key: 'inStock',
+        label: 'In stock (demo)',
+        clear: () =>
+          replaceParams((p) => {
+            p.delete('inStock');
+            p.delete('page');
+          }),
+      });
+    }
+    if (onSaleOnly) {
+      chips.push({
+        key: 'onSale',
+        label: 'On sale (demo)',
+        clear: () =>
+          replaceParams((p) => {
+            p.delete('onSale');
+            p.delete('page');
+          }),
+      });
+    }
+    if (brandParam) {
+      chips.push({
+        key: 'brand',
+        label: `Brand: ${brandParam} (demo)`,
+        clear: () =>
+          replaceParams((p) => {
+            p.delete('brand');
+            p.delete('page');
+          }),
+      });
+    }
     selectedSizes.forEach((size) => {
       chips.push({
         key: `size-${size}`,
@@ -229,6 +300,9 @@ export default function ProductsPage() {
     minPrice,
     maxPrice,
     minRating,
+    inStockOnly,
+    onSaleOnly,
+    brandParam,
     selectedSizes,
     selectedColors,
     replaceParams,
@@ -264,38 +338,11 @@ export default function ProductsPage() {
             <CategorySidebar />
           </div>
 
-          {/* Mobile filter drawer */}
-          {filtersOpen && (
-            <div
-              className='fixed inset-0 z-50 lg:hidden'
-              role='dialog'
-              aria-modal='true'
-              aria-label='Filters'
-            >
-              <button
-                type='button'
-                className='absolute inset-0 bg-stone-900/40'
-                aria-label='Close filters'
-                onClick={() => setFiltersOpen(false)}
-              />
-              <div className='absolute inset-y-0 left-0 flex w-[min(100%,20rem)] flex-col bg-white shadow-xl'>
-                <div className='flex items-center justify-between border-b border-stone-200 px-4 py-3'>
-                  <p className='font-semibold text-stone-900'>Filters</p>
-                  <button
-                    type='button'
-                    onClick={() => setFiltersOpen(false)}
-                    className='rounded-lg p-2 text-stone-600 hover:bg-stone-100'
-                    aria-label='Close'
-                  >
-                    <X className='h-5 w-5' />
-                  </button>
-                </div>
-                <div className='flex-1 overflow-y-auto p-3'>
-                  <CategorySidebar onAfterNavigate={() => setFiltersOpen(false)} />
-                </div>
-              </div>
-            </div>
-          )}
+          <ProductFiltersDrawer
+            open={filtersOpen}
+            onClose={() => setFiltersOpen(false)}
+            activeCount={activeChips.length}
+          />
 
           <div className='min-w-0 flex-1'>
             <motion.div
@@ -421,6 +468,9 @@ export default function ProductsPage() {
                 <span className='text-xs text-stone-400'>Updating…</span>
               ) : null}
               {(minRating != null ||
+                inStockOnly ||
+                onSaleOnly ||
+                !!brandParam ||
                 selectedSizes.length > 0 ||
                 selectedColors.length > 0) && (
                 <span className='rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800'>

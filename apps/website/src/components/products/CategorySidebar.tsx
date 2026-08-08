@@ -90,12 +90,28 @@ const categories = [
   },
 ];
 
-/** DEMO — Amazon-style “shopping ideas” shortcuts (href-only, no scraped copy) */
+/** DEMO — “shopping ideas” shortcuts (href-only, original TrendVaulta copy) */
 const shoppingIdeas = [
-  { label: 'Face', href: '/products?category=skincare' },
-  { label: 'Makeup', href: '/products?category=makeup' },
-  { label: 'Fragrance', href: '/products?category=perfumes' },
-  { label: 'Ready-to-wear', href: '/products?category=clothing' },
+  { label: 'Beauty', href: '/products?category=beauty' },
+  { label: 'Skincare', href: '/products?category=skincare' },
+  { label: 'Fashion', href: '/products?category=fashion' },
+  { label: 'Lifestyle', href: '/products?category=lifestyle' },
+  { label: 'Gifts', href: '/products?q=gift' },
+  { label: 'Offers', href: '/offers' },
+];
+
+const pricePresets = [
+  { label: 'Under $25', min: '0', max: '25' },
+  { label: '$25–$50', min: '25', max: '50' },
+  { label: '$50–$100', min: '50', max: '100' },
+  { label: '$100+', min: '100', max: '' },
+];
+
+const demoBrands = [
+  { label: 'Aura Botanica', q: 'Aura' },
+  { label: 'Noir Atelier', q: 'Noir' },
+  { label: 'Lumen Skin', q: 'Lumen' },
+  { label: 'Velvet & Co', q: 'Velvet' },
 ];
 
 const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
@@ -120,9 +136,14 @@ const ratings = [
 type Props = {
   /** Close mobile drawer after category navigation / apply */
   onAfterNavigate?: () => void;
+  /** `drawer` drops sticky positioning for mobile sheet */
+  variant?: 'sidebar' | 'drawer';
 };
 
-export function CategorySidebar({ onAfterNavigate }: Props) {
+export function CategorySidebar({
+  onAfterNavigate,
+  variant = 'sidebar',
+}: Props) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const currentCategory = searchParams.get('category');
@@ -130,6 +151,9 @@ export function CategorySidebar({ onAfterNavigate }: Props) {
   const urlMin = searchParams.get('minPrice');
   const urlMax = searchParams.get('maxPrice');
   const urlRating = searchParams.get('minRating');
+  const urlInStock = searchParams.get('inStock') === '1';
+  const urlOnSale = searchParams.get('onSale') === '1';
+  const urlBrand = searchParams.get('brand') || '';
   const urlSizes = (searchParams.get('size') || '')
     .split(',')
     .filter(Boolean);
@@ -143,6 +167,8 @@ export function CategorySidebar({ onAfterNavigate }: Props) {
     ideas: true,
     categories: true,
     price: true,
+    availability: true,
+    brands: false,
     size: false,
     color: false,
     rating: false,
@@ -212,31 +238,74 @@ export function CategorySidebar({ onAfterNavigate }: Props) {
     onAfterNavigate?.();
   };
 
+  const applyPricePreset = (min: string, max: string) => {
+    pushParams((params) => {
+      if (min) params.set('minPrice', min);
+      else params.delete('minPrice');
+      if (max) params.set('maxPrice', max);
+      else params.delete('maxPrice');
+      params.delete('page');
+    });
+    setPriceMin(min || '0');
+    setPriceMax(max || '500');
+  };
+
+  const toggleFlag = (key: 'inStock' | 'onSale', enabled: boolean) => {
+    pushParams((params) => {
+      if (enabled) params.set(key, '1');
+      else params.delete(key);
+      params.delete('page');
+    });
+  };
+
+  const setBrand = (brand: string) => {
+    pushParams((params) => {
+      if (brand && params.get('brand') !== brand) params.set('brand', brand);
+      else params.delete('brand');
+      params.delete('page');
+    });
+  };
+
   const hasActiveFilters = Boolean(
     currentCategory ||
       urlMin ||
       urlMax ||
       urlRating ||
+      urlInStock ||
+      urlOnSale ||
+      urlBrand ||
       urlSizes.length ||
       urlColors.length,
   );
 
   return (
-    <div className='w-full lg:w-64 lg:shrink-0'>
-      <div className='rounded-xl border border-stone-100 bg-white p-4 shadow-sm lg:sticky lg:top-20'>
-        <div className='mb-4 flex items-center justify-between'>
-          <h3 className='text-lg font-semibold text-stone-900'>Filters</h3>
-          {hasActiveFilters && (
-            <button
-              type='button'
-              onClick={clearFilters}
-              className='flex items-center gap-1 text-xs font-medium text-fuchsia-600 hover:text-fuchsia-700'
-            >
-              <X className='h-3 w-3' />
-              Clear All
-            </button>
-          )}
-        </div>
+    <div
+      className={
+        variant === 'drawer' ? 'w-full' : 'w-full lg:w-64 lg:shrink-0'
+      }
+    >
+      <div
+        className={
+          variant === 'drawer'
+            ? 'rounded-xl border border-stone-100 bg-white p-3'
+            : 'rounded-xl border border-stone-100 bg-white p-4 shadow-sm lg:sticky lg:top-24'
+        }
+      >
+        {variant === 'sidebar' && (
+          <div className='mb-4 flex items-center justify-between'>
+            <h3 className='text-lg font-semibold text-stone-900'>Filters</h3>
+            {hasActiveFilters && (
+              <button
+                type='button'
+                onClick={clearFilters}
+                className='flex items-center gap-1 text-xs font-medium text-fuchsia-600 hover:text-fuchsia-700'
+              >
+                <X className='h-3 w-3' />
+                Clear All
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Shopping ideas */}
         <div className='mb-4 border-b border-stone-100 pb-4'>
@@ -341,6 +410,84 @@ export function CategorySidebar({ onAfterNavigate }: Props) {
           )}
         </div>
 
+        {/* Availability + deals — DEMO client flags */}
+        <div className='mb-4 border-b border-stone-100 pb-4'>
+          <button
+            type='button'
+            onClick={() => toggleSection('availability')}
+            className='mb-3 flex w-full items-center justify-between'
+          >
+            <h4 className='text-sm font-semibold text-stone-900'>
+              Availability{' '}
+              <span className='font-normal text-stone-400'>(demo)</span>
+            </h4>
+            {expandedSections.availability ? (
+              <ChevronUp className='h-4 w-4 text-stone-500' />
+            ) : (
+              <ChevronDown className='h-4 w-4 text-stone-500' />
+            )}
+          </button>
+          {expandedSections.availability && (
+            <div className='space-y-2'>
+              <label className='flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-stone-700 hover:bg-stone-50'>
+                <input
+                  type='checkbox'
+                  className='h-4 w-4 rounded border-stone-300 text-fuchsia-600 focus:ring-fuchsia-500'
+                  checked={urlInStock}
+                  onChange={(e) => toggleFlag('inStock', e.target.checked)}
+                />
+                In stock only
+              </label>
+              <label className='flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-stone-700 hover:bg-stone-50'>
+                <input
+                  type='checkbox'
+                  className='h-4 w-4 rounded border-stone-300 text-fuchsia-600 focus:ring-fuchsia-500'
+                  checked={urlOnSale}
+                  onChange={(e) => toggleFlag('onSale', e.target.checked)}
+                />
+                On sale
+              </label>
+            </div>
+          )}
+        </div>
+
+        {/* Brands — DEMO name match */}
+        <div className='mb-4 border-b border-stone-100 pb-4'>
+          <button
+            type='button'
+            onClick={() => toggleSection('brands')}
+            className='mb-3 flex w-full items-center justify-between'
+          >
+            <h4 className='text-sm font-semibold text-stone-900'>
+              Brands <span className='font-normal text-stone-400'>(demo)</span>
+            </h4>
+            {expandedSections.brands ? (
+              <ChevronUp className='h-4 w-4 text-stone-500' />
+            ) : (
+              <ChevronDown className='h-4 w-4 text-stone-500' />
+            )}
+          </button>
+          {expandedSections.brands && (
+            <ul className='space-y-1'>
+              {demoBrands.map((brand) => (
+                <li key={brand.q}>
+                  <button
+                    type='button'
+                    onClick={() => setBrand(brand.q)}
+                    className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                      urlBrand === brand.q
+                        ? 'bg-fuchsia-50 font-medium text-fuchsia-700'
+                        : 'text-stone-700 hover:bg-stone-50'
+                    }`}
+                  >
+                    {brand.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
         {/* Price Range — API-backed */}
         <div className='mb-4 border-b border-stone-100 pb-4'>
           <button
@@ -358,6 +505,27 @@ export function CategorySidebar({ onAfterNavigate }: Props) {
 
           {expandedSections.price && (
             <div className='space-y-3'>
+              <div className='flex flex-wrap gap-1.5'>
+                {pricePresets.map((preset) => {
+                  const active =
+                    (urlMin || '0') === (preset.min || '0') &&
+                    (urlMax || '') === (preset.max || '');
+                  return (
+                    <button
+                      key={preset.label}
+                      type='button'
+                      onClick={() => applyPricePreset(preset.min, preset.max)}
+                      className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition ${
+                        active
+                          ? 'border-fuchsia-300 bg-fuchsia-50 text-fuchsia-800'
+                          : 'border-stone-200 bg-stone-50 text-stone-700 hover:border-stone-300'
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
+              </div>
               <div className='flex items-center gap-2'>
                 <label className='sr-only' htmlFor='filter-min-price'>
                   Min price
