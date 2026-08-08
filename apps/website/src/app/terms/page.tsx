@@ -7,7 +7,6 @@ export default function TermsPage() {
   return (
     <div className='min-h-screen bg-gray-50 py-12'>
       <div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8'>
-        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -20,10 +19,9 @@ export default function TermsPage() {
           <h1 className='text-4xl font-extrabold text-gray-900 mb-4'>
             Terms of Service
           </h1>
-          <p className='text-lg text-gray-600'>Last updated: January 1, 2024</p>
+          <p className='text-lg text-gray-600'>Last updated: August 8, 2026</p>
         </motion.div>
 
-        {/* Content */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -35,9 +33,9 @@ export default function TermsPage() {
               1. Acceptance of Terms
             </h2>
             <p className='text-gray-600 leading-relaxed'>
-              By accessing and using Craftify, you accept and agree to be bound
-              by the terms and provision of this agreement. If you do not agree
-              to abide by the above, please do not use this service.
+              By accessing and using TrendVaulta, you accept and agree to be
+              bound by these Terms of Service. If you do not agree, please do
+              not use the store.
             </p>
           </section>
 
@@ -48,26 +46,29 @@ export default function TermsPage() {
             <p className='text-gray-600 leading-relaxed mb-4'>
               You are responsible for maintaining the confidentiality of your
               account and password. You agree to accept responsibility for all
-              activities that occur under your account or password.
+              activities that occur under your account.
             </p>
             <p className='text-gray-600 leading-relaxed'>
-              Craftify reserves the right to refuse access to the website to any
-              user at any time for any reason.
+              TrendVaulta reserves the right to refuse or suspend access to the
+              website for any user when necessary to protect the store or other
+              customers.
             </p>
           </section>
 
           <section>
             <h2 className='text-2xl font-bold text-gray-900 mb-4'>
-              3. License to Use
+              3. Products &amp; Orders
             </h2>
             <p className='text-gray-600 leading-relaxed mb-4'>
-              Craftify grants you a personal, non-exclusive, non-transferable
-              license to use the templates and resources available on this
-              platform for personal and commercial purposes.
+              TrendVaulta sells physical beauty, fashion, and lifestyle products.
+              Product descriptions, images, and pricing are provided for
+              shopping clarity; minor variations in color or packaging may
+              occur.
             </p>
             <p className='text-gray-600 leading-relaxed'>
-              You may not resell, redistribute, or sublicense the templates
-              as-is. You may use them in client projects and derivative works.
+              Placing an order constitutes an offer to purchase. We may cancel
+              or refuse an order if an item is unavailable, mispriced, or
+              suspected of fraud.
             </p>
           </section>
 
@@ -76,35 +77,55 @@ export default function TermsPage() {
               4. Payment Terms
             </h2>
             <p className='text-gray-600 leading-relaxed mb-4'>
-              All purchases are final and non-refundable, except in cases where
-              the template is significantly different from its description or
-              has technical issues that cannot be resolved.
+              Payments are processed securely (including Stripe when
+              configured). You authorize us to charge the payment method you
+              provide for the order total, including applicable shipping and
+              taxes.
             </p>
             <p className='text-gray-600 leading-relaxed'>
-              Prices for our products are subject to change without notice. We
-              reserve the right at any time to modify or discontinue the Service
-              without notice.
+              Prices may change without notice for future orders. Coupons and
+              promotions are subject to their stated conditions and may be
+              withdrawn at any time.
             </p>
           </section>
 
           <section>
             <h2 className='text-2xl font-bold text-gray-900 mb-4'>
-              5. Intellectual Property
+              5. Shipping, Returns &amp; Refunds
             </h2>
             <p className='text-gray-600 leading-relaxed mb-4'>
-              All content on Craftify, including text, graphics, logos, images,
-              and software, is the property of Craftify or its content suppliers
-              and is protected by international copyright laws.
+              Delivery timelines and costs depend on destination and the method
+              selected at checkout. Risk of loss passes according to the carrier
+              once the order has shipped.
             </p>
             <p className='text-gray-600 leading-relaxed'>
-              Creators retain ownership of their templates and grant Craftify a
-              license to distribute and sell their work on the platform.
+              Eligible returns follow our store return policy (typically within
+              the stated window, unused and in original condition). Refunds are
+              processed to the original payment method after we receive and
+              inspect the return, except where local law requires otherwise.
             </p>
           </section>
 
           <section>
             <h2 className='text-2xl font-bold text-gray-900 mb-4'>
-              6. User Conduct
+              6. Intellectual Property
+            </h2>
+            <p className='text-gray-600 leading-relaxed mb-4'>
+              All content on TrendVaulta — including text, graphics, logos,
+              images, and software — is the property of TrendVaulta or its
+              licensors and is protected by applicable intellectual property
+              laws.
+            </p>
+            <p className='text-gray-600 leading-relaxed'>
+              Brand names and product imagery belonging to third parties remain
+              the property of those brands. You may not copy or reuse store
+              content for commercial purposes without permission.
+            </p>
+          </section>
+
+          <section>
+            <h2 className='text-2xl font-bold text-gray-900 mb-4'>
+              7. User Conduct
             </h2>
             <p className='text-gray-600 leading-relaxed mb-4'>
               You agree not to use the service for any unlawful purpose, or to
@@ -113,39 +134,40 @@ export default function TermsPage() {
             <p className='text-gray-600 leading-relaxed'>
               You may not upload, post, or otherwise transmit any content that
               is infringing, libelous, defamatory, obscene, or otherwise
-              objectionable.
+              objectionable — including abusive reviews or fraudulent claims.
             </p>
           </section>
 
           <section>
             <h2 className='text-2xl font-bold text-gray-900 mb-4'>
-              7. Limitation of Liability
+              8. Limitation of Liability
             </h2>
             <p className='text-gray-600 leading-relaxed'>
-              In no event shall Craftify be liable for any indirect, incidental,
-              special, consequential, or punitive damages arising out of or
-              related to your use of the service.
+              To the fullest extent permitted by law, TrendVaulta shall not be
+              liable for any indirect, incidental, special, consequential, or
+              punitive damages arising out of or related to your use of the
+              service.
             </p>
           </section>
 
           <section>
             <h2 className='text-2xl font-bold text-gray-900 mb-4'>
-              8. Changes to Terms
+              9. Changes to Terms
             </h2>
             <p className='text-gray-600 leading-relaxed'>
-              Craftify reserves the right to modify these terms at any time.
-              Your continued use of the service following any such modification
-              constitutes your acceptance of the new terms.
+              TrendVaulta reserves the right to modify these terms at any time.
+              Continued use of the service after changes are posted constitutes
+              acceptance of the updated terms.
             </p>
           </section>
 
           <section>
             <h2 className='text-2xl font-bold text-gray-900 mb-4'>
-              9. Contact Information
+              10. Contact Information
             </h2>
             <p className='text-gray-600 leading-relaxed'>
               If you have any questions about these Terms of Service, please
-              contact us at support@craftify.com
+              contact us at support@trendvaulta.com
             </p>
           </section>
         </motion.div>

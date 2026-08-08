@@ -4,9 +4,9 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import {
   Sparkles,
-  Rocket,
+  Truck,
   ShieldCheck,
-  Palette,
+  Heart,
   Users,
   Package,
   Store,
@@ -27,27 +27,26 @@ const team = [
   },
   {
     name: 'Mike Chen',
-    role: 'Lead Developer',
+    role: 'Head of Merchandising',
     image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
   },
   {
     name: 'Emily Davis',
-    role: 'Product Manager',
+    role: 'Customer Experience',
     image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200',
   },
 ];
 
 const stats = [
-  { value: '50K+', label: 'Templates', icon: Package },
-  { value: '10K+', label: 'Brands', icon: Store },
-  { value: '1M+', label: 'Customers', icon: Users },
+  { value: '2K+', label: 'Products', icon: Package },
+  { value: '120+', label: 'Brands', icon: Store },
+  { value: '50K+', label: 'Shoppers', icon: Users },
   { value: '4.8', label: 'Average Rating', icon: Star },
 ];
 
 export default function AboutPage() {
   return (
     <div className='min-h-screen bg-gray-50'>
-      {/* Hero Section */}
       <motion.section
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -56,20 +55,19 @@ export default function AboutPage() {
         <div className='max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 text-center'>
           <div className='inline-flex gap-2 items-center px-4 py-2 mb-6 text-sm font-extrabold text-white rounded-full border border-white/30 bg-white/20'>
             <Sparkles className='w-4 h-4' />
-            About Craftify
+            About TrendVaulta
           </div>
           <h1 className='mb-4 text-4xl font-extrabold text-white sm:text-5xl'>
-            The World's Best Templates Marketplace
+            Beauty, fashion &amp; lifestyle — curated for everyday style
           </h1>
           <p className='mx-auto max-w-2xl text-lg text-white/90'>
-            We're on a mission to empower creators with beautiful, professional
-            templates
+            We help shoppers discover trusted brands and products they love —
+            with clear prices, secure checkout, and care you can count on.
           </p>
         </div>
       </motion.section>
 
       <div className='max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-16'>
-        {/* Stats Section */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -97,7 +95,6 @@ export default function AboutPage() {
           })}
         </motion.section>
 
-        {/* Mission Section */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -110,39 +107,39 @@ export default function AboutPage() {
                 Our Mission
               </h2>
               <p className='mb-6 text-gray-600'>
-                Craftify was founded with a simple goal: to make professional
-                design accessible to everyone. We believe that great design
-                shouldn't be reserved for those with big budgets.
+                TrendVaulta was founded to make premium beauty, fashion, and
+                lifestyle shopping feel simple and trustworthy — without the
+                noise of a generic marketplace.
               </p>
               <p className='mb-6 text-gray-600'>
-                Our platform connects talented creators from around the world
-                with businesses and individuals looking for beautiful,
-                functional templates. Every template on our platform is
-                carefully curated to ensure the highest quality.
+                We curate products and brands that fit real routines: skincare
+                that works, fashion that feels current, and accessories that
+                elevate everyday looks. Every listing is reviewed for quality and
+                clarity before it reaches the storefront.
               </p>
               <div className='flex gap-2 items-center font-semibold text-indigo-600'>
                 <Globe className='w-5 h-5' />
-                <span>Serving creators in 150+ countries</span>
+                <span>Shipping to shoppers worldwide</span>
               </div>
             </div>
             <div className='grid gap-3 sm:grid-cols-3'>
               {[
                 {
-                  title: 'Speed',
-                  icon: Rocket,
-                  text: 'Search, filter and paginate with silky UI transitions.',
+                  title: 'Delivery',
+                  icon: Truck,
+                  text: 'Tracked shipping options with clear expectations at checkout.',
                   tone: 'from-amber-500/15 via-rose-500/10 to-fuchsia-500/15',
                 },
                 {
                   title: 'Security',
                   icon: ShieldCheck,
-                  text: 'Auth flows built to integrate directly with your API.',
+                  text: 'Encrypted payments through Stripe when configured.',
                   tone: 'from-cyan-500/15 via-emerald-500/10 to-lime-500/15',
                 },
                 {
-                  title: 'Style',
-                  icon: Palette,
-                  text: 'Modern gradients, motion layers and micro-interactions.',
+                  title: 'Care',
+                  icon: Heart,
+                  text: 'Wishlist, reviews, and support built around real shopping.',
                   tone: 'from-indigo-500/15 via-purple-500/10 to-fuchsia-500/15',
                 },
               ].map((f) => (
@@ -165,7 +162,6 @@ export default function AboutPage() {
           </div>
         </motion.section>
 
-        {/* Team Section */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -201,7 +197,6 @@ export default function AboutPage() {
           </div>
         </motion.section>
 
-        {/* Architecture Section */}
         <motion.article
           initial={{ opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -210,26 +205,27 @@ export default function AboutPage() {
           className='p-8 bg-white rounded-3xl border border-gray-200 md:p-12'
         >
           <h2 className='mb-4 text-2xl font-extrabold tracking-tight text-gray-900'>
-            Built with Modern Technology
+            How we shop with you
           </h2>
           <p className='mt-3 mb-6 max-w-3xl text-sm font-semibold text-gray-600'>
-            The app follows an API-first approach. Pages are structured to be
-            reusable and scalable, with motion layers to keep the UI dynamic.
+            TrendVaulta combines a curated catalog with modern shopping tools —
+            search, brands, wishlist, reviews, and secure checkout — so finding
+            your next favorite product feels effortless.
           </p>
 
           <div className='grid gap-4 md:grid-cols-3'>
             {[
               {
-                title: 'Frontend stack',
-                text: 'Next.js (App Router), TypeScript, Tailwind, framer-motion.',
+                title: 'Curated catalog',
+                text: 'Beauty, fashion, and lifestyle picks from featured brands.',
               },
               {
-                title: 'State & data',
-                text: 'React Query for catalog queries, pagination, and auth state.',
+                title: 'Confident checkout',
+                text: 'Coupons, delivery options, and Stripe-secured payments.',
               },
               {
-                title: 'API matching',
-                text: 'Requests use /api and /password rewrites to match your backend routes.',
+                title: 'After purchase',
+                text: 'Order tracking, returns guidance, and human support.',
               },
             ].map((s) => (
               <motion.section
