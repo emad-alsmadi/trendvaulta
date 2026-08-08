@@ -60,7 +60,7 @@ Status values: `DONE` · `PARTIAL` · `MISSING` · `BROKEN` · `NEEDS_REFACTOR` 
 | Admin orders | MISSING | MISSING | PARTIAL | MISSING | PARTIAL | Customer `getOrderById` allows admin bypass; **no admin list/status-transition API** found. Dashboard Orders page exists; backend support incomplete. |
 | Analytics | MISSING | MISSING | PARTIAL | MISSING | MISSING | Dashboard page shell only; no analytics API confirmed. |
 | Logging | PARTIAL | MISSING | MISSING | MISSING | PARTIAL | Simple `middlewares/logger.js`; no structured logs / request IDs. Errors `console.log(err)` in `app.js`. |
-| Monitoring | MISSING | MISSING | MISSING | MISSING | MISSING | `DEPLOYMENT_GUIDE.md` claims `/api/health`; **not implemented** in `app.js`. |
+| Monitoring | MISSING | MISSING | MISSING | MISSING | MISSING | `DEPLOYMENT_GUIDE.md` claims `/api/trendvaulta`; **not implemented** in `app.js`. |
 | CI | PARTIAL | PARTIAL | PARTIAL | PARTIAL | PARTIAL | `.github/workflows/ci.yml` added (API tests, website lint/typecheck/build, dashboard lint/test/build). Not yet proven green on GitHub Actions. |
 | Security controls | PARTIAL | PARTIAL | PARTIAL | MISSING | NEEDS_SECURITY_REVIEW | JWT + bcrypt + Joi present. CORS `origin: true`. No rate limiting / helmet. Client-settable `userRole` cookie. Register role injection. Client tax/shipping. Coupon increment public-ish auth without commerce binding. |
 | Shared packages alignment | BROKEN | N/A | PARTIAL | MISSING | BROKEN | Types/api-client Craftify-era; website duplicates client; ui empty. |

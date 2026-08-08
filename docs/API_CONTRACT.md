@@ -273,12 +273,12 @@ Joi still expects `template` — **BROKEN**; align to `product`.
 
 ---
 
-## 13. Health / ops
+## 13. trendvaulta / ops
 
 | Method | Path | Status |
 |--------|------|--------|
-| GET | `/api/health` | **GAP** (documented in DEPLOYMENT_GUIDE, missing in `app.js`) |
-| GET | `/` · `/api/` | CURRENT informational JSON (still Craftify copy) |
+| GET | `/api/trendvaulta` | **GAP** (documented in DEPLOYMENT_GUIDE, missing in `app.js`) |
+| GET | `/` · `/api/` | CURRENT informational JSON (still trendvaulta copy) |
 
 ---
 
@@ -293,4 +293,4 @@ When changing public shapes:
 5. Tests  
 6. This document  
 
-**Website is currently source of FE truth** for TrendVaulta; shared packages are Craftify-stale.
+**Website is currently source of FE truth** for TrendVaulta; shared packages are trendvaulta-stale.

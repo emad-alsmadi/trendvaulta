@@ -22,7 +22,7 @@ alwaysApply: true
    - Read the matching controller in `apps/api/controllers/`
    - Confirm models/validators in `apps/api/models/` when needed
    - Mirror clients/hooks in `apps/website` or `apps/dashboard`
-   - Never use LMJ Health / API-3 extracts (they do not belong to this repo)
+   - Never use LMJ trendvaulta / API-3 extracts (they do not belong to this repo)
 
 5. **No unnecessary exploration.**
    Do not use Explore Mode, Task Mode, or sub-agents for simple or localized tasks.

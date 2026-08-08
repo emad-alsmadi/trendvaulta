@@ -25,7 +25,7 @@ Evidence tags: `code` · `docs` · `inferred` · `recommended` · `missing info`
 | 11 | RBAC: routes require `products:*` / `brands:*` / `coupons:*` / `users:*`; map has `templates:*` / `creators:*` | `rolePermissions.js` vs route files | **Critical** |
 | 12 | Order serializer still Craftify | `utils/serializeOrder.js` outputs `templateId` | High |
 | 13 | Coupon use path: BE `/coupons/:id/use` vs FE `/coupons/:id/increment` | `routes/coupons.js` vs `website/src/lib/api.ts` | High |
-| 14 | Health endpoint documented, not implemented | `DEPLOYMENT_GUIDE.md` vs `app.js` | High (deploy) |
+| 14 | trendvaulta endpoint documented, not implemented | `DEPLOYMENT_GUIDE.md` vs `app.js` | High (deploy) |
 | 15 | Auth cookie: docs claim client cookies; not httpOnly | `README.md`, `authCookies.ts` | High (security design) |
 | 16 | `userRole` cookie is client-writable; used by Next proxy for UI gating | `authCookies.ts`, `proxy.ts` | High (UI spoof; API still JWT) |
 | 17 | Register accepts `roles` from body | `auth.controller.js` + Joi `roles` | **Critical** |
@@ -33,7 +33,7 @@ Evidence tags: `code` · `docs` · `inferred` · `recommended` · `missing info`
 | 19 | Checkout trusts client shipping/tax; coupon only client-side | `payment.controller.js`, checkout page | **Critical** (money) |
 | 20 | No stock decrement on paid | search across controllers — absent | **Critical** |
 | 21 | `.cursorrules` / `AGENTS.md` still Craftify template marketplace | repo root rules | Medium (agent drift) |
-| 22 | LMJ Health API rules present in `.cursor/rules` | unrelated domain docs in this repo | Medium (agent confusion) |
+| 22 | LMJ trendvaulta API rules present in `.cursor/rules` | unrelated domain docs in this repo | Medium (agent confusion) |
 | 23 | render.yaml Craftify DB name / branding | `apps/api/render.yaml` | Medium |
 | 24 | No `.env.example` found | glob | Medium |
 | 25 | No GitHub Actions CI | glob | High |
@@ -81,7 +81,7 @@ See **`docs/MVP_SCOPE.md`** (authoritative freeze).
 ### P3 — Production engineering
 
 19. `.github/workflows/ci.yml`
-20. Health/readiness endpoints
+20. trendvaulta/readiness endpoints
 21. Rate limiting, structured logs, CORS allowlist
 22. `.env.example` files; staging doc
 23. E2E for purchase / wishlist / admin product visibility

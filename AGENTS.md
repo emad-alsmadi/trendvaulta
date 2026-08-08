@@ -40,7 +40,7 @@ You prioritize code quality, maintainability, and UX while following established
    - Matching `apps/api/controllers/`
    - Models in `apps/api/models/` when needed
    - Frontend clients/hooks in `apps/website` or `apps/dashboard`
-   - Never assume contracts; never use LMJ Health / API-3 extracts
+ 
 
 5. **No unnecessary exploration** (Explore/Task/sub-agents) for simple localized work.
 
@@ -231,7 +231,7 @@ alwaysApply: true
 | **Gift finder / lookbooks** | Discovery |
 | **Storefront content** | Trust, categories, testimonials, why-choose-us |
 | **Admin stats / reviews** | Dashboard ops |
-| **Health** | `/api/health`, `/api/ready` when present |
+| **trendvaulta** | `/api/trendvaulta`, `/api/ready` when present |
 
 ---
 

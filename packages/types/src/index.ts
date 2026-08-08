@@ -1,4 +1,4 @@
-// Shared TrendVaulta domain types (canonical product commerce)
+// Shared TrendVaulta domain types (product / brand commerce)
 
 export type AppRole = 'user' | 'admin' | 'moderator';
 
@@ -20,6 +20,8 @@ export interface ProductVariant {
   stock?: number;
   price?: number;
 }
+
+export type ProductBadge = 'bestseller' | 'new' | 'lowStock';
 
 export interface Brand {
   _id: string;
@@ -46,15 +48,27 @@ export interface Product {
   images?: string[];
   category: string;
   subcategory?: string;
+  material?: string;
   variants?: ProductVariant[];
   stock: number;
   sku?: string;
   averageRating?: number;
   reviewCount?: number;
+  salesCount?: number;
   isActive?: boolean;
   featured?: boolean;
+  badges?: ProductBadge[];
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface ShippingAddress {
+  name: string;
+  phone: string;
+  address: string;
+  city: string;
+  zip: string;
+  notes?: string;
 }
 
 export interface OrderItem {
@@ -84,6 +98,7 @@ export interface Order {
   _id: string;
   user: string | User;
   items: OrderItem[];
+  shippingAddress?: ShippingAddress;
   status: OrderStatus;
   paymentStatus?: PaymentStatus;
   itemsPrice: number;
@@ -129,6 +144,21 @@ export interface Coupon {
   description?: string | null;
 }
 
+/** Merchandising / deals rail offer */
+export interface Offer {
+  _id: string;
+  title: string;
+  subtitle?: string;
+  badge?: string;
+  href: string;
+  imageUrl?: string;
+  endsAt?: string | null;
+  active?: boolean;
+  sortOrder?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface PaginatedResponse<T> {
   data: T[];
   meta: {
@@ -137,6 +167,13 @@ export interface PaginatedResponse<T> {
     pages: number;
     limit: number;
   };
+}
+
+/** Common API envelope used by @trendvaulta/api-client */
+export interface ApiResponse<T = unknown> {
+  message?: string;
+  data?: T;
+  errors?: unknown;
 }
 
 export interface ApiError {
@@ -150,9 +187,9 @@ export interface AuthResponse extends User {
   message?: string;
 }
 
-/** @deprecated Craftify legacy — prefer Product */
+/** @deprecated Craftify legacy — use Product */
 export type Template = Product;
-/** @deprecated Craftify legacy */
+/** @deprecated Craftify legacy — unused; prefer Brand */
 export interface Creator {
   _id: string;
   name: string;

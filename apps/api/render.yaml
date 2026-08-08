@@ -11,9 +11,6 @@ services:
     buildCommand: npm install
     startCommand: npm start
     autoDeploy: true
-    # Liveness (no DB) — also defined inline in app.js
-    healthCheckPath: /api/trendvaulta
-
     # Environment Variables (set secrets in Render Dashboard)
     envVars:
       - key: NODE_ENV

@@ -61,7 +61,7 @@
 ### Platform integrity
 - Transactional email for password reset
 - Order confirmation email on paid (at least best-effort with safe failure)
-- Health endpoint for deploy probes
+- trendvaulta endpoint for deploy probes
 - Critical integration tests for golden slice
 - CI: install, lint, typecheck, unit/integration, website + dashboard build
 

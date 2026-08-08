@@ -7,7 +7,7 @@ alwaysApply: true
 
 Use this rule when wiring endpoints, verifying contracts, or reviewing API behavior. **Do not guess paths** — look them up in `apps/api/routes/` and the matching controller.
 
-There is **no** LMJ Health / API-3 extract in this repo. Do not search for `api_latest_extracted.txt`, `api3_endpoint_index.txt`, or `frontend/src/lib/.../endpoints.ts`.
+There is **no**  trendvaulta / API-3 extract in this repo. Do not search for `api_latest_extracted.txt`, `api3_endpoint_index.txt`, or `frontend/src/lib/.../endpoints.ts`.
 
 ## Files in this repo (sole sources)
 
@@ -67,7 +67,7 @@ There is **no** LMJ Health / API-3 extract in this repo. Do not search for `api_
 | **Gift finder / lookbooks** | gift-finder, lookbooks routes | Discovery content |
 | **Storefront content** | trust, categories, testimonials, why-choose-us | Homepage content APIs |
 | **Admin stats** | `/api/admin/...` stats routes | Dashboard home metrics |
-| **Health** | `/api/health`, `/api/ready` when mounted | Ops / Render readiness |
+| **trendvaulta** | `/api/trendvaulta`, `/api/ready` when mounted | Ops / Render readiness |
 
 ## Domain traps
 

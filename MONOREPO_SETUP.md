@@ -41,40 +41,17 @@ This installs dependencies for all workspace apps and packages.
 
 ### 2. Environment setup
 
-Create `apps/api/.env` (API loads dotenv from its own process):
+Copy examples then fill secrets:
 
-```env
-NODE_ENV=development
-PORT=3000
-MONGO_URL=mongodb://localhost:27017/trendvaulta
-DB_NAME=trendvaulta
-
-JWT_SECRET_KEY=replace-me
-JWT_EXPIRE=30d
-
-FRONTEND_URL=http://localhost:3001
-DASHBOARD_URL=http://localhost:3002
-ALLOWED_ORIGINS=
-
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your-email@gmail.com
-EMAIL_PASS=your-app-password
-FROM_EMAIL=noreply@trendvaulta.com
-FROM_NAME=TrendVaulta
-
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
+```bash
+cp apps/api/.env.example apps/api/.env
+cp apps/website/.env.example apps/website/.env.local
+cp apps/dashboard/.env.example apps/dashboard/.env
 ```
 
-Optional storefront env (`apps/website/.env.local`):
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:3000
-```
-
-Website rewrites `/api/*` to `NEXT_PUBLIC_API_URL` (default `http://localhost:3000`).  
-Dashboard Vite proxies `/api` → `http://localhost:3000` (see `apps/dashboard/vite.config.ts`).
+- API: see `apps/api/.env.example` (mail uses `SMTP_*`; `EMAIL_USER` / `EMAIL_PASS` / `FROM_EMAIL` are fallbacks)
+- Website: `NEXT_PUBLIC_API_URL` (rewrites `/api/*`; default `http://localhost:3000`)
+- Dashboard: optional `VITE_API_URL`; otherwise Vite proxies `/api` → `http://localhost:3000`
 
 ## Development
 
@@ -181,8 +158,10 @@ Dashboard may use this package. The storefront primarily uses `apps/website/src/
 - **Dashboard**: Build with `npm run build:dashboard` and host `apps/dashboard/dist`; configure API base URL / proxy as needed.
 - Set production `FRONTEND_URL`, `DASHBOARD_URL`, and CORS allowlists.
 
-Liveness check currently available on the API: `GET /api/trendvaulta`.  
-Readiness (`GET /api/ready`) is defined in `apps/api/routes/health.js` — ensure that router is mounted in `app.js` before relying on it in production.
+Ops routes (mounted via `apps/api/routes/trendvaulta.js`):
+
+- Liveness: `GET /api/trendvaulta`
+- Readiness: `GET /api/ready` (requires Mongo connected)
 
 ## Troubleshooting
 

@@ -22,7 +22,7 @@ alwaysApply: true
    - Check controllers in `apps/api/controllers/`
    - Check Mongoose models in `apps/api/models/`
    - Check storefront client `apps/website/src/lib/api.ts` or dashboard `apps/dashboard/src/lib/api.ts`
-   - Never read LMJ Health / API-3 extracts (not part of this repo)
+   - Never read trendvaulta / API-3 extracts (not part of this repo)
 
 5. **No unnecessary exploration.**
    Do not use Explore Mode, Task Mode, or sub-agents for simple or localized tasks.

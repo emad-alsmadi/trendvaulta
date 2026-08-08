@@ -73,38 +73,15 @@ npm install
 
 ### Environment
 
-Create `apps/api/.env` (there is no committed `.env.example` yet). Typical variables:
+Copy the examples, then fill in secrets locally:
 
-```env
-NODE_ENV=development
-PORT=3000
-MONGO_URL=mongodb://localhost:27017/trendvaulta
-DB_NAME=trendvaulta
-
-JWT_SECRET_KEY=replace-me
-JWT_EXPIRE=30d
-
-FRONTEND_URL=http://localhost:3001
-DASHBOARD_URL=http://localhost:3002
-ALLOWED_ORIGINS=
-
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=
-EMAIL_PASS=
-FROM_EMAIL=noreply@trendvaulta.com
-FROM_NAME=TrendVaulta
-
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
+```bash
+cp apps/api/.env.example apps/api/.env
+cp apps/website/.env.example apps/website/.env.local
+cp apps/dashboard/.env.example apps/dashboard/.env
 ```
 
-Storefront (optional, defaults rewrite to `http://localhost:3000`):
-
-```env
-# apps/website/.env.local
-NEXT_PUBLIC_API_URL=http://localhost:3000
-```
+See `apps/api/.env.example` for the full API list. Mail uses `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` (with `EMAIL_USER` / `EMAIL_PASS` / `FROM_EMAIL` fallbacks). Storefront: `NEXT_PUBLIC_API_URL`. Dashboard (optional): `VITE_API_URL`.
 
 ### Run locally
 
@@ -164,7 +141,7 @@ Common areas:
 - Recommendations, bundles, recently viewed, gift finder, lookbooks
 - Storefront content — trust, categories, testimonials, why-choose-us
 - Admin stats (and related admin routes)
-- Health — `GET /api/health`, `GET /api/ready` when mounted
+- Ops — `GET /api/trendvaulta` (liveness), `GET /api/ready` (DB readiness)
 
 Typical JSON shape: `{ message, data?, errors? }` (confirm per controller). Auth uses `Authorization: Bearer <token>` via `verfiyToken`.
 

@@ -683,15 +683,13 @@ export const brandsApi = {
 export const couponsApi = {
   /**
    * Validate a coupon code for a given order amount
-   * @param code - Coupon code
-   * @param orderAmount - Order total amount
-   * @returns Validation result with discount details
+   * Canonical: POST /api/coupons/validate — usage increments on paid server-side.
    */
   validateCoupon: async (
     code: string,
     orderAmount: number,
   ): Promise<CouponValidationResponse> => {
-    const { data } = await api.post('/coupons/validate', {
+    const { data } = await api.post(endpoints.coupons.validate, {
       code,
       orderAmount,
     });
@@ -699,24 +697,10 @@ export const couponsApi = {
   },
   /**
    * Get coupon by code
-   * @param code - Coupon code
-   * @returns Coupon details
+   * Canonical: GET /api/coupons/code/:code
    */
   getCouponByCode: async (code: string): Promise<Coupon> => {
-    const { data } = await api.get(`/coupons/code/${code}`);
-    return data;
-  },
-  /**
-   * Increment coupon usage count
-   * @param couponId - Coupon ID
-   * @returns Updated coupon
-   */
-  /**
-   * Admin/ops only — customers must not increment usage; paid webhook does.
-   * Canonical path: POST /coupons/:id/use
-   */
-  incrementUsage: async (couponId: string): Promise<Coupon> => {
-    const { data } = await api.post(`/coupons/${couponId}/use`);
+    const { data } = await api.get(endpoints.coupons.byCode(code));
     return data;
   },
 };

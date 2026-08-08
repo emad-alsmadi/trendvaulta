@@ -64,9 +64,8 @@ export const endpoints = {
   },
   coupons: {
     byCode: (code: string) => `/coupons/code/${code}`,
+    /** Checkout UX — POST /api/coupons/validate */
     validate: '/coupons/validate',
-    /** Admin/ops only; paid webhook increments usage for customers */
-    incrementUsage: (id: string) => `/coupons/${id}/use`,
   },
   recentlyViewed: {
     list: '/me/recently-viewed',
