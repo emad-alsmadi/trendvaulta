@@ -1,8 +1,49 @@
 const express = require('express');
 const router = express.Router();
-const { getLookbooks } = require('../controllers/lookbook.controller');
+const {
+  getLookbooks,
+  getAllLookbooks,
+  getLookbookById,
+  createLookbook,
+  updateLookbook,
+  deleteLookbook,
+} = require('../controllers/lookbook.controller');
+const { verfiyToken } = require('../middlewares/auth');
+const { checkRolePermission } = require('../middlewares/checkRolePermission');
 
-// Public storefront editorial modules — CMS-backed later
+// Public endpoint - get active lookbooks for storefront
 router.get('/storefront/lookbooks', getLookbooks);
+
+// Admin endpoints
+router.get(
+  '/lookbooks/admin',
+  verfiyToken,
+  checkRolePermission('content:read'),
+  getAllLookbooks,
+);
+router.get(
+  '/lookbooks/:id',
+  verfiyToken,
+  checkRolePermission('content:read'),
+  getLookbookById,
+);
+router.post(
+  '/lookbooks',
+  verfiyToken,
+  checkRolePermission('content:write'),
+  createLookbook,
+);
+router.put(
+  '/lookbooks/:id',
+  verfiyToken,
+  checkRolePermission('content:write'),
+  updateLookbook,
+);
+router.delete(
+  '/lookbooks/:id',
+  verfiyToken,
+  checkRolePermission('content:delete'),
+  deleteLookbook,
+);
 
 module.exports = router;

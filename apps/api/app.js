@@ -57,6 +57,7 @@ app.use('/api/', require('./routes/storefrontCategories'));
 app.use('/api/', require('./routes/storefrontTestimonials'));
 app.use('/api/', require('./routes/storefrontWhyChooseUs'));
 app.use('/api/', require('./routes/storefrontHome'));
+app.use('/api/', require('./routes/storefrontModules'));
 app.use('/api/', require('./routes/helpTopics'));
 app.use('/api/', require('./routes/content'));
 app.use('/api/', require('./routes/adminStats'));
