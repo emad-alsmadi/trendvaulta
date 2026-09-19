@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler');
+const GiftFinderConfig = require('../models/GiftFinderConfig');
 
 /**
  * V1 stub — static gift-finder facet config (no CMS yet).
@@ -30,10 +31,25 @@ const DEFAULT_GIFT_FINDER = {
 };
 
 /**
+ * Get gift finder config for storefront
+ * Uses GiftFinderConfig model if available, falls back to static DEFAULT_GIFT_FINDER
+ *
  * @route GET /api/storefront/gift-finder
  * @access Public
  */
 const getGiftFinderConfig = asyncHandler(async (_req, res) => {
+  const config = await GiftFinderConfig.findOne({ active: true }).lean();
+
+  if (config) {
+    return res.status(200).json({
+      message: 'ok',
+      occasions: config.occasions,
+      recipients: config.recipients,
+      budgets: config.budgets,
+    });
+  }
+
+  // Fallback to static config
   res.status(200).json({
     message: 'ok',
     occasions: DEFAULT_GIFT_FINDER.occasions,
@@ -42,7 +58,123 @@ const getGiftFinderConfig = asyncHandler(async (_req, res) => {
   });
 });
 
+/**
+ * Get all gift finder configs (admin)
+ * Admin endpoint
+ */
+const getAllGiftFinderConfigs = asyncHandler(async (req, res) => {
+  const configs = await GiftFinderConfig.find().sort({ createdAt: -1 }).lean();
+
+  res.status(200).json({
+    message: 'ok',
+    data: configs,
+  });
+});
+
+/**
+ * Get a single gift finder config by ID
+ * Admin endpoint
+ */
+const getGiftFinderConfigById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const config = await GiftFinderConfig.findById(id).lean();
+
+  if (!config) {
+    return res.status(404).json({ message: 'Gift finder config not found' });
+  }
+
+  res.status(200).json({
+    message: 'ok',
+    data: config,
+  });
+});
+
+/**
+ * Create a new gift finder config
+ * Admin endpoint
+ */
+const createGiftFinderConfig = asyncHandler(async (req, res) => {
+  const { occasions, recipients, budgets, active } = req.body;
+
+  // Deactivate all existing configs if this one is active
+  if (active) {
+    await GiftFinderConfig.updateMany({}, { active: false });
+  }
+
+  const config = await GiftFinderConfig.create({
+    occasions: occasions || [],
+    recipients: recipients || [],
+    budgets: budgets || [],
+    active: active !== undefined ? active : true,
+  });
+
+  res.status(201).json({
+    message: 'Gift finder config created successfully',
+    data: config,
+  });
+});
+
+/**
+ * Update a gift finder config
+ * Admin endpoint
+ */
+const updateGiftFinderConfig = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { occasions, recipients, budgets, active } = req.body;
+
+  const config = await GiftFinderConfig.findById(id);
+  if (!config) {
+    return res.status(404).json({ message: 'Gift finder config not found' });
+  }
+
+  if (occasions !== undefined) config.occasions = occasions;
+  if (recipients !== undefined) config.recipients = recipients;
+  if (budgets !== undefined) config.budgets = budgets;
+
+  if (active !== undefined && active !== config.active) {
+    if (active) {
+      // Deactivate all other configs
+      await GiftFinderConfig.updateMany(
+        { _id: { $ne: id } },
+        { active: false },
+      );
+    }
+    config.active = active;
+  }
+
+  await config.save();
+
+  res.status(200).json({
+    message: 'Gift finder config updated successfully',
+    data: config,
+  });
+});
+
+/**
+ * Delete a gift finder config
+ * Admin endpoint
+ */
+const deleteGiftFinderConfig = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const config = await GiftFinderConfig.findById(id);
+  if (!config) {
+    return res.status(404).json({ message: 'Gift finder config not found' });
+  }
+
+  await GiftFinderConfig.findByIdAndDelete(id);
+
+  res.status(200).json({
+    message: 'Gift finder config deleted successfully',
+  });
+});
+
 module.exports = {
   getGiftFinderConfig,
+  getAllGiftFinderConfigs,
+  getGiftFinderConfigById,
+  createGiftFinderConfig,
+  updateGiftFinderConfig,
+  deleteGiftFinderConfig,
   DEFAULT_GIFT_FINDER,
 };
