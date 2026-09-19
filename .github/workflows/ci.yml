@@ -94,7 +94,10 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm ci --workspace=apps/dashboard
+        run: npm ci --workspace=apps/dashboard --workspace=packages/types --workspace=packages/api-client
+
+      - name: Build shared packages
+        run: npm run type-check --workspace=packages/types && npm run type-check --workspace=packages/api-client
 
       - name: Lint
         working-directory: apps/dashboard
