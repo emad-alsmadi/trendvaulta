@@ -1,5 +1,10 @@
 const asyncHandler = require('express-async-handler');
 const StorefrontModule = require('../models/StorefrontModule');
+const {
+  NotFoundError,
+  ConflictError,
+  ValidationError,
+} = require('../utils/errors');
 
 /**
  * Get all active storefront modules for homepage
@@ -57,7 +62,7 @@ const getStorefrontModuleById = asyncHandler(async (req, res) => {
   const module = await StorefrontModule.findById(id).lean();
 
   if (!module) {
-    return res.status(404).json({ message: 'Module not found' });
+    throw new NotFoundError('Module');
   }
 
   res.status(200).json({
@@ -71,16 +76,27 @@ const getStorefrontModuleById = asyncHandler(async (req, res) => {
  * Admin endpoint
  */
 const createStorefrontModule = asyncHandler(async (req, res) => {
-  const { key, type, title, active, sortOrder, config, slides, trustItems, limit, items } = req.body;
+  const {
+    key,
+    type,
+    title,
+    active,
+    sortOrder,
+    config,
+    slides,
+    trustItems,
+    limit,
+    items,
+  } = req.body;
 
   if (!key || !type) {
-    return res.status(400).json({ message: 'key and type are required' });
+    throw new ValidationError('key and type are required');
   }
 
   // Check if key already exists
   const existing = await StorefrontModule.findOne({ key });
   if (existing) {
-    return res.status(400).json({ message: 'Module with this key already exists' });
+    throw new ConflictError('Module with this key already exists');
   }
 
   const module = await StorefrontModule.create({
@@ -108,18 +124,29 @@ const createStorefrontModule = asyncHandler(async (req, res) => {
  */
 const updateStorefrontModule = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { key, type, title, active, sortOrder, config, slides, trustItems, limit, items } = req.body;
+  const {
+    key,
+    type,
+    title,
+    active,
+    sortOrder,
+    config,
+    slides,
+    trustItems,
+    limit,
+    items,
+  } = req.body;
 
   const module = await StorefrontModule.findById(id);
   if (!module) {
-    return res.status(404).json({ message: 'Module not found' });
+    throw new NotFoundError('Module');
   }
 
   // If changing key, check uniqueness
   if (key && key !== module.key) {
     const existing = await StorefrontModule.findOne({ key });
     if (existing) {
-      return res.status(400).json({ message: 'Module with this key already exists' });
+      throw new ConflictError('Module with this key already exists');
     }
     module.key = key;
   }
@@ -151,7 +178,7 @@ const deleteStorefrontModule = asyncHandler(async (req, res) => {
 
   const module = await StorefrontModule.findById(id);
   if (!module) {
-    return res.status(404).json({ message: 'Module not found' });
+    throw new NotFoundError('Module');
   }
 
   // Soft delete - deactivate

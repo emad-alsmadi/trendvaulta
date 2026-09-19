@@ -1,5 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const GiftFinderConfig = require('../models/GiftFinderConfig');
+const { NotFoundError, ValidationError } = require('../utils/errors');
 
 /**
  * V1 stub — static gift-finder facet config (no CMS yet).

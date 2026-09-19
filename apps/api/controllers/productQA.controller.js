@@ -1,6 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const ProductQA = require('../models/ProductQA');
 const Product = require('../models/Product');
+const { NotFoundError, ValidationError } = require('../utils/errors');
 
 /**
  * Get Q&A for a product (public)

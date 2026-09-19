@@ -1,6 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const { Product } = require('../models/Product');
 const Bundle = require('../models/Bundle');
+const { NotFoundError, ValidationError } = require('../utils/errors');
 
 const BUNDLE_COMPANION_LIMIT = 3;
 const BUNDLE_DISCOUNT_RATE = 0.1;

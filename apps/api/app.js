@@ -5,6 +5,7 @@ const cors = require('cors');
 require('dotenv').config();
 const { connectToDB } = require('./config/db');
 const { createCorsOriginDelegate } = require('./middlewares/corsAllowlist');
+const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler');
 
 const paymentController = require('./controllers/payment.controller');
 
@@ -101,31 +102,8 @@ app.get('/api/trendvaulta', (_req, res) => {
 });
 
 //Error Handler Middlewares
-app.use((req, res, next) => {
-  const error = new Error(`Not Found - ${req.originalUrl}`);
-  res.status(404);
-  next(error);
-});
-
-app.use((err, req, res, next) => {
-  if (err && String(err.message || '').startsWith('CORS blocked')) {
-    return res.status(403).json({
-      message: 'Origin not allowed',
-      code: 'CORS_BLOCKED',
-    });
-  }
-
-  const statusCode =
-    err.statusCode &&
-    Number(err.statusCode) >= 400 &&
-    Number(err.statusCode) < 600
-      ? Number(err.statusCode)
-      : res.statusCode === 200
-        ? 500
-        : res.statusCode;
-  console.log(err);
-  res.status(statusCode).json({ message: err.message });
-});
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 // Running Server
 const port = process.env.PORT || 3000;
