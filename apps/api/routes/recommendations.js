@@ -2,9 +2,9 @@ const express = require('express');
 const router = express.Router();
 const {
   getRecommendations,
-} = require('../controllers/recommendation.controller');
+} = require('../controllers/recommendations.controller');
 
-// Public stub — optional JWT personalization can wrap this later
+// Public endpoint — optional JWT personalization can wrap this later
 router.get('/recommendations', getRecommendations);
 
 module.exports = router;
