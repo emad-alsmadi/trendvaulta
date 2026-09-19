@@ -4,19 +4,28 @@
  */
 
 const { AppError } = require('../utils/errors');
+const logger = require('../utils/logger');
 
 /**
  * Error handler middleware
  */
 const errorHandler = (err, req, res, next) => {
   // Log error for debugging
-  console.error('Error:', {
-    message: err.message,
-    stack: err.stack,
-    code: err.code,
-    statusCode: err.statusCode,
-    path: req.path,
-    method: req.method,
+  logger.error('Request failed', {
+    error: {
+      message: err.message,
+      name: err.name,
+      code: err.code,
+      statusCode: err.statusCode,
+    },
+    request: {
+      method: req.method,
+      url: req.url,
+      path: req.path,
+      userId: req.user?.id,
+      requestId: req.id,
+    },
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 
   // Default to 500 server error
@@ -79,6 +88,14 @@ const errorHandler = (err, req, res, next) => {
  * 404 Not Found handler
  */
 const notFoundHandler = (req, res) => {
+  logger.warn('Route not found', {
+    method: req.method,
+    url: req.url,
+    path: req.path,
+    userId: req.user?.id,
+    requestId: req.id,
+  });
+
   res.status(404).json({
     success: false,
     message: `Route ${req.originalUrl} not found`,

@@ -1,6 +1,6 @@
 const express = require('express');
 const helmet = require('helmet');
-const logger = require('./middlewares/logger');
+const requestLogger = require('./middlewares/requestLogger');
 const cors = require('cors');
 require('dotenv').config();
 const { connectToDB } = require('./config/db');
@@ -32,8 +32,8 @@ app.use(
 // risk breaking Swagger/API-doc tooling if added later).
 app.use(helmet({ contentSecurityPolicy: false }));
 
-//Apply Middlewares
-app.use(logger);
+// Apply request logging middleware
+app.use(requestLogger);
 
 //Routers
 app.use('/api/', require('./routes/products'));

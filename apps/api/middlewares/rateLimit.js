@@ -19,9 +19,10 @@ const logger = require('../utils/logger');
  */
 function getClientKey(req) {
   const forwarded = req.headers['x-forwarded-for'];
-  const ip = typeof forwarded === 'string' && forwarded.length > 0
-    ? forwarded.split(',')[0].trim()
-    : req.ip || req.socket?.remoteAddress || 'unknown';
+  const ip =
+    typeof forwarded === 'string' && forwarded.length > 0
+      ? forwarded.split(',')[0].trim()
+      : req.ip || req.socket?.remoteAddress || 'unknown';
 
   // If authenticated, include user ID in key for per-user rate limiting
   const userId = req.user?.id || 'anonymous';
@@ -36,7 +37,8 @@ function rateLimit(options = {}) {
   const max = Number(options.max) || 100;
   const keyPrefix = options.keyPrefix || 'rl';
   const keyGenerator = options.keyGenerator || getClientKey;
-  const message = options.message || 'Too many requests. Please try again later.';
+  const message =
+    options.message || 'Too many requests. Please try again later.';
 
   /** @type {Map<string, { count: number, resetAt: number }>} */
   const buckets = new Map();
@@ -75,7 +77,10 @@ function rateLimit(options = {}) {
 
     res.setHeader('X-RateLimit-Limit', String(max));
     res.setHeader('X-RateLimit-Remaining', String(remaining));
-    res.setHeader('X-RateLimit-Reset', String(Math.ceil(bucket.resetAt / 1000)));
+    res.setHeader(
+      'X-RateLimit-Reset',
+      String(Math.ceil(bucket.resetAt / 1000)),
+    );
     res.setHeader('Retry-After', String(retryAfter));
 
     if (bucket.count > max) {
@@ -84,9 +89,12 @@ function rateLimit(options = {}) {
         logger.warn('Rate limit exceeded', {
           ip: req.ip,
           userId: req.user?.id,
-          keyPrefix,
+          endpoint: keyPrefix,
           count: bucket.count,
           limit: max,
+          requestId: req.id,
+          method: req.method,
+          url: req.url,
         });
       }
 
