@@ -93,6 +93,16 @@ const couponValidateRateLimit = rateLimit({
   message: 'Too many coupon validation attempts. Please try again later.',
 });
 
+// Higher ceiling than authRateLimit: with a 15-minute access token, every
+// active user legitimately calls this every ~14 minutes, and many users can
+// share one IP behind NAT/a corporate proxy.
+const refreshRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.RATE_LIMIT_REFRESH_MAX) || 120,
+  keyPrefix: 'refresh',
+  message: 'Too many session refresh attempts. Please sign in again.',
+});
+
 module.exports = {
   rateLimit,
   getClientKey,
@@ -100,4 +110,5 @@ module.exports = {
   passwordRateLimit,
   checkoutRateLimit,
   couponValidateRateLimit,
+  refreshRateLimit,
 };

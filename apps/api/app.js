@@ -1,4 +1,5 @@
 const express = require('express');
+const helmet = require('helmet');
 const logger = require('./middlewares/logger');
 const cors = require('cors');
 require('dotenv').config();
@@ -25,6 +26,11 @@ app.use(
   }),
 );
 
+// Baseline security headers (CSP disabled: this process serves JSON only,
+// no HTML views, so a content policy has nothing to protect and would only
+// risk breaking Swagger/API-doc tooling if added later).
+app.use(helmet({ contentSecurityPolicy: false }));
+
 //Apply Middlewares
 app.use(logger);
 
@@ -50,6 +56,9 @@ app.use('/api/', require('./routes/storefrontTrust'));
 app.use('/api/', require('./routes/storefrontCategories'));
 app.use('/api/', require('./routes/storefrontTestimonials'));
 app.use('/api/', require('./routes/storefrontWhyChooseUs'));
+app.use('/api/', require('./routes/storefrontHome'));
+app.use('/api/', require('./routes/helpTopics'));
+app.use('/api/', require('./routes/content'));
 app.use('/api/', require('./routes/adminStats'));
 app.use('/api/', require('./routes/trendvaulta'));
 

@@ -55,9 +55,14 @@ const getAllBrands = asyncHandler(async (req, res) => {
     sortObj[fieldName] = direction;
   });
 
-  const pageNum = Math.max(1, parseInt(page, 10));
-  const limitNum = Math.max(1, parseInt(limit, 10));
+  const pageNum = Math.max(1, parseInt(page, 10) || 1);
+  const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
   const skip = (pageNum - 1) * limitNum;
+
+  // Featured strip: keep name order unless client passes another sort
+  if (Object.keys(sortObj).length === 0) {
+    sortObj.name = 1;
+  }
 
   const [brands, total] = await Promise.all([
     Brand.find(query)

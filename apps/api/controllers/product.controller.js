@@ -5,6 +5,7 @@ const {
   validateUpdateProduct,
   resolveProductBadges,
 } = require('../models/Product');
+const { parsePagination } = require('../utils/pagination');
 
 /**
  * Get all products with filtering, sorting and pagination.
@@ -107,9 +108,11 @@ const getAllProducts = asyncHandler(async (req, res) => {
     });
   }
 
-  const pageNum = Math.max(1, parseInt(page, 10));
-  const limitNum = Math.max(1, parseInt(limit, 10));
-  const skip = (pageNum - 1) * limitNum;
+  const {
+    page: pageNum,
+    limit: limitNum,
+    skip,
+  } = parsePagination({ page, limit }, { defaultLimit: 12, maxLimit: 100 });
 
   const [products, total] = await Promise.all([
     Product.find(query)

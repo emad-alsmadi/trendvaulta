@@ -42,11 +42,17 @@ const UserSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+// Short-lived on purpose: this JWT cannot be revoked server-side once issued,
+// so a small blast radius matters more than avoiding refresh calls. Sessions
+// stay alive via the refresh token (see utils/refreshTokens.js), which *can*
+// be revoked/rotated.
+const ACCESS_TOKEN_TTL = '15m';
+
 UserSchema.methods.generateToken = function() {
   return jwt.sign(
     { id: String(this._id), roles: this._doc.roles },
     process.env.JWT_SECRET_KEY,
-    { expiresIn: '30d' },
+    { expiresIn: ACCESS_TOKEN_TTL },
   );
 };
 const User = mongoose.model('User', UserSchema);
