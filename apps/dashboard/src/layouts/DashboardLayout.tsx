@@ -20,6 +20,7 @@ import {
   Layers,
   BookOpen,
   MessageSquare,
+  PackageOpen,
   Settings,
   LogOut,
   Menu,
@@ -43,6 +44,7 @@ const sidebarItems = [
   { icon: Layers, label: 'Storefront Modules', path: '/storefront-modules' },
   { icon: BookOpen, label: 'Lookbooks', path: '/lookbooks' },
   { icon: MessageSquare, label: 'Testimonials', path: '/testimonials' },
+  { icon: PackageOpen, label: 'Bundles', path: '/bundles' },
   { icon: Settings, label: 'Settings', path: '/settings' },
 ];
 

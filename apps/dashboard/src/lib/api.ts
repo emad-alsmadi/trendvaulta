@@ -903,3 +903,69 @@ export const adminTestimonialsApi = {
     return data;
   },
 };
+
+export type BundleItem = {
+  product: string;
+  quantity: number;
+};
+
+export type AdminBundle = {
+  _id: string;
+  primaryProduct: {
+    _id: string;
+    title: string;
+    price: number;
+    cover: string;
+  };
+  items: BundleItem[];
+  bundlePrice: number;
+  savings: number;
+  active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type BundlePayload = {
+  primaryProduct: string;
+  items: BundleItem[];
+  bundlePrice: number;
+  savings: number;
+  active?: boolean;
+};
+
+export const adminBundlesApi = {
+  getBundles: async (
+    params: { page?: number; limit?: number } = {},
+  ): Promise<{
+    data: AdminBundle[];
+    meta: { total: number; page: number; pages: number; limit: number };
+  }> => {
+    const { data } = await api.get('/bundles/admin', {
+      params: { limit: 100, ...params },
+    });
+    return data;
+  },
+
+  getBundleById: async (id: string): Promise<{ data: AdminBundle }> => {
+    const { data } = await api.get(`/bundles/${id}`);
+    return data;
+  },
+
+  createBundle: async (payload: BundlePayload): Promise<AdminBundle> => {
+    const { data } = await api.post<AdminBundle>('/bundles', payload);
+    return data;
+  },
+
+  updateBundle: async (
+    id: string,
+    payload: Partial<BundlePayload>,
+  ): Promise<AdminBundle> => {
+    const { data } = await api.put<AdminBundle>(`/bundles/${id}`, payload);
+    return data;
+  },
+
+  deleteBundle: async (id: string): Promise<{ message: string }> => {
+    const { data } = await api.delete<{ message: string }>(`/bundles/${id}`);
+    return data;
+  },
+};
