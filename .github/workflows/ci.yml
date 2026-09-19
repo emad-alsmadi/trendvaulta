@@ -1,0 +1,109 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same branch/PR so pushes don't queue behind
+# stale CI from an earlier commit.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  api:
+    name: API (lint, test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: apps/api/package-lock.json
+
+      - name: Install dependencies
+        working-directory: apps/api
+        run: npm ci
+
+      - name: Run tests
+        working-directory: apps/api
+        env:
+          NODE_ENV: test
+          JWT_SECRET_KEY: ci-test-secret-not-for-production
+        run: npm test
+
+  website:
+    name: Website (lint, typecheck, test, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: apps/website/package-lock.json
+
+      - name: Install dependencies
+        working-directory: apps/website
+        run: npm ci
+
+      - name: Lint
+        working-directory: apps/website
+        run: npm run lint
+
+      - name: Typecheck
+        working-directory: apps/website
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        working-directory: apps/website
+        run: npm test
+
+      - name: Build
+        working-directory: apps/website
+        env:
+          # Placeholder — the build only needs this to resolve API client
+          # code paths, not to reach a live backend.
+          NEXT_PUBLIC_API_URL: http://localhost:3000/api
+        run: npm run build
+
+  dashboard:
+    name: Dashboard (lint, test, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          # apps/dashboard has no lockfile of its own — it installs from the
+          # root npm workspace (root package-lock.json), unlike api/website.
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --workspace=apps/dashboard
+
+      - name: Lint
+        working-directory: apps/dashboard
+        run: npm run lint
+
+      - name: Run tests
+        working-directory: apps/dashboard
+        run: npm test -- --ci
+
+      - name: Build
+        working-directory: apps/dashboard
+        run: npm run build
