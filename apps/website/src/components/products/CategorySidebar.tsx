@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { ChevronRight, X, ChevronDown, ChevronUp, Star } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 const categories = [
   {
@@ -161,8 +161,21 @@ export function CategorySidebar({
     .split(',')
     .filter(Boolean);
 
+  // priceMin/priceMax are draft input values the user edits before clicking
+  // "Apply" — they must reset to the URL's value whenever it changes from
+  // outside this component (navigation, clear filters, browser back). Rather
+  // than committing the '0'/'500' defaults then correcting them in an effect
+  // after every URL change, reset during render by tracking the URL values
+  // we last synced from (see https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes).
+  const [[syncedMin, syncedMax], setSyncedRange] = useState([urlMin, urlMax]);
   const [priceMin, setPriceMin] = useState(urlMin || '0');
   const [priceMax, setPriceMax] = useState(urlMax || '500');
+  if (syncedMin !== urlMin || syncedMax !== urlMax) {
+    setSyncedRange([urlMin, urlMax]);
+    setPriceMin(urlMin || '0');
+    setPriceMax(urlMax || '500');
+  }
+
   const [expandedSections, setExpandedSections] = useState({
     ideas: true,
     categories: true,
@@ -173,11 +186,6 @@ export function CategorySidebar({
     color: false,
     rating: false,
   });
-
-  useEffect(() => {
-    setPriceMin(urlMin || '0');
-    setPriceMax(urlMax || '500');
-  }, [urlMin, urlMax]);
 
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections((prev) => ({

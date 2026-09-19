@@ -9,7 +9,7 @@ import {
   authApi,
   errorMessage,
 } from '../lib/api';
-import { clearAuthSession, getAuthRole } from '../lib/auth';
+import { clearAuthSession, getAuthRole, getRefreshToken } from '../lib/auth';
 
 const PROFILE_KEY = ['auth', 'profile'] as const;
 
@@ -102,7 +102,7 @@ export default function Settings() {
   }
 
   async function handleLogout() {
-    await authApi.logout();
+    await authApi.logout(getRefreshToken());
     clearAuthSession();
     navigate('/login');
   }

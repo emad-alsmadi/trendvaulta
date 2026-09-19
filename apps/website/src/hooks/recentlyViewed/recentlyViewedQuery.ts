@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { recentlyViewedApi } from '@/lib/api';
 import { getAuthToken } from '@/lib/authCookies';
@@ -28,17 +28,22 @@ export function useRecentlyViewed() {
     retry: 1,
   });
 
-  const [localItems, setLocalItems] = useState<RecentlyViewedItem[]>([]);
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setLocalItems(getRecentlyViewed());
-    }
-  }, [isAuthenticated]);
+  // getRecentlyViewed() reads localStorage (SSR-safe, returns [] on the
+  // server) — read it once via a lazy initializer instead of committing an
+  // empty array then correcting it in an effect. isAuthenticated doesn't
+  // change without a full page navigation (login/logout redirect), so a
+  // one-time read on mount is sufficient.
+  const [localItems] = useState<RecentlyViewedItem[]>(() =>
+    isAuthenticated ? [] : getRecentlyViewed(),
+  );
 
   if (isAuthenticated) {
+    // Synthesize a decreasing viewedAt for display ordering only (the API
+    // doesn't return per-item timestamps). query.dataUpdatedAt is a stable
+    // value from the query cache rather than calling the impure Date.now()
+    // directly during render.
     const items = (query.data ?? []).map((product, index) =>
-      productToRecentlyViewedItem(product, Date.now() - index),
+      productToRecentlyViewedItem(product, query.dataUpdatedAt - index),
     );
     return {
       items,

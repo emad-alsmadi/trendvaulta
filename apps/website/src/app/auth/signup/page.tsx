@@ -45,7 +45,7 @@ export default function SignupPage() {
         variant: 'success',
       });
       router.push('/');
-    } catch (err: any) {
+    } catch (err) {
       logErrorForDev(err);
       const msg = getUserFacingErrorMessage(err, 'Signup failed');
       toast(msg, { title: 'Signup failed', variant: 'error' });

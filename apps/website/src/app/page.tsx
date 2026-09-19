@@ -42,18 +42,20 @@ export default function HomePage() {
   const error =
     (productsQuery.error as { message?: string } | null)?.message || null;
 
+  const homeModules = homeQ.data?.modules;
+
   const moduleKeys = useMemo<HomeModuleKey[]>(() => {
-    if (homeQ.data?.modules?.length) {
-      return pickActiveHomeModules(homeQ.data.modules).map(
+    if (homeModules?.length) {
+      return pickActiveHomeModules(homeModules).map(
         (mod) => mod.key as HomeModuleKey,
       );
     }
     return [...FALLBACK_HOME_MODULE_KEYS];
-  }, [homeQ.data?.modules]);
+  }, [homeModules]);
 
   const heroSlides = useMemo(
-    () => getHeroSlidesFromHome(homeQ.data?.modules),
-    [homeQ.data?.modules],
+    () => getHeroSlidesFromHome(homeModules),
+    [homeModules],
   );
 
   const handleSearch = (e: React.FormEvent) => {

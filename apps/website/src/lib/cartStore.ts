@@ -52,14 +52,19 @@ function safeParse(json: string | null): CartState {
     if (!parsed || !Array.isArray(parsed.items))
       return { items: [], coupon: null };
     // Migrate old templateId to productId for compatibility
-    const items = parsed.items.map((item: any) => ({
-      ...item,
-      productId: item.productId || item.templateId,
-    }));
+    type LegacyCartItem = Partial<CartItem> & { templateId?: string };
+    const items = (parsed.items as unknown as LegacyCartItem[]).map(
+      (item) => ({
+        ...item,
+        productId: item.productId || item.templateId,
+      }),
+    );
     return {
       items: items
-        .filter((x: any) => x && typeof x.productId === 'string')
-        .map((x: any) => ({
+        .filter((x): x is LegacyCartItem & { productId: string } =>
+          Boolean(x && typeof x.productId === 'string'),
+        )
+        .map((x) => ({
           productId: String(x.productId),
           title: String(x.title ?? ''),
           price: Number(x.price ?? 0),
@@ -262,13 +267,16 @@ export function useCart() {
     () => SERVER_SNAPSHOT,
   );
 
+  // These are stable module-level function references (not component-scoped
+  // closures), so they never need to be wrapped in useCallback — doing so
+  // added nothing but tripped the react-hooks/use-memo rule.
   const actions = {
-    addToCart: useCallback(addToCart, []),
-    removeFromCart: useCallback(removeFromCart, []),
-    setCartQty: useCallback(setCartQty, []),
-    clearCart: useCallback(clearCart, []),
-    setCartCoupon: useCallback(setCartCoupon, []),
-    removeCartCoupon: useCallback(removeCartCoupon, []),
+    addToCart,
+    removeFromCart,
+    setCartQty,
+    clearCart,
+    setCartCoupon,
+    removeCartCoupon,
   };
 
   return {

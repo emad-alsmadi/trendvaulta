@@ -20,7 +20,7 @@ export default function ReviewsContent() {
   const deleteReview = useDeleteReviewMutation();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const getProductId = (product: string | any): string => {
+  const getProductId = (product: string | { _id?: string } | null | undefined): string => {
     if (!product) return '';
     return typeof product === 'string' ? product : product._id || '';
   };
@@ -82,7 +82,7 @@ export default function ReviewsContent() {
           No reviews yet
         </h2>
         <p className='text-gray-600'>
-          Start reviewing products you've purchased to share your experience
+          Start reviewing products you&apos;ve purchased to share your experience
           with others.
         </p>
       </div>

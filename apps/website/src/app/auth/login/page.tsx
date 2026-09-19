@@ -46,7 +46,7 @@ export default function LoginPage() {
         variant: 'success',
       });
       router.push('/');
-    } catch (err: any) {
+    } catch (err) {
       logErrorForDev(err);
       const msg = getUserFacingErrorMessage(err, 'Login failed');
       toast(msg, { title: 'Login failed', variant: 'error' });

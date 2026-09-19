@@ -27,6 +27,9 @@ import {
 } from '@/lib/userFacingError';
 import { getAuthToken } from '@/lib/authCookies';
 import { useConfirm } from '@/components/confirm/ConfirmProvider';
+import type { CouponValidationResponse } from '@/types';
+
+type AppliedCoupon = NonNullable<CouponValidationResponse['coupon']>;
 
 type CheckoutValues = {
   name: string;
@@ -74,7 +77,7 @@ export default function CheckoutPage() {
   const confirm = useConfirm();
   const [stripeRedirecting, setStripeRedirecting] = useState(false);
   const [couponCode, setCouponCode] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   const items = cart.state.items;

@@ -24,15 +24,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@trendvaulta/ui": ["../../packages/ui/src"],
       "@trendvaulta/types": ["../../packages/types/src"],
       "@trendvaulta/api-client": ["../../packages/api-client/src"]
     }
   },
-  "include": ["src"],
-  "references": [
-    { "path": "../../packages/ui" },
-    { "path": "../../packages/types" },
-    { "path": "../../packages/api-client" }
-  ]
+  "include": ["src"]
 }

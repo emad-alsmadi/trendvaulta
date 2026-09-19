@@ -26,12 +26,11 @@ export default function Reviews() {
   const deleteMut = useDeleteAdminReviewMutation();
   const [search, setSearch] = useState('');
 
-  const reviews = reviewsQ.data?.data || [];
-
   const filtered = useMemo(() => {
+    const list = reviewsQ.data?.data || [];
     const q = search.trim().toLowerCase();
-    if (!q) return reviews;
-    return reviews.filter((r) => {
+    if (!q) return list;
+    return list.filter((r) => {
       const hay = [
         r.comment,
         String(r.rating),
@@ -42,7 +41,7 @@ export default function Reviews() {
         .toLowerCase();
       return hay.includes(q);
     });
-  }, [reviews, search]);
+  }, [reviewsQ.data, search]);
 
   async function handleDelete(review: AdminReview) {
     const ok = window.confirm('Delete this review permanently?');

@@ -1,13 +1,17 @@
 import axios from 'axios';
-import { clearAuthSession, getAuthToken } from './auth';
+import {
+  clearAuthSession,
+  getAuthToken,
+  getRefreshToken,
+  setRefreshedTokens,
+} from './auth';
+import { viteEnv } from './viteEnv';
 
 /**
  * Dashboard API client — uses Vite proxy `/api` → API server in dev.
  * Override with VITE_API_URL (e.g. http://localhost:3000/api).
  */
-const API_BASE =
-  (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ||
-  '/api';
+const API_BASE = viteEnv.VITE_API_URL?.replace(/\/$/, '') || '/api';
 
 export const api = axios.create({
   baseURL: API_BASE,
@@ -22,15 +26,81 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// A 401 from these endpoints means bad credentials / an invalid refresh
+// token, not an expired-but-refreshable access token — never auto-retry them.
+const AUTH_BYPASS_PATHS = ['/auth/login', '/auth/refresh'];
+
+function isAuthBypassRequest(config: { url?: string } | undefined) {
+  const url = config?.url || '';
+  return AUTH_BYPASS_PATHS.some((p) => url.endsWith(p));
+}
+
+function forceLogoutRedirect() {
+  if (typeof window === 'undefined') return;
+  clearAuthSession();
+  if (!window.location.pathname.startsWith('/login')) {
+    window.location.href = '/login';
+  }
+}
+
+// Share one in-flight refresh call across concurrent 401s — the refresh
+// token rotates server-side on every use, so firing it twice in parallel
+// would have the second call invalidate the first's brand-new token.
+let refreshPromise: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) return null;
+
+  if (!refreshPromise) {
+    refreshPromise = axios
+      .post(`${API_BASE}/auth/refresh`, { refreshToken })
+      .then(({ data }) => {
+        const nextToken: string | null = data?.token || null;
+        const nextRefreshToken: string | null = data?.refreshToken || null;
+        if (nextToken) {
+          setRefreshedTokens({
+            token: nextToken,
+            refreshToken: nextRefreshToken || undefined,
+          });
+        }
+        return nextToken;
+      })
+      .catch(() => null)
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+
+  return refreshPromise;
+}
+
 api.interceptors.response.use(
   (res) => res,
-  (error) => {
-    if (error.response?.status === 401 && typeof window !== 'undefined') {
-      clearAuthSession();
-      if (!window.location.pathname.startsWith('/login')) {
-        window.location.href = '/login';
+  async (error) => {
+    const original = error.config;
+
+    if (
+      error.response?.status === 401 &&
+      original &&
+      !original._retriedAfterRefresh &&
+      !isAuthBypassRequest(original)
+    ) {
+      original._retriedAfterRefresh = true;
+      const newToken = await refreshAccessToken();
+      if (newToken) {
+        original.headers = original.headers || {};
+        original.headers.Authorization = `Bearer ${newToken}`;
+        return api(original);
       }
+      forceLogoutRedirect();
+      return Promise.reject(error);
     }
+
+    if (error.response?.status === 401) {
+      forceLogoutRedirect();
+    }
+
     return Promise.reject(error);
   },
 );
@@ -67,6 +137,7 @@ export type AdminOrdersResponse = {
 export type LoginResponse = {
   message?: string;
   token: string;
+  refreshToken?: string;
   email?: string;
   username?: string;
   roles?: string[];
@@ -117,11 +188,11 @@ export const authApi = {
     return data;
   },
 
-  logout: async () => {
+  logout: async (refreshToken?: string) => {
     try {
-      await api.post('/auth/logout');
+      await api.post('/auth/logout', { refreshToken });
     } catch {
-      // Stateless JWT — clear local session even if request fails
+      // Best-effort revoke — clear local session even if the request fails
     }
   },
 };
@@ -136,7 +207,10 @@ export const adminOrdersApi = {
     return data;
   },
 
-  updateOrderStatus: async (id: string, status: string): Promise<AdminOrder> => {
+  updateOrderStatus: async (
+    id: string,
+    status: string,
+  ): Promise<AdminOrder> => {
     const { data } = await api.patch<AdminOrder>(`/orders/${id}/status`, {
       status,
     });
@@ -414,12 +488,9 @@ export const adminOffersApi = {
   getOffers: async (
     params: { page?: number; limit?: number } = {},
   ): Promise<PaginatedList<AdminOffer>> => {
-    const { data } = await api.get<PaginatedList<AdminOffer>>(
-      '/offers/admin',
-      {
-        params: { limit: 100, ...params },
-      },
-    );
+    const { data } = await api.get<PaginatedList<AdminOffer>>('/offers/admin', {
+      params: { limit: 100, ...params },
+    });
     return data;
   },
 
@@ -448,7 +519,9 @@ export type AdminReview = {
   comment?: string;
   createdAt?: string;
   user?: string | { _id?: string; username?: string; email?: string };
-  product?: string | { _id?: string; title?: string; cover?: string; sku?: string };
+  product?:
+    | string
+    | { _id?: string; title?: string; cover?: string; sku?: string };
 };
 
 export const adminReviewsApi = {
@@ -465,6 +538,367 @@ export const adminReviewsApi = {
   deleteReview: async (id: string): Promise<{ message: string }> => {
     const { data } = await api.delete<{ message: string }>(
       `/reviews/admin/${id}`,
+    );
+    return data;
+  },
+};
+
+export type AdminHelpTopic = {
+  _id: string;
+  id: string;
+  title: string;
+  description?: string;
+  href: string;
+  icon?: string;
+  active: boolean;
+  sortOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type HelpTopicPayload = {
+  id: string;
+  title: string;
+  href: string;
+  description?: string;
+  icon?: string;
+  active?: boolean;
+  sortOrder?: number;
+};
+
+export const adminHelpTopicsApi = {
+  getHelpTopics: async (
+    params: { page?: number; limit?: number } = {},
+  ): Promise<PaginatedList<AdminHelpTopic>> => {
+    const { data } = await api.get<PaginatedList<AdminHelpTopic>>(
+      '/help-topics/admin',
+      { params: { limit: 100, ...params } },
+    );
+    return data;
+  },
+
+  createHelpTopic: async (
+    payload: HelpTopicPayload,
+  ): Promise<AdminHelpTopic> => {
+    const { data } = await api.post<AdminHelpTopic>('/help-topics', payload);
+    return data;
+  },
+
+  updateHelpTopic: async (
+    id: string,
+    payload: Partial<HelpTopicPayload>,
+  ): Promise<AdminHelpTopic> => {
+    const { data } = await api.put<AdminHelpTopic>(
+      `/help-topics/${id}`,
+      payload,
+    );
+    return data;
+  },
+
+  deleteHelpTopic: async (id: string): Promise<{ message: string }> => {
+    const { data } = await api.delete<{ message: string }>(
+      `/help-topics/${id}`,
+    );
+    return data;
+  },
+};
+
+export type ContentType =
+  | 'SHIPPING'
+  | 'RETURNS'
+  | 'PRIVACY'
+  | 'TERMS'
+  | 'STOREFRONT_TRUST';
+
+export type AdminContent = {
+  _id: string;
+  type: ContentType;
+  title: string;
+  body: string;
+  active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type ContentPayload = {
+  type: ContentType;
+  title: string;
+  body: string;
+  active?: boolean;
+};
+
+export const adminContentApi = {
+  getContent: async (
+    params: { page?: number; limit?: number } = {},
+  ): Promise<PaginatedList<AdminContent>> => {
+    const { data } = await api.get<PaginatedList<AdminContent>>(
+      '/content/admin',
+      { params: { limit: 100, ...params } },
+    );
+    return data;
+  },
+
+  createContent: async (payload: ContentPayload): Promise<AdminContent> => {
+    const { data } = await api.post<AdminContent>('/content', payload);
+    return data;
+  },
+
+  updateContent: async (
+    id: string,
+    payload: Partial<ContentPayload>,
+  ): Promise<AdminContent> => {
+    const { data } = await api.put<AdminContent>(`/content/${id}`, payload);
+    return data;
+  },
+
+  deleteContent: async (id: string): Promise<{ message: string }> => {
+    const { data } = await api.delete<{ message: string }>(`/content/${id}`);
+    return data;
+  },
+};
+
+export type StorefrontModuleType =
+  | 'hero_carousel'
+  | 'trust_strip'
+  | 'featured_brands'
+  | 'bestsellers'
+  | 'new_arrivals'
+  | 'deals_rail'
+  | 'lookbooks'
+  | 'testimonials'
+  | 'categories'
+  | 'why_choose_us';
+
+export type HeroSlide = {
+  id: string;
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+  href?: string;
+  imageUrl?: string;
+  tone?: 'rose' | 'stone' | 'teal' | 'indigo';
+  active?: boolean;
+  sortOrder?: number;
+};
+
+export type TrustItem = {
+  icon?: string;
+  title: string;
+  description: string;
+};
+
+export type AdminStorefrontModule = {
+  _id: string;
+  key: string;
+  type: StorefrontModuleType;
+  title?: string;
+  active: boolean;
+  sortOrder: number;
+  config?: Record<string, unknown>;
+  slides?: HeroSlide[];
+  trustItems?: TrustItem[];
+  limit?: number;
+  items?: unknown[];
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type StorefrontModulePayload = {
+  key: string;
+  type: StorefrontModuleType;
+  title?: string;
+  active?: boolean;
+  sortOrder?: number;
+  config?: Record<string, unknown>;
+  slides?: HeroSlide[];
+  trustItems?: TrustItem[];
+  limit?: number;
+  items?: unknown[];
+};
+
+export const adminStorefrontModulesApi = {
+  getStorefrontModules: async (
+    params: { page?: number; limit?: number } = {},
+  ): Promise<{
+    data: AdminStorefrontModule[];
+    meta: { total: number; page: number; pages: number; limit: number };
+  }> => {
+    const { data } = await api.get('/storefront-modules/admin', {
+      params: { limit: 100, ...params },
+    });
+    return data;
+  },
+
+  getStorefrontModuleById: async (
+    id: string,
+  ): Promise<{ data: AdminStorefrontModule }> => {
+    const { data } = await api.get(`/storefront-modules/${id}`);
+    return data;
+  },
+
+  createStorefrontModule: async (
+    payload: StorefrontModulePayload,
+  ): Promise<AdminStorefrontModule> => {
+    const { data } = await api.post<AdminStorefrontModule>(
+      '/storefront-modules',
+      payload,
+    );
+    return data;
+  },
+
+  updateStorefrontModule: async (
+    id: string,
+    payload: Partial<StorefrontModulePayload>,
+  ): Promise<AdminStorefrontModule> => {
+    const { data } = await api.put<AdminStorefrontModule>(
+      `/storefront-modules/${id}`,
+      payload,
+    );
+    return data;
+  },
+
+  deleteStorefrontModule: async (id: string): Promise<{ message: string }> => {
+    const { data } = await api.delete<{ message: string }>(
+      `/storefront-modules/${id}`,
+    );
+    return data;
+  },
+};
+
+export type LookbookTone = 'rose' | 'stone' | 'teal';
+
+export type AdminLookbook = {
+  _id: string;
+  id: string;
+  eyebrow?: string;
+  title: string;
+  body: string;
+  ctaLabel?: string;
+  ctaHref: string;
+  imageUrl: string;
+  tone: LookbookTone;
+  active: boolean;
+  sortOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type LookbookPayload = {
+  id: string;
+  eyebrow?: string;
+  title: string;
+  body: string;
+  ctaLabel?: string;
+  ctaHref: string;
+  imageUrl: string;
+  tone?: LookbookTone;
+  active?: boolean;
+  sortOrder?: number;
+};
+
+export const adminLookbooksApi = {
+  getLookbooks: async (
+    params: { page?: number; limit?: number } = {},
+  ): Promise<{
+    data: AdminLookbook[];
+    meta: { total: number; page: number; pages: number; limit: number };
+  }> => {
+    const { data } = await api.get('/lookbooks/admin', {
+      params: { limit: 100, ...params },
+    });
+    return data;
+  },
+
+  getLookbookById: async (id: string): Promise<{ data: AdminLookbook }> => {
+    const { data } = await api.get(`/lookbooks/${id}`);
+    return data;
+  },
+
+  createLookbook: async (payload: LookbookPayload): Promise<AdminLookbook> => {
+    const { data } = await api.post<AdminLookbook>('/lookbooks', payload);
+    return data;
+  },
+
+  updateLookbook: async (
+    id: string,
+    payload: Partial<LookbookPayload>,
+  ): Promise<AdminLookbook> => {
+    const { data } = await api.put<AdminLookbook>(`/lookbooks/${id}`, payload);
+    return data;
+  },
+
+  deleteLookbook: async (id: string): Promise<{ message: string }> => {
+    const { data } = await api.delete<{ message: string }>(`/lookbooks/${id}`);
+    return data;
+  },
+};
+
+export type AdminTestimonial = {
+  _id: string;
+  id: string;
+  name: string;
+  role?: string;
+  quote: string;
+  rating: number;
+  active: boolean;
+  sortOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type TestimonialPayload = {
+  id: string;
+  name: string;
+  role?: string;
+  quote: string;
+  rating?: number;
+  active?: boolean;
+  sortOrder?: number;
+};
+
+export const adminTestimonialsApi = {
+  getTestimonials: async (
+    params: { page?: number; limit?: number } = {},
+  ): Promise<{
+    data: AdminTestimonial[];
+    meta: { total: number; page: number; pages: number; limit: number };
+  }> => {
+    const { data } = await api.get('/testimonials/admin', {
+      params: { limit: 100, ...params },
+    });
+    return data;
+  },
+
+  getTestimonialById: async (
+    id: string,
+  ): Promise<{ data: AdminTestimonial }> => {
+    const { data } = await api.get(`/testimonials/${id}`);
+    return data;
+  },
+
+  createTestimonial: async (
+    payload: TestimonialPayload,
+  ): Promise<AdminTestimonial> => {
+    const { data } = await api.post<AdminTestimonial>('/testimonials', payload);
+    return data;
+  },
+
+  updateTestimonial: async (
+    id: string,
+    payload: Partial<TestimonialPayload>,
+  ): Promise<AdminTestimonial> => {
+    const { data } = await api.put<AdminTestimonial>(
+      `/testimonials/${id}`,
+      payload,
+    );
+    return data;
+  },
+
+  deleteTestimonial: async (id: string): Promise<{ message: string }> => {
+    const { data } = await api.delete<{ message: string }>(
+      `/testimonials/${id}`,
     );
     return data;
   },

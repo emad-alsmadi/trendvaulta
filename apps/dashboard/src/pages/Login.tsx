@@ -22,7 +22,12 @@ export default function Login() {
         throw new Error('Login succeeded but no token was returned');
       }
       const role = pickPrimaryRole(data.roles);
-      setAuthSession({ token: data.token, role, remember });
+      setAuthSession({
+        token: data.token,
+        role,
+        refreshToken: data.refreshToken,
+        remember,
+      });
       navigate('/orders');
     } catch (err) {
       setError(errorMessage(err, 'Invalid email or password'));

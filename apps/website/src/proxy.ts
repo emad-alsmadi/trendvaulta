@@ -9,7 +9,6 @@ export function proxy(request: NextRequest) {
   const protectedPaths: Array<{ path: string; role: string | string[] }> = [
     { path: '/profile', role: ['user', 'admin', 'moderator'] },
     { path: '/welcome', role: ['user', 'admin', 'moderator'] },
-    { path: '/admin', role: 'admin' },
     { path: '/orders', role: ['user', 'admin', 'moderator'] },
     { path: '/cart', role: ['user', 'admin', 'moderator'] },
     { path: '/checkout', role: ['user', 'admin', 'moderator'] },
@@ -23,10 +22,8 @@ export function proxy(request: NextRequest) {
   // Scenario 1: Authenticated user trying to access auth pages - redirect to appropriate page
   if (publicAuthPages.some((p) => path.startsWith(p))) {
     if (token && userRole) {
-      // Always redirect authenticated users away from auth pages
-      if (userRole === 'admin') {
-        return NextResponse.redirect(new URL('/admin', request.url));
-      }
+      // Always redirect authenticated users away from auth pages.
+      // Admin management now lives entirely in the dashboard app, not here.
       return NextResponse.redirect(new URL('/', request.url));
     }
   }

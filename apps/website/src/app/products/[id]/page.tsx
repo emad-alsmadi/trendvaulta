@@ -24,6 +24,7 @@ import { useCart } from '@/lib/cartStore';
 import { FrequentlyBoughtTogether } from '@/components/products/FrequentlyBoughtTogether';
 import { ProductQaSection } from '@/components/products/ProductQaSection';
 import { trackRecentlyViewed } from '@/lib/recentlyViewed';
+import type { ProductVariant } from '@/types';
 
 export default function ProductDetailPage({
   params,
@@ -34,7 +35,7 @@ export default function ProductDetailPage({
   const { data: product, isLoading, error } = useProductById(id);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const [selectedVariant, setSelectedVariant] = useState<any>(null);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const cart = useCart();
 
   // DEMO: local recently viewed — TODO(api): POST /api/me/recently-viewed
@@ -278,7 +279,7 @@ export default function ProductDetailPage({
               <div className='space-y-3'>
                 <h3 className='font-semibold text-gray-900'>Options</h3>
                 <div className='flex flex-wrap gap-2'>
-                  {product.variants.map((variant: any, idx: number) => (
+                  {product.variants.map((variant, idx) => (
                     <button
                       key={idx}
                       onClick={() => setSelectedVariant(variant)}
@@ -288,7 +289,8 @@ export default function ProductDetailPage({
                           : 'border-gray-300 hover:border-gray-400'
                       }`}
                     >
-                      {variant.name || `Option ${idx + 1}`}
+                      {[variant.size, variant.color].filter(Boolean).join(' / ') ||
+                        `Option ${idx + 1}`}
                     </button>
                   ))}
                 </div>

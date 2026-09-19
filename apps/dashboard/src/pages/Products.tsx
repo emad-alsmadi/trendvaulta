@@ -68,21 +68,21 @@ export default function Products() {
   const updateMut = useUpdateProductMutation();
   const deleteMut = useDeleteProductMutation();
 
-  const products = productsQ.data?.data || [];
   const brands = brandsQ.data?.data || [];
   const saving = createMut.isPending || updateMut.isPending;
   const defaultBrand = brands[0]?._id || '';
 
   const filtered = useMemo(() => {
-    if (!search.trim() || appliedQ) return products;
+    const list = productsQ.data?.data || [];
+    if (!search.trim() || appliedQ) return list;
     const q = search.trim().toLowerCase();
-    return products.filter(
+    return list.filter(
       (p) =>
         p.title.toLowerCase().includes(q) ||
         p.category?.toLowerCase().includes(q) ||
         p.sku?.toLowerCase().includes(q),
     );
-  }, [products, search, appliedQ]);
+  }, [productsQ.data, search, appliedQ]);
 
   function openCreate() {
     setEditing(null);

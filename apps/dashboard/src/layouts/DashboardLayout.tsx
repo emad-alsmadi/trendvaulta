@@ -1,4 +1,10 @@
-import { Outlet, Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import {
+  Outlet,
+  Link,
+  Navigate,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 import { useState } from 'react';
 import {
   LayoutDashboard,
@@ -9,13 +15,19 @@ import {
   TicketPercent,
   Percent,
   Star,
+  HelpCircle,
+  FileText,
+  Layers,
+  BookOpen,
+  MessageSquare,
   Settings,
   LogOut,
   Menu,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../hooks/useTheme';
-import { clearAuthSession, getAuthToken } from '../lib/auth';
+import { authApi } from '../lib/api';
+import { clearAuthSession, getAuthToken, getRefreshToken } from '../lib/auth';
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
@@ -26,6 +38,11 @@ const sidebarItems = [
   { icon: TicketPercent, label: 'Coupons', path: '/coupons' },
   { icon: Percent, label: 'Offers', path: '/offers' },
   { icon: Star, label: 'Reviews', path: '/reviews' },
+  { icon: HelpCircle, label: 'Help Topics', path: '/help-topics' },
+  { icon: FileText, label: 'Content', path: '/content' },
+  { icon: Layers, label: 'Storefront Modules', path: '/storefront-modules' },
+  { icon: BookOpen, label: 'Lookbooks', path: '/lookbooks' },
+  { icon: MessageSquare, label: 'Testimonials', path: '/testimonials' },
   { icon: Settings, label: 'Settings', path: '/settings' },
 ];
 
@@ -93,6 +110,7 @@ export default function DashboardLayout() {
           <button
             type='button'
             onClick={() => {
+              authApi.logout(getRefreshToken());
               clearAuthSession();
               navigate('/login');
             }}

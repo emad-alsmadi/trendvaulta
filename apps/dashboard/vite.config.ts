@@ -8,7 +8,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@trendvaulta/ui': path.resolve(__dirname, '../../packages/ui/src'),
       '@trendvaulta/types': path.resolve(__dirname, '../../packages/types/src'),
       '@trendvaulta/api-client': path.resolve(__dirname, '../../packages/api-client/src'),
     },

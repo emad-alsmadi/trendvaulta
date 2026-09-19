@@ -45,19 +45,19 @@ export default function Brands() {
   const updateMut = useUpdateBrandMutation();
   const deleteMut = useDeleteBrandMutation();
 
-  const brands = brandsQ.data?.data || [];
   const saving = createMut.isPending || updateMut.isPending;
 
   const filtered = useMemo(() => {
-    if (!search.trim() || appliedQ) return brands;
+    const list = brandsQ.data?.data || [];
+    if (!search.trim() || appliedQ) return list;
     const q = search.trim().toLowerCase();
-    return brands.filter(
+    return list.filter(
       (b) =>
         b.name.toLowerCase().includes(q) ||
         b.slug?.toLowerCase().includes(q) ||
         b.country?.toLowerCase().includes(q),
     );
-  }, [brands, search, appliedQ]);
+  }, [brandsQ.data, search, appliedQ]);
 
   function openCreate() {
     setEditing(null);

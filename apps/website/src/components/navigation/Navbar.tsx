@@ -32,6 +32,11 @@ import { useConfirm } from '@/components/confirm/ConfirmProvider';
 import { DeliverToControl } from '@/components/navigation/DeliverToControl';
 import { useState } from 'react';
 
+// Admin management lives in the standalone dashboard app, not in the
+// storefront — this only links out to it.
+const ADMIN_DASHBOARD_URL =
+  process.env.NEXT_PUBLIC_DASHBOARD_URL || 'http://localhost:3002';
+
 export const navItems = [
   { href: '/products', label: 'Shop', icon: LayoutGrid },
   { href: '/brands', label: 'Brands', icon: Users },
@@ -503,13 +508,15 @@ export function Navbar() {
                       {getUserRole() === 'admin' ||
                       user?.roles?.includes('admin') ? (
                         <DropdownMenu.Item asChild>
-                          <Link
-                            href='/admin/dashboard'
+                          <a
+                            href={ADMIN_DASHBOARD_URL}
+                            target='_blank'
+                            rel='noreferrer'
                             className='flex gap-2 items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100'
                           >
                             <Shield className='w-4 h-4' />
                             Admin Dashboard
-                          </Link>
+                          </a>
                         </DropdownMenu.Item>
                       ) : null}
 
@@ -744,12 +751,14 @@ export function Navbar() {
                   Wishlist
                 </Link>
                 {getUserRole() === 'admin' || user?.roles?.includes('admin') ? (
-                  <Link
-                    href='/admin/dashboard'
+                  <a
+                    href={ADMIN_DASHBOARD_URL}
+                    target='_blank'
+                    rel='noreferrer'
                     className='block px-4 py-2 text-gray-700 rounded-lg text-medium hover:bg-gray-100'
                   >
                     Admin Dashboard
-                  </Link>
+                  </a>
                 ) : null}
                 <button
                   onClick={() => {

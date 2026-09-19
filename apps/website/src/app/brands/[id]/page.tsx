@@ -4,10 +4,7 @@ import { useBrandById } from '@/hooks/brands/brandsQuery';
 import { useProducts } from '@/hooks/products/productsQuery';
 import { motion } from 'framer-motion';
 import { Loader2, Star, Globe, MapPin, ShoppingCart, Heart } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
 import { ProductCard } from '@/components/products/ProductCard';
-import Link from 'next/link';
-import { useCart } from '@/lib/cartStore';
 
 export default function BrandDetailPage({ params }: { params: { id: string } }) {
   const { data: brand, isLoading: brandLoading, error: brandError } = useBrandById(params.id);
@@ -17,7 +14,6 @@ export default function BrandDetailPage({ params }: { params: { id: string } }) 
     sort: 'createdAt',
   });
   const products = productsResponse?.data || [];
-  const cart = useCart();
 
   if (brandLoading) {
     return (
@@ -39,16 +35,6 @@ export default function BrandDetailPage({ params }: { params: { id: string } }) 
       </div>
     );
   }
-
-  const handleAddToCart = (product: any) => {
-    cart.addToCart({
-      productId: product._id,
-      title: product.title,
-      price: product.price,
-      cover: product.cover,
-      qty: 1,
-    });
-  };
 
   return (
     <div className='min-h-screen bg-white'>
@@ -126,7 +112,7 @@ export default function BrandDetailPage({ params }: { params: { id: string } }) 
             </div>
           ) : products.length > 0 ? (
             <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'>
-              {products.map((product: any) => (
+              {products.map((product) => (
                 <ProductCard key={product._id} product={product} />
               ))}
             </div>

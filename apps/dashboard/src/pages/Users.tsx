@@ -48,15 +48,16 @@ export default function Users() {
   const saving = updateMut.isPending;
 
   const filtered = useMemo(() => {
+    const list = usersQ.data || [];
     const q = search.trim().toLowerCase();
-    if (!q) return users;
-    return users.filter(
+    if (!q) return list;
+    return list.filter(
       (u) =>
         u.email.toLowerCase().includes(q) ||
         u.username.toLowerCase().includes(q) ||
         (u.roles || []).some((r) => r.toLowerCase().includes(q)),
     );
-  }, [users, search]);
+  }, [usersQ.data, search]);
 
   function openEdit(user: AdminUser) {
     setEditing(user);

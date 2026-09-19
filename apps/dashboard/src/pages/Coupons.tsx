@@ -41,18 +41,18 @@ export default function Coupons() {
   const [editing, setEditing] = useState<AdminCoupon | null>(null);
   const [form, setForm] = useState<CouponPayload>(emptyForm);
 
-  const coupons = couponsQ.data?.data || [];
   const saving = createMut.isPending || updateMut.isPending;
 
   const filtered = useMemo(() => {
+    const list = couponsQ.data?.data || [];
     const q = search.trim().toLowerCase();
-    if (!q) return coupons;
-    return coupons.filter(
+    if (!q) return list;
+    return list.filter(
       (c) =>
         c.code.toLowerCase().includes(q) ||
         (c.description || '').toLowerCase().includes(q),
     );
-  }, [coupons, search]);
+  }, [couponsQ.data, search]);
 
   function openCreate() {
     setEditing(null);

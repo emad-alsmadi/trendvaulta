@@ -10,6 +10,11 @@ import Orders from './pages/Orders';
 import Coupons from './pages/Coupons';
 import Offers from './pages/Offers';
 import Reviews from './pages/Reviews';
+import HelpTopics from './pages/HelpTopics';
+import Content from './pages/Content';
+import StorefrontModules from './pages/StorefrontModules';
+import Lookbooks from './pages/Lookbooks';
+import Testimonials from './pages/Testimonials';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
 
@@ -67,6 +72,26 @@ function App() {
               <Route
                 path='reviews'
                 element={<Reviews />}
+              />
+              <Route
+                path='help-topics'
+                element={<HelpTopics />}
+              />
+              <Route
+                path='content'
+                element={<Content />}
+              />
+              <Route
+                path='storefront-modules'
+                element={<StorefrontModules />}
+              />
+              <Route
+                path='lookbooks'
+                element={<Lookbooks />}
+              />
+              <Route
+                path='testimonials'
+                element={<Testimonials />}
               />
               <Route
                 path='settings'

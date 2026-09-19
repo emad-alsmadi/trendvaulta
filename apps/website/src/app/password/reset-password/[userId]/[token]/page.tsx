@@ -63,7 +63,7 @@ export default function ResetPasswordPage() {
       window.setTimeout(() => {
         router.push('/auth/login');
       }, 2200);
-    } catch (err: any) {
+    } catch (err) {
       logErrorForDev(err);
       const msg = getUserFacingErrorMessage(err, 'Reset failed');
       toast(msg, { title: 'Reset failed', variant: 'error' });

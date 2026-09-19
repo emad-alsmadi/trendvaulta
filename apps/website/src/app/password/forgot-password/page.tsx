@@ -57,7 +57,7 @@ export default function ForgotPasswordPage() {
       if (res?.resetPasswordLink) {
         setResetLink(String(res.resetPasswordLink));
       }
-    } catch (err: any) {
+    } catch (err) {
       logErrorForDev(err);
       const msg = getUserFacingErrorMessage(err, 'Request failed');
       setError(msg);
@@ -90,7 +90,7 @@ export default function ForgotPasswordPage() {
             </div>
 
             <p className='text-gray-600 mb-6'>
-              Enter your email address and we'll send you a link to reset your
+              Enter your email address and we&apos;ll send you a link to reset your
               password.
             </p>
 

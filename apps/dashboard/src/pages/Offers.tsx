@@ -40,20 +40,20 @@ export default function Offers() {
   const [editing, setEditing] = useState<AdminOffer | null>(null);
   const [form, setForm] = useState<OfferPayload>(emptyForm);
 
-  const offers = offersQ.data?.data || [];
   const saving = createMut.isPending || updateMut.isPending;
 
   const filtered = useMemo(() => {
+    const list = offersQ.data?.data || [];
     const q = search.trim().toLowerCase();
-    if (!q) return offers;
-    return offers.filter(
+    if (!q) return list;
+    return list.filter(
       (o) =>
         o.title.toLowerCase().includes(q) ||
         (o.subtitle || '').toLowerCase().includes(q) ||
         (o.badge || '').toLowerCase().includes(q) ||
         o.href.toLowerCase().includes(q),
     );
-  }, [offers, search]);
+  }, [offersQ.data, search]);
 
   function openCreate() {
     setEditing(null);

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { brandsApi } from '@/lib/api';
+import type { Brand } from '@/types';
 
 export function brandsKey() {
   return ['brands'] as const;
@@ -14,14 +15,14 @@ export function featuredBrandsKey(limit = 8) {
 }
 
 /** Normalize list payloads: array or `{ data: Brand[] }`. */
-function normalizeBrandsList(payload: unknown): any[] {
-  if (Array.isArray(payload)) return payload;
+function normalizeBrandsList(payload: unknown): Brand[] {
+  if (Array.isArray(payload)) return payload as Brand[];
   if (
     payload &&
     typeof payload === 'object' &&
     Array.isArray((payload as { data?: unknown }).data)
   ) {
-    return (payload as { data: any[] }).data;
+    return (payload as { data: Brand[] }).data;
   }
   return [];
 }
@@ -30,7 +31,8 @@ export function useBrands() {
   return useQuery({
     queryKey: brandsKey(),
     queryFn: async () => {
-      return await brandsApi.getBrands();
+      const res = await brandsApi.getBrands();
+      return normalizeBrandsList(res);
     },
     staleTime: 60_000,
     retry: 1,

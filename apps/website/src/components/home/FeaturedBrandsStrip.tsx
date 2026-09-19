@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { DEMO_FEATURED_BRANDS, type DemoBrand } from '@/data/demoStorefront';
 import { useFeaturedBrands } from '@/hooks/brands/brandsQuery';
+import type { Brand } from '@/types';
 
 type Props = {
   /** Optional override (tests / storybook). When omitted, fetches featured brands. */
@@ -20,8 +21,8 @@ const ACCENTS = [
   'from-sky-600 to-indigo-500',
 ] as const;
 
-function mapApiBrandToStripItem(brand: any, index: number): DemoBrand {
-  const id = String(brand?._id ?? brand?.id ?? index);
+function mapApiBrandToStripItem(brand: Partial<Brand>, index: number): DemoBrand {
+  const id = String(brand?._id ?? index);
   const slugOrId = brand?.slug || brand?._id || id;
   const description =
     typeof brand?.description === 'string' ? brand.description.trim() : '';

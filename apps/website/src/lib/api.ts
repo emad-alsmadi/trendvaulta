@@ -1,7 +1,11 @@
 import axios from 'axios';
 import {
   ProductsQuery,
+  ProductsResponse,
   Product,
+  ProductPayload,
+  Brand,
+  BrandPayload,
   Order,
   AdminUser,
   UserUpdatePayload,
@@ -12,10 +16,14 @@ import {
   Coupon,
   CouponsResponse,
   CouponPayload,
-  CouponValidationRequest,
   CouponValidationResponse,
 } from '@/types';
-import { getAuthToken } from '@/lib/authCookies';
+import {
+  clearAuthCookies,
+  getAuthToken,
+  getRefreshToken,
+  setRefreshedTokens,
+} from '@/lib/authCookies';
 import { endpoints } from './endpoints';
 
 /**
@@ -63,36 +71,105 @@ api.interceptors.request.use((config) => {
 });
 
 /**
- * Response interceptor to handle 401 unauthorized errors
- * Clears auth cookies and redirects to login page
+ * Endpoints that must never trigger an auto-refresh-and-retry: a 401 from
+ * login/register/refresh itself means the credentials/refresh token are
+ * bad, not that the access token expired mid-session.
+ */
+const AUTH_BYPASS_PATHS = [
+  endpoints.auth.login,
+  endpoints.auth.register,
+  endpoints.auth.refresh,
+];
+
+function isAuthBypassRequest(config: { url?: string } | undefined) {
+  const url = config?.url || '';
+  return AUTH_BYPASS_PATHS.some((p) => url.endsWith(p));
+}
+
+function forceLogoutRedirect() {
+  if (typeof window === 'undefined') return;
+  clearAuthCookies();
+
+  const toastEvent = new CustomEvent('showAuthToast', {
+    detail: {
+      message: 'Please sign in to access this feature.',
+      title: 'Authentication Required',
+      variant: 'error',
+    },
+  });
+  window.dispatchEvent(toastEvent);
+
+  setTimeout(() => {
+    window.location.href = '/auth/login';
+  }, 1000);
+}
+
+// Concurrent 401s (e.g. several widgets fetching at once right as the access
+// token expires) must share a single in-flight refresh call — the refresh
+// token is rotated server-side on every use, so firing it twice in parallel
+// would have the second call invalidate the first's brand-new token.
+let refreshPromise: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) return null;
+
+  if (!refreshPromise) {
+    refreshPromise = axios
+      .post(`${API_BASE}${endpoints.auth.refresh}`, { refreshToken })
+      .then(({ data }) => {
+        const nextToken: string | null = data?.token || null;
+        const nextRefreshToken: string | null = data?.refreshToken || null;
+        if (nextToken) {
+          setRefreshedTokens({
+            token: nextToken,
+            refreshToken: nextRefreshToken || undefined,
+          });
+        }
+        return nextToken;
+      })
+      .catch(() => null)
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+
+  return refreshPromise;
+}
+
+/**
+ * Response interceptor: on a 401 from an authenticated request, try exactly
+ * once to refresh the access token and replay the original request. Only if
+ * that fails (refresh token missing/expired/revoked) do we clear cookies and
+ * bounce to login — this is what lets a 15-minute access token feel
+ * invisible to the user instead of logging them out constantly.
  */
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Clear any existing auth data
-      if (typeof window !== 'undefined') {
-        document.cookie =
-          'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
-        document.cookie =
-          'userRole=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+  async (error) => {
+    const original = error.config;
 
-        // Show toast message
-        const toastEvent = new CustomEvent('showAuthToast', {
-          detail: {
-            message: 'Please sign in to access this feature.',
-            title: 'Authentication Required',
-            variant: 'error',
-          },
-        });
-        window.dispatchEvent(toastEvent);
-
-        // Redirect to login after a short delay
-        setTimeout(() => {
-          window.location.href = '/auth/login';
-        }, 1000);
+    if (
+      error.response?.status === 401 &&
+      original &&
+      !original._retriedAfterRefresh &&
+      !isAuthBypassRequest(original)
+    ) {
+      original._retriedAfterRefresh = true;
+      const newToken = await refreshAccessToken();
+      if (newToken) {
+        original.headers = original.headers || {};
+        original.headers.Authorization = `Bearer ${newToken}`;
+        return api(original);
       }
+      forceLogoutRedirect();
+      return Promise.reject(error);
     }
+
+    if (error.response?.status === 401) {
+      forceLogoutRedirect();
+    }
+
     return Promise.reject(error);
   },
 );
@@ -106,7 +183,9 @@ export const productsApi = {
    * @param params - Query parameters for filtering and pagination
    * @returns Paginated products response
    */
-  getProducts: async (params: ProductsQuery = {}): Promise<any> => {
+  getProducts: async (
+    params: ProductsQuery = {},
+  ): Promise<ProductsResponse> => {
     const { data } = await api.get('/products', { params });
     return data;
   },
@@ -115,7 +194,7 @@ export const productsApi = {
    * @param id - Product ID
    * @returns Product details
    */
-  getProductById: async (id: string): Promise<any> => {
+  getProductById: async (id: string): Promise<Product> => {
     const { data } = await api.get(`/products/${id}`);
     return data;
   },
@@ -180,6 +259,15 @@ export const authApi = {
   updateProfile: async (payload: { username: string; email: string }) => {
     const { data } = await api.put(endpoints.auth.profile, payload);
     return data;
+  },
+  /**
+   * Revoke the current session's refresh token server-side. Best-effort:
+   * the frontend clears its cookies regardless of whether this succeeds.
+   * @param refreshToken - The refresh token to revoke
+   */
+  logout: async (refreshToken: string | null) => {
+    if (!refreshToken) return;
+    await api.post(endpoints.auth.logout, { refreshToken }).catch(() => {});
   },
 };
 
@@ -316,7 +404,12 @@ export type OrderCheckoutPayload = {
   items: {
     productId: string;
     qty: number;
-    variant?: { size?: string; color?: string; colorCode?: string; sku?: string };
+    variant?: {
+      size?: string;
+      color?: string;
+      colorCode?: string;
+      sku?: string;
+    };
   }[];
   shippingAddress: {
     name: string;
@@ -427,7 +520,7 @@ export const adminApi = {
    */
   getProducts: async (
     params: { page?: number; limit?: number; includeInactive?: boolean } = {},
-  ): Promise<any> => {
+  ): Promise<ProductsResponse> => {
     const { data } = await api.get('/products', {
       params: { limit: 100, includeInactive: true, ...params },
     });
@@ -464,7 +557,7 @@ export const adminApi = {
    * @param payload - Product creation data
    * @returns Created product details
    */
-  createProduct: async (payload: any): Promise<any> => {
+  createProduct: async (payload: ProductPayload): Promise<Product> => {
     const { data } = await api.post('/products', payload);
     return data;
   },
@@ -474,7 +567,10 @@ export const adminApi = {
    * @param payload - Partial product update data
    * @returns Updated product details
    */
-  updateProduct: async (id: string, payload: any): Promise<any> => {
+  updateProduct: async (
+    id: string,
+    payload: Partial<ProductPayload>,
+  ): Promise<Product> => {
     const { data } = await api.put(`/products/${id}`, payload);
     return data;
   },
@@ -494,7 +590,10 @@ export const adminApi = {
    */
   getBrands: async (
     params: { page?: number; limit?: number } = {},
-  ): Promise<any> => {
+  ): Promise<{
+    data: Brand[];
+    meta: { total: number; page: number; pages: number; limit: number };
+  }> => {
     const { data } = await api.get('/brands', {
       params: { limit: 100, ...params },
     });
@@ -505,7 +604,7 @@ export const adminApi = {
    * @param payload - Brand creation data
    * @returns Created brand details
    */
-  createBrand: async (payload: any): Promise<any> => {
+  createBrand: async (payload: BrandPayload): Promise<Brand> => {
     const { data } = await api.post('/brands', payload);
     return data;
   },
@@ -515,7 +614,10 @@ export const adminApi = {
    * @param payload - Partial brand update data
    * @returns Updated brand details
    */
-  updateBrand: async (id: string, payload: any): Promise<any> => {
+  updateBrand: async (
+    id: string,
+    payload: Partial<BrandPayload>,
+  ): Promise<Brand> => {
     const { data } = await api.put(`/brands/${id}`, payload);
     return data;
   },
@@ -652,7 +754,13 @@ export const brandsApi = {
     page?: number;
     q?: string;
     country?: string;
-  }): Promise<any> => {
+  }): Promise<
+    | Brand[]
+    | {
+        data: Brand[];
+        meta?: { total: number; page: number; pages: number; limit: number };
+      }
+  > => {
     const query: Record<string, string | number> = {};
     if (params?.limit != null) query.limit = params.limit;
     if (params?.page != null) query.page = params.page;
@@ -671,7 +779,7 @@ export const brandsApi = {
    * @param id - Brand ID
    * @returns Brand details
    */
-  getBrandById: async (id: string): Promise<any> => {
+  getBrandById: async (id: string): Promise<Brand> => {
     const { data } = await api.get(`/brands/${id}`);
     return data;
   },
@@ -964,6 +1072,126 @@ export const whyChooseUsApi = {
   getWhyChooseUs: async (): Promise<WhyChooseUsResponse> => {
     const { data } = await api.get<WhyChooseUsResponse>(
       endpoints.storefront.whyChooseUs,
+    );
+    return data;
+  },
+};
+
+export type HelpTopic = {
+  id: string;
+  title: string;
+  description?: string;
+  href: string;
+  icon?: string;
+  active: boolean;
+  sortOrder: number;
+};
+
+export type HelpTopicsResponse = {
+  message: string;
+  topics: HelpTopic[];
+};
+
+/**
+ * Help topics API — storefront help center
+ */
+export const helpTopicsApi = {
+  /**
+   * GET /api/storefront/help
+   * @returns Envelope with help topic results
+   */
+  getHelpTopics: async (params?: {
+    active?: boolean;
+  }): Promise<HelpTopicsResponse> => {
+    const { data } = await api.get<HelpTopicsResponse>('/storefront/help', {
+      params: {
+        ...(params?.active != null ? { active: String(params.active) } : {}),
+      },
+    });
+    return data;
+  },
+};
+
+export type ContentType =
+  | 'SHIPPING'
+  | 'RETURNS'
+  | 'PRIVACY'
+  | 'TERMS'
+  | 'STOREFRONT_TRUST';
+
+export type Content = {
+  _id: string;
+  type: ContentType;
+  title: string;
+  body: string;
+  active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type ContentResponse = {
+  message: string;
+  data: Content;
+};
+
+/**
+ * Content API — storefront policy pages
+ */
+export const contentApi = {
+  /**
+   * GET /api/content?type=SHIPPING|RETURNS|...
+   * @returns Content by type
+   */
+  getContent: async (type: ContentType): Promise<ContentResponse> => {
+    const { data } = await api.get<ContentResponse>('/content', {
+      params: { type },
+    });
+    return data;
+  },
+};
+
+export type StorefrontModuleType =
+  | 'hero_carousel'
+  | 'trust_strip'
+  | 'featured_brands'
+  | 'bestsellers'
+  | 'new_arrivals'
+  | 'deals_rail'
+  | 'lookbooks'
+  | 'testimonials'
+  | 'categories'
+  | 'why_choose_us';
+
+export type StorefrontModule = {
+  _id?: string;
+  key: string;
+  type: StorefrontModuleType;
+  title?: string;
+  active: boolean;
+  sortOrder: number;
+  config?: Record<string, unknown>;
+  slides?: StorefrontHeroSlide[];
+  trustItems?: StorefrontTrustItem[];
+  limit?: number;
+  items?: unknown[];
+};
+
+export type StorefrontModulesResponse = {
+  message: string;
+  modules: StorefrontModule[];
+};
+
+/**
+ * Storefront modules API — homepage sections
+ */
+export const storefrontModulesApi = {
+  /**
+   * GET /api/storefront/modules
+   * @returns Active storefront modules
+   */
+  getStorefrontModules: async (): Promise<StorefrontModulesResponse> => {
+    const { data } = await api.get<StorefrontModulesResponse>(
+      '/storefront/modules',
     );
     return data;
   },

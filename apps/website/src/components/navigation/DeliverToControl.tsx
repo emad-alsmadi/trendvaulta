@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { MapPin, ChevronDown, Check, Truck } from 'lucide-react';
@@ -17,14 +17,16 @@ import { cn } from '@/lib/utils';
  * TODO(api): optional preference sync; never invent live shipping quotes here.
  */
 export function DeliverToControl({ className }: { className?: string }) {
-  const [region, setRegion] = useState<DemoDeliverRegion | null>(null);
+  // getDeliverRegion() reads localStorage (SSR-safe, falls back to the same
+  // default region on the server and on first client render) — a lazy
+  // initializer reads it once on mount instead of committing a null state
+  // then correcting it in an effect.
+  const [region, setRegion] = useState<DemoDeliverRegion>(() =>
+    getDeliverRegion(),
+  );
   const [tipOpen, setTipOpen] = useState(false);
 
-  useEffect(() => {
-    setRegion(getDeliverRegion());
-  }, []);
-
-  const label = region?.label ?? '…';
+  const label = region.label;
 
   return (
     <div className={cn('relative flex items-center gap-2', className)}>
@@ -70,7 +72,7 @@ export function DeliverToControl({ className }: { className?: string }) {
             </div>
 
             {DEMO_DELIVER_REGIONS.map((option) => {
-              const selected = region?.id === option.id;
+              const selected = region.id === option.id;
               return (
                 <DropdownMenu.Item
                   key={option.id}
@@ -118,7 +120,7 @@ export function DeliverToControl({ className }: { className?: string }) {
         </DropdownMenu.Portal>
       </DropdownMenu.Root>
 
-      {tipOpen && region ? (
+      {tipOpen ? (
         <div
           role='status'
           className='absolute left-0 top-full z-[55] mt-2 w-[min(320px,calc(100vw-2rem))] rounded-xl border border-stone-200 bg-white p-3 text-xs shadow-lg'

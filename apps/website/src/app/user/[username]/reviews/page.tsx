@@ -36,7 +36,7 @@ export default function UserReviewsPage() {
     return null;
   }
 
-  const getProductId = (product: string | any): string => {
+  const getProductId = (product: string | { _id?: string } | null | undefined): string => {
     if (!product) return '';
     return typeof product === 'string' ? product : product._id || '';
   };
@@ -100,7 +100,7 @@ export default function UserReviewsPage() {
             No reviews yet
           </h2>
           <p className='text-gray-600 mb-6'>
-            Start reviewing products you've purchased to share your experience
+            Start reviewing products you&apos;ve purchased to share your experience
             with others.
           </p>
           <Link

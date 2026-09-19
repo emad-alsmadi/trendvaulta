@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ProductCard } from '@/components/products/ProductCard';
 import { pickInspiredProducts } from '@/data/demoStorefront';
@@ -26,16 +26,18 @@ export function InspiredByBrowsingSection({
 }: Props) {
   const { data, isLoading: recLoading } = useHomeRecommendations(8);
 
-  const [viewedIds, setViewedIds] = useState<string[]>([]);
-  const [preferredCategories, setPreferredCategories] = useState<string[]>([]);
-
-  useEffect(() => {
-    const viewed = getRecentlyViewed();
-    setViewedIds(viewed.map((v) => v.id));
-    setPreferredCategories(
-      viewed.map((v) => v.category).filter((c): c is string => Boolean(c)),
-    );
-  }, []);
+  // getRecentlyViewed() reads localStorage (SSR-safe, returns [] on the
+  // server) — a lazy initializer reads it exactly once on mount with no
+  // extra render, instead of committing an empty state then correcting it
+  // in an effect.
+  const [viewedIds] = useState<string[]>(() =>
+    getRecentlyViewed().map((v) => v.id),
+  );
+  const [preferredCategories] = useState<string[]>(() =>
+    getRecentlyViewed()
+      .map((v) => v.category)
+      .filter((c): c is string => Boolean(c)),
+  );
 
   const apiResults = data?.results;
   const fromApi = Array.isArray(apiResults) && apiResults.length > 0;
