@@ -36,6 +36,7 @@ app.use(logger);
 
 //Routers
 app.use('/api/', require('./routes/products'));
+app.use('/api/', require('./routes/productQA'));
 app.use('/api/', require('./routes/bundles'));
 app.use('/api/', require('./routes/brands'));
 app.use('/api/', require('./routes/auth'));
