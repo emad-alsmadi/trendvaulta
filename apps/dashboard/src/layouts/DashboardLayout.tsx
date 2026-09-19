@@ -21,6 +21,7 @@ import {
   BookOpen,
   MessageSquare,
   PackageOpen,
+  Gift,
   Settings,
   LogOut,
   Menu,
@@ -45,6 +46,7 @@ const sidebarItems = [
   { icon: BookOpen, label: 'Lookbooks', path: '/lookbooks' },
   { icon: MessageSquare, label: 'Testimonials', path: '/testimonials' },
   { icon: PackageOpen, label: 'Bundles', path: '/bundles' },
+  { icon: Gift, label: 'Gift Finder', path: '/gift-finder-config' },
   { icon: Settings, label: 'Settings', path: '/settings' },
 ];
 

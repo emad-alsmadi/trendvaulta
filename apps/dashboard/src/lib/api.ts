@@ -969,3 +969,73 @@ export const adminBundlesApi = {
     return data;
   },
 };
+
+export type GiftOption = {
+  id: string;
+  label: string;
+  q?: string;
+  category?: string;
+  minPrice?: number;
+  maxPrice?: number;
+};
+
+export type AdminGiftFinderConfig = {
+  _id: string;
+  occasions: GiftOption[];
+  recipients: GiftOption[];
+  budgets: GiftOption[];
+  active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type GiftFinderConfigPayload = {
+  occasions: GiftOption[];
+  recipients: GiftOption[];
+  budgets: GiftOption[];
+  active?: boolean;
+};
+
+export const adminGiftFinderConfigApi = {
+  getGiftFinderConfigs: async (): Promise<{
+    data: AdminGiftFinderConfig[];
+  }> => {
+    const { data } = await api.get('/gift-finder/admin');
+    return data;
+  },
+
+  getGiftFinderConfigById: async (
+    id: string,
+  ): Promise<{ data: AdminGiftFinderConfig }> => {
+    const { data } = await api.get(`/gift-finder/${id}`);
+    return data;
+  },
+
+  createGiftFinderConfig: async (
+    payload: GiftFinderConfigPayload,
+  ): Promise<AdminGiftFinderConfig> => {
+    const { data } = await api.post<AdminGiftFinderConfig>(
+      '/gift-finder',
+      payload,
+    );
+    return data;
+  },
+
+  updateGiftFinderConfig: async (
+    id: string,
+    payload: Partial<GiftFinderConfigPayload>,
+  ): Promise<AdminGiftFinderConfig> => {
+    const { data } = await api.put<AdminGiftFinderConfig>(
+      `/gift-finder/${id}`,
+      payload,
+    );
+    return data;
+  },
+
+  deleteGiftFinderConfig: async (id: string): Promise<{ message: string }> => {
+    const { data } = await api.delete<{ message: string }>(
+      `/gift-finder/${id}`,
+    );
+    return data;
+  },
+};

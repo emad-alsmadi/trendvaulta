@@ -16,6 +16,7 @@ import StorefrontModules from './pages/StorefrontModules';
 import Lookbooks from './pages/Lookbooks';
 import Testimonials from './pages/Testimonials';
 import Bundles from './pages/Bundles';
+import GiftFinderConfig from './pages/GiftFinderConfig';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
 
@@ -97,6 +98,10 @@ function App() {
               <Route
                 path='bundles'
                 element={<Bundles />}
+              />
+              <Route
+                path='gift-finder-config'
+                element={<GiftFinderConfig />}
               />
               <Route
                 path='settings'
