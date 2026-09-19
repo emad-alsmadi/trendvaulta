@@ -22,6 +22,7 @@ import {
   MessageSquare,
   PackageOpen,
   Gift,
+  MessageCircle,
   Settings,
   LogOut,
   Menu,
@@ -47,6 +48,7 @@ const sidebarItems = [
   { icon: MessageSquare, label: 'Testimonials', path: '/testimonials' },
   { icon: PackageOpen, label: 'Bundles', path: '/bundles' },
   { icon: Gift, label: 'Gift Finder', path: '/gift-finder-config' },
+  { icon: MessageCircle, label: 'Product Q&A', path: '/product-qa' },
   { icon: Settings, label: 'Settings', path: '/settings' },
 ];
 

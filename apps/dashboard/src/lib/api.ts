@@ -1039,3 +1039,70 @@ export const adminGiftFinderConfigApi = {
     return data;
   },
 };
+
+export type AdminProductQA = {
+  _id: string;
+  product: {
+    _id: string;
+    title: string;
+  };
+  question: string;
+  answer?: string;
+  askedBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  answeredBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  helpful: number;
+  notHelpful: number;
+  approved: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type ProductQAAnswerPayload = {
+  answer?: string;
+  approved?: boolean;
+};
+
+export const adminProductQAApi = {
+  getProductQA: async (
+    params: {
+      page?: number;
+      limit?: number;
+      productId?: string;
+      approved?: string;
+    } = {},
+  ): Promise<{
+    data: AdminProductQA[];
+    meta: { total: number; page: number; pages: number; limit: number };
+  }> => {
+    const { data } = await api.get('/qa/admin', {
+      params: { limit: 100, ...params },
+    });
+    return data;
+  },
+
+  getProductQAById: async (id: string): Promise<{ data: AdminProductQA }> => {
+    const { data } = await api.get(`/qa/${id}`);
+    return data;
+  },
+
+  answerProductQA: async (
+    id: string,
+    payload: ProductQAAnswerPayload,
+  ): Promise<AdminProductQA> => {
+    const { data } = await api.put<AdminProductQA>(`/qa/${id}/answer`, payload);
+    return data;
+  },
+
+  deleteProductQA: async (id: string): Promise<{ message: string }> => {
+    const { data } = await api.delete<{ message: string }>(`/qa/${id}`);
+    return data;
+  },
+};

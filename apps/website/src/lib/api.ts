@@ -1077,6 +1077,62 @@ export const whyChooseUsApi = {
   },
 };
 
+export type ProductQAItem = {
+  _id: string;
+  question: string;
+  answer?: string;
+  askedBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  answeredBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  helpful: number;
+  notHelpful: number;
+  approved: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type ProductQAResponse = {
+  message: string;
+  results: ProductQAItem[];
+};
+
+export const productQAApi = {
+  getProductQA: async (productId: string): Promise<ProductQAResponse> => {
+    const { data } = await api.get<ProductQAResponse>(
+      `/products/${productId}/qa`,
+    );
+    return data;
+  },
+
+  createQuestion: async (
+    productId: string,
+    question: string,
+  ): Promise<ProductQAItem> => {
+    const { data } = await api.post<{ data: ProductQAItem }>(
+      `/products/${productId}/qa`,
+      { question },
+    );
+    return data.data;
+  },
+
+  markHelpful: async (
+    qaId: string,
+    helpful: boolean,
+  ): Promise<{ helpful: number; notHelpful: number }> => {
+    const { data } = await api.post<{
+      data: { helpful: number; notHelpful: number };
+    }>(`/qa/${qaId}/helpful`, { helpful });
+    return data.data;
+  },
+};
+
 export type HelpTopic = {
   id: string;
   title: string;
