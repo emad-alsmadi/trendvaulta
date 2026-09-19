@@ -10,6 +10,11 @@ const {
 } = require('../controllers/giftFinder.controller');
 const { verfiyToken } = require('../middlewares/auth');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
+const { validate } = require('../middlewares/validate');
+const {
+  createGiftFinderConfigSchema,
+  updateGiftFinderConfigSchema,
+} = require('../validators/giftFinder.validator');
 
 // Public endpoint - get active gift finder config for storefront
 router.get('/storefront/gift-finder', getGiftFinderConfig);
@@ -31,12 +36,14 @@ router.post(
   '/gift-finder',
   verfiyToken,
   checkRolePermission('content:write'),
+  validate(createGiftFinderConfigSchema),
   createGiftFinderConfig,
 );
 router.put(
   '/gift-finder/:id',
   verfiyToken,
   checkRolePermission('content:write'),
+  validate(updateGiftFinderConfigSchema),
   updateGiftFinderConfig,
 );
 router.delete(

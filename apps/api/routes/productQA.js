@@ -11,20 +11,57 @@ const {
 } = require('../controllers/productQA.controller');
 const { verfiyToken } = require('../middlewares/auth');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
+const { validate } = require('../middlewares/validate');
+const {
+  createProductQuestionSchema,
+  answerProductQASchema,
+  markHelpfulSchema,
+} = require('../validators/productQA.validator');
 
 // Public endpoint - get approved Q&A for a product
 router.get('/products/:id/qa', getProductQA);
 
 // Public endpoint - submit a question (requires auth)
-router.post('/products/:id/qa', verfiyToken, createProductQuestion);
+router.post(
+  '/products/:id/qa',
+  verfiyToken,
+  validate(createProductQuestionSchema),
+  createProductQuestion,
+);
 
 // Public endpoint - mark as helpful (requires auth)
-router.post('/qa/:id/helpful', verfiyToken, markHelpful);
+router.post(
+  '/qa/:id/helpful',
+  verfiyToken,
+  validate(markHelpfulSchema),
+  markHelpful,
+);
 
 // Admin endpoints
-router.get('/qa/admin', verfiyToken, checkRolePermission('content:read'), getAllProductQA);
-router.get('/qa/:id', verfiyToken, checkRolePermission('content:read'), getProductQAById);
-router.put('/qa/:id/answer', verfiyToken, checkRolePermission('content:write'), answerProductQuestion);
-router.delete('/qa/:id', verfiyToken, checkRolePermission('content:delete'), deleteProductQA);
+router.get(
+  '/qa/admin',
+  verfiyToken,
+  checkRolePermission('content:read'),
+  getAllProductQA,
+);
+router.get(
+  '/qa/:id',
+  verfiyToken,
+  checkRolePermission('content:read'),
+  getProductQAById,
+);
+router.put(
+  '/qa/:id/answer',
+  verfiyToken,
+  checkRolePermission('content:write'),
+  validate(answerProductQASchema),
+  answerProductQuestion,
+);
+router.delete(
+  '/qa/:id',
+  verfiyToken,
+  checkRolePermission('content:delete'),
+  deleteProductQA,
+);
 
 module.exports = router;

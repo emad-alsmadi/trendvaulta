@@ -10,6 +10,11 @@ const {
 } = require('../controllers/bundle.controller');
 const { verfiyToken } = require('../middlewares/auth');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
+const { validate } = require('../middlewares/validate');
+const {
+  createBundleSchema,
+  updateBundleSchema,
+} = require('../validators/bundle.validator');
 
 // Public endpoint - get bundles for a product
 router.get('/products/:id/bundles', getProductBundles);
@@ -31,12 +36,14 @@ router.post(
   '/bundles',
   verfiyToken,
   checkRolePermission('content:write'),
+  validate(createBundleSchema),
   createBundle,
 );
 router.put(
   '/bundles/:id',
   verfiyToken,
   checkRolePermission('content:write'),
+  validate(updateBundleSchema),
   updateBundle,
 );
 router.delete(

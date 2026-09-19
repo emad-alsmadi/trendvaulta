@@ -2,6 +2,11 @@ const express = require('express');
 const router = express.Router();
 const { verfiyToken } = require('../middlewares/verfiyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
+const { validate } = require('../middlewares/validate');
+const {
+  createBrandSchema,
+  updateBrandSchema,
+} = require('../validators/brand.validator');
 
 const {
   getAllBrands,
@@ -18,6 +23,7 @@ router.post(
   '/brands',
   verfiyToken,
   checkRolePermission('brands:write'),
+  validate(createBrandSchema),
   createBrand,
 );
 
@@ -25,6 +31,7 @@ router.put(
   '/brands/:id',
   verfiyToken,
   checkRolePermission('brands:write'),
+  validate(updateBrandSchema),
   updateBrand,
 );
 

@@ -3,6 +3,11 @@ const router = express.Router();
 const { verfiyToken } = require('../middlewares/verfiyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 const { couponValidateRateLimit } = require('../middlewares/rateLimit');
+const { validate } = require('../middlewares/validate');
+const {
+  createCouponSchema,
+  updateCouponSchema,
+} = require('../validators/coupon.validator');
 
 const {
   getAllCoupons,
@@ -20,14 +25,41 @@ router.post('/coupons/validate', couponValidateRateLimit, validateCoupon);
 router.get('/coupons/code/:code', couponValidateRateLimit, getCouponByCode);
 
 // Admin routes
-router.get('/coupons', verfiyToken, checkRolePermission('coupons:read'), getAllCoupons);
-router.get('/coupons/:id', verfiyToken, checkRolePermission('coupons:read'), getCouponById);
+router.get(
+  '/coupons',
+  verfiyToken,
+  checkRolePermission('coupons:read'),
+  getAllCoupons,
+);
+router.get(
+  '/coupons/:id',
+  verfiyToken,
+  checkRolePermission('coupons:read'),
+  getCouponById,
+);
 
-router.post('/coupons', verfiyToken, checkRolePermission('coupons:write'), createCoupon);
+router.post(
+  '/coupons',
+  verfiyToken,
+  checkRolePermission('coupons:write'),
+  validate(createCouponSchema),
+  createCoupon,
+);
 
-router.put('/coupons/:id', verfiyToken, checkRolePermission('coupons:write'), updateCoupon);
+router.put(
+  '/coupons/:id',
+  verfiyToken,
+  checkRolePermission('coupons:write'),
+  validate(updateCouponSchema),
+  updateCoupon,
+);
 
-router.delete('/coupons/:id', verfiyToken, checkRolePermission('coupons:delete'), deleteCoupon);
+router.delete(
+  '/coupons/:id',
+  verfiyToken,
+  checkRolePermission('coupons:delete'),
+  deleteCoupon,
+);
 
 // Usage is incremented on paid webhook/verify — admin-only manual bump for ops
 router.post(

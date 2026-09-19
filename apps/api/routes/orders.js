@@ -3,6 +3,11 @@ const router = express.Router();
 
 const { verfiyToken } = require('../middlewares/verfiyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
+const { validate } = require('../middlewares/validate');
+const {
+  createOrderSchema,
+  updateOrderSchema,
+} = require('../validators/order.validator');
 
 const {
   createOrder,
@@ -12,7 +17,7 @@ const {
   updateOrderStatus,
 } = require('../controllers/order.controller');
 
-router.post('/orders', verfiyToken, createOrder);
+router.post('/orders', verfiyToken, validate(createOrderSchema), createOrder);
 router.get('/orders/my', verfiyToken, getMyOrders);
 
 router.get(
@@ -26,6 +31,7 @@ router.patch(
   '/orders/:id/status',
   verfiyToken,
   checkRolePermission('orders:write'),
+  validate(updateOrderSchema),
   updateOrderStatus,
 );
 

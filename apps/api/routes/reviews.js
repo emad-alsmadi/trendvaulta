@@ -2,6 +2,11 @@ const express = require('express');
 const router = express.Router();
 const { verfiyToken } = require('../middlewares/verfiyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
+const { validate } = require('../middlewares/validate');
+const {
+  createReviewSchema,
+  updateReviewSchema,
+} = require('../validators/review.validator');
 
 const {
   createReview,
@@ -32,8 +37,18 @@ router.delete(
 );
 
 // Authenticated customer
-router.post('/reviews', verfiyToken, createReview);
-router.put('/reviews/:reviewId', verfiyToken, updateReview);
+router.post(
+  '/reviews',
+  verfiyToken,
+  validate(createReviewSchema),
+  createReview,
+);
+router.put(
+  '/reviews/:reviewId',
+  verfiyToken,
+  validate(updateReviewSchema),
+  updateReview,
+);
 router.delete('/reviews/:reviewId', verfiyToken, deleteReview);
 router.get('/reviews/my/:productId', verfiyToken, getMyReview);
 router.get('/reviews/my', verfiyToken, getMyReviews);

@@ -5,6 +5,8 @@ const bcrypt = require('bcryptjs');
 const { User, validateUpdateUser } = require('../models/User');
 const { verfiyToken } = require('../middlewares/verfiyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
+const { validate } = require('../middlewares/validate');
+const { updateUserSchema } = require('../validators/user.validator');
 
 const {
   getAllUsers,
@@ -49,6 +51,7 @@ router.put(
   '/users/:id',
   verfiyToken,
   checkRolePermission('users:write'),
+  validate(updateUserSchema),
   updateUser,
 );
 

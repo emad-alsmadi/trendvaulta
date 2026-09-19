@@ -3,6 +3,11 @@ const router = express.Router();
 
 const { verfiyToken } = require('../middlewares/verfiyToken');
 const { checkoutRateLimit } = require('../middlewares/rateLimit');
+const { validate } = require('../middlewares/validate');
+const {
+  createCheckoutSessionSchema,
+  verifyPaymentSchema,
+} = require('../validators/payment.validator');
 const {
   getPaymentsSetupStatus,
   createCheckoutSession,
@@ -15,6 +20,7 @@ router.post(
   '/payments/checkout-session',
   checkoutRateLimit,
   verfiyToken,
+  validate(createCheckoutSessionSchema),
   createCheckoutSession,
 );
 
@@ -22,6 +28,7 @@ router.post(
   '/payments/verify-payment',
   checkoutRateLimit,
   verfiyToken,
+  validate(verifyPaymentSchema),
   verifyPaymentStatus,
 );
 
