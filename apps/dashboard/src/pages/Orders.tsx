@@ -19,7 +19,41 @@ const STATUS_FILTERS = [
   { value: 'shipped', label: 'Shipped' },
   { value: 'delivered', label: 'Delivered' },
   { value: 'canceled', label: 'Canceled' },
+  { value: 'needs_attention', label: 'Needs attention' },
+  { value: 'refunded', label: 'Refunded' },
 ];
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'Pending',
+  paid: 'Paid',
+  shipped: 'Shipped',
+  delivered: 'Delivered',
+  canceled: 'Canceled',
+  needs_attention: 'Needs attention',
+  refunded: 'Refunded',
+};
+
+const ATTENTION_REASON_LABELS: Record<string, string> = {
+  insufficient_stock: 'Insufficient stock after payment',
+  paid_after_cancel: 'Paid after cancel',
+  refund_failed: 'Refund failed — manual action',
+  manual_refund_required: 'Manual refund required',
+};
+
+function statusLabel(status: string) {
+  return STATUS_LABELS[status] || status;
+}
+
+function attentionReasonLabel(reason: string) {
+  return ATTENTION_REASON_LABELS[reason] || reason.replace(/_/g, ' ');
+}
+
+function triggersRefund(order: AdminOrder, next: string) {
+  return (
+    order.paymentStatus === 'paid' &&
+    (next === 'canceled' || next === 'refunded')
+  );
+}
 
 function customerLabel(order: AdminOrder) {
   if (order.user && typeof order.user === 'object') {
@@ -43,6 +77,10 @@ function statusBadgeClass(status: string) {
       return 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200';
     case 'canceled':
       return 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200';
+    case 'needs_attention':
+      return 'bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200';
+    case 'refunded':
+      return 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200';
     default:
       return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
   }
@@ -70,8 +108,11 @@ export default function Orders() {
 
   async function onChangeStatus(order: AdminOrder, next: string) {
     if (!next || next === order.status) return;
+    const refundNote = triggersRefund(order, next)
+      ? ' This order is paid — a Stripe refund will be issued.'
+      : '';
     const ok = window.confirm(
-      `Change order ${shortId(order._id)} from "${order.status}" to "${next}"?`,
+      `Change order ${shortId(order._id)} from "${statusLabel(order.status)}" to "${statusLabel(next)}"?${refundNote}`,
     );
     if (!ok) return;
     try {
@@ -228,13 +269,29 @@ export default function Orders() {
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
                           {order.paymentStatus || '—'}
+                          {order.paymentStatus === 'refunded' && (
+                            <span className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
+                              Refunded $
+                              {Number(
+                                order.refundAmount ?? order.totalPrice ?? 0,
+                              ).toFixed(2)}
+                              {order.refundedAt
+                                ? ` · ${new Date(order.refundedAt).toLocaleDateString()}`
+                                : ''}
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <span
                             className={`rounded-full px-2 py-1 text-xs font-medium ${statusBadgeClass(order.status)}`}
                           >
-                            {order.status}
+                            {statusLabel(order.status)}
                           </span>
+                          {order.attentionReason ? (
+                            <span className="mt-1 block w-fit rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                              {attentionReasonLabel(order.attentionReason)}
+                            </span>
+                          ) : null}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                           {order.createdAt
@@ -257,7 +314,7 @@ export default function Orders() {
                               <option value="">Set status…</option>
                               {next.map((s) => (
                                 <option key={s} value={s}>
-                                  {s}
+                                  {statusLabel(s)}
                                 </option>
                               ))}
                             </select>

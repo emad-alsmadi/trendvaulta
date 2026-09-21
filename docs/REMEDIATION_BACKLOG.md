@@ -1,3 +1,5 @@
+> **Historical (2026-08)** — superseded by [`FULL_SYSTEM_ANALYSIS.md`](./FULL_SYSTEM_ANALYSIS.md) and [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md). Kept for audit trail only; do not treat as current status.
+
 # TrendVaulta — Remediation Backlog & Audit Tasks 3–7
 
 **Companion to:** `docs/PROJECT_STATUS.md`, `docs/MVP_SCOPE.md`  

@@ -21,7 +21,7 @@ env:
 
 jobs:
   api:
-    name: API (lint, test)
+    name: API (test)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,10 +30,9 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: apps/api/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        working-directory: apps/api
         run: npm ci
 
       - name: Run tests
@@ -53,10 +52,9 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          cache-dependency-path: apps/website/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        working-directory: apps/website
         run: npm ci
 
       - name: Lint
@@ -89,12 +87,10 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
-          # apps/dashboard has no lockfile of its own — it installs from the
-          # root npm workspace (root package-lock.json), unlike api/website.
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm ci --workspace=apps/dashboard --workspace=packages/types --workspace=packages/api-client
+        run: npm ci
 
       - name: Build shared packages
         run: npm run type-check --workspace=packages/types && npm run type-check --workspace=packages/api-client
@@ -110,3 +106,25 @@ jobs:
       - name: Build
         working-directory: apps/dashboard
         run: npm run build
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Real gate, but only on *critical* advisories: high-severity findings in
+      # this tree are mostly transitive dev tooling with no upstream fix yet, so
+      # gating on them would block every PR. Tighten to --audit-level=high once
+      # the baseline is clean.
+      - name: npm audit (critical)
+        run: npm audit --audit-level=critical

@@ -24,8 +24,6 @@ services:
         value: trendvaulta
       - key: JWT_SECRET_KEY
         sync: false
-      - key: JWT_EXPIRE
-        value: 30d
       # CORS / redirect origins (middlewares/cors.js, services/stripe.service.js)
       - key: FRONTEND_URL
         sync: false

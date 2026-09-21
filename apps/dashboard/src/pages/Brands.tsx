@@ -22,6 +22,19 @@ const emptyForm: BrandFormPayload = {
   country: '',
 };
 
+/** Backend Joi uses `Joi.string()` for optional fields, which rejects ''. */
+function toBrandPayload(form: BrandFormPayload): BrandFormPayload {
+  const payload: BrandFormPayload = {
+    name: form.name.trim(),
+    slug: form.slug.trim(),
+  };
+  if (form.description?.trim()) payload.description = form.description.trim();
+  if (form.logo?.trim()) payload.logo = form.logo.trim();
+  if (form.website?.trim()) payload.website = form.website.trim();
+  if (form.country?.trim()) payload.country = form.country.trim();
+  return payload;
+}
+
 function slugify(name: string) {
   return name
     .toLowerCase()
@@ -84,11 +97,12 @@ export default function Brands() {
       window.alert('Name and slug are required.');
       return;
     }
+    const payload = toBrandPayload(form);
     try {
       if (editing) {
-        await updateMut.mutateAsync({ id: editing._id, payload: form });
+        await updateMut.mutateAsync({ id: editing._id, payload });
       } else {
-        await createMut.mutateAsync(form);
+        await createMut.mutateAsync(payload);
       }
       setOpen(false);
       setEditing(null);

@@ -111,14 +111,41 @@ export type AdminOrderCustomer = {
   email?: string;
 };
 
+export type AdminOrderStatus =
+  | 'pending'
+  | 'paid'
+  | 'shipped'
+  | 'delivered'
+  | 'canceled'
+  | 'needs_attention'
+  | 'refunded';
+
+export type AdminOrderPaymentStatus =
+  | 'unpaid'
+  | 'pending'
+  | 'paid'
+  | 'failed'
+  | 'refunded';
+
+export type AdminOrderAttentionReason =
+  | ''
+  | 'insufficient_stock'
+  | 'paid_after_cancel'
+  | 'refund_failed'
+  | 'manual_refund_required';
+
 export type AdminOrder = {
   _id: string;
-  status: string;
-  paymentStatus?: string;
+  status: AdminOrderStatus | string;
+  paymentStatus?: AdminOrderPaymentStatus | string;
   totalPrice?: number;
   createdAt?: string;
   allowedNextStatuses?: string[];
   user?: string | AdminOrderCustomer;
+  attentionReason?: AdminOrderAttentionReason | string;
+  refundId?: string;
+  refundedAt?: string;
+  refundAmount?: number;
 };
 
 export type AdminOrdersQuery = {
@@ -224,6 +251,8 @@ export type AdminStatsStatusCounts = {
   shipped: number;
   delivered: number;
   canceled: number;
+  needs_attention?: number;
+  refunded?: number;
 };
 
 export type AdminStats = {
@@ -290,7 +319,7 @@ export type ProductFormPayload = {
   category: string;
   subcategory: string;
   stock: number;
-  sku: string;
+  sku?: string;
 };
 
 export type PaginatedList<T> = {
@@ -300,10 +329,15 @@ export type PaginatedList<T> = {
 
 export const adminBrandsApi = {
   getBrands: async (
-    params: { page?: number; limit?: number; q?: string } = {},
+    params: {
+      page?: number;
+      limit?: number;
+      q?: string;
+      includeInactive?: boolean;
+    } = {},
   ): Promise<PaginatedList<AdminBrand>> => {
     const { data } = await api.get<PaginatedList<AdminBrand>>('/brands', {
-      params: { limit: 100, ...params },
+      params: { limit: 50, includeInactive: true, ...params },
     });
     return data;
   },
@@ -905,6 +939,12 @@ export const adminTestimonialsApi = {
 };
 
 export type BundleItem = {
+  /** Product id; admin list responses populate this into an object. */
+  product: string | { _id: string; title?: string; price?: number; cover?: string };
+  quantity: number;
+};
+
+export type BundleItemInput = {
   product: string;
   quantity: number;
 };
@@ -927,7 +967,7 @@ export type AdminBundle = {
 
 export type BundlePayload = {
   primaryProduct: string;
-  items: BundleItem[];
+  items: BundleItemInput[];
   bundlePrice: number;
   savings: number;
   active?: boolean;
@@ -1050,13 +1090,13 @@ export type AdminProductQA = {
   answer?: string;
   askedBy?: {
     _id: string;
-    name: string;
-    email: string;
+    username?: string;
+    email?: string;
   };
   answeredBy?: {
     _id: string;
-    name: string;
-    email: string;
+    username?: string;
+    email?: string;
   };
   helpful: number;
   notHelpful: number;

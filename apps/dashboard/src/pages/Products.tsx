@@ -20,23 +20,35 @@ const emptyForm: ProductFormPayload = {
   description: '',
   price: 0,
   cover: '',
-  category: 'beauty',
+  category: 'makeup',
   subcategory: '',
   stock: 0,
   sku: '',
 };
 
+// Must match the Product model enum (apps/api/models/Product.js).
 const CATEGORIES = [
-  { value: 'beauty', label: 'Beauty' },
-  { value: 'fashion', label: 'Fashion' },
-  { value: 'wellness', label: 'Wellness' },
-  { value: 'accessories', label: 'Accessories' },
-  { value: 'home', label: 'Home' },
   { value: 'makeup', label: 'Makeup' },
   { value: 'skincare', label: 'Skincare' },
   { value: 'perfumes', label: 'Perfumes' },
   { value: 'clothing', label: 'Clothing' },
+  { value: 'accessories', label: 'Accessories' },
+  { value: 'home', label: 'Home' },
 ];
+
+/** Drop empty optional strings so backend Joi (`Joi.string()`) doesn't reject ''. */
+function toProductPayload(form: ProductFormPayload): ProductFormPayload {
+  const payload: ProductFormPayload = {
+    ...form,
+    title: form.title.trim(),
+    description: form.description.trim(),
+    cover: form.cover.trim(),
+    subcategory: form.subcategory.trim(),
+    sku: (form.sku ?? '').trim(),
+  };
+  if (!payload.sku) delete (payload as Partial<ProductFormPayload>).sku;
+  return payload;
+}
 
 function brandId(product: AdminProduct) {
   if (typeof product.brand === 'string') return product.brand;
@@ -112,11 +124,16 @@ export default function Products() {
       window.alert('Title, brand, and cover URL are required.');
       return;
     }
+    if (!form.subcategory.trim() || form.description.trim().length < 3) {
+      window.alert('Subcategory and a description (3+ characters) are required.');
+      return;
+    }
+    const payload = toProductPayload(form);
     try {
       if (editing) {
-        await updateMut.mutateAsync({ id: editing._id, payload: form });
+        await updateMut.mutateAsync({ id: editing._id, payload });
       } else {
-        await createMut.mutateAsync(form);
+        await createMut.mutateAsync(payload);
       }
       setOpen(false);
       setEditing(null);

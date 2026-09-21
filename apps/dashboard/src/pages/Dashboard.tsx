@@ -45,6 +45,8 @@ const STATUS_ORDER = [
   'shipped',
   'delivered',
   'canceled',
+  'needs_attention',
+  'refunded',
 ] as const;
 
 export default function Dashboard() {
@@ -241,7 +243,7 @@ export default function Dashboard() {
                 <li key={status}>
                   <div className="mb-1 flex justify-between text-sm">
                     <span className="font-medium capitalize text-gray-800 dark:text-gray-200">
-                      {status}
+                      {status.replace(/_/g, ' ')}
                     </span>
                     <span className="text-gray-500">{count}</span>
                   </div>
