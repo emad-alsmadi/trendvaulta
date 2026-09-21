@@ -1,8 +1,19 @@
 const asyncHandler = require('express-async-handler');
 const nodemailer = require('nodemailer');
+const Joi = require('joi');
 const { User } = require('../models/User');
+const { RefreshToken } = require('../models/RefreshToken');
+const { revokeAllForUser } = require('../utils/refreshTokens');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+
+const forgotPasswordSchema = Joi.object({
+  email: Joi.string().trim().lowercase().max(100).email().required(),
+});
+
+// Same body whether or not the account exists (no email enumeration).
+const FORGOT_PASSWORD_MESSAGE =
+  'If an account exists for that email, a password reset link has been sent.';
 
 /**
  * Send a password reset link to the user's email.
@@ -17,18 +28,19 @@ const jwt = require('jsonwebtoken');
  */
 const sendForgotPasswordLink = asyncHandler(async (req, res) => {
   try {
-    const email = req.body?.email;
-    if (!email) {
-      return res.status(400).json({ message: 'Email is required' });
+    const { error, value } = forgotPasswordSchema.validate(req.body || {});
+    if (error) {
+      return res.status(400).json({ message: 'A valid email is required' });
+    }
+    const { email } = value;
+
+    if (!process.env.JWT_SECRET_KEY) {
+      return res.status(500).json({ message: 'Server misconfigured' });
     }
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ message: 'User not Found' });
-    }
-
-    if (!process.env.JWT_SECRET_KEY) {
-      return res.status(500).json({ message: 'Server misconfigured' });
+      return res.status(200).json({ message: FORGOT_PASSWORD_MESSAGE });
     }
 
     const secret = process.env.JWT_SECRET_KEY + user.password;
@@ -76,10 +88,8 @@ const sendForgotPasswordLink = asyncHandler(async (req, res) => {
     };
 
     try {
-      const info = await transporter.sendMail(mailOptions);
-      return res
-        .status(200)
-        .json({ message: 'Reset link sent', id: info.messageId });
+      await transporter.sendMail(mailOptions);
+      return res.status(200).json({ message: FORGOT_PASSWORD_MESSAGE });
     } catch (error) {
       console.log(error);
       if (process.env.NODE_ENV !== 'production') {
@@ -129,12 +139,17 @@ const resetPassword = asyncHandler(async (req, res) => {
 
     user.password = req.body.password;
     await user.save();
-
-    return res.status(200).json({ message: 'Password updated successfully' });
   } catch (error) {
     console.log(error);
     return res.status(400).json({ message: 'Invalid or expired token' });
   }
+
+  // Every existing session must re-authenticate with the new password
+  await revokeAllForUser(RefreshToken, user._id).catch((revokeErr) => {
+    console.error('Failed to revoke sessions after password reset:', revokeErr);
+  });
+
+  return res.status(200).json({ message: 'Password updated successfully' });
 });
 
 module.exports = {

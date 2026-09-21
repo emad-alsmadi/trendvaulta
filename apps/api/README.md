@@ -1,127 +1,118 @@
-# Craftify API
+# TrendVaulta API (`apps/api`)
 
-A RESTful backend API for Craftify built with **Node.js**, **Express**, and **MongoDB (Mongoose)**.
+REST backend for the TrendVaulta retail e-commerce platform (beauty / fashion / lifestyle). Serves the Next.js storefront (`apps/website`) and the Vite admin dashboard (`apps/dashboard`).
 
-This project follows a clean structure with **Routes** for HTTP definitions, **Controllers** for business logic, and **Middleware** for authentication/authorization.
+**Stack:** Node.js 20+, Express 5, MongoDB + Mongoose, Joi validation, JWT auth, bcryptjs, Stripe, Nodemailer, Helmet. No build step.
 
-## Features
+## Run
 
-- Authentication
-  - Register
-  - Login (JWT)
-- Role-based access control (RBAC)
-  - Roles stored on the user as `roles: ['user', 'admin', 'moderator']`
-  - Permission checks via middleware
-- Templates CRUD
-- Creators CRUD
-- Users management
+Install once from the repo root (npm workspaces), then in `apps/api`:
 
-## Tech Stack
-
-- Node.js / Express
-- MongoDB + Mongoose
-- JWT Authentication
-- Joi validation
-- express-async-handler
-
-## Project Structure
-
+```bash
+npm run dev     # nodemon app.js
+npm start       # node app.js
+npm test        # node --test app.test.js utils/*.test.js middlewares/*.test.js services/*.test.js
 ```
 
-craftify-templates-marketplac/
-  controllers/
-  middlewares/
-  models/
-  routes/
-  scripts/
-  app.js
-```
+From the repo root: `npm run dev:api`, `npm run test:api`.
 
-## Environment Variables
+Default port is **3000** (`PORT` env). Base path is `/api`.
 
-Create a `.env` file in the project root:
+## Environment
 
-```
-PORT=3000
-MONGO_URL=mongodb://localhost/bookStoreDB
-JWT_SECRET_KEY=your_secret_key
-```
+Copy `.env.example` to `.env` — it documents every variable the code reads. Summary:
 
-## Installation
+| Group | Variables |
+|---|---|
+| Database | `MONGO_URL`, `DB_NAME` (`MONGO_TEST_URL` for the test suite) |
+| Server | `PORT`, `NODE_ENV` |
+| Auth | `JWT_SECRET_KEY` |
+| CORS / URLs | `FRONTEND_URL`, `DASHBOARD_URL`, `ALLOWED_ORIGINS`, `PUBLIC_FRONTEND_URL`, `CORS_RELAXED` |
+| Rate limits | `RATE_LIMIT_AUTH_MAX`, `RATE_LIMIT_PASSWORD_MAX`, `RATE_LIMIT_REFRESH_MAX`, `RATE_LIMIT_CHECKOUT_MAX`, `RATE_LIMIT_COUPON_MAX`, `RATE_LIMIT_VERIFY_MAX`, `RATE_LIMIT_QUOTE_MAX` |
+| Stripe | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `AUTO_REFUND_ON_CANCEL` |
+| Shipping | `SHIPPING_FLAT_USD` |
+| Email | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `FROM_EMAIL` (fallbacks: `EMAIL_USER`, `EMAIL_PASSWORD` / `EMAIL_PASS`) |
+| Dev only | `DEV_ALLOW_DIRECT_ORDERS`, `ALLOW_DIRECT_ORDERS` |
 
-```
-npm install
-```
-
-## Run (Development)
+## Project structure
 
 ```
-npm start
+apps/api/
+├── app.js            # Express app: CORS, Helmet, Stripe webhook (raw body), route mounts, error handler
+├── config/db.js      # Mongoose connection
+├── routes/           # One router per resource, all mounted under /api
+├── controllers/      # Business logic and response contracts
+├── models/           # Mongoose schemas + Joi validators
+├── middlewares/      # verfiyToken (JWT), checkRolePermission (RBAC), rateLimit, cors, logger
+├── services/         # stripe.service.js
+├── utils/            # commerce (totals/shipping), mail, order transitions, serializers
+├── tests/            # Integration test setup (mongodb-memory-server)
+├── seeder.js         # Catalog seeder (see SEEDER_README.md)
+└── data.js           # Seed data generators
 ```
 
-The server will start on:
+Conventions: JWT via `Authorization: Bearer <token>` (`verfiyToken`, existing spelling); admin routes add `checkRolePermission('<resource>:<action>')`; responses are `{ message, data?, errors? }` (confirm per controller).
 
-- `http://localhost:3000`
+## Health
 
-## API Endpoints (Summary)
+- `GET /api/trendvaulta` — liveness (no DB)
+- `GET /api/ready` — readiness; `503` until Mongo is connected (used as `healthCheckPath` in `render.yaml`)
 
-Base path: `/api`
+## Stripe webhook
 
-### Auth
+`POST /api/webhooks/stripe` is mounted in `app.js` **before** `express.json()` with a raw body; configure the endpoint in Stripe with `STRIPE_WEBHOOK_SECRET`. Events are de-duplicated via `models/StripeWebhookEvent.js`.
 
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `GET /api/auth/profile` (protected)
+## Route groups
 
-### Templates
+Derived from `routes/*.js` (all prefixed with `/api`). "admin" = JWT + role permission.
 
-- `GET /api/templates`
-- `GET /api/templates/:id`
-- `POST /api/templates` (protected: `templates:write`)
-- `PUT /api/templates/:id` (protected: `templates:write`)
-- `DELETE /api/templates/:id` (protected: `templates:delete`)
+| Router | Endpoints |
+|---|---|
+| `auth.js` | `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout` |
+| `profile.js` | `GET /auth/profile`, `PUT /auth/profile` (JWT) |
+| `password.js` | `POST /password/forgot-password`, `POST /password/reset-password/:userId/:token` |
+| `users.js` | `GET /users`, `GET /users/:id`, `PUT /users/:id`, `DELETE /users/:id` (admin `users:*`) |
+| `products.js` | `GET /products`, `GET /products/:id`; `POST /products`, `PUT /products/:id`, `DELETE /products/:id` (admin `products:*`) |
+| `brands.js` | `GET /brands`, `GET /brands/:id`; `POST /brands`, `PUT /brands/:id`, `DELETE /brands/:id` (admin `brands:*`) |
+| `productQA.js` | `GET /products/:id/qa`, `POST /products/:id/qa`, `POST /qa/:id/helpful`; `GET /qa/admin`, `GET /qa/:id`, `PUT /qa/:id/answer`, `DELETE /qa/:id` (admin `content:*`) |
+| `bundles.js` | `GET /products/:id/bundles`; `GET /bundles/admin`, `GET /bundles/:id`, `POST /bundles`, `PUT /bundles/:id`, `DELETE /bundles/:id` (admin) |
+| `orders.js` | `POST /orders`, `GET /orders/my`, `GET /orders/:id` (JWT); `GET /orders`, `PATCH /orders/:id/status` (admin `orders:*`) |
+| `payments.js` | `GET /payments/setup-status`, `POST /payments/quote`; `POST /payments/checkout-session`, `POST /payments/verify-payment` (JWT) |
+| `wishlist.js` | `POST /wishlist/:productId`, `DELETE /wishlist/:productId`, `GET /wishlist/my`, `GET /wishlist/check/:productId` (JWT) |
+| `recentlyViewed.js` | `POST /me/recently-viewed`, `GET /me/recently-viewed` (JWT) |
+| `reviews.js` | `GET /reviews/product/:productId`; `POST /reviews`, `PUT /reviews/:reviewId`, `DELETE /reviews/:reviewId`, `GET /reviews/my`, `GET /reviews/my/:productId` (JWT); `GET /reviews/admin`, `DELETE /reviews/admin/:reviewId` (admin `reviews:*`) |
+| `coupons.js` | `POST /coupons/validate`, `GET /coupons/code/:code`; `GET /coupons`, `GET /coupons/:id`, `POST /coupons`, `PUT /coupons/:id`, `DELETE /coupons/:id`, `POST /coupons/:id/use` (admin `coupons:*`) |
+| `offers.js` | `GET /offers`; admin CRUD (`offers:*`) |
+| `recommendations.js` | `GET /recommendations` |
+| `giftFinder.js` | `GET /storefront/gift-finder`; `GET /gift-finder/admin`, `GET /gift-finder/:id`, `POST /gift-finder`, `PUT /gift-finder/:id`, `DELETE /gift-finder/:id` (admin) |
+| `lookbooks.js` | `GET /storefront/lookbooks`; `GET /lookbooks/admin`, `GET /lookbooks/:id`, `POST /lookbooks`, `PUT /lookbooks/:id`, `DELETE /lookbooks/:id` (admin) |
+| `helpTopics.js` | `GET /storefront/help`; `GET /help-topics/admin`, `GET /help-topics/:id`, `POST /help-topics`, `PUT /help-topics/:id`, `DELETE /help-topics/:id` (admin) |
+| `storefrontTestimonials.js` | `GET /storefront/testimonials`; `GET /testimonials/admin`, `GET /testimonials/:id`, `POST /testimonials`, `PUT /testimonials/:id`, `DELETE /testimonials/:id` (admin) |
+| `storefrontModules.js` | `GET /storefront/modules`; `GET /storefront-modules/admin`, `GET /storefront-modules/:id`, `POST /storefront-modules`, `PUT /storefront-modules/:id`, `DELETE /storefront-modules/:id` (admin) |
+| `content.js` | `GET /content`; `GET /content/admin`, `GET /content/:id`, `POST /content`, `PUT /content/:id`, `DELETE /content/:id` (admin) |
+| `storefrontHome.js` | `GET /storefront/home` |
+| `storefrontCategories.js` | `GET /storefront/categories` |
+| `storefrontTrust.js` | `GET /storefront/trust` |
+| `storefrontWhyChooseUs.js` | `GET /storefront/why-choose-us` |
+| `adminStats.js` | `GET /admin/stats` (admin) |
+| `trendvaulta.js` | `GET /trendvaulta`, `GET /ready` |
 
-### Creators
+Storefront-content admin routes (bundles, gift-finder, lookbooks, help-topics, testimonials, storefront-modules, content, Q&A) use the `content:*` permission.
 
-- `GET /api/creators`
-- `GET /api/creators/:id`
-- `POST /api/creators` (protected: `creators:write`)
-- `PUT /api/creators/:id` (protected: `creators:write`)
-- `DELETE /api/creators/:id` (protected: `creators:delete`)
+## Seeding
 
-### Users
-
-- `GET /api/users` (protected: `users:read`)
-- `GET /api/users/:id` (protected: `users:read`)
-- `PUT /api/users/:id` (protected: `users:write`)
-- `DELETE /api/users/:id` (protected: `users:delete`)
-
-## Database Migration (Old `isAdmin` -> New `roles`)
-
-If you have existing data using `isAdmin`, you can migrate to the new `roles` system:
-
-- Migrate users:
-
-```
-npm run migrate:users
-```
-
-- Migrate creators:
-
-```
-npm run migrate:creators
-```
-
-- Migrate all:
-
-```
-npm run migrate:all
+```bash
+node seeder.js -import        # 50 products per category (~300)
+node seeder.js -import 100    # custom volume
+node seeder.js -remove        # delete seeded data
+node seeder.js -help
 ```
 
-## Notes
+See `SEEDER_README.md` for categories and generated fields. Uses `MONGO_URL` from `.env`.
 
-- Ensure MongoDB is running locally before starting the server.
-- After changing roles/permissions, re-login to get a fresh JWT that contains updated `roles`.
+## Deploy
+
+`render.yaml` is a Render Blueprint (`rootDir: apps/api`, `healthCheckPath: /api/ready`); set `sync: false` secrets in the Render dashboard. Use MongoDB Atlas for production data.
 
 ## License
 

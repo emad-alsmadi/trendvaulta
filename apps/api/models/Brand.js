@@ -59,10 +59,10 @@ const validateCreateBrand = (obj) => {
   const schema = Joi.object({
     name: Joi.string().min(2).max(100).required(),
     slug: Joi.string().trim().lowercase().required(),
-    description: Joi.string().max(500),
-    logo: Joi.string().trim(),
-    website: Joi.string().trim().uri(),
-    country: Joi.string().trim(),
+    description: Joi.string().max(500).allow(''),
+    logo: Joi.string().trim().allow(''),
+    website: Joi.string().trim().uri().allow(''),
+    country: Joi.string().trim().allow(''),
     isActive: Joi.boolean().default(true),
     featured: Joi.boolean().default(false),
   });
@@ -74,10 +74,10 @@ const validateUpdateBrand = (obj) => {
   const schema = Joi.object({
     name: Joi.string().min(2).max(100),
     slug: Joi.string().trim().lowercase(),
-    description: Joi.string().max(500),
-    logo: Joi.string().trim(),
-    website: Joi.string().trim().uri(),
-    country: Joi.string().trim(),
+    description: Joi.string().max(500).allow(''),
+    logo: Joi.string().trim().allow(''),
+    website: Joi.string().trim().uri().allow(''),
+    country: Joi.string().trim().allow(''),
     isActive: Joi.boolean(),
     featured: Joi.boolean(),
   });

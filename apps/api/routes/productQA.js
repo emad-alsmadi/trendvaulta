@@ -9,7 +9,7 @@ const {
   markHelpful,
   deleteProductQA,
 } = require('../controllers/productQA.controller');
-const { verfiyToken } = require('../middlewares/auth');
+const { verfiyToken } = require('../middlewares/verfiyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 
 // Public endpoint - get approved Q&A for a product

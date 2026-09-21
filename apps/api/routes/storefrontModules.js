@@ -8,7 +8,7 @@ const {
   updateStorefrontModule,
   deleteStorefrontModule,
 } = require('../controllers/storefrontModule.controller');
-const { verfiyToken } = require('../middlewares/auth');
+const { verfiyToken } = require('../middlewares/verfiyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 
 // Public endpoint - get active modules for storefront

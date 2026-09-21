@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler');
+const { parsePagination } = require('../utils/pagination');
 const {
   Coupon,
   validateCreateCoupon,
@@ -18,8 +19,10 @@ const {
 const getAllCoupons = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10 } = req.query;
 
-  const pageNum = Math.max(1, parseInt(page, 10));
-  const limitNum = Math.max(1, parseInt(limit, 10));
+  const { page: pageNum, limit: limitNum } = parsePagination(
+    { page, limit },
+    { defaultLimit: 10, maxLimit: 100 },
+  );
   const skip = (pageNum - 1) * limitNum;
 
   const [coupons, total] = await Promise.all([

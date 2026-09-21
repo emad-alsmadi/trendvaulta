@@ -8,7 +8,7 @@ const {
   updateGiftFinderConfig,
   deleteGiftFinderConfig,
 } = require('../controllers/giftFinder.controller');
-const { verfiyToken } = require('../middlewares/auth');
+const { verfiyToken } = require('../middlewares/verfiyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 
 // Public endpoint - get active gift finder config for storefront

@@ -13,6 +13,8 @@ const ROLE_PERMISSIONS = {
     'reviews:read',
     'reviews:delete',
     'users:read',
+    'content:read',
+    'content:write',
   ],
 
   admin: [
@@ -36,6 +38,9 @@ const ROLE_PERMISSIONS = {
     'users:read',
     'users:write',
     'users:delete',
+    'content:read',
+    'content:write',
+    'content:delete',
   ],
 };
 

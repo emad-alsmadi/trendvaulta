@@ -5,11 +5,17 @@ const cors = require('cors');
 require('dotenv').config();
 const { connectToDB } = require('./config/db');
 const { createCorsOriginDelegate } = require('./middlewares/corsAllowlist');
+const { mapErrorResponse } = require('./utils/errorResponse');
+const { validateEnv } = require('./config/env');
 
 const paymentController = require('./controllers/payment.controller');
 
 // Init App
 const app = express();
+
+// Behind a single reverse proxy (Render/Nginx): trust exactly one hop so
+// req.ip reflects the client and cannot be spoofed via X-Forwarded-For.
+app.set('trust proxy', 1);
 
 app.post(
   '/api/webhooks/stripe',
@@ -87,6 +93,7 @@ app.get('/api/', (_req, res) => {
       'GET /api/brands',
       'POST /api/auth/login',
       'GET /api/orders/my',
+      'POST /api/payments/quote',
       'POST /api/payments/checkout-session',
     ],
   });
@@ -115,16 +122,11 @@ app.use((err, req, res, next) => {
     });
   }
 
-  const statusCode =
-    err.statusCode &&
-    Number(err.statusCode) >= 400 &&
-    Number(err.statusCode) < 600
-      ? Number(err.statusCode)
-      : res.statusCode === 200
-        ? 500
-        : res.statusCode;
-  console.log(err);
-  res.status(statusCode).json({ message: err.message });
+  const { statusCode, body } = mapErrorResponse(err, res.statusCode);
+  if (statusCode >= 500) {
+    console.error(err);
+  }
+  res.status(statusCode).json(body);
 });
 
 // Running Server
@@ -132,6 +134,7 @@ const port = process.env.PORT || 3000;
 
 async function start() {
   try {
+    validateEnv();
     // function Connnection To Database
     await connectToDB();
 
@@ -141,12 +144,16 @@ async function start() {
       );
     });
   } catch (err) {
-    console.error('Fatal: failed to start server due to DB connection error');
+    console.error('Fatal: server failed to start (invalid environment or database unreachable)');
     console.error(err);
     process.exit(1);
   }
 }
 
-start();
+// Only boot when executed directly (node app.js); tests require() the app
+// to verify it loads without opening a port or touching the database.
+if (require.main === module) {
+  start();
+}
 
 module.exports = app;

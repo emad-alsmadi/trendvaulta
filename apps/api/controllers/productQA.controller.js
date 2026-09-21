@@ -1,6 +1,7 @@
 const asyncHandler = require('express-async-handler');
+const { parsePagination } = require('../utils/pagination');
 const ProductQA = require('../models/ProductQA');
-const Product = require('../models/Product');
+const { Product } = require('../models/Product');
 
 /**
  * Get Q&A for a product (public)
@@ -21,8 +22,8 @@ const getProductQA = asyncHandler(async (req, res) => {
     product: id,
     approved: true,
   })
-    .populate('askedBy', 'name email')
-    .populate('answeredBy', 'name email')
+    .populate('askedBy', 'username')
+    .populate('answeredBy', 'username')
     .sort({ helpful: -1, createdAt: -1 })
     .lean();
 
@@ -39,8 +40,10 @@ const getProductQA = asyncHandler(async (req, res) => {
 const getAllProductQA = asyncHandler(async (req, res) => {
   const { page = 1, limit = 50, productId, approved } = req.query;
 
-  const pageNum = Math.max(1, parseInt(page, 10));
-  const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10)));
+  const { page: pageNum, limit: limitNum } = parsePagination(
+    { page, limit },
+    { defaultLimit: 50, maxLimit: 100 },
+  );
   const skip = (pageNum - 1) * limitNum;
 
   const query = {};
@@ -50,8 +53,8 @@ const getAllProductQA = asyncHandler(async (req, res) => {
   const [qa, total] = await Promise.all([
     ProductQA.find(query)
       .populate('product', 'title')
-      .populate('askedBy', 'name email')
-      .populate('answeredBy', 'name email')
+      .populate('askedBy', 'username email')
+      .populate('answeredBy', 'username email')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limitNum)
@@ -79,8 +82,8 @@ const getProductQAById = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const qa = await ProductQA.findById(id)
     .populate('product', 'title')
-    .populate('askedBy', 'name email')
-    .populate('answeredBy', 'name email')
+    .populate('askedBy', 'username email')
+    .populate('answeredBy', 'username email')
     .lean();
 
   if (!qa) {
@@ -121,7 +124,7 @@ const createProductQuestion = asyncHandler(async (req, res) => {
 
   const populatedQA = await ProductQA.findById(qa._id)
     .populate('product', 'title')
-    .populate('askedBy', 'name email')
+    .populate('askedBy', 'username email')
     .lean();
 
   res.status(201).json({
@@ -154,8 +157,8 @@ const answerProductQuestion = asyncHandler(async (req, res) => {
 
   const populatedQA = await ProductQA.findById(qa._id)
     .populate('product', 'title')
-    .populate('askedBy', 'name email')
-    .populate('answeredBy', 'name email')
+    .populate('askedBy', 'username email')
+    .populate('answeredBy', 'username email')
     .lean();
 
   res.status(200).json({

@@ -8,7 +8,7 @@ const {
   updateLookbook,
   deleteLookbook,
 } = require('../controllers/lookbook.controller');
-const { verfiyToken } = require('../middlewares/auth');
+const { verfiyToken } = require('../middlewares/verfiyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 
 // Public endpoint - get active lookbooks for storefront

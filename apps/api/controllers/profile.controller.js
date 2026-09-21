@@ -2,6 +2,7 @@ const asyncHandler = require('express-async-handler');
 const { verfiyToken } = require('../middlewares/verfiyToken');
 const { User } = require('../models/User');
 const bcrypt = require('bcryptjs');
+const { getUserPermissions } = require('../middlewares/rolePermissions');
 
 /**
  * @desc Get current user profile
@@ -22,7 +23,7 @@ const getProfile = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     user,
-    permissions: req.userPermissions || [],
+    permissions: getUserPermissions(user.roles || ['user']),
   });
 });
 

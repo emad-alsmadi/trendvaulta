@@ -2,14 +2,22 @@ const express = require('express');
 const router = express.Router();
 
 const { verfiyToken } = require('../middlewares/verfiyToken');
-const { checkoutRateLimit } = require('../middlewares/rateLimit');
+const {
+  checkoutRateLimit,
+  verifyPaymentRateLimit,
+  quoteRateLimit,
+} = require('../middlewares/rateLimit');
 const {
   getPaymentsSetupStatus,
+  quoteOrder,
   createCheckoutSession,
   verifyPaymentStatus,
 } = require('../controllers/payment.controller');
 
 router.get('/payments/setup-status', getPaymentsSetupStatus);
+
+// Public: price a cart server-side (no order is created)
+router.post('/payments/quote', quoteRateLimit, quoteOrder);
 
 router.post(
   '/payments/checkout-session',
@@ -20,7 +28,7 @@ router.post(
 
 router.post(
   '/payments/verify-payment',
-  checkoutRateLimit,
+  verifyPaymentRateLimit,
   verfiyToken,
   verifyPaymentStatus,
 );

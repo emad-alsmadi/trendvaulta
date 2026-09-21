@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { verfiyToken } = require('../middlewares/auth');
+const { verfiyToken } = require('../middlewares/verfiyToken');
 const {
   trackRecentlyViewed,
   getRecentlyViewed,

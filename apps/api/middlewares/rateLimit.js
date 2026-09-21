@@ -3,11 +3,9 @@
  * Suitable for single-instance API; replace with shared store for multi-instance.
  */
 
+// req.ip is resolved by Express from `trust proxy` (see app.js); reading
+// X-Forwarded-For directly would let any client pick its own bucket.
 function getClientKey(req) {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string' && forwarded.length > 0) {
-    return forwarded.split(',')[0].trim();
-  }
   return req.ip || req.socket?.remoteAddress || 'unknown';
 }
 
@@ -93,6 +91,23 @@ const couponValidateRateLimit = rateLimit({
   message: 'Too many coupon validation attempts. Please try again later.',
 });
 
+// Success-page polling: separate bucket so verifying a payment never eats
+// into the shopper's checkout-session quota.
+const verifyPaymentRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.RATE_LIMIT_VERIFY_MAX) || 120,
+  keyPrefix: 'verify',
+  message: 'Too many payment verification attempts. Please try again later.',
+});
+
+// Public cart/checkout quotes (no auth): totals + stock/price drift warnings.
+const quoteRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.RATE_LIMIT_QUOTE_MAX) || 120,
+  keyPrefix: 'quote',
+  message: 'Too many quote requests. Please try again later.',
+});
+
 // Higher ceiling than authRateLimit: with a 15-minute access token, every
 // active user legitimately calls this every ~14 minutes, and many users can
 // share one IP behind NAT/a corporate proxy.
@@ -109,6 +124,8 @@ module.exports = {
   authRateLimit,
   passwordRateLimit,
   checkoutRateLimit,
+  verifyPaymentRateLimit,
+  quoteRateLimit,
   couponValidateRateLimit,
   refreshRateLimit,
 };

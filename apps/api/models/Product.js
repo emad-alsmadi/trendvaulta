@@ -217,6 +217,9 @@ const ProductSchema = new mongoose.Schema(
 
 ProductSchema.index({ salesCount: -1, reviewCount: -1, createdAt: -1 });
 ProductSchema.index({ featured: 1, isActive: 1 });
+ProductSchema.index({ isActive: 1, category: 1, price: 1 });
+ProductSchema.index({ isActive: 1, brand: 1 });
+ProductSchema.index({ isActive: 1, createdAt: -1 });
 
 const Product = mongoose.model('Product', ProductSchema);
 

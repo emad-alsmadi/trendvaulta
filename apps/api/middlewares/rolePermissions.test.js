@@ -25,10 +25,10 @@ describe('ROLE_PERMISSIONS map', () => {
 
   it('admin has write+delete on every commerce resource', () => {
     const admin = ROLE_PERMISSIONS.admin;
-    for (const resource of ['products', 'brands', 'coupons', 'offers', 'orders', 'reviews', 'users']) {
+    for (const resource of ['products', 'brands', 'coupons', 'offers', 'orders', 'reviews', 'users', 'content']) {
       assert.ok(admin.includes(`${resource}:read`), `admin missing ${resource}:read`);
     }
-    for (const resource of ['products', 'brands', 'coupons', 'offers', 'reviews', 'users']) {
+    for (const resource of ['products', 'brands', 'coupons', 'offers', 'reviews', 'users', 'content']) {
       assert.ok(admin.includes(`${resource}:delete`), `admin missing ${resource}:delete`);
     }
   });

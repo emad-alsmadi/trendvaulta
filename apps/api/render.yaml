@@ -2,15 +2,16 @@ services:
   # TrendVaulta Backend API
   - type: web
     name: trendvaulta-api
-    env: node
     plan: free
     region: oregon
     runtime: node
-    # If this Blueprint is applied from the monorepo root, uncomment:
-    # rootDir: apps/api
+    # Blueprint is applied from the monorepo root (npm workspaces).
+    rootDir: apps/api
     buildCommand: npm install
     startCommand: npm start
     autoDeploy: true
+    # Readiness: 200 only once Mongo is connected (routes/trendvaulta.js)
+    healthCheckPath: /api/ready
     # Environment Variables (set secrets in Render Dashboard)
     envVars:
       - key: NODE_ENV
@@ -25,29 +26,57 @@ services:
         sync: false
       - key: JWT_EXPIRE
         value: 30d
-      - key: EMAIL_HOST
-        value: smtp.gmail.com
-      - key: EMAIL_PORT
-        value: 587
-      - key: EMAIL_USER
-        sync: false
-      - key: EMAIL_PASS
-        sync: false
-      - key: FROM_EMAIL
-        value: noreply@trendvaulta.com
-      - key: FROM_NAME
-        value: TrendVaulta
+      # CORS / redirect origins (middlewares/cors.js, services/stripe.service.js)
       - key: FRONTEND_URL
         sync: false
       - key: DASHBOARD_URL
         sync: false
       - key: ALLOWED_ORIGINS
         sync: false
+      # Fallback storefront URL for Stripe Checkout redirects when FRONTEND_URL is unset
+      - key: PUBLIC_FRONTEND_URL
+        sync: false
+      # Rate limiting (middlewares/rateLimit.js) — requests per IP per window
+      - key: RATE_LIMIT_AUTH_MAX
+        value: 30
+      - key: RATE_LIMIT_PASSWORD_MAX
+        value: 10
+      - key: RATE_LIMIT_REFRESH_MAX
+        value: 120
+      - key: RATE_LIMIT_CHECKOUT_MAX
+        value: 40
+      - key: RATE_LIMIT_COUPON_MAX
+        value: 60
+      - key: RATE_LIMIT_VERIFY_MAX
+        value: 120
+      - key: RATE_LIMIT_QUOTE_MAX
+        value: 120
+      # Shipping (utils/commerce.js)
+      - key: SHIPPING_FLAT_USD
+        value: 5
+      # Email: the API reads SMTP_* (see controllers/password.controller.js, utils/mail.js)
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_SECURE
+        value: "false"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: FROM_EMAIL
+        sync: false
+      # Stripe
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
+      - key: AUTO_REFUND_ON_CANCEL
+        value: "true"
 
-# TrendVaulta  notes:
-# - Liveness: GET /api/trendvaulta
-# Database: MongoDB Atlas (external) — set MONGO_URL in the Render dashboard
+# TrendVaulta notes:
+# - Liveness:  GET /api/trendvaulta (no DB)
+# - Readiness: GET /api/ready (503 until Mongo is connected)
+# - Stripe webhook: POST /api/webhooks/stripe (raw body) — set STRIPE_WEBHOOK_SECRET
+# - Database: MongoDB Atlas (external) — set MONGO_URL in the Render dashboard

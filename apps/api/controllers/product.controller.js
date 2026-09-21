@@ -6,6 +6,7 @@ const {
   resolveProductBadges,
 } = require('../models/Product');
 const { parsePagination } = require('../utils/pagination');
+const { normalizeSearchTerm } = require('../utils/search');
 
 /**
  * Get all products with filtering, sorting and pagination.
@@ -83,10 +84,11 @@ const getAllProducts = asyncHandler(async (req, res) => {
     query.featured = true;
   }
   
-  if (q) {
+  const searchTerm = normalizeSearchTerm(q);
+  if (searchTerm) {
     query.$or = [
-      { title: { $regex: q, $options: 'i' } },
-      { description: { $regex: q, $options: 'i' } },
+      { title: { $regex: searchTerm, $options: 'i' } },
+      { description: { $regex: searchTerm, $options: 'i' } },
     ];
   }
 

@@ -7,8 +7,7 @@
     "start": "node app.js",
     "dev": "nodemon app.js",
     "build": "echo 'No build step required for Express backend'",
-    "test": "node --test utils/pagination.test.js",
-    "test:all": "node --test utils/**/*.test.js middlewares/**/*.test.js"
+    "test": "node --test app.test.js utils/*.test.js middlewares/*.test.js services/*.test.js"
   },
   "author": "",
   "license": "ISC",
@@ -26,6 +25,8 @@
     "stripe": "^17.7.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.11"
+    "mongodb-memory-server": "^11.2.0",
+    "nodemon": "^3.1.11",
+    "supertest": "^7.2.2"
   }
 }

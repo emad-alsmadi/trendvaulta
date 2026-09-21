@@ -4,6 +4,8 @@ const {
   validateCreateBrand,
   validateUpdateBrand,
 } = require('../models/Brand');
+const mongoose = require('mongoose');
+const { normalizeSearchTerm } = require('../utils/search');
 
 /**
  * Get all brands with filtering, sorting and pagination.
@@ -14,9 +16,11 @@ const {
  * - page/limit: pagination
  * - sort: comma-separated fields, prefix with '-' for desc
  * - featured: show only featured brands
+ * - includeInactive: admin/moderator only — include inactive brands
+ *   (optionally narrowed with isActive=true|false)
  *
  * @route GET /api/brands
- * @access Public
+ * @access Public (staff may pass includeInactive)
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  * @returns {Promise<void>} JSON containing data and meta
@@ -29,9 +33,22 @@ const getAllBrands = asyncHandler(async (req, res) => {
     limit = 20,
     sort = 'name',
     featured,
+    includeInactive,
+    isActive,
   } = req.query;
 
-  const query = { isActive: true };
+  const isStaff =
+    Array.isArray(req.user?.roles) &&
+    req.user.roles.some((r) => r === 'admin' || r === 'moderator');
+
+  const query = {};
+  if (isStaff && (includeInactive === 'true' || includeInactive === '1')) {
+    if (isActive === 'true' || isActive === 'false') {
+      query.isActive = isActive === 'true';
+    }
+  } else {
+    query.isActive = true;
+  }
   
   if (country) {
     query.country = country;
@@ -41,10 +58,11 @@ const getAllBrands = asyncHandler(async (req, res) => {
     query.featured = true;
   }
   
-  if (q) {
+  const searchTerm = normalizeSearchTerm(q);
+  if (searchTerm) {
     query.$or = [
-      { name: { $regex: q, $options: 'i' } },
-      { description: { $regex: q, $options: 'i' } },
+      { name: { $regex: searchTerm, $options: 'i' } },
+      { description: { $regex: searchTerm, $options: 'i' } },
     ];
   }
 
@@ -96,12 +114,12 @@ const getAllBrands = asyncHandler(async (req, res) => {
  * @returns {Promise<void>} JSON brand document
  */
 const getBrandById = asyncHandler(async (req, res) => {
-  const brand = await Brand.findOne({
-    $or: [
-      { _id: req.params.id },
-      { slug: req.params.id },
-    ],
-  });
+  const idOrSlug = String(req.params.id || '').trim();
+  const brand = await Brand.findOne(
+    mongoose.isValidObjectId(idOrSlug)
+      ? { $or: [{ _id: idOrSlug }, { slug: idOrSlug }] }
+      : { slug: idOrSlug },
+  );
 
   if (!brand) {
     return res.status(404).json({ message: 'Brand not found' });

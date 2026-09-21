@@ -173,47 +173,189 @@ async function buildNormalizedOrderLines(Product, items) {
   return { normalizedItems, itemsPrice };
 }
 
-async function decrementStockForPaidOrder(Product, order) {
-  for (const it of order.items || []) {
-    const productId = it.productId;
-    const qty = Number(it.qty);
-    if (!productId || !(qty > 0)) continue;
+/**
+ * Tolerant variant of buildNormalizedOrderLines for cart/checkout quotes.
+ * Never throws on stock/availability problems: every known product yields a
+ * line (with `available`) and a warning; unknown ids yield a warning only.
+ * itemsPrice counts only the purchasable quantity (min(qty, available)).
+ * @returns {Promise<{ lines: Array, itemsPrice: number, warnings: Array }>}
+ */
+async function quoteOrderLines(Product, items) {
+  const productIds = items.map((i) => i.productId);
+  const products = await Product.find({ _id: { $in: productIds } });
+  const productsById = new Map(products.map((p) => [String(p._id), p]));
 
-    const product = await Product.findById(productId);
-    if (!product) continue;
+  const lines = [];
+  const warnings = [];
 
-    const hasVariants =
-      Array.isArray(product.variants) && product.variants.length > 0;
-
-    if (hasVariants && it.variant) {
-      const matched = matchVariant(product, it.variant);
-      if (!matched || Number(matched.stock ?? 0) < qty) {
-        const err = new Error(`Insufficient stock to fulfill ${product.title}`);
-        err.statusCode = 409;
-        throw err;
-      }
-      matched.stock = Number(matched.stock) - qty;
-      // Keep product.stock roughly in sync as sum of variants when present
-      product.stock = product.variants.reduce(
-        (s, v) => s + Number(v.stock || 0),
-        0,
-      );
-      await product.save();
-    } else {
-      const updated = await Product.findOneAndUpdate(
-        { _id: productId, stock: { $gte: qty } },
-        { $inc: { stock: -qty } },
-        { new: true },
-      );
-      if (!updated) {
-        const err = new Error(`Insufficient stock to fulfill order item`);
-        err.statusCode = 409;
-        throw err;
-      }
+  for (const i of items) {
+    const productId = String(i.productId);
+    const p = productsById.get(productId);
+    if (!p) {
+      warnings.push({
+        productId,
+        code: 'unavailable',
+        message: 'This product is no longer available',
+      });
+      continue;
     }
+
+    const qty = Math.max(1, Number(i.qty) || 1);
+    const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
+    const matchedVariant = matchVariant(p, i.variant);
+    const price = resolveUnitPrice(p, matchedVariant);
+    let available = resolveAvailableStock(p, matchedVariant);
+
+    if (p.isActive === false) {
+      available = 0;
+      warnings.push({
+        productId,
+        code: 'unavailable',
+        message: `${p.title} is not available right now`,
+        available,
+      });
+    } else if (hasVariants && !matchedVariant) {
+      available = 0;
+      warnings.push({
+        productId,
+        code: 'variant_required',
+        message: `Please choose an option (size/color) for ${p.title}`,
+        available,
+      });
+    } else if (qty > available) {
+      warnings.push({
+        productId,
+        code: 'insufficient_stock',
+        message:
+          available > 0
+            ? `Only ${available} of ${p.title} left in stock`
+            : `${p.title} is out of stock`,
+        available,
+      });
+    }
+
+    if (
+      i.price != null &&
+      Number.isFinite(Number(i.price)) &&
+      Number(i.price) !== price
+    ) {
+      warnings.push({
+        productId,
+        code: 'price_changed',
+        message: `The price of ${p.title} has changed`,
+      });
+    }
+
+    lines.push({
+      productId,
+      title: p.title,
+      price,
+      qty,
+      available,
+      cover: p.cover,
+      variant: matchedVariant
+        ? {
+            size: matchedVariant.size,
+            color: matchedVariant.color,
+            colorCode: matchedVariant.colorCode,
+            sku: matchedVariant.sku,
+          }
+        : i.variant || undefined,
+    });
   }
+
+  const itemsPrice = lines.reduce(
+    (sum, it) => sum + it.price * Math.min(it.qty, Math.max(0, it.available)),
+    0,
+  );
+
+  return { lines, itemsPrice, warnings };
 }
 
+/**
+ * Mongo query conditions selecting the variant element that matchVariant()
+ * would pick for `variant` (same size/color/sku semantics; '' matches unset).
+ */
+function buildVariantMatch(variant) {
+  const match = {};
+  for (const key of ['size', 'color']) {
+    if (variant[key] == null) continue;
+    const value = String(variant[key]);
+    match[key] = value === '' ? { $in: ['', null] } : value;
+  }
+  if (variant.sku) match.sku = String(variant.sku);
+  return match;
+}
+
+function insufficientStockError(title) {
+  const err = new Error(
+    title
+      ? `Insufficient stock to fulfill ${title}`
+      : 'Insufficient stock to fulfill order item',
+  );
+  err.statusCode = 409;
+  return err;
+}
+
+/**
+ * Atomically decrement stock for every paid line. Variant lines use a single
+ * conditional positional update (variant match + stock >= qty), so concurrent
+ * orders can never oversell. On a shortfall, lines already decremented are
+ * restored best-effort and a 409 error is thrown.
+ */
+async function decrementStockForPaidOrder(Product, order) {
+  const applied = [];
+
+  try {
+    for (const it of order.items || []) {
+      const productId = it.productId;
+      const qty = Number(it.qty);
+      if (!productId || !(qty > 0)) continue;
+
+      const product = await Product.findById(productId);
+      if (!product) continue;
+
+      const hasVariants =
+        Array.isArray(product.variants) && product.variants.length > 0;
+
+      let updated;
+      if (hasVariants && it.variant) {
+        updated = await Product.findOneAndUpdate(
+          {
+            _id: productId,
+            variants: {
+              $elemMatch: {
+                ...buildVariantMatch(it.variant),
+                stock: { $gte: qty },
+              },
+            },
+          },
+          // Keep product.stock in sync as sum of variants
+          { $inc: { 'variants.$.stock': -qty, stock: -qty } },
+          { new: true },
+        );
+      } else {
+        updated = await Product.findOneAndUpdate(
+          { _id: productId, stock: { $gte: qty } },
+          { $inc: { stock: -qty } },
+          { new: true },
+        );
+      }
+
+      if (!updated) {
+        throw insufficientStockError(hasVariants ? product.title : '');
+      }
+      applied.push(it);
+    }
+  } catch (err) {
+    if (applied.length > 0) {
+      await restoreStockForCanceledOrder(Product, { items: applied }).catch(
+        () => {},
+      );
+    }
+    throw err;
+  }
+}
 async function incrementCouponUsedCount(couponId) {
   if (!couponId) return null;
   return Coupon.findByIdAndUpdate(
@@ -240,8 +382,9 @@ async function incrementSalesCountForPaidOrder(Product, order) {
 }
 
 /**
- * Restore inventory after a paid order is canceled.
- * Idempotency is enforced by the caller via order.stockRestored.
+ * Restore inventory after a paid order is canceled/refunded.
+ * Idempotency is enforced by the caller via order.stockRestored
+ * (see restoreStockOnce).
  */
 async function restoreStockForCanceledOrder(Product, order) {
   for (const it of order.items || []) {
@@ -256,24 +399,47 @@ async function restoreStockForCanceledOrder(Product, order) {
       Array.isArray(product.variants) && product.variants.length > 0;
 
     if (hasVariants && it.variant) {
-      const matched = matchVariant(product, it.variant);
-      if (matched) {
-        matched.stock = Number(matched.stock || 0) + qty;
-        product.stock = product.variants.reduce(
-          (s, v) => s + Number(v.stock || 0),
-          0,
-        );
-      } else {
-        // Variant no longer matches — restore against product-level stock
-        product.stock = Number(product.stock || 0) + qty;
-      }
-      await product.save();
-    } else {
-      await Product.findByIdAndUpdate(productId, {
-        $inc: { stock: qty },
-      });
+      const updated = await Product.findOneAndUpdate(
+        {
+          _id: productId,
+          variants: { $elemMatch: buildVariantMatch(it.variant) },
+        },
+        { $inc: { 'variants.$.stock': qty, stock: qty } },
+        { new: true },
+      );
+      if (updated) continue;
+      // Variant no longer matches — restore against product-level stock
     }
+
+    await Product.findByIdAndUpdate(productId, {
+      $inc: { stock: qty },
+    });
   }
+}
+
+/**
+ * Claim `stockRestored` with a conditional update so concurrent callers
+ * (admin cancel vs. charge.refunded webhook) restore at most once.
+ * @returns {Promise<boolean>} true when this call restored the stock
+ */
+async function restoreStockOnce(OrderModel, Product, order) {
+  const claimed = await OrderModel.findOneAndUpdate(
+    { _id: order._id, stockDecremented: true, stockRestored: false },
+    { $set: { stockRestored: true } },
+    { new: true },
+  );
+  if (!claimed) return false;
+
+  try {
+    await restoreStockForCanceledOrder(Product, claimed);
+  } catch (err) {
+    await OrderModel.updateOne(
+      { _id: order._id },
+      { $set: { stockRestored: false } },
+    ).catch(() => {});
+    throw err;
+  }
+  return true;
 }
 
 module.exports = {
@@ -284,8 +450,11 @@ module.exports = {
   calculateCouponDiscount,
   loadValidCouponByCode,
   buildNormalizedOrderLines,
+  quoteOrderLines,
+  buildVariantMatch,
   decrementStockForPaidOrder,
   restoreStockForCanceledOrder,
+  restoreStockOnce,
   incrementCouponUsedCount,
   incrementSalesCountForPaidOrder,
   FLAT_SHIPPING_USD,
