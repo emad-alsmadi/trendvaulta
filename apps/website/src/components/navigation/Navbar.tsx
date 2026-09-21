@@ -44,22 +44,22 @@ export const navItems = [
   { href: '/cart', label: 'Cart', icon: ShoppingCart },
 ];
 
-/** Department shortcuts — aligned with homepage demo categories */
+/** Department shortcuts — hrefs use the API's product category enum */
 export const categories = [
   {
     name: 'Beauty',
-    href: '/products?category=beauty',
+    href: '/products?category=makeup',
     subcategories: ['Skincare', 'Makeup', 'Fragrance', 'Tools'],
   },
   {
     name: 'Fashion',
-    href: '/products?category=fashion',
+    href: '/products?category=clothing',
     subcategories: ['Women', 'Men', 'Essentials', 'New'],
   },
   {
-    name: 'Wellness',
-    href: '/products?category=wellness',
-    subcategories: ['Self-care', 'Body', 'Hair', 'Rituals'],
+    name: 'Skincare',
+    href: '/products?category=skincare',
+    subcategories: ['Cleansers', 'Serums', 'Moisturizers', 'Rituals'],
   },
   {
     name: 'Accessories',
@@ -586,9 +586,9 @@ export function Navbar() {
             Today&apos;s offers
           </Link>
           {[
-            { href: '/products?category=beauty', label: 'Beauty' },
-            { href: '/products?category=fashion', label: 'Fashion' },
-            { href: '/products?category=lifestyle', label: 'Lifestyle' },
+            { href: '/products?category=makeup', label: 'Beauty' },
+            { href: '/products?category=clothing', label: 'Fashion' },
+            { href: '/products?category=home', label: 'Home' },
             { href: '/brands', label: 'Brands' },
             { href: '/#gift-finder', label: 'Gift finder' },
             { href: '/help', label: 'Customer service' },

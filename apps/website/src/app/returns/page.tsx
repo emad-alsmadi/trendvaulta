@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Sparkles, RefreshCw } from 'lucide-react';
 import { useContent } from '@/hooks/storefront/contentQuery';
+import { sanitizeHtml } from '@/lib/sanitizeHtml';
 
 /** Returns policy page — API: GET /api/content?type=RETURNS */
 export default function ReturnsPage() {
@@ -46,7 +47,7 @@ export default function ReturnsPage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             className='rounded-2xl border border-stone-200 bg-white p-8'
-            dangerouslySetInnerHTML={{ __html: content.body }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(content.body) }}
           />
         )}
 

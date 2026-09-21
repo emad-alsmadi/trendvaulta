@@ -13,22 +13,6 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'images.pexels.com',
       },
-      {
-        protocol: 'https',
-        hostname: 'images.gr-assets.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'i.gr-assets.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'covers.openlibrary.org',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.example.com',
-      },
     ],
   },
   async rewrites() {

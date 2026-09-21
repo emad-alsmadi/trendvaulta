@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
-import { useCart } from '@/lib/cartStore';
+import { useCart, formatVariantLabel } from '@/lib/cartStore';
 import { FrequentlyBoughtTogether } from '@/components/products/FrequentlyBoughtTogether';
 import { ProductQaSection } from '@/components/products/ProductQaSection';
 import { trackRecentlyViewed } from '@/lib/recentlyViewed';
@@ -80,19 +80,50 @@ export default function ProductDetailPage({
         )
       : 0;
 
+  const hasVariants = Boolean(product.variants && product.variants.length > 0);
+  const variantRequired = hasVariants && !selectedVariant;
+  // Per-variant price/stock; fall back to product-level values.
+  const unitPrice = selectedVariant?.price ?? product.price;
+  const availableStock =
+    hasVariants && selectedVariant
+      ? (selectedVariant.stock ?? product.stock)
+      : product.stock;
+  const outOfStock = availableStock <= 0;
+  const maxQty = Math.max(0, Math.floor(availableStock));
+  const atMax = maxQty > 0 && quantity >= maxQty;
+  const canPurchase = !variantRequired && !outOfStock;
+
   const handleAddToCart = () => {
+    if (!canPurchase) return false;
+    const variant = selectedVariant
+      ? {
+          size: selectedVariant.size,
+          color: selectedVariant.color,
+          colorCode: selectedVariant.colorCode,
+          sku: selectedVariant.sku,
+        }
+      : undefined;
     cart.addToCart({
       productId: product._id,
       title: product.title,
-      price: product.price,
+      price: unitPrice,
       cover: product.cover,
-      qty: quantity,
+      qty: Math.min(quantity, maxQty),
+      variant,
+      maxQty,
     });
+    return true;
   };
 
   const handleBuyNow = () => {
-    handleAddToCart();
+    if (!handleAddToCart()) return;
     window.location.href = '/checkout';
+  };
+
+  const handleSelectVariant = (variant: ProductVariant) => {
+    setSelectedVariant(variant);
+    const stock = variant.stock ?? product.stock;
+    if (stock > 0 && quantity > stock) setQuantity(stock);
   };
 
   const nextImage = () => {
@@ -255,7 +286,7 @@ export default function ProductDetailPage({
             {/* Price */}
             <div className='flex items-baseline gap-3'>
               <span className='text-4xl font-bold text-gray-900'>
-                ${product.price.toFixed(2)}
+                ${unitPrice.toFixed(2)}
               </span>
               {discount > 0 && (
                 <>
@@ -277,23 +308,52 @@ export default function ProductDetailPage({
             {/* Variants */}
             {product.variants && product.variants.length > 0 && (
               <div className='space-y-3'>
-                <h3 className='font-semibold text-gray-900'>Options</h3>
+                <h3 className='font-semibold text-gray-900'>
+                  Options{' '}
+                  <span className='font-normal text-gray-500'>(required)</span>
+                </h3>
                 <div className='flex flex-wrap gap-2'>
-                  {product.variants.map((variant, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setSelectedVariant(variant)}
-                      className={`px-4 py-2 border rounded-lg transition-all ${
-                        selectedVariant === variant
-                          ? 'border-fuchsia-600 bg-fuchsia-50 text-fuchsia-700'
-                          : 'border-gray-300 hover:border-gray-400'
-                      }`}
-                    >
-                      {[variant.size, variant.color].filter(Boolean).join(' / ') ||
-                        `Option ${idx + 1}`}
-                    </button>
-                  ))}
+                  {product.variants.map((variant, idx) => {
+                    const stock = variant.stock ?? product.stock;
+                    const soldOut = stock <= 0;
+                    const label =
+                      [variant.size, variant.color].filter(Boolean).join(' / ') ||
+                      `Option ${idx + 1}`;
+                    return (
+                      <button
+                        key={variant.sku || `${variant.size}-${variant.color}-${idx}`}
+                        type='button'
+                        onClick={() => handleSelectVariant(variant)}
+                        disabled={soldOut}
+                        aria-pressed={selectedVariant === variant}
+                        className={`px-4 py-2 border rounded-lg text-left transition-all ${
+                          selectedVariant === variant
+                            ? 'border-fuchsia-600 bg-fuchsia-50 text-fuchsia-700'
+                            : 'border-gray-300 hover:border-gray-400'
+                        } ${soldOut ? 'cursor-not-allowed opacity-50 line-through' : ''}`}
+                      >
+                        <span className='block text-sm font-semibold'>{label}</span>
+                        <span className='block text-xs text-gray-500'>
+                          ${(variant.price ?? product.price).toFixed(2)}
+                          {soldOut
+                            ? ' · Out of stock'
+                            : stock <= 5
+                              ? ` · Only ${stock} left`
+                              : ''}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
+                {variantRequired ? (
+                  <p className='text-sm text-gray-600'>
+                    Please choose an option to continue.
+                  </p>
+                ) : selectedVariant ? (
+                  <p className='text-sm text-gray-600'>
+                    Selected: {formatVariantLabel(selectedVariant) || 'Option'}
+                  </p>
+                ) : null}
               </div>
             )}
 
@@ -302,8 +362,11 @@ export default function ProductDetailPage({
               <h3 className='font-semibold text-gray-900'>Quantity</h3>
               <div className='flex items-center gap-3'>
                 <button
+                  type='button'
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className='w-10 h-10 border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50 transition-colors'
+                  disabled={quantity <= 1}
+                  aria-label='Decrease quantity'
+                  className='w-10 h-10 border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                 >
                   <Minus className='h-4 w-4' />
                 </button>
@@ -311,15 +374,28 @@ export default function ProductDetailPage({
                   {quantity}
                 </span>
                 <button
-                  onClick={() => setQuantity(quantity + 1)}
-                  className='w-10 h-10 border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50 transition-colors'
+                  type='button'
+                  onClick={() =>
+                    setQuantity(
+                      maxQty > 0 ? Math.min(maxQty, quantity + 1) : quantity + 1,
+                    )
+                  }
+                  disabled={outOfStock || atMax}
+                  aria-label='Increase quantity'
+                  className='w-10 h-10 border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                 >
                   <Plus className='h-4 w-4' />
                 </button>
                 <span className='text-sm text-gray-600'>
-                  {product.stock > 0
-                    ? `${product.stock} in stock`
-                    : 'Out of stock'}
+                  {variantRequired
+                    ? 'Choose an option to see availability'
+                    : outOfStock
+                      ? 'Out of stock'
+                      : atMax
+                        ? `Max ${maxQty}`
+                        : availableStock <= 5
+                          ? `Only ${availableStock} left`
+                          : `${availableStock} in stock`}
                 </span>
               </div>
             </div>
@@ -328,8 +404,9 @@ export default function ProductDetailPage({
             <div className='flex gap-4'>
               <Button
                 size='lg'
-                onClick={handleAddToCart}
-                disabled={product.stock === 0}
+                onClick={() => void handleAddToCart()}
+                disabled={!canPurchase}
+                title={variantRequired ? 'Choose an option first' : undefined}
                 className='flex-1 gap-2'
               >
                 <ShoppingCart className='h-5 w-5' />
@@ -339,7 +416,8 @@ export default function ProductDetailPage({
                 size='lg'
                 variant='outline'
                 onClick={handleBuyNow}
-                disabled={product.stock === 0}
+                disabled={!canPurchase}
+                title={variantRequired ? 'Choose an option first' : undefined}
                 className='flex-1'
               >
                 Buy Now

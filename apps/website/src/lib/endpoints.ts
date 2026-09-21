@@ -31,6 +31,8 @@ export const endpoints = {
     setupStatus: '/payments/setup-status',
     checkoutSession: '/payments/checkout-session',
     verifyPayment: '/payments/verify-payment',
+    /** Server-side cart revalidation + totals — POST /api/payments/quote */
+    quote: '/payments/quote',
   },
   admin: {
     users: {
