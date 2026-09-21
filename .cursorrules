@@ -7,7 +7,7 @@ TrendVaulta is a monorepo retail e-commerce platform for beauty, fashion, and li
 - **Storefront** (`apps/website`): Next.js 16 (App Router), React 19, TypeScript, React Query, Zustand, Tailwind CSS, Framer Motion
 - **Dashboard** (`apps/dashboard`): Vite + React 19, TypeScript, React Query, Zustand, Tailwind CSS, React Router
 - **Backend** (`apps/api`): Express.js, Node.js, MongoDB, Mongoose, Stripe, Nodemailer
-- **Shared packages** (`packages/`): `@trendvaulta/types`, `@trendvaulta/api-client`, `@trendvaulta/ui`
+- **Shared packages** (`packages/`): `@trendvaulta/types`, `@trendvaulta/api-client`
 - **Package Manager**: npm workspaces (root `package.json`)
 
 ## Monorepo Structure
@@ -19,8 +19,7 @@ trendvaulta/
 │   └── dashboard/    # Vite admin dashboard (port 3002)
 ├── packages/
 │   ├── types/
-│   ├── api-client/
-│   └── ui/
+│   └── api-client/
 └── docs/             # Audits, gap analysis, backlog notes
 ```
 
@@ -43,7 +42,7 @@ trendvaulta/
   - `routes/` — Express routes
   - `middlewares/` — Auth, CORS, validation helpers
   - `services/` / `utils/` — Stripe, mail, helpers
-  - `seeders/` — Seed scripts
+  - `seeder.js` + `data.js` — Seed script (see `SEEDER_README.md`)
 
 ## API Integration
 - Storefront: `apps/website/src/lib/api.ts` (+ domain hooks)
@@ -52,7 +51,7 @@ trendvaulta/
 - JWT via `verfiyToken` middleware (note existing spelling)
 - Typical response shape: `{ message, data?, errors? }` (confirm per controller)
 
-## Domain (not templates)
+## Domain
 Primary catalog resources are **products** and **brands**, plus orders, payments, wishlist, reviews, coupons, offers, recommendations, bundles, recently-viewed, gift-finder, lookbooks, and storefront content endpoints.
 
 ## Styling

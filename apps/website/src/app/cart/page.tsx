@@ -15,7 +15,8 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { useCart } from '@/lib/cartStore';
+import { useCart, getCartLineKey, formatVariantLabel } from '@/lib/cartStore';
+import { useCartQuoteSync } from '@/hooks/cart/cartQuoteQuery';
 import { normalizeRemoteImageSrc, remoteCoverLoader } from '@/lib/utils';
 import { useConfirm } from '@/components/confirm/ConfirmProvider';
 import { TrustServiceStrip } from '@/components/home/TrustServiceStrip';
@@ -28,6 +29,19 @@ export default function CartPage() {
   const confirm = useConfirm();
   const items = state.items;
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+
+  // Server revalidation: live stock/price + totals. Falls back to client
+  // subtotal while loading or when the quote endpoint is unavailable.
+  const { quote, notices } = useCartQuoteSync({ items, shippingMethod: 'none' });
+  const itemsPrice = quote?.itemsPrice ?? subtotal;
+  const discountAmount = quote?.discountAmount ?? 0;
+  const shippingPrice = quote?.shippingPrice ?? 0;
+  const taxPrice = quote?.taxPrice ?? 0;
+  const totalPrice = quote?.totalPrice ?? subtotal;
+  const presentKeys = new Set(items.map(getCartLineKey));
+  const removedNotices = Object.entries(notices).filter(
+    ([key]) => !presentKeys.has(key),
+  );
 
   const handleImageError = (productId: string) => {
     setImageErrors((prev) => new Set(prev).add(productId));
@@ -103,6 +117,21 @@ export default function CartPage() {
         </div>
       </div>
 
+      {removedNotices.length > 0 && (
+        <div
+          role='status'
+          className='rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900'
+        >
+          <ul className='space-y-1'>
+            {removedNotices.map(([key, n]) => (
+              <li key={key}>
+                {n.title}: {n.message}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {items.length === 0 ? (
         <div className='space-y-6'>
           <div className='rounded-3xl border border-white/40 bg-white/50 p-8 text-center shadow-sm backdrop-blur-xl'>
@@ -143,9 +172,15 @@ export default function CartPage() {
             className='space-y-3'
           >
             <AnimatePresence initial={false}>
-              {items.map((item) => (
+              {items.map((item) => {
+                const lineKey = getCartLineKey(item);
+                const variantLabel = formatVariantLabel(item.variant);
+                const atMax =
+                  typeof item.maxQty === 'number' && item.qty >= item.maxQty;
+                const notice = notices[lineKey];
+                return (
                 <motion.div
-                  key={item.productId}
+                  key={lineKey}
                   variants={itemVariants}
                   initial='hidden'
                   animate='show'
@@ -177,9 +212,22 @@ export default function CartPage() {
                           <div className='truncate text-base font-extrabold text-indigo-950'>
                             {item.title}
                           </div>
+                          {variantLabel && (
+                            <div className='mt-0.5 truncate text-xs font-semibold text-indigo-950/60'>
+                              {variantLabel}
+                            </div>
+                          )}
                           <div className='mt-1 text-sm font-semibold text-indigo-950/75'>
                             ${item.price.toFixed(2)}
                           </div>
+                          {notice && (
+                            <div
+                              role='status'
+                              className='mt-1 text-xs font-semibold text-amber-700'
+                            >
+                              {notice.message}
+                            </div>
+                          )}
                         </div>
 
                         <Button
@@ -194,7 +242,7 @@ export default function CartPage() {
                               confirmLabel: 'Remove',
                               cancelLabel: 'Keep it',
                               onConfirm: async () => {
-                                removeFromCart(item.productId);
+                                removeFromCart(lineKey);
                               },
                             })
                           }
@@ -210,9 +258,7 @@ export default function CartPage() {
                             type='button'
                             size='icon'
                             className='h-9 w-9 rounded-full bg-white/60 text-indigo-950 transition hover:bg-white'
-                            onClick={() =>
-                              setCartQty(item.productId, item.qty - 1)
-                            }
+                            onClick={() => setCartQty(lineKey, item.qty - 1)}
                             disabled={item.qty <= 1}
                             aria-label='Decrease'
                           >
@@ -225,13 +271,17 @@ export default function CartPage() {
                             type='button'
                             size='icon'
                             className='h-9 w-9 rounded-full bg-white/60 text-indigo-950 transition hover:bg-white'
-                            onClick={() =>
-                              setCartQty(item.productId, item.qty + 1)
-                            }
+                            onClick={() => setCartQty(lineKey, item.qty + 1)}
+                            disabled={atMax}
                             aria-label='Increase'
                           >
                             <Plus className='h-4 w-4' />
                           </Button>
+                          {atMax && (
+                            <span className='px-2 text-xs font-semibold text-indigo-950/60'>
+                              Max {item.maxQty}
+                            </span>
+                          )}
                         </div>
 
                         <div className='text-right text-sm font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-700 via-indigo-700 to-cyan-700 sm:text-left'>
@@ -241,7 +291,8 @@ export default function CartPage() {
                     </div>
                   </div>
                 </motion.div>
-              ))}
+                );
+              })}
             </AnimatePresence>
           </motion.div>
 
@@ -252,20 +303,26 @@ export default function CartPage() {
             <div className='mt-4 space-y-3'>
               <div className='flex items-center justify-between text-sm font-semibold text-indigo-950/80'>
                 <span>Subtotal</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>${itemsPrice.toFixed(2)}</span>
               </div>
+              {discountAmount > 0 && (
+                <div className='flex items-center justify-between text-sm font-semibold text-green-700'>
+                  <span>Discount</span>
+                  <span>-${discountAmount.toFixed(2)}</span>
+                </div>
+              )}
               <div className='flex items-center justify-between text-sm font-semibold text-indigo-950/70'>
                 <span>Shipping</span>
-                <span>$0.00</span>
+                <span>${shippingPrice.toFixed(2)}</span>
               </div>
               <div className='flex items-center justify-between text-sm font-semibold text-indigo-950/70'>
                 <span>Tax</span>
-                <span>$0.00</span>
+                <span>${taxPrice.toFixed(2)}</span>
               </div>
               <div className='h-px bg-indigo-900/10' />
               <div className='flex items-center justify-between text-base font-extrabold text-indigo-950'>
                 <span>Total</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>${totalPrice.toFixed(2)}</span>
               </div>
             </div>
 

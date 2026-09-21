@@ -1,21 +1,21 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Cookies from 'js-cookie';
 import {
-  AUTH_REFRESH_COOKIE,
   AUTH_ROLE_COOKIE,
   AUTH_TOKEN_COOKIE,
   clearAuthCookies,
   getAuthToken,
-  getRefreshToken,
   getUserRole,
+  setAccessToken,
   setAuthCookies,
-  setRefreshedTokens,
 } from './authCookies';
+
+const LEGACY_REFRESH_COOKIE = 'refreshToken';
 
 beforeEach(() => {
   Cookies.remove(AUTH_TOKEN_COOKIE, { path: '/' });
   Cookies.remove(AUTH_ROLE_COOKIE, { path: '/' });
-  Cookies.remove(AUTH_REFRESH_COOKIE, { path: '/' });
+  Cookies.remove(LEGACY_REFRESH_COOKIE, { path: '/' });
 });
 
 describe('setAuthCookies / getAuthToken / getUserRole', () => {
@@ -33,48 +33,70 @@ describe('setAuthCookies / getAuthToken / getUserRole', () => {
     expect(getUserRole()).toBeNull();
   });
 
-  it('stores a refresh token when provided', () => {
-    setAuthCookies({
-      token: 'jwt-abc',
-      role: 'user',
-      refreshToken: 'refresh-abc',
-    });
-    expect(getRefreshToken()).toBe('refresh-abc');
+  it('never writes a JS-readable refresh token', () => {
+    setAuthCookies({ token: 'jwt-abc', role: 'user' });
+    expect(document.cookie).not.toContain(LEGACY_REFRESH_COOKIE);
   });
 
-  it('leaves refresh token unset when not provided', () => {
+  it('clears a legacy refreshToken cookie left by older builds', () => {
+    Cookies.set(LEGACY_REFRESH_COOKIE, 'stale', { path: '/' });
     setAuthCookies({ token: 'jwt-abc', role: 'user' });
-    expect(getRefreshToken()).toBeNull();
+    expect(Cookies.get(LEGACY_REFRESH_COOKIE)).toBeUndefined();
   });
 });
 
-describe('setRefreshedTokens', () => {
-  it('updates the access token without touching the role cookie', () => {
-    setAuthCookies({ token: 'jwt-old', role: 'admin', refreshToken: 'r-old' });
-    setRefreshedTokens({ token: 'jwt-new', refreshToken: 'r-new' });
-    expect(getAuthToken()).toBe('jwt-new');
-    expect(getRefreshToken()).toBe('r-new');
-    expect(getUserRole()).toBe('admin');
+describe('cookie attributes', () => {
+  const setSpy = vi.spyOn(Cookies, 'set');
+
+  afterEach(() => {
+    setSpy.mockClear();
   });
 
-  it('keeps the existing refresh token when a new one is not returned', () => {
-    setAuthCookies({ token: 'jwt-old', role: 'user', refreshToken: 'r-old' });
-    setRefreshedTokens({ token: 'jwt-new' });
+  it('uses sameSite=lax and path=/ for token and role', () => {
+    setAuthCookies({ token: 'jwt-abc', role: 'user' });
+    expect(setSpy).toHaveBeenCalledWith(
+      AUTH_TOKEN_COOKIE,
+      'jwt-abc',
+      expect.objectContaining({ sameSite: 'lax', path: '/', secure: false }),
+    );
+    expect(setSpy).toHaveBeenCalledWith(
+      AUTH_ROLE_COOKIE,
+      'user',
+      expect.objectContaining({ sameSite: 'lax', path: '/' }),
+    );
+  });
+
+  it('marks cookies secure in production builds', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    try {
+      setAccessToken('jwt-prod');
+      expect(setSpy).toHaveBeenCalledWith(
+        AUTH_TOKEN_COOKIE,
+        'jwt-prod',
+        expect.objectContaining({ secure: true, sameSite: 'lax' }),
+      );
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});
+
+describe('setAccessToken', () => {
+  it('updates the access token without touching the role cookie', () => {
+    setAuthCookies({ token: 'jwt-old', role: 'admin' });
+    setAccessToken('jwt-new');
     expect(getAuthToken()).toBe('jwt-new');
-    expect(getRefreshToken()).toBe('r-old');
+    expect(getUserRole()).toBe('admin');
   });
 });
 
 describe('clearAuthCookies', () => {
-  it('removes all three cookies', () => {
-    setAuthCookies({
-      token: 'jwt-abc',
-      role: 'user',
-      refreshToken: 'refresh-abc',
-    });
+  it('removes token, role and any legacy refresh cookie', () => {
+    setAuthCookies({ token: 'jwt-abc', role: 'user' });
+    Cookies.set(LEGACY_REFRESH_COOKIE, 'stale', { path: '/' });
     clearAuthCookies();
     expect(getAuthToken()).toBeNull();
     expect(getUserRole()).toBeNull();
-    expect(getRefreshToken()).toBeNull();
+    expect(Cookies.get(LEGACY_REFRESH_COOKIE)).toBeUndefined();
   });
 });

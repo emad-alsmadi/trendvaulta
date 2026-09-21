@@ -54,7 +54,12 @@ export default function Bundles() {
     setEditing(bundle);
     setForm({
       primaryProduct: bundle.primaryProduct._id,
-      items: bundle.items,
+      // Admin list populates items[].product; the form works with ids.
+      items: bundle.items.map((item) => ({
+        product:
+          typeof item.product === 'string' ? item.product : item.product._id,
+        quantity: item.quantity,
+      })),
       bundlePrice: bundle.bundlePrice,
       savings: bundle.savings,
       active: bundle.active,

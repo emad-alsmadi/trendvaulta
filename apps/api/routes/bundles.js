@@ -8,7 +8,7 @@ const {
   updateBundle,
   deleteBundle,
 } = require('../controllers/bundle.controller');
-const { verfiyToken } = require('../middlewares/auth');
+const { verfiyToken } = require('../middlewares/verfiyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 const { validate } = require('../middlewares/validate');
 const {

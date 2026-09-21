@@ -52,6 +52,9 @@ function serializeOrder(order) {
     paymentStatus: plain.paymentStatus ?? 'pending',
     stripeSessionId: plain.stripeSessionId ?? '',
     paymentIntentId: plain.paymentIntentId ?? '',
+    attentionReason: plain.attentionReason ?? '',
+    refundId: plain.refundId ?? '',
+    refundAmount: plain.refundAmount ?? 0,
   };
 }
 

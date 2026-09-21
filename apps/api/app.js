@@ -5,12 +5,21 @@ const cors = require('cors');
 require('dotenv').config();
 const { connectToDB } = require('./config/db');
 const { createCorsOriginDelegate } = require('./middlewares/corsAllowlist');
+<<<<<<< HEAD
 const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler');
+=======
+const { mapErrorResponse } = require('./utils/errorResponse');
+const { validateEnv } = require('./config/env');
+>>>>>>> 67b9dc3e877d9b331e31c1fa941386f5e3b4c602
 
 const paymentController = require('./controllers/payment.controller');
 
 // Init App
 const app = express();
+
+// Behind a single reverse proxy (Render/Nginx): trust exactly one hop so
+// req.ip reflects the client and cannot be spoofed via X-Forwarded-For.
+app.set('trust proxy', 1);
 
 app.post(
   '/api/webhooks/stripe',
@@ -88,6 +97,7 @@ app.get('/api/', (_req, res) => {
       'GET /api/brands',
       'POST /api/auth/login',
       'GET /api/orders/my',
+      'POST /api/payments/quote',
       'POST /api/payments/checkout-session',
     ],
   });
@@ -102,14 +112,38 @@ app.get('/api/trendvaulta', (_req, res) => {
 });
 
 //Error Handler Middlewares
+<<<<<<< HEAD
 app.use(notFoundHandler);
 app.use(errorHandler);
+=======
+app.use((req, res, next) => {
+  const error = new Error(`Not Found - ${req.originalUrl}`);
+  res.status(404);
+  next(error);
+});
+
+app.use((err, req, res, next) => {
+  if (err && String(err.message || '').startsWith('CORS blocked')) {
+    return res.status(403).json({
+      message: 'Origin not allowed',
+      code: 'CORS_BLOCKED',
+    });
+  }
+
+  const { statusCode, body } = mapErrorResponse(err, res.statusCode);
+  if (statusCode >= 500) {
+    console.error(err);
+  }
+  res.status(statusCode).json(body);
+});
+>>>>>>> 67b9dc3e877d9b331e31c1fa941386f5e3b4c602
 
 // Running Server
 const port = process.env.PORT || 3000;
 
 async function start() {
   try {
+    validateEnv();
     // function Connnection To Database
     await connectToDB();
 
@@ -119,12 +153,16 @@ async function start() {
       );
     });
   } catch (err) {
-    console.error('Fatal: failed to start server due to DB connection error');
+    console.error('Fatal: server failed to start (invalid environment or database unreachable)');
     console.error(err);
     process.exit(1);
   }
 }
 
-start();
+// Only boot when executed directly (node app.js); tests require() the app
+// to verify it loads without opening a port or touching the database.
+if (require.main === module) {
+  start();
+}
 
 module.exports = app;

@@ -74,7 +74,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href='/products?category=beauty'
+                  href='/products?category=makeup'
                   className='text-gray-400 hover:text-white text-sm transition-colors'
                 >
                   Beauty
@@ -82,7 +82,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href='/products?category=fashion'
+                  href='/products?category=clothing'
                   className='text-gray-400 hover:text-white text-sm transition-colors'
                 >
                   Fashion
@@ -90,10 +90,10 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href='/products?category=lifestyle'
+                  href='/products?category=home'
                   className='text-gray-400 hover:text-white text-sm transition-colors'
                 >
-                  Lifestyle
+                  Home
                 </Link>
               </li>
             </ul>

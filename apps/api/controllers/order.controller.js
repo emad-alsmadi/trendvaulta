@@ -8,8 +8,13 @@ const {
   resolveShippingPrice,
   loadValidCouponByCode,
   calculateCouponDiscount,
-  restoreStockForCanceledOrder,
+  decrementStockForPaidOrder,
+  restoreStockOnce,
 } = require('../utils/commerce');
+const {
+  getStripeOrThrow,
+  refundPaymentIntent,
+} = require('../services/stripe.service');
 const {
   ORDER_STATUSES,
   canTransitionOrderStatus,
@@ -195,7 +200,12 @@ const getAllOrders = asyncHandler(async (req, res) => {
 
 /**
  * Admin: transition fulfillment status within the allowed state machine.
- * Does not mark orders paid (Stripe webhook / verify-payment only).
+ * Does not mark orders paid (Stripe webhook / verify-payment only); the only
+ * admin path to 'paid' is resolving a needs_attention order whose payment was
+ * already captured.
+ *
+ * Canceling/refunding a paid order creates a full Stripe refund
+ * (AUTO_REFUND_ON_CANCEL, default true) and releases inventory once.
  * @route PATCH /api/orders/:id/status
  * @access Private (orders:write)
  */
@@ -220,6 +230,22 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: transition.message });
   }
 
+  const paymentCaptured =
+    order.paymentStatus === 'paid' || order.paymentStatus === 'refunded';
+
+  if (value.status === 'paid' && order.paymentStatus !== 'paid') {
+    return res.status(400).json({
+      message:
+        'This order has not been paid. Payment status is set by Stripe only.',
+    });
+  }
+
+  if (value.status === 'refunded' && !paymentCaptured) {
+    return res.status(400).json({
+      message: 'This order has no captured payment to refund',
+    });
+  }
+
   // Guard: pending+paid is an inconsistent state — do not cancel via this path
   if (value.status === 'canceled' && order.status === 'pending') {
     if (order.paymentStatus === 'paid') {
@@ -229,28 +255,87 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     }
   }
 
+  // Leaving needs_attention clears the reason unless a new one is set below
+  if (order.status === 'needs_attention') {
+    order.attentionReason = '';
+  }
+
+  // Resolving needs_attention → paid: inventory must actually be available now
+  if (value.status === 'paid' && !order.stockDecremented) {
+    try {
+      await decrementStockForPaidOrder(Product, order);
+      order.stockDecremented = true;
+    } catch (stockErr) {
+      if (stockErr?.statusCode !== 409) throw stockErr;
+      return res.status(409).json({
+        message: `${stockErr.message}. Restock the product or refund the order.`,
+      });
+    }
+  }
+
+  const releasesOrder =
+    value.status === 'canceled' || value.status === 'refunded';
+  const autoRefund = process.env.AUTO_REFUND_ON_CANCEL !== 'false';
+  let refundedNow = false;
+
+  if (releasesOrder && order.paymentStatus === 'paid') {
+    if (!order.paymentIntentId || !autoRefund) {
+      order.attentionReason = 'manual_refund_required';
+    } else {
+      try {
+        const stripe = getStripeOrThrow();
+        const refund = await refundPaymentIntent(stripe, order.paymentIntentId);
+        order.paymentStatus = 'refunded';
+        order.refundId = refund?.id || '';
+        order.refundedAt = new Date();
+        order.refundAmount = Number(refund?.amount || 0) / 100;
+        refundedNow = true;
+        // Persist the refund trail before any further step can fail
+        await order.save();
+      } catch (refundErr) {
+        console.error(
+          `Stripe refund failed for order ${order._id}:`,
+          refundErr?.message || refundErr,
+        );
+        order.status = 'needs_attention';
+        order.attentionReason = 'refund_failed';
+        await order.save();
+        return res.status(502).json({
+          message:
+            'The Stripe refund could not be created. The order was flagged for manual review; please retry or refund it from the Stripe dashboard.',
+          attentionReason: 'refund_failed',
+        });
+      }
+    }
+  }
+
   let stockRestoredNow = false;
-  if (
-    value.status === 'canceled' &&
-    order.stockDecremented &&
-    !order.stockRestored
-  ) {
-    await restoreStockForCanceledOrder(Product, order);
-    order.stockRestored = true;
-    stockRestoredNow = true;
+  if (releasesOrder) {
+    stockRestoredNow = await restoreStockOnce(Order, Product, order);
+    if (stockRestoredNow) order.stockRestored = true;
   }
 
   order.status = value.status;
   await order.save();
 
   const serialized = serializeOrder(order);
+  let message = `Order status updated to ${value.status}`;
+  if (refundedNow && stockRestoredNow) {
+    message = 'Order refunded via Stripe and inventory restored';
+  } else if (refundedNow) {
+    message = 'Order refunded via Stripe';
+  } else if (stockRestoredNow) {
+    message = 'Order canceled and inventory restored';
+  } else if (order.attentionReason === 'manual_refund_required') {
+    message = `Order ${value.status}; the payment must be refunded manually in Stripe`;
+  }
+
   res.status(200).json({
     ...serialized,
     allowedNextStatuses: getAllowedNextStatuses(serialized.status),
     stockRestored: stockRestoredNow || Boolean(order.stockRestored),
-    message: stockRestoredNow
-      ? `Order canceled and inventory restored`
-      : `Order status updated to ${value.status}`,
+    refunded: refundedNow || order.paymentStatus === 'refunded',
+    message,
   });
 });
 

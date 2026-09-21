@@ -92,10 +92,10 @@ const categories = [
 
 /** DEMO — “shopping ideas” shortcuts (href-only, original TrendVaulta copy) */
 const shoppingIdeas = [
-  { label: 'Beauty', href: '/products?category=beauty' },
+  { label: 'Beauty', href: '/products?category=makeup' },
   { label: 'Skincare', href: '/products?category=skincare' },
-  { label: 'Fashion', href: '/products?category=fashion' },
-  { label: 'Lifestyle', href: '/products?category=lifestyle' },
+  { label: 'Fashion', href: '/products?category=clothing' },
+  { label: 'Home', href: '/products?category=home' },
   { label: 'Gifts', href: '/products?q=gift' },
   { label: 'Offers', href: '/offers' },
 ];

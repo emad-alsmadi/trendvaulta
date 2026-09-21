@@ -1,11 +1,12 @@
-# Devin Project Rules - Craftify Templates Marketplace
+# Devin Project Rules - TrendVaulta
 
 ## Project Overview
-Craftify Templates Marketplace is a monorepo application for buying and selling digital templates. It features user authentication, template browsing, wishlist management, reviews/ratings system, and Stripe payment integration.
+TrendVaulta is a monorepo retail e-commerce platform for beauty, fashion, and lifestyle products. It features user authentication, product and brand browsing, cart and Stripe checkout, orders, wishlist, reviews/ratings, coupons/offers, and an admin dashboard.
 
 ## Tech Stack
-- **Frontend Framework**: Next.js 14+ with App Router
-- **Backend Framework**: Express.js with Node.js
+- **Storefront**: Next.js 16 with App Router (`apps/website`, port 3001)
+- **Admin dashboard**: Vite + React 19 with React Router (`apps/dashboard`, port 3002)
+- **Backend Framework**: Express.js with Node.js (`apps/api`, port 3000)
 - **Database**: MongoDB with Mongoose
 - **Styling**: Tailwind CSS
 - **State Management**: Zustand (cartStore, authStore)
@@ -14,16 +15,17 @@ Craftify Templates Marketplace is a monorepo application for buying and selling 
 - **Icons**: Lucide React
 - **Animations**: Framer Motion
 - **Payment**: Stripe
-- **Package Manager**: pnpm (monorepo)
+- **Package Manager**: npm workspaces (root `package.json`, single root lockfile)
 
 ## Monorepo Structure
 ```
-craftify-templates-marketplac/
+trendvaulta/
 ├── apps/
-│   ├── api/          # Express.js backend
-│   └── website/      # Next.js frontend
-├── packages/         # Shared packages
-└── package.json      # Root workspace config
+│   ├── api/          # Express.js backend (port 3000)
+│   ├── website/      # Next.js storefront (port 3001)
+│   └── dashboard/    # Vite admin dashboard (port 3002)
+├── packages/         # @trendvaulta/types, @trendvaulta/api-client
+└── package.json      # Root npm workspaces config
 ```
 
 ## Frontend File Structure (apps/website/src/)
@@ -69,13 +71,13 @@ craftify-templates-marketplac/
 
 ## Key Features
 - User authentication with JWT
-- Template browsing and search
+- Product and brand browsing, search, filters
 - Wishlist management
 - Reviews and ratings system
 - Shopping cart functionality
 - Stripe payment integration
 - Order management
-- Creator profiles
+- Admin dashboard (products, brands, orders, users, coupons, offers, reviews, stats)
 
 ## Git Workflow
 - Write clear, descriptive commit messages

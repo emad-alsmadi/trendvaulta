@@ -3,7 +3,6 @@ import { authApi } from '@/lib/api';
 import {
   clearAuthCookies,
   getAuthToken,
-  getRefreshToken,
   getUserRole,
   setAuthCookies,
   type UserRole,
@@ -21,11 +20,14 @@ export type MeResponse = {
   permissions?: string[];
 };
 
-/** Shape returned by /auth/login, /auth/register, /auth/profile (PUT) */
+/**
+ * Shape returned by the Next /api/auth/login + /api/auth/register handlers
+ * and /auth/profile (PUT). The handlers keep the backend refresh token in an
+ * httpOnly cookie, so it never appears here.
+ */
 export type AuthResponse = {
   message?: string;
   token?: string;
-  refreshToken?: string;
   _id?: string;
   email?: string;
   username?: string;
@@ -37,6 +39,18 @@ export type AuthResponse = {
     roles?: string[];
   };
 };
+
+/** Strip credentials before anything from an auth response is cached. */
+function toCachedUser(payload: AuthResponse): MeResponse['user'] {
+  const src = payload?.user ?? payload;
+  if (!src) return null;
+  return {
+    _id: src._id,
+    email: src.email,
+    username: src.username,
+    roles: src.roles,
+  };
+}
 
 export function useMe() {
   const token = getAuthToken();
@@ -63,14 +77,13 @@ export function useLoginMutation() {
     },
     onSuccess: async (payload: AuthResponse) => {
       const token = payload?.token || null;
-      const refreshToken = payload?.refreshToken || null;
       const roles = payload?.roles || [];
       const role = (roles?.[0] as UserRole) || null;
       if (token) {
-        setAuthCookies({ token, role: role || 'user', refreshToken: refreshToken || undefined });
+        setAuthCookies({ token, role: role || 'user' });
       }
       qc.setQueryData(AUTH_ME_QUERY_KEY, {
-        user: payload || null,
+        user: toCachedUser(payload),
         permissions: [],
       } satisfies MeResponse);
       await qc.invalidateQueries({ queryKey: AUTH_ME_QUERY_KEY });
@@ -92,14 +105,13 @@ export function useRegisterMutation() {
     },
     onSuccess: async (payload: AuthResponse) => {
       const token = payload?.token || null;
-      const refreshToken = payload?.refreshToken || null;
       const roles = payload?.roles || [];
       const role = (roles?.[0] as UserRole) || null;
       if (token && role) {
-        setAuthCookies({ token, role, refreshToken: refreshToken || undefined });
+        setAuthCookies({ token, role });
       }
       qc.setQueryData(AUTH_ME_QUERY_KEY, {
-        user: payload || null,
+        user: toCachedUser(payload),
         permissions: [],
       } satisfies MeResponse);
       await qc.invalidateQueries({ queryKey: AUTH_ME_QUERY_KEY });
@@ -130,9 +142,9 @@ export function useLogout() {
 
   return async () => {
     // Revoke server-side first (best-effort) so the refresh token can't be
-    // exchanged for a new access token after this browser signs out.
-    const refreshToken = getRefreshToken();
-    await authApi.logout(refreshToken);
+    // exchanged for a new access token after this browser signs out. The
+    // Next handler reads + clears the httpOnly refresh cookie itself.
+    await authApi.logout();
     clearAuthCookies();
     qc.setQueryData(AUTH_ME_QUERY_KEY, {
       user: null,

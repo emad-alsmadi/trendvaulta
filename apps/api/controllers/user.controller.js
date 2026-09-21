@@ -1,6 +1,8 @@
 const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcryptjs');
 const { User, validateUpdateUser } = require('../models/User');
+const { RefreshToken } = require('../models/RefreshToken');
+const { revokeAllForUser } = require('../utils/refreshTokens');
 
 /**
  * Get all users.
@@ -50,7 +52,9 @@ const updateUser = asyncHandler(async (req, res) => {
   }
 
   const update = {};
-  if (req.body.email !== undefined) update.email = req.body.email;
+  if (req.body.email !== undefined) {
+    update.email = String(req.body.email).trim().toLowerCase();
+  }
   if (req.body.username !== undefined) update.username = req.body.username;
   if (req.body.roles !== undefined) update.roles = req.body.roles;
 
@@ -67,6 +71,10 @@ const updateUser = asyncHandler(async (req, res) => {
 
   if (!updatedUser) {
     return res.status(404).json({ message: 'User not found' });
+  }
+
+  if (update.password) {
+    await revokeAllForUser(RefreshToken, updatedUser._id);
   }
 
   res.status(200).json({ message: 'User is Updated', updatedUser });

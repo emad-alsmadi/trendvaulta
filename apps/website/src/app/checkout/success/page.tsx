@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
@@ -21,36 +21,65 @@ function CheckoutSuccessInner() {
     clearCart();
   }, [orderId, order?.paymentStatus]);
 
-  useEffect(() => {
-    if (!orderId || order?.paymentStatus === 'paid') return;
+  // Latest values for the poller without re-creating it on every render.
+  const paymentStatusRef = useRef(order?.paymentStatus);
+  paymentStatusRef.current = order?.paymentStatus;
+  const orderStatusRef = useRef(order?.status);
+  orderStatusRef.current = order?.status;
+  const refetchRef = useRef(q.refetch);
+  refetchRef.current = q.refetch;
 
-    // Function to manually verify payment with Stripe
-    const verifyPayment = async () => {
+  useEffect(() => {
+    if (!orderId) return;
+
+    const isSettled = () =>
+      paymentStatusRef.current === 'paid' ||
+      paymentStatusRef.current === 'failed' ||
+      orderStatusRef.current === 'canceled';
+
+    // Backoff: 2s, 3s, 5s, then 8s — up to ~3 minutes total.
+    const DELAYS = [2000, 3000, 5000];
+    const MAX_DELAY = 8000;
+    const MAX_TOTAL = 180_000;
+    let attempt = 0;
+    let elapsed = 0;
+    let timer: number | undefined;
+    let cancelled = false;
+
+    const tick = async () => {
+      if (cancelled || isSettled()) return;
       try {
         const result = await paymentsApi.verifyPaymentStatus(orderId);
-        if (result.verified || result.alreadyPaid) {
-          q.refetch();
+        if (
+          result.verified ||
+          result.alreadyPaid ||
+          result.paymentStatus === 'paid'
+        ) {
+          await refetchRef.current();
+          return; // paid — stop polling
         }
-      } catch (error) {
-        console.error('Payment verification failed:', error);
+      } catch {
+        // Verification is best-effort; the order refetch below still runs.
       }
+      if (cancelled) return;
+      await refetchRef.current();
+      if (cancelled || isSettled()) return;
+
+      const delay = DELAYS[attempt] ?? MAX_DELAY;
+      attempt += 1;
+      elapsed += delay;
+      if (elapsed > MAX_TOTAL) return;
+      timer = window.setTimeout(() => void tick(), delay);
     };
 
-    // Initial verification
-    verifyPayment();
+    void tick();
 
-    // Poll for payment status
-    const id = window.setInterval(() => {
-      void verifyPayment();
-      void q.refetch();
-    }, 3000);
-
-    const stop = window.setTimeout(() => window.clearInterval(id), 120000);
     return () => {
-      window.clearInterval(id);
-      window.clearTimeout(stop);
+      cancelled = true;
+      if (timer !== undefined) window.clearTimeout(timer);
     };
-  }, [orderId, order?.paymentStatus, q]);
+    // Depends only on the order/session reference; status is read via refs.
+  }, [orderId, sessionId]);
 
   if (!orderId) {
     return (

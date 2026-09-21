@@ -121,7 +121,6 @@ test-results/
 coverage/
 
 # Docker
-.dockerignore
 
 # PM2
 .pm2/
@@ -130,19 +129,10 @@ coverage/
 .webpack/
 
 # Babel
-.babelrc
-.babelrc.json
 
 # ESLint
-.eslintrc
-.eslintrc.json
-.eslintrc.js
-.eslintrc.cjs
 
 # Prettier
-.prettierrc
-.prettierrc.json
-.prettierrc.js
 
 # TypeScript
 *.tsbuildinfo
@@ -151,13 +141,10 @@ coverage/
 .husky/_
 
 # Lint-staged
-.lintstagedrc
 
 # EditorConfig
-.editorconfig
 
 # NVM
-.nvmrc
 
 # Package manager lock files (keep one based on your preference)
 # yarn.lock
@@ -182,7 +169,6 @@ docs/build/
 .sentryclirc
 
 # GitHub
-.github/
 
 # Git
 .gitkeep

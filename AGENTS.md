@@ -1,125 +1,147 @@
 # TrendVaulta — AI Agent Instructions
 
-These instructions apply to every task unless explicitly overridden.
-
-If a user request conflicts with these instructions, ask for clarification before proceeding.
+These instructions apply to every task unless explicitly overridden. If a user request conflicts, ask for clarification.
 
 ---
 
-description: Token/RAM discipline — scope, search limits, terminal policy, commit message policy, one task per session (TrendVaulta)
-alwaysApply: true
+## Project Overview
+
+**Monorepo**: npm workspaces (root `package.json`) — *not pnpm* (ignore `pnpm-workspace.yaml`)
+
+| App | Path | Port | Stack |
+|---|---|---|---|
+| API | `apps/api` | **3000** | Express 5, Mongoose, Joi, Stripe, Nodemailer |
+| Storefront | `apps/website` | **3001** | Next.js 16 App Router, React 19, TanStack Query, Zustand, Tailwind |
+| Dashboard | `apps/dashboard` | **3002** | Vite + React Router, React 19, TanStack Query, Tailwind |
+
+**Shared packages**: `@trendvaulta/types`, `@trendvaulta/api-client` (under `packages/`). `@trendvaulta/ui` referenced but not present.
+
+**Domain**: Products & brands catalog (not digital templates).
 
 ---
 
-# Agent Role & Identity
+## Key Commands (root)
 
-You are an expert full-stack developer AI agent for **TrendVaulta**: a monorepo retail e-commerce platform (beauty / fashion / lifestyle) with:
+```bash
+npm install                 # install all workspaces
+npm run dev                 # runs api + website + dashboard concurrently
+npm run dev:api             # API only
+npm run dev:website         # Storefront only
+npm run dev:dashboard       # Dashboard only
+npm run build               # build all workspaces
+npm run lint                # lint all workspaces
+npm run typecheck:website   # website tsc --noEmit
+npm run typecheck:types     # types package tsc --noEmit
+npm run test:api            # API tests (node --test)
+```
 
-- **Storefront**: Next.js 16 App Router (`apps/website`, port **3001**)
-- **Admin dashboard**: Vite + React (`apps/dashboard`, port **3002**)
-- **API**: Express.js + MongoDB + Stripe (`apps/api`, port **3000**)
-- **Shared packages**: `@trendvaulta/types`, `@trendvaulta/api-client`, `@trendvaulta/ui`
-- **Package manager**: npm workspaces
-
-You prioritize code quality, maintainability, and UX while following established project patterns. Catalog domain is **products and brands** (not digital templates).
-
----
-
-# Agent Session Discipline
-
-## Default behavior (save tokens)
-
-1. **One task per conversation** — single PR-sized item unless the user lists multiple tasks.
-
-2. **Never scan the whole repository.** Only inspect folders/files required for the task.
-
-3. **Limit file reading.** Prefer sections over whole files.
-
-4. **API lookup order**
-   - `apps/api/routes/`
-   - Matching `apps/api/controllers/`
-   - Models in `apps/api/models/` when needed
-   - Frontend clients/hooks in `apps/website` or `apps/dashboard`
- 
-
-5. **No unnecessary exploration** (Explore/Task/sub-agents) for simple localized work.
-
-6. **Minimize context usage** — do not reload unchanged files.
-
-7. **Keep edits localized** — match architecture; avoid drive-by refactors.
-
-8. **No new abstractions** unless they clearly reduce duplication or are requested.
-
-9. **No new dependencies** unless the user asks.
-
-10. **No tests** unless requested.
-
-11. **No commit or push** unless the user explicitly says commit / push / create commit.
+CI order: **lint → typecheck → test → build** (see `.github/workflows/ci.yml`).
 
 ---
 
-# Terminal Policy (Important)
+## Terminal Policy
 
-## By default
+**Default: Do not run terminal commands** (npm, npx, tsc, eslint, git, etc.) unless explicitly requested.
 
-Do **not** execute terminal commands (npm, npx, tsc, eslint, vite, build, test, git, docker, shell, etc.) unless the user explicitly requests it.
-
-## After finishing code changes
-
-Provide a short **manual** validation command. Do not run it.
+After code changes: provide a short **manual** validation command only. Do not execute it.
 
 Examples:
-
 ```bash
 cd apps/website && npx tsc --noEmit
-```
-
-```bash
 cd apps/dashboard && npx tsc --noEmit
-```
-
-```bash
 cd apps/api && npm test
 ```
 
-## If validation is required
-
-Ask: Should I run the validation, or will you run it manually?
+If validation required: ask "Should I run the validation, or will you run it manually?"
 
 ---
 
-# Commit Message Policy
+## Commit Message Policy
 
-After completed work: suggest one conventional English commit message only. Do not run git.
+After completed work: suggest **one** conventional English commit message. Do not run git.
 
-```text
+```
 Suggested commit:
 fix(scope): short description
 ```
 
 Examples:
-
-```text
-Suggested commit:
-feat(storefront): wire featured brands to brands API
-```
-
-```text
-Suggested commit:
-fix(api): send order confirmation email on paid
-```
-
-```text
-Suggested commit:
-refactor(dashboard): align reviews page with admin reviews API
-```
+- `feat(storefront): wire featured brands to brands API`
+- `fix(api): send order confirmation email on paid`
+- `refactor(dashboard): align reviews page with admin reviews API`
 
 ---
 
-# Scope Discipline
+## API Integration — Lookup Workflow
+
+**Never guess paths** — look them up in this order:
+
+1. `apps/api/routes/` — Express route definitions + middleware
+2. Matching `apps/api/controllers/` — business logic, response contracts
+3. `apps/api/models/` — Mongoose schemas + Joi validators (when creating/updating)
+4. `apps/api/app.js` — route mounts, Stripe webhook (`POST /api/webhooks/stripe`, raw body), CORS
+5. Frontend clients/hooks: `apps/website/src/lib/api.ts`, `apps/dashboard/src/lib/api.ts`, `@trendvaulta/api-client`
+
+### API Patterns
+
+- Auth: JWT via `verfiyToken` (existing spelling)
+- Common response: `{ message, data?, errors? }` — confirm per controller
+- Pagination: check controller for `page` / `limit` / `total` naming
+- Uploads: only if existing Multer pattern exists for that resource
+
+### Integration Checklist
+
+- [ ] Route exists in `routes/` and is mounted in `app.js`
+- [ ] Controller auth/permissions match screen (public / user / admin)
+- [ ] Request/response shape matches controller
+- [ ] Model validation defined for create/update
+- [ ] Client method + React Query hook updated
+- [ ] Loading/error UX matches surrounding screens
+
+---
+
+## Frontend Engineering Standards
+
+### Core Principles
+
+1. Match existing architecture first (`lib/api.ts`, domain `hooks/`, `components/`, `components/ui/`)
+2. Small, focused changes — no unrelated refactors
+3. No new dependencies without approval
+4. Don't change routing/auth/global state unless required
+
+### Data & Loading (TanStack Query)
+
+- Keep last good data visible during background refresh
+- Button-level mutation progress; disable controls while pending
+- Skeletons only if area already uses them or requested
+- Never show raw API errors or technical keys — use existing helpers (`getUserFacingErrorMessage`, toasts)
+- Arabic-first where project already uses Arabic; technical code stays English
+
+### Styling
+
+- Tailwind; match **existing** design system of the app being edited
+- Mobile-first; Framer Motion only where already present
+- No new brand theme on incidental tasks
+
+---
+
+## Session Discipline
+
+- **One task per conversation** — single PR-sized item unless user lists multiple
+- **Never scan the whole repo** — only inspect folders/files required
+- **Limit file reading** — prefer sections over whole files
+- **No unnecessary exploration** (Task/sub-agents) for simple work
+- **Minimize context** — don't reload unchanged files
+- **Keep edits localized** — match architecture; avoid drive-by refactors
+- **No new abstractions** unless they clearly reduce duplication or requested
+- **No tests** unless requested
+- **No commit/push** unless user explicitly says so
+
+---
+
+## Scope Discipline
 
 At task start, state briefly:
-
 - Scope
 - Files to modify (max ~5 unless necessary)
 - API endpoint (if applicable)
@@ -127,162 +149,64 @@ At task start, state briefly:
 
 ---
 
-# Vague Continuations
+## Vague Continuations
 
-For continue / yes / next / ابدأ / كمل / الخطوة التالية:
-
-- ask one short clarification, **or**
-- continue only the next unchecked item from the **current** task context
-
-Do not resume an entire backlog document.
+For "continue / yes / next / ابدأ / كمل / الخطوة التالية":
+- Ask one short clarification, **or**
+- Continue only the next unchecked item from **current** task context
+- Do not resume an entire backlog document
 
 ---
 
-# Prompt Template
+## Response Format
 
-Scope:
-[folder/files]
+Keep final response short:
 
-Goal:
-[one sentence]
+```
+Changed:
+- one or two bullet points
 
-Source:
-[controller/route reference]
+Files:
+- changed files only
 
-Constraints:
-- no repository scan
-- no terminal
-- no commit
-- max N files
+Validation command:
+```bash
+cd apps/website && npx tsc --noEmit
+```
 
-Success:
-- code completed
-- validation command provided
-- suggested commit message provided
+Suggested commit:
+```text
+fix(scope): short description
+```
 
----
-
-# Context / Diff / Response
-
-- Smallest possible diff; no formatting-only or unrelated renames.
-- Short final response: Changed / Files / Validation command / Suggested commit / Notes (blockers only).
-- Arabic-first UX where the project already uses Arabic; technical code stays English.
+Notes:
+- blockers only
+```
 
 ---
 
-description: Backend API reference for frontend integration
-alwaysApply: true
+## Key Domain Areas (for route lookup)
 
----
-
-# TrendVaulta Backend API Integration
-
-**Do not guess paths** — look them up in route/controller files.
-
-## Backend structure
-
-| Location | Role |
+| Area | Example Routes |
 |---|---|
-| `apps/api/routes/` | Express routes + middleware |
-| `apps/api/controllers/` | Business logic + response contracts |
-| `apps/api/models/` | Mongoose + Joi validation |
-| `apps/api/middlewares/` | Auth, CORS, logging |
-| `apps/api/app.js` | Mounts, Stripe webhook, CORS |
-
-## Lookup workflow
-
-1. Find the pattern in `apps/api/routes/`.
-2. Read the controller for request/response contracts.
-3. Check the model for fields/validation.
-4. Match storefront/dashboard clients and hooks.
-
-## API patterns
-
-- Auth: JWT via `verfiyToken` (existing spelling)
-- Common response: `{ message, data?, errors? }` (confirm per controller)
-- Pagination: confirm `page` / `limit` / `total` naming per endpoint
-- Uploads: only if existing Multer (or similar) patterns exist for that resource
-- Stripe webhook: `POST /api/webhooks/stripe` (raw body) in `app.js`
-
-## Path prefixes
-
-- Backend: `/api/...`
-- Storefront: `apps/website/src/lib/api.ts`
-- Dashboard: `apps/dashboard/src/lib/api.ts` and/or `@trendvaulta/api-client`
-
-## Integration checklist
-
-- [ ] Route exists and is mounted in `app.js`
-- [ ] Controller error handling + auth/permissions correct
-- [ ] Model validation defined when creating/updating resources
-- [ ] Client method + React Query hook updated
-- [ ] User-safe loading/error UX
-
-## Key domain areas
-
-| Area | Notes |
-|---|---|
-| **Auth / profile / password** | Login, register, profile, reset |
-| **Products / brands** | Catalog (not templates) |
-| **Orders / payments** | Checkout, Stripe, paid side-effects |
-| **Wishlist / reviews** | User engagement |
-| **Coupons / offers** | Promotions |
-| **Recommendations / bundles / recently viewed** | Storefront rails |
-| **Gift finder / lookbooks** | Discovery |
-| **Storefront content** | Trust, categories, testimonials, why-choose-us |
-| **Admin stats / reviews** | Dashboard ops |
-| **trendvaulta** | `/api/trendvaulta`, `/api/ready` when present |
+| Auth / profile / password | `/api/auth/*`, `/api/profile`, `/api/password/*` |
+| Products / brands | `/api/products/*`, `/api/brands/*` |
+| Orders / payments | `/api/orders/*`, `/api/payments/*` |
+| Wishlist / reviews | `/api/wishlist/*`, `/api/reviews/*` |
+| Coupons / offers | `/api/coupons/*`, `/api/offers/*` |
+| Recommendations / bundles | `/api/recommendations/*`, `/api/bundles/*` |
+| Recently viewed | `/api/recently-viewed` (confirm in routes) |
+| Gift finder / lookbooks | `/api/gift-finder/*`, `/api/lookbooks/*` |
+| Storefront content | `/api/trust`, `/api/categories`, `/api/testimonials`, `/api/why-choose-us` |
+| Admin stats | `/api/admin/stats/*` |
+| Ops | `GET /api/trendvaulta`, `GET /api/ready` |
 
 ---
 
-description: Frontend engineering standards — React, Next.js/Vite, Tailwind, performance
-globs: apps/website/src/**/*,apps/dashboard/src/**/*
-alwaysApply: false
+## Known Gotchas
 
----
-
-# Professional Frontend Engineering
-
-Ship maintainable UI for the storefront and admin dashboard.
-
-## Core principles
-
-1. Match existing architecture first.
-2. Prefer small, focused changes.
-3. No new dependencies without approval.
-4. Do not change routing/auth/global state unless required.
-
-## Loading & data
-
-- React Query for server state; keep last good data during refresh.
-- Button-level mutation progress; disable controls while pending.
-- Skeletons only if already used in that area or requested.
-- Never show raw API errors or technical keys.
-
-## Architecture habits
-
-- Storefront: `app/`, `components/`, `hooks/`, `lib/api.ts`
-- Dashboard: existing pages/hooks + shared packages when already used
-- Validate contracts against API controllers
-- Prefer demo fallbacks only as temporary UX — wire live APIs for new rails when possible
-
-## Styling
-
-- Tailwind; match the **existing** design system of the app being edited
-- Mobile-first; Framer Motion where already present
-- Do not invent a new brand theme on incidental tasks
-
-## Definition of done
-
-1. Matches surrounding conventions
-2. Humane loading + safe errors
-3. Mutations show progress
-4. API contracts verified
-5. No unrelated refactors
-6. Manual validation command provided when terminal is not allowed
-
----
-
-# One-Line Summary
-
-> Build TrendVaulta retail e-commerce features with small diffs, verified API contracts, and clear Arabic-friendly UX — without scanning the whole repo or running tools unless asked.
+- **Package manager**: npm workspaces — dashboard installs from root lockfile
+- **Auth cookie**: Storefront uses `js-cookie` (client-readable); httpOnly hardening is a deliberate follow-up
+- **Demo fallback**: Storefront may fall back to `apps/website/src/data/demoStorefront.ts` — prefer live APIs for new rails
+- **Admin permissions**: Check `rolePermissions.js` helpers before adding admin CRUD
+- **Stripe paid side-effects**: Sales count, confirmation email live in payment/order paid controllers — read before changing checkout

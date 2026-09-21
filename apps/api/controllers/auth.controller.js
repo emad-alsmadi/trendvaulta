@@ -12,6 +12,20 @@ const {
   revokeRefreshToken,
 } = require('../utils/refreshTokens');
 
+/** Fields safe to return to the client after login/register. */
+function toPublicUser(user) {
+  return {
+    _id: user._id,
+    email: user.email,
+    username: user.username,
+    roles: Array.isArray(user.roles) ? user.roles : ['user'],
+  };
+}
+
+function normalizeEmail(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
 /**
  * Register a new user.
  *
@@ -29,14 +43,15 @@ const registerUser = asyncHandler(async (req, res) => {
   if (error) {
     return res.status(400).json({ message: error.details[0].message });
   }
-  let user = await User.findOne({ email: req.body.email });
+  const email = normalizeEmail(req.body.email);
+  let user = await User.findOne({ email });
   if (user) {
     return res.status(400).json({ message: 'This user already registered' });
   }
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(req.body.password, salt);
   user = new User({
-    email: req.body.email,
+    email,
     username: req.body.username,
     password: hashedPassword,
     // Never trust client-supplied roles on public registration
@@ -48,10 +63,12 @@ const registerUser = asyncHandler(async (req, res) => {
     RefreshToken,
     result._id,
   );
-  const { password, ...other } = result._doc;
-  res
-    .status(201)
-    .json({ message: 'User is Created', ...other, token, refreshToken });
+  res.status(201).json({
+    message: 'User is Created',
+    ...toPublicUser(result),
+    token,
+    refreshToken,
+  });
 });
 
 /**
@@ -71,7 +88,7 @@ const loginUser = asyncHandler(async (req, res) => {
   if (error) {
     return res.status(400).json({ message: error.details[0].message });
   }
-  let user = await User.findOne({ email: req.body.email });
+  let user = await User.findOne({ email: normalizeEmail(req.body.email) });
   if (!user) {
     return res.status(400).json({ message: 'invalid email or password' });
   }
@@ -88,11 +105,12 @@ const loginUser = asyncHandler(async (req, res) => {
     RefreshToken,
     user._id,
   );
-  const { password, ...other } = user._doc;
-
-  res
-    .status(200)
-    .json({ message: 'User is Login', ...other, token, refreshToken });
+  res.status(200).json({
+    message: 'User is Login',
+    ...toPublicUser(user),
+    token,
+    refreshToken,
+  });
 });
 
 /**

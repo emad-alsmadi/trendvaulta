@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Eye, EyeClosed, EyeOff, Loader2, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { REDIRECT_PARAM, getSafeRedirectPath } from '@/lib/safeRedirect';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginValues } from '@/lib/validation';
@@ -45,7 +46,11 @@ export default function LoginPage() {
         title: 'Success',
         variant: 'success',
       });
-      router.push('/');
+      // Sent here by the route guard / 401 handler? Go back to that page.
+      const returnTo = getSafeRedirectPath(
+        new URLSearchParams(window.location.search).get(REDIRECT_PARAM),
+      );
+      router.push(returnTo || '/');
     } catch (err) {
       logErrorForDev(err);
       const msg = getUserFacingErrorMessage(err, 'Login failed');

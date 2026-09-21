@@ -163,9 +163,9 @@ export default function ProductQA() {
                       </p>
                     )}
                     <div className='mt-2 flex items-center gap-4 text-xs text-gray-500'>
-                      <span>Asked by: {qa.askedBy?.name || 'Anonymous'}</span>
+                      <span>Asked by: {qa.askedBy?.username || 'Anonymous'}</span>
                       {qa.answeredBy && (
-                        <span>Answered by: {qa.answeredBy.name}</span>
+                        <span>Answered by: {qa.answeredBy.username}</span>
                       )}
                       <span>Helpful: {qa.helpful}</span>
                       <span>Not helpful: {qa.notHelpful}</span>
@@ -268,9 +268,11 @@ export default function ProductQA() {
                   id='approve'
                   checked={editing.approved}
                   onChange={(e) => {
-                    const payload: ProductQAAnswerPayload = {
-                      approved: e.target.checked,
-                    };
+                    const approved = e.target.checked;
+                    // Keep local state in sync so the checkbox reflects the
+                    // change and Save doesn't send a stale `approved`.
+                    setEditing((prev) => (prev ? { ...prev, approved } : prev));
+                    const payload: ProductQAAnswerPayload = { approved };
                     void answerMut.mutateAsync({ id: editing._id, payload });
                   }}
                   disabled={saving}

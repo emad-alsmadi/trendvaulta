@@ -8,7 +8,7 @@ Retail e-commerce monorepo for beauty, fashion, and lifestyle products. Buyers s
 | Storefront | `apps/website` | **3001** | Next.js 16 App Router |
 | Dashboard | `apps/dashboard` | **3002** | Vite + React admin |
 
-Shared packages: `@trendvaulta/types`, `@trendvaulta/api-client`, `@trendvaulta/ui` under `packages/`.
+Shared packages: `@trendvaulta/types`, `@trendvaulta/api-client` under `packages/`.
 
 Package manager: **npm workspaces** (root `package.json`).
 
@@ -24,7 +24,7 @@ Package manager: **npm workspaces** (root `package.json`).
 - Storefront rails (recommendations, bundles, recently viewed, gift finder, lookbooks, trust, testimonials, why-choose-us)
 - Admin dashboard for products, brands, orders, users, coupons, offers, reviews, and stats
 
-Catalog domain is **products and brands** (not digital templates).
+Catalog domain is **products and brands**.
 
 ---
 
@@ -48,8 +48,7 @@ trendvaulta/
 │   └── dashboard/           # Vite admin (port 3002; proxies /api → :3000)
 ├── packages/
 │   ├── types/
-│   ├── api-client/
-│   └── ui/
+│   └── api-client/
 ├── docs/                    # Status, audits, backlogs
 ├── package.json             # npm workspaces + scripts
 └── AGENTS.md                # AI agent instructions
@@ -109,7 +108,7 @@ Website rewrites `/api/*` to the API. Dashboard Vite proxies `/api` to `http://l
 
 ### Seed data (optional)
 
-See `apps/api/SEEDER_README.md` and scripts under `apps/api/seeders/`.
+See `apps/api/SEEDER_README.md` and `apps/api/seeder.js`.
 
 ---
 
@@ -158,7 +157,8 @@ The storefront persists the JWT with client-readable cookies (`js-cookie`). Trea
 
 ## Deployment
 
-- API can deploy as a Node web service (see `apps/api/render.yaml` / `apps/api/DEPLOYMENT_GUIDE.md` — some values may still reflect older branding; prefer TrendVaulta env names above).
+- API deploys as a Node web service via `apps/api/render.yaml` (Render Blueprint, `rootDir: apps/api`, health check `GET /api/ready`).
+- Dashboard deploys as a static Vite SPA via `apps/dashboard/vercel.json`; storefront via `apps/website/vercel.json`.
 - Prefer MongoDB Atlas for production data.
 - Configure Stripe webhook to `POST /api/webhooks/stripe` with the signing secret.
 - Set `FRONTEND_URL`, `DASHBOARD_URL`, and CORS allowlists for production origins.

@@ -40,5 +40,5 @@ export default {
     '!src/lib/viteEnv.test-shim.ts',
   ],
   testMatch: ['**/__tests__/**/*.{ts,tsx}', '**/*.{spec,test}.{ts,tsx}'],
-  transformIgnorePatterns: ['node_modules/(?!(@craftify)/)'],
+  transformIgnorePatterns: ['node_modules/(?!(@trendvaulta)/)'],
 }

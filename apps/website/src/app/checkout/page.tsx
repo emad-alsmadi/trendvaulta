@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { motion } from 'framer-motion';
@@ -16,7 +16,8 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
-import { useCart } from '@/lib/cartStore';
+import { useCart, getCartLineKey, formatVariantLabel } from '@/lib/cartStore';
+import { useCartQuoteSync } from '@/hooks/cart/cartQuoteQuery';
 import axios from 'axios';
 import { paymentsApi } from '@/lib/api';
 import { useCreateOrderMutation } from '@/hooks/orders/ordersQuery';
@@ -40,12 +41,6 @@ type CheckoutValues = {
   notes: string;
   delivery: boolean;
 };
-
-const DIGITAL_SHIPPING = {
-  address: 'Digital delivery – no physical shipping',
-  city: 'N/A',
-  zip: '00000',
-} as const;
 
 /** Only for local/dev: complete checkout without opening Stripe (creates an unpaid order). */
 const allowCheckoutWithoutStripe =
@@ -82,15 +77,15 @@ export default function CheckoutPage() {
 
   const items = cart.state.items;
   const subtotal = cart.subtotal;
-  const discountAmount = appliedCoupon?.discountAmount || 0;
-  const discountedSubtotal = Math.max(0, subtotal - discountAmount);
+  const discountedSubtotal = Math.max(
+    0,
+    subtotal - (appliedCoupon?.discountAmount || 0),
+  );
 
   const {
     register,
     handleSubmit,
     watch,
-    getValues,
-    clearErrors,
     formState: { errors, isSubmitting },
   } = useForm<CheckoutValues>({
     defaultValues: {
@@ -107,8 +102,29 @@ export default function CheckoutPage() {
   });
 
   const deliverySelected = Boolean(watch('delivery'));
-  const shippingPrice = deliverySelected ? 5 : 0;
-  const total = discountedSubtotal + shippingPrice;
+  const shippingMethod = deliverySelected ? ('standard' as const) : ('none' as const);
+
+  // Server-side quote (same intent fields as the checkout payload). Falls
+  // back to client-side totals while loading or if the endpoint is missing.
+  const { quote, notices } = useCartQuoteSync({
+    items,
+    couponCode: appliedCoupon?.code,
+    delivery: deliverySelected,
+    shippingMethod,
+  });
+  const itemsPrice = quote?.itemsPrice ?? subtotal;
+  const discountAmount =
+    quote?.discountAmount ?? (appliedCoupon?.discountAmount || 0);
+  const shippingPrice = quote?.shippingPrice ?? (deliverySelected ? 5 : 0);
+  const taxPrice = quote?.taxPrice ?? 0;
+  const total = quote?.totalPrice ?? discountedSubtotal + shippingPrice;
+  const couponRejectedByServer = Boolean(
+    quote && appliedCoupon && quote.couponValid === false,
+  );
+  const presentKeys = new Set(items.map(getCartLineKey));
+  const removedNotices = Object.entries(notices).filter(
+    ([key]) => !presentKeys.has(key),
+  );
 
   const couponQuery = useValidateCoupon(couponCode, discountedSubtotal);
 
@@ -145,14 +161,7 @@ export default function CheckoutPage() {
     toast('Coupon removed', { variant: 'info' });
   };
 
-  useEffect(() => {
-    if (!deliverySelected) {
-      clearErrors(['address', 'city', 'zip']);
-    }
-  }, [deliverySelected, clearErrors]);
-
   const runCheckout = async (values: CheckoutValues) => {
-    const usePhysicalAddress = Boolean(values.delivery);
     const payload = {
       items: items.map((i) => ({
         productId: i.productId,
@@ -162,15 +171,16 @@ export default function CheckoutPage() {
       shippingAddress: {
         name: values.name,
         phone: values.phone,
-        address: usePhysicalAddress ? values.address : DIGITAL_SHIPPING.address,
-        city: usePhysicalAddress ? values.city : DIGITAL_SHIPPING.city,
-        zip: usePhysicalAddress ? values.zip : DIGITAL_SHIPPING.zip,
+        address: values.address,
+        city: values.city,
+        zip: values.zip,
         notes: values.notes,
       },
       // Server computes shipping/tax/discount — send intent flags + coupon only
       delivery: Boolean(values.delivery),
       shippingMethod: values.delivery ? ('standard' as const) : ('none' as const),
-      couponCode: appliedCoupon?.code || undefined,
+      couponCode:
+        appliedCoupon && !couponRejectedByServer ? appliedCoupon.code : undefined,
     };
 
     try {
@@ -310,8 +320,8 @@ export default function CheckoutPage() {
         </h1>
         <p className='mt-2 text-sm font-semibold text-indigo-950/80'>
           After you confirm, you&apos;ll finish payment on Stripe&apos;s secure
-          page (card or wallet). Add delivery details if you need shipping —
-          otherwise we use your contact info for the order.
+          page (card or wallet). Enter the address your order should ship
+          to; tracked local delivery is optional.
         </p>
       </div>
 
@@ -383,87 +393,82 @@ export default function CheckoutPage() {
                   className='h-4 w-4'
                   {...register('delivery')}
                 />
-                Add local delivery (+$5) — requires a full shipping address
-                below
+                Add tracked local delivery
+                {deliverySelected && quote
+                  ? ` (+$${shippingPrice.toFixed(2)})`
+                  : ''}
               </label>
             </div>
 
-            {deliverySelected ? (
-              <>
-                <div>
-                  <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                    Street address
-                  </label>
-                  <Input
-                    placeholder='Street, building, apartment'
-                    {...register('address', {
-                      validate: (v) =>
-                        !getValues('delivery') ||
-                        (typeof v === 'string' && v.trim().length >= 5) ||
-                        'Address is required',
-                      maxLength: {
-                        value: 300,
-                        message: 'Maximum 300 characters',
-                      },
-                    })}
-                  />
-                  {errors.address?.message && (
-                    <div className='mt-2 text-sm font-semibold text-rose-700'>
-                      {errors.address.message}
-                    </div>
-                  )}
+            <div>
+              <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+                Street address
+              </label>
+              <Input
+                placeholder='Street, building, apartment'
+                {...register('address', {
+                  validate: (v) =>
+                    (typeof v === 'string' && v.trim().length >= 5) ||
+                    'Address is required',
+                  maxLength: {
+                    value: 300,
+                    message: 'Maximum 300 characters',
+                  },
+                })}
+              />
+              {errors.address?.message && (
+                <div className='mt-2 text-sm font-semibold text-rose-700'>
+                  {errors.address.message}
                 </div>
+              )}
+            </div>
 
-                <div className='grid gap-4 sm:grid-cols-2'>
-                  <div>
-                    <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                      City
-                    </label>
-                    <Input
-                      placeholder='City'
-                      {...register('city', {
-                        validate: (v) =>
-                          !getValues('delivery') ||
-                          (typeof v === 'string' && v.trim().length >= 2) ||
-                          'City is required',
-                        maxLength: {
-                          value: 100,
-                          message: 'Maximum 100 characters',
-                        },
-                      })}
-                    />
-                    {errors.city?.message && (
-                      <div className='mt-2 text-sm font-semibold text-rose-700'>
-                        {errors.city.message}
-                      </div>
-                    )}
+            <div className='grid gap-4 sm:grid-cols-2'>
+              <div>
+                <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+                  City
+                </label>
+                <Input
+                  placeholder='City'
+                  {...register('city', {
+                    validate: (v) =>
+                      (typeof v === 'string' && v.trim().length >= 2) ||
+                      'City is required',
+                    maxLength: {
+                      value: 100,
+                      message: 'Maximum 100 characters',
+                    },
+                  })}
+                />
+                {errors.city?.message && (
+                  <div className='mt-2 text-sm font-semibold text-rose-700'>
+                    {errors.city.message}
                   </div>
-                  <div>
-                    <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                      ZIP / postal code
-                    </label>
-                    <Input
-                      placeholder='ZIP'
-                      {...register('zip', {
-                        validate: (v) =>
-                          !getValues('delivery') ||
-                          (typeof v === 'string' && v.trim().length >= 2) ||
-                          'ZIP is required',
-                        maxLength: {
-                          value: 20,
-                          message: 'Maximum 20 characters',
-                        },
-                      })}
-                    />
-                    {errors.zip?.message && (
-                      <div className='mt-2 text-sm font-semibold text-rose-700'>
-                        {errors.zip.message}
-                      </div>
-                    )}
+                )}
+              </div>
+              <div>
+                <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+                  ZIP / postal code
+                </label>
+                <Input
+                  placeholder='ZIP'
+                  {...register('zip', {
+                    validate: (v) =>
+                      (typeof v === 'string' && v.trim().length >= 2) ||
+                      'ZIP is required',
+                    maxLength: {
+                      value: 20,
+                      message: 'Maximum 20 characters',
+                    },
+                  })}
+                />
+                {errors.zip?.message && (
+                  <div className='mt-2 text-sm font-semibold text-rose-700'>
+                    {errors.zip.message}
                   </div>
-                </div>
-              </>
-            ) : null}
+                )}
+              </div>
+            </div>
 
             <div>
               <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
@@ -535,6 +540,57 @@ export default function CheckoutPage() {
             Order summary
           </div>
 
+          {removedNotices.length > 0 && (
+            <div
+              role='status'
+              className='mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900'
+            >
+              <ul className='space-y-1'>
+                {removedNotices.map(([key, n]) => (
+                  <li key={key}>
+                    {n.title}: {n.message}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <ul className='mt-4 divide-y divide-indigo-900/10'>
+            {items.map((item) => {
+              const lineKey = getCartLineKey(item);
+              const variantLabel = formatVariantLabel(item.variant);
+              const notice = notices[lineKey];
+              return (
+                <li key={lineKey} className='flex items-start gap-3 py-2'>
+                  <div className='min-w-0 flex-1'>
+                    <div className='truncate text-sm font-extrabold text-indigo-950'>
+                      {item.title}
+                    </div>
+                    {variantLabel && (
+                      <div className='truncate text-xs font-semibold text-indigo-950/60'>
+                        {variantLabel}
+                      </div>
+                    )}
+                    <div className='text-xs font-semibold text-indigo-950/60'>
+                      Qty {item.qty} × ${item.price.toFixed(2)}
+                    </div>
+                    {notice && (
+                      <div
+                        role='status'
+                        className='mt-0.5 text-xs font-semibold text-amber-700'
+                      >
+                        {notice.message}
+                      </div>
+                    )}
+                  </div>
+                  <div className='text-sm font-extrabold text-indigo-950'>
+                    ${(item.price * item.qty).toFixed(2)}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+
           <div className='mt-4 space-y-3'>
             <div className='flex items-center justify-between text-sm font-semibold text-indigo-950/80'>
               <span>Items</span>
@@ -542,7 +598,7 @@ export default function CheckoutPage() {
             </div>
             <div className='flex items-center justify-between text-sm font-semibold text-indigo-950/80'>
               <span>Subtotal</span>
-              <span>${subtotal.toFixed(2)}</span>
+              <span>${itemsPrice.toFixed(2)}</span>
             </div>
 
             {appliedCoupon && (
@@ -561,6 +617,12 @@ export default function CheckoutPage() {
                     <X className='h-4 w-4' />
                   </button>
                 </div>
+              </div>
+            )}
+            {couponRejectedByServer && (
+              <div className='text-xs font-semibold text-rose-700'>
+                {quote?.couponMessage ||
+                  'This coupon can no longer be applied to your order.'}
               </div>
             )}
 
@@ -603,7 +665,7 @@ export default function CheckoutPage() {
             </div>
             <div className='flex items-center justify-between text-sm font-semibold text-indigo-950/70'>
               <span>Tax</span>
-              <span>$0.00</span>
+              <span>${taxPrice.toFixed(2)}</span>
             </div>
             <div className='h-px bg-indigo-900/10' />
             <div className='flex items-center justify-between text-base font-extrabold text-indigo-950'>

@@ -1,5 +1,9 @@
 const asyncHandler = require('express-async-handler');
-const { Order, validateCreateOrder } = require('../models/Order');
+const {
+  Order,
+  validateCreateOrder,
+  validateQuote,
+} = require('../models/Order');
 const { Product } = require('../models/Product');
 const StripeWebhookEvent = require('../models/StripeWebhookEvent');
 const {
@@ -8,15 +12,19 @@ const {
 } = require('../services/stripe.service');
 const {
   buildNormalizedOrderLines,
+  quoteOrderLines,
   resolveShippingPrice,
   loadValidCouponByCode,
   calculateCouponDiscount,
   decrementStockForPaidOrder,
+  restoreStockOnce,
   incrementCouponUsedCount,
   incrementSalesCountForPaidOrder,
 } = require('../utils/commerce');
+const { canTransitionOrderStatus } = require('../utils/orderTransitions');
 const {
   claimWebhookEvent,
+  markWebhookEventProcessed,
   releaseWebhookEvent,
 } = require('../utils/stripeWebhookIdempotency');
 const { sendOrderConfirmationEmail } = require('../utils/mail');
@@ -26,10 +34,57 @@ function dollarsToCents(amount) {
   return Math.round(Number(amount) * 100);
 }
 
+const CHECKOUT_SESSION_TTL_SECONDS = 30 * 60;
+
 function getPaymentsSetupStatus(_req, res) {
   const ready = Boolean(process.env.STRIPE_SECRET_KEY?.trim());
   res.status(200).json({ ready });
 }
+
+/**
+ * Public cart/checkout quote. Prices lines server-side, validates the coupon
+ * and shipping, and reports stock/price drift as warnings. Creates nothing.
+ * @route POST /api/payments/quote
+ */
+const quoteOrder = asyncHandler(async (req, res) => {
+  const { error, value } = validateQuote(req.body || {});
+  if (error) {
+    return res.status(400).json({ message: error.details[0].message });
+  }
+
+  const { items, couponCode, delivery, shippingMethod } = value;
+  const { lines, itemsPrice, warnings } = await quoteOrderLines(Product, items);
+
+  let discountAmount = 0;
+  let couponValid = false;
+  let couponMessage = null;
+  if (couponCode) {
+    const coupon = await loadValidCouponByCode(couponCode);
+    const result = calculateCouponDiscount(coupon, itemsPrice);
+    couponValid = result.valid;
+    couponMessage = result.valid ? null : result.message;
+    discountAmount = result.discountAmount;
+  }
+
+  const shippingPrice = resolveShippingPrice({ delivery, shippingMethod });
+  const taxPrice = 0;
+  const totalPrice = Math.max(
+    0,
+    itemsPrice - discountAmount + shippingPrice + taxPrice,
+  );
+
+  res.status(200).json({
+    lines,
+    itemsPrice,
+    discountAmount,
+    couponValid,
+    couponMessage,
+    shippingPrice,
+    taxPrice,
+    totalPrice,
+    warnings,
+  });
+});
 
 const createCheckoutSession = asyncHandler(async (req, res) => {
   let stripe;
@@ -155,6 +210,7 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
     const sessionParams = {
       mode: 'payment',
       line_items: lineItems,
+      expires_at: Math.floor(Date.now() / 1000) + CHECKOUT_SESSION_TTL_SECONDS,
       success_url: `${frontend}/checkout/success?order_id=${order._id}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${frontend}/checkout/cancel?order_id=${order._id}`,
       client_reference_id: String(order._id),
@@ -181,6 +237,8 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
         name: normalizedCouponCode || 'Order discount',
       });
       sessionParams.discounts = [{ coupon: stripeCoupon.id }];
+      // Remembered so the webhook can delete the one-off coupon afterwards
+      sessionParams.metadata.stripeCouponId = stripeCoupon.id;
     }
 
     session = await stripe.checkout.sessions.create(sessionParams);
@@ -207,69 +265,288 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
   });
 });
 
-async function markOrderPaidFromSession(session) {
-  const orderId = session.metadata?.orderId || session.client_reference_id;
-  if (!orderId) return;
+function extractOrderId(obj) {
+  return obj?.metadata?.orderId || obj?.client_reference_id || null;
+}
 
-  const order = await Order.findById(orderId);
-  if (!order) return;
+function extractPaymentIntentId(obj) {
+  const pi = obj?.payment_intent;
+  return typeof pi === 'string' ? pi : pi?.id || '';
+}
 
-  if (order.paymentStatus === 'paid') return;
-
-  const pi = session.payment_intent;
-  const paymentIntentId = typeof pi === 'string' ? pi : pi?.id || '';
-
-  if (!order.stockDecremented) {
-    await decrementStockForPaidOrder(Product, order);
-    order.stockDecremented = true;
-  }
-
-  if (order.couponId && !order.couponIncremented) {
-    await incrementCouponUsedCount(order.couponId);
-    order.couponIncremented = true;
-  }
-
-  if (!order.salesCountIncremented) {
-    await incrementSalesCountForPaidOrder(Product, order);
-    order.salesCountIncremented = true;
-  }
-
-  order.paymentStatus = 'paid';
-  order.status = 'paid';
-  order.stripeSessionId = session.id || order.stripeSessionId;
-  order.paymentIntentId = paymentIntentId || order.paymentIntentId;
-  order.paidAt = new Date();
-  await order.save();
-
-  if (!order.confirmationEmailSent) {
-    try {
-      const user = await User.findById(order.user).select('email').lean();
-      const sent = await sendOrderConfirmationEmail({
-        to: user?.email,
-        orderId: String(order._id),
-        totalPrice: order.totalPrice,
-        items: order.items,
-      });
-      if (sent) {
-        order.confirmationEmailSent = true;
-        await order.save();
-      }
-    } catch (mailErr) {
-      console.error(
-        'Order confirmation email error (payment still paid):',
-        mailErr?.message || mailErr,
-      );
-    }
+/** Best-effort removal of the per-checkout Stripe coupon (never throws). */
+async function deleteTemporaryCoupon(stripe, couponId) {
+  if (!stripe || !couponId) return;
+  try {
+    await stripe.coupons.del(couponId);
+  } catch (couponErr) {
+    console.warn(
+      `Could not delete temporary Stripe coupon ${couponId}:`,
+      couponErr?.message || couponErr,
+    );
   }
 }
 
-async function handleCheckoutSessionCompleted(session) {
+async function sendConfirmationEmailOnce(order) {
+  if (order.confirmationEmailSent) return;
+  try {
+    const user = await User.findById(order.user).select('email').lean();
+    const sent = await sendOrderConfirmationEmail({
+      to: user?.email,
+      orderId: String(order._id),
+      totalPrice: order.totalPrice,
+      items: order.items,
+    });
+    if (sent) {
+      await Order.updateOne(
+        { _id: order._id, confirmationEmailSent: false },
+        { $set: { confirmationEmailSent: true } },
+      );
+    }
+  } catch (mailErr) {
+    console.error(
+      'Order confirmation email error (payment still paid):',
+      mailErr?.message || mailErr,
+    );
+  }
+}
+
+/**
+ * Mark an order paid exactly once, then apply side-effects.
+ *
+ * Race-safe: the payment is claimed with a single conditional update, so a
+ * concurrent verify-payment poll and Stripe webhook can never both apply
+ * stock/coupon/salesCount. Each side-effect flag is also flipped with a
+ * conditional `$set`, so a crash mid-way stays idempotent on retry.
+ *
+ * Fulfillment status follows the state machine: pending → paid; a canceled
+ * order receiving a late payment becomes needs_attention (paid_after_cancel)
+ * without touching stock. Insufficient stock after a successful charge is
+ * flagged (needs_attention / insufficient_stock) instead of throwing, so the
+ * webhook always acknowledges the event.
+ *
+ * @returns {Promise<{ claimed: boolean, status?: string, orderId: string|null }>}
+ */
+/**
+ * Lease a one-shot side-effect flag on the order. Returns true when this
+ * caller won the lease (flag was false); the flag is flipped BEFORE the
+ * side-effect runs so concurrent callers cannot double-apply it. Callers
+ * must release the lease (flip back) if the side-effect fails.
+ */
+async function leaseOrderFlag(orderId, flag) {
+  const res = await Order.updateOne(
+    { _id: orderId, [flag]: false },
+    { $set: { [flag]: true } },
+  );
+  return (res.modifiedCount ?? res.nModified ?? 0) === 1;
+}
+
+async function releaseOrderFlag(orderId, flag) {
+  await Order.updateOne({ _id: orderId }, { $set: { [flag]: false } }).catch(
+    () => {},
+  );
+}
+
+/**
+ * Run the post-payment side-effects (stock, coupon, salesCount, email) for an
+ * order that is already `paymentStatus: 'paid'`. Every effect is guarded by a
+ * flag lease, so this is safe to call from concurrent callers and on Stripe
+ * retries after a transient failure.
+ * @returns {Promise<{ status: string, attentionReason: string }>}
+ */
+async function applyPaidSideEffects(order) {
+  let status = 'paid';
+  let attentionReason = '';
+
+  if (await leaseOrderFlag(order._id, 'stockDecremented')) {
+    try {
+      await decrementStockForPaidOrder(Product, order);
+    } catch (stockErr) {
+      await releaseOrderFlag(order._id, 'stockDecremented');
+      if (stockErr?.statusCode !== 409) throw stockErr;
+      status = 'needs_attention';
+      attentionReason = 'insufficient_stock';
+      console.error(
+        `Order ${order._id} paid but stock is insufficient:`,
+        stockErr.message,
+      );
+    }
+  }
+
+  if (order.couponId && (await leaseOrderFlag(order._id, 'couponIncremented'))) {
+    try {
+      await incrementCouponUsedCount(order.couponId);
+    } catch (e) {
+      await releaseOrderFlag(order._id, 'couponIncremented');
+      throw e;
+    }
+  }
+
+  if (await leaseOrderFlag(order._id, 'salesCountIncremented')) {
+    try {
+      await incrementSalesCountForPaidOrder(Product, order);
+    } catch (e) {
+      await releaseOrderFlag(order._id, 'salesCountIncremented');
+      throw e;
+    }
+  }
+
+  return { status, attentionReason };
+}
+
+async function markOrderPaidFromSession(session) {
+  const orderId = extractOrderId(session);
+  if (!orderId) return { claimed: false, orderId: null };
+
+  const paymentIntentId = extractPaymentIntentId(session);
+  const $set = { paymentStatus: 'paid', paidAt: new Date() };
+  if (paymentIntentId) $set.paymentIntentId = paymentIntentId;
+  if (session.id) $set.stripeSessionId = session.id;
+
+  let order = await Order.findOneAndUpdate(
+    { _id: orderId, paymentStatus: { $nin: ['paid', 'refunded'] } },
+    { $set },
+    { new: true },
+  );
+  let claimed = true;
+
+  if (!order) {
+    // Already claimed (concurrent caller) or a Stripe retry after a transient
+    // failure. Re-enter only to finish outstanding side-effects; the flag
+    // leases below make that idempotent.
+    claimed = false;
+    order = await Order.findById(orderId);
+    if (!order || order.paymentStatus !== 'paid') {
+      return { claimed: false, orderId: String(orderId) };
+    }
+    const pendingWork =
+      !order.stockDecremented ||
+      (order.couponId && !order.couponIncremented) ||
+      !order.salesCountIncremented ||
+      !order.confirmationEmailSent;
+    if (!pendingWork || !['pending', 'paid'].includes(order.status)) {
+      return { claimed: false, status: order.status, orderId: String(order._id) };
+    }
+  }
+
+  const previousStatus = order.status;
+  const transition = canTransitionOrderStatus(previousStatus, 'paid');
+
+  if (claimed && !transition.ok) {
+    // e.g. admin canceled before the (late) webhook: keep the money trail,
+    // do not touch inventory, and surface it for a manual refund/decision.
+    if (previousStatus === 'canceled') {
+      await Order.updateOne(
+        { _id: order._id, status: previousStatus },
+        { $set: { status: 'needs_attention', attentionReason: 'paid_after_cancel' } },
+      );
+      console.warn(
+        `Order ${order._id} was paid after cancellation; flagged needs_attention`,
+      );
+      return { claimed: true, status: 'needs_attention', orderId: String(order._id) };
+    }
+    // Already paid/shipped/delivered/refunded/needs_attention: nothing to change
+    return { claimed: true, status: previousStatus, orderId: String(order._id) };
+  }
+
+  const { status, attentionReason } = await applyPaidSideEffects(order);
+
+  if (previousStatus === 'pending' || status === 'needs_attention') {
+    await Order.updateOne(
+      { _id: order._id, status: previousStatus },
+      { $set: { status, attentionReason } },
+    );
+  }
+
+  await sendConfirmationEmailOnce(order);
+
+  return { claimed, status, orderId: String(order._id) };
+}
+
+async function handleCheckoutSessionCompleted(session, stripe) {
+  let orderId = extractOrderId(session);
   if (
     session.metadata?.kind === 'order_payment' ||
     session.mode === 'payment'
   ) {
-    await markOrderPaidFromSession(session);
+    const result = await markOrderPaidFromSession(session);
+    orderId = result.orderId || orderId;
   }
+  await deleteTemporaryCoupon(stripe, session.metadata?.stripeCouponId);
+  return orderId;
+}
+
+/** Session timed out (expires_at): fail a still-unpaid order. Stock is never reserved before payment. */
+async function handleCheckoutSessionExpired(session, stripe) {
+  const orderId = extractOrderId(session);
+  if (orderId) {
+    await Order.updateOne(
+      {
+        _id: orderId,
+        status: 'pending',
+        paymentStatus: { $nin: ['paid', 'refunded'] },
+      },
+      { $set: { paymentStatus: 'failed', status: 'canceled' } },
+    );
+  }
+  await deleteTemporaryCoupon(stripe, session.metadata?.stripeCouponId);
+  return orderId;
+}
+
+async function handlePaymentIntentFailed(paymentIntent) {
+  const orderId = paymentIntent?.metadata?.orderId || null;
+  const or = [];
+  if (paymentIntent?.id) or.push({ paymentIntentId: paymentIntent.id });
+  if (orderId) or.push({ _id: orderId });
+  if (or.length === 0) return null;
+
+  const $set = { paymentStatus: 'failed' };
+  if (paymentIntent?.id) $set.paymentIntentId = paymentIntent.id;
+
+  const updated = await Order.findOneAndUpdate(
+    { $or: or, paymentStatus: { $nin: ['paid', 'refunded'] } },
+    { $set },
+    { new: true },
+  );
+  return updated ? String(updated._id) : orderId;
+}
+
+/** Refund issued (dashboard or API): sync payment/fulfillment status and release stock. */
+async function handleChargeRefunded(charge) {
+  const paymentIntentId = extractPaymentIntentId(charge);
+  const metaOrderId = charge?.metadata?.orderId || null;
+  const or = [];
+  if (paymentIntentId) or.push({ paymentIntentId });
+  if (metaOrderId) or.push({ _id: metaOrderId });
+  if (or.length === 0) return null;
+
+  const order = await Order.findOne({ $or: or });
+  if (!order) return metaOrderId;
+
+  const refundAmount = Number(charge.amount_refunded || 0) / 100;
+  const latestRefund = charge.refunds?.data?.[0];
+  const $set = { refundAmount };
+  if (latestRefund?.id) $set.refundId = latestRefund.id;
+
+  const fullyRefunded =
+    charge.refunded === true ||
+    (charge.amount > 0 && charge.amount_refunded >= charge.amount);
+
+  if (fullyRefunded) {
+    $set.paymentStatus = 'refunded';
+    if (!order.refundedAt) $set.refundedAt = new Date();
+    if (canTransitionOrderStatus(order.status, 'refunded').ok) {
+      $set.status = 'refunded';
+      $set.attentionReason = '';
+    }
+  }
+
+  await Order.updateOne({ _id: order._id }, { $set });
+
+  if (fullyRefunded) {
+    await restoreStockOnce(Order, Product, order);
+  }
+  return String(order._id);
 }
 
 const stripeWebhook = asyncHandler(async (req, res) => {
@@ -290,15 +567,27 @@ const stripeWebhook = asyncHandler(async (req, res) => {
       .send(`Webhook signature verification failed: ${err.message}`);
   }
 
-  const claim = await claimWebhookEvent(StripeWebhookEvent, event.id);
+  const claim = await claimWebhookEvent(StripeWebhookEvent, event.id, {
+    type: event.type,
+  });
   if (claim.duplicate) {
     return res.status(200).json({ received: true, duplicate: true });
   }
 
+  let orderId = null;
   try {
     switch (event.type) {
       case 'checkout.session.completed':
-        await handleCheckoutSessionCompleted(event.data.object);
+        orderId = await handleCheckoutSessionCompleted(event.data.object, stripe);
+        break;
+      case 'checkout.session.expired':
+        orderId = await handleCheckoutSessionExpired(event.data.object, stripe);
+        break;
+      case 'payment_intent.payment_failed':
+        orderId = await handlePaymentIntentFailed(event.data.object);
+        break;
+      case 'charge.refunded':
+        orderId = await handleChargeRefunded(event.data.object);
         break;
       default:
         break;
@@ -308,6 +597,11 @@ const stripeWebhook = asyncHandler(async (req, res) => {
     console.error('Stripe webhook processing error:', procErr);
     return res.status(500).json({ message: 'Webhook handler failed' });
   }
+
+  await markWebhookEventProcessed(StripeWebhookEvent, event.id, {
+    orderId,
+    status: 'processed',
+  });
 
   res.status(200).json({ received: true });
 });
@@ -370,6 +664,7 @@ const verifyPaymentStatus = asyncHandler(async (req, res) => {
 
 module.exports = {
   getPaymentsSetupStatus,
+  quoteOrder,
   createCheckoutSession,
   stripeWebhook,
   verifyPaymentStatus,

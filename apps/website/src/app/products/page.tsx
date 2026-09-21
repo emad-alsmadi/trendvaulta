@@ -13,6 +13,25 @@ import { Pagination } from '@/components/ui/Pagination';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { getDemoBadgesForIndex } from '@/data/demoStorefront';
 
+/**
+ * API Product.category enum: makeup, perfumes, clothing, skincare,
+ * accessories, home. Older marketing links used broader names — map them
+ * so those URLs keep working instead of showing "No products".
+ */
+const CATEGORY_ALIASES: Record<string, string> = {
+  beauty: 'makeup',
+  fashion: 'clothing',
+  lifestyle: 'home',
+  wellness: 'skincare',
+  fragrance: 'perfumes',
+};
+
+function normalizeCategoryParam(value: string | null): string | undefined {
+  if (!value) return undefined;
+  const key = value.trim().toLowerCase();
+  return CATEGORY_ALIASES[key] ?? key;
+}
+
 const sortOptions = [
   { value: 'createdAt', label: 'Featured' },
   { value: 'bestselling', label: 'Best Sellers' },
@@ -36,7 +55,7 @@ export default function ProductsPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const category = searchParams.get('category') || undefined;
+  const category = normalizeCategoryParam(searchParams.get('category'));
   const subcategory = searchParams.get('subcategory') || undefined;
   const qParam = searchParams.get('q') || '';
   const sortBy = searchParams.get('sort') || 'createdAt';

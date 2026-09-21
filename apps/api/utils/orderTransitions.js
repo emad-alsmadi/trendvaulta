@@ -1,18 +1,27 @@
-/** Fulfillment status machine (payment → paid is webhook-only). */
+/**
+ * Fulfillment status machine.
+ * `pending → paid` is driven by Stripe (webhook / verify-payment); the admin
+ * controller additionally guards that path on paymentStatus.
+ */
 const ORDER_STATUSES = [
   'pending',
   'paid',
   'shipped',
   'delivered',
   'canceled',
+  'needs_attention',
+  'refunded',
 ];
 
 const ALLOWED_TRANSITIONS = {
-  pending: ['canceled'],
-  paid: ['shipped', 'canceled'],
-  shipped: ['delivered'],
-  delivered: [],
-  canceled: [],
+  pending: ['paid', 'canceled', 'needs_attention'],
+  paid: ['shipped', 'canceled', 'needs_attention', 'refunded'],
+  needs_attention: ['paid', 'canceled', 'refunded'],
+  // canceled → refunded only when a payment was captured (controller guard)
+  canceled: ['refunded'],
+  shipped: ['delivered', 'refunded'],
+  delivered: ['refunded'],
+  refunded: [],
 };
 
 function getAllowedNextStatuses(currentStatus) {

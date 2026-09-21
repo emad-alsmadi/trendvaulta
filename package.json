@@ -2,7 +2,7 @@
   "name": "trendvaulta",
   "version": "1.0.0",
   "private": true,
-  "description": "Craftify Templates Marketplace - Monorepo with Next.js website and React admin dashboard",
+  "description": "TrendVaulta — retail e-commerce monorepo (Next.js storefront, React admin dashboard, Express API)",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -12,20 +12,21 @@
     "dev:website": "npm run dev --workspace=apps/website",
     "dev:dashboard": "npm run dev --workspace=apps/dashboard",
     "dev:api": "npm run dev --workspace=apps/api",
-    "build": "npm run build --workspaces",
+    "build": "npm run build --workspaces --if-present",
     "build:website": "npm run build --workspace=apps/website",
     "build:dashboard": "npm run build --workspace=apps/dashboard",
-    "lint": "npm run lint --workspaces",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
     "test:api": "npm run test --workspace=apps/api",
     "typecheck:website": "npx --workspace=apps/website tsc --noEmit",
     "typecheck:types": "npm run type-check --workspace=packages/types",
-    "clean": "npm run clean --workspaces && rm -rf node_modules"
+    "clean": "npm run clean --workspaces --if-present && rm -rf node_modules"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
   },
   "engines": {
-    "node": ">=18.0.0",
+    "node": ">=20.9.0",
     "npm": ">=9.0.0"
   }
 }

@@ -9,6 +9,7 @@ import {
   getCartSubtotal,
   getCartTotal,
   getCartWeight,
+  getCartLineKey,
   removeCartCoupon,
   removeFromCart,
   setCartCoupon,
@@ -60,22 +61,68 @@ describe('addToCart', () => {
   });
 });
 
+describe('getCartLineKey', () => {
+  it('builds productId|size|color and appends sku when present', () => {
+    expect(getCartLineKey({ productId: 'p1' })).toBe('p1||');
+    expect(getCartLineKey({ productId: 'p1', variant: { size: 'M', color: 'Red' } })).toBe('p1|M|Red');
+    expect(getCartLineKey({ productId: 'p1', variant: { size: 'M', sku: 'SKU-1' } })).toBe('p1|M||SKU-1');
+  });
+});
+
 describe('setCartQty / removeFromCart', () => {
   it('floors and clamps an updated quantity to at least 1', () => {
     addToCart({ productId: 'p1', title: 'Serum', price: 20, cover: '/a.jpg', qty: 1 });
-    setCartQty('p1', 5.7);
+    const key = getCartLineKey({ productId: 'p1' });
+    setCartQty(key, 5.7);
     expect(getCartState().items[0].qty).toBe(5);
-    setCartQty('p1', -3);
+    setCartQty(key, -3);
     expect(getCartState().items[0].qty).toBe(1);
+  });
+
+  it('still accepts a bare productId for a no-variant line', () => {
+    addToCart({ productId: 'p1', title: 'Serum', price: 20, cover: '/a.jpg', qty: 1 });
+    setCartQty('p1', 4);
+    expect(getCartState().items[0].qty).toBe(4);
+    removeFromCart('p1');
+    expect(getCartState().items).toHaveLength(0);
   });
 
   it('removes only the targeted product', () => {
     addToCart({ productId: 'p1', title: 'A', price: 10, cover: '/a.jpg' });
     addToCart({ productId: 'p2', title: 'B', price: 10, cover: '/b.jpg' });
-    removeFromCart('p1');
+    removeFromCart(getCartLineKey({ productId: 'p1' }));
     const state = getCartState();
     expect(state.items).toHaveLength(1);
     expect(state.items[0].productId).toBe('p2');
+  });
+
+  it('changes quantity only on the targeted variant line', () => {
+    addToCart({ productId: 'p1', title: 'Lip', price: 10, cover: '/a.jpg', qty: 1, variant: { size: 'M', color: 'Red' } });
+    addToCart({ productId: 'p1', title: 'Lip', price: 10, cover: '/a.jpg', qty: 1, variant: { size: 'L', color: 'Red' } });
+    setCartQty(getCartLineKey({ productId: 'p1', variant: { size: 'M', color: 'Red' } }), 3);
+    const state = getCartState();
+    expect(state.items.find((i) => i.variant?.size === 'M')?.qty).toBe(3);
+    expect(state.items.find((i) => i.variant?.size === 'L')?.qty).toBe(1);
+  });
+
+  it('removes only the targeted variant line', () => {
+    addToCart({ productId: 'p1', title: 'Lip', price: 10, cover: '/a.jpg', qty: 1, variant: { size: 'M', color: 'Red' } });
+    addToCart({ productId: 'p1', title: 'Lip', price: 10, cover: '/a.jpg', qty: 1, variant: { size: 'L', color: 'Red' } });
+    removeFromCart(getCartLineKey({ productId: 'p1', variant: { size: 'M', color: 'Red' } }));
+    const state = getCartState();
+    expect(state.items).toHaveLength(1);
+    expect(state.items[0].variant?.size).toBe('L');
+  });
+
+  it('caps quantity at maxQty on add, merge and setCartQty', () => {
+    addToCart({ productId: 'p1', title: 'A', price: 10, cover: '/a.jpg', qty: 5, maxQty: 3 });
+    expect(getCartState().items[0].qty).toBe(3);
+    addToCart({ productId: 'p1', title: 'A', price: 10, cover: '/a.jpg', qty: 1, maxQty: 3 });
+    expect(getCartState().items[0].qty).toBe(3);
+    setCartQty('p1', 10);
+    expect(getCartState().items[0].qty).toBe(3);
+    setCartQty('p1', 2);
+    expect(getCartState().items[0].qty).toBe(2);
   });
 });
 
@@ -142,7 +189,7 @@ describe('cart persistence', () => {
   // to exercise the actual on-load parse path (safeParse/readState).
   it('migrates a legacy templateId field to productId on read', async () => {
     window.localStorage.setItem(
-      'craftify_cart_v1',
+      'trendvaulta_cart_v1',
       JSON.stringify({ items: [{ templateId: 'legacy-1', title: 'Old', price: 9, cover: '/x.jpg', qty: 1 }], coupon: null }),
     );
     const fresh = await import(/* @vite-ignore */ `./cartStore.ts?case=migrate-${Date.now()}`);
@@ -152,7 +199,7 @@ describe('cart persistence', () => {
   });
 
   it('recovers to an empty cart from corrupted JSON instead of throwing', async () => {
-    window.localStorage.setItem('craftify_cart_v1', '{not valid json');
+    window.localStorage.setItem('trendvaulta_cart_v1', '{not valid json');
     const fresh = await import(/* @vite-ignore */ `./cartStore.ts?case=corrupt-${Date.now()}`);
     expect(() => fresh.getCartState()).not.toThrow();
     expect(fresh.getCartState().items).toEqual([]);

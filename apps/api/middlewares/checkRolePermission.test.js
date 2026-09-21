@@ -43,7 +43,9 @@ describe('checkRolePermission', () => {
 
     assert.equal(nextCalled, false);
     assert.equal(res.statusCode, 403);
-    assert.equal(res.body.requiredPermission, 'products:delete');
+    assert.equal(res.body.code, 'FORBIDDEN');
+    assert.equal(res.body.requiredPermission, undefined);
+    assert.equal(res.body.userPermissions, undefined);
   });
 
   it('calls next() and attaches userPermissions when the role has the permission', () => {

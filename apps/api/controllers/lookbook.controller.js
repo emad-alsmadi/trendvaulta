@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler');
+const { parsePagination } = require('../utils/pagination');
 const Lookbook = require('../models/Lookbook');
 const {
   NotFoundError,
@@ -36,8 +37,10 @@ const getLookbooks = asyncHandler(async (req, res) => {
 const getAllLookbooks = asyncHandler(async (req, res) => {
   const { page = 1, limit = 50 } = req.query;
 
-  const pageNum = Math.max(1, parseInt(page, 10));
-  const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10)));
+  const { page: pageNum, limit: limitNum } = parsePagination(
+    { page, limit },
+    { defaultLimit: 50, maxLimit: 100 },
+  );
   const skip = (pageNum - 1) * limitNum;
 
   const [lookbooks, total] = await Promise.all([

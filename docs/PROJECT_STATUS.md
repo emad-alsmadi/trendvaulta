@@ -1,3 +1,5 @@
+> **Historical (2026-08)** — superseded by [`FULL_SYSTEM_ANALYSIS.md`](./FULL_SYSTEM_ANALYSIS.md) and [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md). Kept for audit trail only; do not treat as current status.
+
 # TrendVaulta — Project Status Audit
 
 **Audit date:** 2026-08-07  

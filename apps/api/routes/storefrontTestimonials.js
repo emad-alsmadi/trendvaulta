@@ -8,7 +8,7 @@ const {
   updateTestimonial,
   deleteTestimonial,
 } = require('../controllers/testimonials.controller');
-const { verfiyToken } = require('../middlewares/auth');
+const { verfiyToken } = require('../middlewares/verfiyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 const { validate } = require('../middlewares/validate');
 const {

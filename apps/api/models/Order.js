@@ -101,8 +101,27 @@ const OrderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'paid', 'shipped', 'delivered', 'canceled'],
+      enum: [
+        'pending',
+        'paid',
+        'shipped',
+        'delivered',
+        'canceled',
+        'needs_attention',
+        'refunded',
+      ],
       default: 'pending',
+    },
+    attentionReason: {
+      type: String,
+      enum: [
+        'insufficient_stock',
+        'paid_after_cancel',
+        'refund_failed',
+        'manual_refund_required',
+        '',
+      ],
+      default: '',
     },
     itemsPrice: {
       type: Number,
@@ -181,32 +200,53 @@ const OrderSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    refundId: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    refundedAt: {
+      type: Date,
+    },
+    refundAmount: {
+      type: Number,
+      min: 0,
+      default: 0,
+    },
   },
   { timestamps: true },
 );
 
+// My orders / admin list
+OrderSchema.index({ user: 1, createdAt: -1 });
+OrderSchema.index({ status: 1, createdAt: -1 });
+OrderSchema.index({ paymentStatus: 1, createdAt: -1 });
+// Stripe lookups (verify-payment, webhook handlers)
+OrderSchema.index({ stripeSessionId: 1 }, { sparse: true });
+OrderSchema.index({ paymentIntentId: 1 }, { sparse: true });
+
 const Order = mongoose.model('Order', OrderSchema);
+
+/** Shared client line shape: productId/qty/variant hints only (server prices lines). */
+const orderItemSchema = Joi.object({
+  productId: Joi.string().hex().length(24).required(),
+  qty: Joi.number().integer().min(1).required(),
+  variant: Joi.object({
+    size: Joi.string().trim().allow('', null),
+    color: Joi.string().trim().allow('', null),
+    colorCode: Joi.string().trim().allow('', null),
+    sku: Joi.string().trim().allow('', null),
+  }).optional(),
+  // Client price/title/cover ignored by server — allowed for backward compat only
+  title: Joi.any().strip(),
+  price: Joi.any().strip(),
+});
+
+const orderItemsSchema = Joi.array().items(orderItemSchema).min(1).required();
 
 const validateCreateOrder = (obj) => {
   const schema = Joi.object({
-    items: Joi.array()
-      .items(
-        Joi.object({
-          productId: Joi.string().hex().length(24).required(),
-          qty: Joi.number().integer().min(1).required(),
-          variant: Joi.object({
-            size: Joi.string().trim().allow('', null),
-            color: Joi.string().trim().allow('', null),
-            colorCode: Joi.string().trim().allow('', null),
-            sku: Joi.string().trim().allow('', null),
-          }).optional(),
-          // Client price/title/cover ignored by server — allowed for backward compat only
-          title: Joi.any().strip(),
-          price: Joi.any().strip(),
-        }),
-      )
-      .min(1)
-      .required(),
+    items: orderItemsSchema,
     shippingAddress: Joi.object({
       name: Joi.string().trim().min(2).max(200).required(),
       phone: Joi.string().trim().min(6).max(30).required(),
@@ -228,7 +268,31 @@ const validateCreateOrder = (obj) => {
   return schema.validate(obj, { stripUnknown: true });
 };
 
+/**
+ * POST /payments/quote body. Same line shape as createOrder, but the client's
+ * last-seen unit price is kept so the server can flag price drift.
+ */
+const validateQuote = (obj) => {
+  const schema = Joi.object({
+    items: Joi.array()
+      .items(orderItemSchema.keys({ price: Joi.number().min(0).optional() }))
+      .min(1)
+      .max(100)
+      .required(),
+    couponCode: Joi.string().trim().max(50).allow('', null).optional(),
+    delivery: Joi.boolean().optional(),
+    shippingMethod: Joi.string()
+      .valid('none', 'standard', 'express')
+      .optional(),
+  });
+
+  return schema.validate(obj, { stripUnknown: true });
+};
+
 module.exports = {
   Order,
+  orderItemSchema,
+  orderItemsSchema,
   validateCreateOrder,
+  validateQuote,
 };

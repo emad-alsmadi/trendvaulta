@@ -47,6 +47,7 @@ export function ProductCard({ product, badges = [] }: ProductCardProps) {
       price: product.price,
       cover: product.cover,
       qty: 1,
+      maxQty: typeof product.stock === 'number' ? product.stock : undefined,
     });
   };
 

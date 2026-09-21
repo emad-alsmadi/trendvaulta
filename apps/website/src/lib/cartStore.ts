@@ -14,6 +14,8 @@ export type CartItem = {
     colorCode?: string;
     sku?: string;
   };
+  /** Available stock snapshot at add time (product or variant stock). */
+  maxQty?: number;
   weight?: number;
   dimensions?: {
     length?: number;
@@ -36,9 +38,51 @@ type CartState = {
 
 const SERVER_SNAPSHOT: CartState = { items: [], coupon: null };
 
-const STORAGE_KEY = 'craftify_cart_v1';
+const STORAGE_KEY = 'trendvaulta_cart_v1';
+/** Pre-rebrand key: migrated once on first read, then removed. */
+const LEGACY_STORAGE_KEY = 'craftify_cart_v1';
 
 const emitter = new EventTarget();
+
+/**
+ * Stable identity for a cart line: productId + size + colour (+ sku).
+ * Two variants of the same product are different lines.
+ */
+export function getCartLineKey(
+  item: Pick<CartItem, 'productId' | 'variant'>,
+): string {
+  const v = item.variant;
+  const base = `${item.productId}|${v?.size ?? ''}|${v?.color ?? ''}`;
+  return v?.sku ? `${base}|${v.sku}` : base;
+}
+
+/** Human label for a variant, e.g. "Size: M · Color: Black". Empty when none. */
+export function formatVariantLabel(
+  variant?: CartItem['variant'] | null,
+): string {
+  if (!variant) return '';
+  return [
+    variant.size ? `Size: ${variant.size}` : '',
+    variant.color ? `Color: ${variant.color}` : '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}
+
+/** Floor to an integer >= 1 and cap at maxQty when a stock snapshot exists. */
+function clampQty(qty: number, maxQty?: number): number {
+  let q = Math.max(1, Math.floor(Number.isFinite(qty) ? qty : 1));
+  if (typeof maxQty === 'number' && maxQty >= 1) q = Math.min(q, maxQty);
+  return q;
+}
+
+/** Match a line by its line key; a bare productId matches its no-variant line. */
+function lineMatches(item: CartItem, lineKey: string): boolean {
+  return (
+    getCartLineKey(item) === lineKey ||
+    (!item.variant && item.productId === lineKey)
+  );
+}
 
 // system deploy and subscribers for create change all tabs web
 function emit() {
@@ -69,8 +113,12 @@ function safeParse(json: string | null): CartState {
           title: String(x.title ?? ''),
           price: Number(x.price ?? 0),
           cover: String(x.cover ?? ''),
-          qty: Math.max(1, Number(x.qty ?? 1)),
+          qty: clampQty(Number(x.qty ?? 1), x.maxQty),
           variant: x.variant,
+          maxQty:
+            typeof x.maxQty === 'number' && Number.isFinite(x.maxQty)
+              ? x.maxQty
+              : undefined,
           weight: x.weight ? Number(x.weight) : undefined,
           dimensions: x.dimensions,
         })),
@@ -85,7 +133,20 @@ function readState(): CartState {
   //this function is called on the server and client
   // and important in next js beacase the code load on server SSR & ISR
   if (typeof window === 'undefined') return { items: [], coupon: null };
-  return safeParse(window.localStorage.getItem(STORAGE_KEY));
+  let raw = window.localStorage.getItem(STORAGE_KEY);
+  if (raw == null) {
+    const legacy = window.localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacy != null) {
+      raw = legacy;
+      try {
+        window.localStorage.setItem(STORAGE_KEY, legacy);
+        window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+      } catch {
+        // Storage may be unavailable (private mode); fall through with `raw`.
+      }
+    }
+  }
+  return safeParse(raw);
 }
 
 let cachedClientState: CartState = { items: [], coupon: null };
@@ -139,50 +200,64 @@ export function clearCart() {
   writeState({ items: [], coupon: null });
 }
 
-export function removeFromCart(productId: string) {
+export function removeFromCart(lineKey: string) {
   const state = readState();
   writeState({
-    items: state.items.filter((i) => i.productId !== productId),
+    items: state.items.filter((i) => !lineMatches(i, lineKey)),
     coupon: state.coupon,
   });
 }
 
-export function setCartQty(productId: string, qty: number) {
-  const q = Math.max(1, Math.floor(qty));
+export function setCartQty(lineKey: string, qty: number) {
   const state = readState();
   writeState({
     items: state.items.map((i) =>
-      i.productId === productId ? { ...i, qty: q } : i,
+      lineMatches(i, lineKey) ? { ...i, qty: clampQty(qty, i.maxQty) } : i,
     ),
+    coupon: state.coupon,
+  });
+}
+
+/** Sync a line with server-validated price/stock (cart quote revalidation). */
+export function syncCartLine(
+  lineKey: string,
+  patch: { price?: number; maxQty?: number },
+) {
+  const state = readState();
+  writeState({
+    items: state.items.map((i) => {
+      if (!lineMatches(i, lineKey)) return i;
+      const next: CartItem = { ...i };
+      if (typeof patch.price === 'number' && Number.isFinite(patch.price)) {
+        next.price = patch.price;
+      }
+      if (typeof patch.maxQty === 'number' && Number.isFinite(patch.maxQty)) {
+        next.maxQty = patch.maxQty;
+      }
+      next.qty = clampQty(next.qty, next.maxQty);
+      return next;
+    }),
     coupon: state.coupon,
   });
 }
 
 export function addToCart(item: Omit<CartItem, 'qty'> & { qty?: number }) {
   const state = readState();
-  const qty = Math.max(1, Math.floor(item.qty ?? 1));
-
-  // Check if same product with same variant exists
-  const existing = state.items.find((i) => {
-    if (i.productId !== item.productId) return false;
-    if (!item.variant && !i.variant) return true;
-    if (!item.variant || !i.variant) return false;
-    return (
-      item.variant.size === i.variant.size &&
-      item.variant.color === i.variant.color
-    );
-  });
+  const lineKey = getCartLineKey(item);
+  const existing = state.items.find((i) => getCartLineKey(i) === lineKey);
 
   if (existing) {
     writeState({
-      items: state.items.map((i) =>
-        i.productId === item.productId &&
-        ((!item.variant && !i.variant) ||
-          (item.variant?.size === i.variant?.size &&
-            item.variant?.color === i.variant?.color))
-          ? { ...i, qty: i.qty + qty }
-          : i,
-      ),
+      items: state.items.map((i) => {
+        if (getCartLineKey(i) !== lineKey) return i;
+        const maxQty = item.maxQty ?? i.maxQty;
+        return {
+          ...i,
+          price: item.price,
+          maxQty,
+          qty: clampQty(i.qty + Math.max(1, Math.floor(item.qty ?? 1)), maxQty),
+        };
+      }),
       coupon: state.coupon,
     });
     return;
@@ -196,8 +271,9 @@ export function addToCart(item: Omit<CartItem, 'qty'> & { qty?: number }) {
         title: item.title,
         price: item.price,
         cover: item.cover,
-        qty,
+        qty: clampQty(item.qty ?? 1, item.maxQty),
         variant: item.variant,
+        maxQty: item.maxQty,
         weight: item.weight,
         dimensions: item.dimensions,
       },
@@ -274,6 +350,7 @@ export function useCart() {
     addToCart,
     removeFromCart,
     setCartQty,
+    syncCartLine,
     clearCart,
     setCartCoupon,
     removeCartCoupon,

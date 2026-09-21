@@ -21,22 +21,11 @@ import {
 import {
   clearAuthCookies,
   getAuthToken,
-  getRefreshToken,
-  setRefreshedTokens,
+  setAccessToken,
 } from '@/lib/authCookies';
+import { buildLoginUrl } from '@/lib/safeRedirect';
+import { normalizeApiBase } from '@/lib/serverAuth';
 import { endpoints } from './endpoints';
-
-/**
- * Normalizes the API base URL to ensure it ends with /api
- * @param rawBaseUrl - The raw base URL from environment variables
- * @returns Normalized base URL with /api suffix
- */
-function normalizeApiBase(rawBaseUrl: string | undefined) {
-  if (!rawBaseUrl) return '/api';
-
-  const trimmed = rawBaseUrl.replace(/\/+$/, '');
-  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
-}
 
 /**
  * Axios instance configured with the appropriate base URL
@@ -79,7 +68,17 @@ const AUTH_BYPASS_PATHS = [
   endpoints.auth.login,
   endpoints.auth.register,
   endpoints.auth.refresh,
+  endpoints.auth.logout,
 ];
+
+/**
+ * Same-origin Next route handlers (src/app/api/auth/*) that front the
+ * backend auth endpoints. They own the httpOnly `tv_refresh` cookie, so the
+ * browser never holds the refresh token; from the client the `/api` base
+ * already resolves `endpoints.auth.*` to these handlers rather than the
+ * rewrite to the backend.
+ */
+const AUTH_PROXY_BASE = '/api';
 
 function isAuthBypassRequest(config: { url?: string } | undefined) {
   const url = config?.url || '';
@@ -100,7 +99,8 @@ function forceLogoutRedirect() {
   window.dispatchEvent(toastEvent);
 
   setTimeout(() => {
-    window.location.href = '/auth/login';
+    const { pathname, search } = window.location;
+    window.location.href = buildLoginUrl(`${pathname}${search}`);
   }, 1000);
 }
 
@@ -111,21 +111,18 @@ function forceLogoutRedirect() {
 let refreshPromise: Promise<string | null> | null = null;
 
 async function refreshAccessToken(): Promise<string | null> {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) return null;
+  // The refresh token lives in an httpOnly cookie only the Next handler can
+  // read, so this is always a same-origin call with credentials.
+  if (typeof window === 'undefined') return null;
 
   if (!refreshPromise) {
     refreshPromise = axios
-      .post(`${API_BASE}${endpoints.auth.refresh}`, { refreshToken })
+      .post(`${AUTH_PROXY_BASE}${endpoints.auth.refresh}`, null, {
+        withCredentials: true,
+      })
       .then(({ data }) => {
         const nextToken: string | null = data?.token || null;
-        const nextRefreshToken: string | null = data?.refreshToken || null;
-        if (nextToken) {
-          setRefreshedTokens({
-            token: nextToken,
-            refreshToken: nextRefreshToken || undefined,
-          });
-        }
+        if (nextToken) setAccessToken(nextToken);
         return nextToken;
       })
       .catch(() => null)
@@ -261,13 +258,12 @@ export const authApi = {
     return data;
   },
   /**
-   * Revoke the current session's refresh token server-side. Best-effort:
-   * the frontend clears its cookies regardless of whether this succeeds.
-   * @param refreshToken - The refresh token to revoke
+   * Revoke the current session's refresh token server-side via the Next
+   * logout handler, which reads and clears the httpOnly cookie. Best-effort:
+   * the frontend clears its own cookies regardless of whether this succeeds.
    */
-  logout: async (refreshToken: string | null) => {
-    if (!refreshToken) return;
-    await api.post(endpoints.auth.logout, { refreshToken }).catch(() => {});
+  logout: async () => {
+    await api.post(endpoints.auth.logout).catch(() => {});
   },
 };
 
@@ -395,6 +391,67 @@ export const paymentsApi = {
     });
     return data;
   },
+  /**
+   * Revalidate cart lines against live stock/prices and get server totals
+   * @param payload - Cart lines + coupon/shipping intent
+   * @returns Validated lines, totals and per-line warnings
+   */
+  getQuote: async (payload: CartQuoteRequest): Promise<CartQuoteResponse> => {
+    const { data } = await api.post<CartQuoteResponse>(
+      endpoints.payments.quote,
+      payload,
+    );
+    return data;
+  },
+};
+
+export type OrderLineVariant = {
+  size?: string;
+  color?: string;
+  colorCode?: string;
+  sku?: string;
+};
+
+export type CartQuoteRequest = {
+  items: { productId: string; qty: number; variant?: OrderLineVariant }[];
+  couponCode?: string;
+  delivery?: boolean;
+  shippingMethod?: 'none' | 'standard' | 'express';
+};
+
+export type CartQuoteWarningCode =
+  | 'insufficient_stock'
+  | 'price_changed'
+  | 'unavailable'
+  | 'variant_required';
+
+export type CartQuoteWarning = {
+  productId: string;
+  code: CartQuoteWarningCode;
+  message?: string;
+  available?: number;
+};
+
+export type CartQuoteLine = {
+  productId: string;
+  title: string;
+  price: number;
+  qty: number;
+  available: number;
+  variant?: OrderLineVariant | null;
+  cover?: string;
+};
+
+export type CartQuoteResponse = {
+  lines: CartQuoteLine[];
+  itemsPrice: number;
+  discountAmount: number;
+  couponValid?: boolean;
+  couponMessage?: string;
+  shippingPrice: number;
+  taxPrice: number;
+  totalPrice: number;
+  warnings?: CartQuoteWarning[];
 };
 
 /**
@@ -404,12 +461,7 @@ export type OrderCheckoutPayload = {
   items: {
     productId: string;
     qty: number;
-    variant?: {
-      size?: string;
-      color?: string;
-      colorCode?: string;
-      sku?: string;
-    };
+    variant?: OrderLineVariant;
   }[];
   shippingAddress: {
     name: string;

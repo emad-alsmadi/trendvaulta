@@ -31,6 +31,7 @@ export interface OrderItem {
     size?: string;
     color?: string;
     colorCode?: string;
+    sku?: string;
   };
 }
 

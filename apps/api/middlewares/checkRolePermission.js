@@ -12,11 +12,9 @@ const checkRolePermission = (requiredPermission) => {
     const userPermissions = getUserPermissions(req.user.roles || ['user']);
     
     if (!userPermissions.includes(requiredPermission)) {
-      return res.status(403).json({ 
-        message: `Access denied: Missing permission '${requiredPermission}'`,
-        requiredPermission,
-        userPermissions,
-        userRoles: req.user.roles
+      return res.status(403).json({
+        message: 'You do not have permission to perform this action',
+        code: 'FORBIDDEN',
       });
     }
 

@@ -7,6 +7,7 @@ import { useOrderById } from '@/hooks/orders/ordersQuery';
 import { OrderTrackingTimeline } from '@/components/orders/OrderTrackingTimeline';
 import { orderStatusLabel } from '@/lib/orderTracking';
 import { Button } from '@/components/ui/Button';
+import { formatVariantLabel } from '@/lib/cartStore';
 
 export default function OrderDetailPage() {
   const params = useParams();
@@ -84,9 +85,9 @@ export default function OrderDetailPage() {
       <section className='rounded-2xl border border-stone-200 bg-white p-6'>
         <h2 className='text-lg font-extrabold text-stone-900'>Items</h2>
         <ul className='mt-4 divide-y divide-stone-100'>
-          {order.items.map((item) => (
+          {order.items.map((item, idx) => (
             <li
-              key={`${item.productId}-${item.title}`}
+              key={`${item.productId}-${item.variant?.sku ?? ''}-${item.variant?.size ?? ''}-${item.variant?.color ?? ''}-${idx}`}
               className='flex gap-3 py-3'
             >
               <img
@@ -98,6 +99,11 @@ export default function OrderDetailPage() {
                 <p className='truncate text-sm font-bold text-stone-900'>
                   {item.title}
                 </p>
+                {formatVariantLabel(item.variant) && (
+                  <p className='truncate text-xs font-semibold text-stone-500'>
+                    {formatVariantLabel(item.variant)}
+                  </p>
+                )}
                 <p className='text-xs font-semibold text-stone-500'>
                   Qty {item.qty}
                 </p>

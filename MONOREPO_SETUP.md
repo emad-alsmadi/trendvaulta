@@ -11,14 +11,12 @@ trendvaulta/
 │   ├── dashboard/      # Vite + React admin (port 3002)
 │   └── api/            # Express.js API (port 3000)
 ├── packages/
-│   ├── ui/             # Shared UI (@trendvaulta/ui)
 │   ├── types/          # Shared TypeScript types (@trendvaulta/types)
 │   └── api-client/     # Shared API client (@trendvaulta/api-client)
-├── package.json        # npm workspaces + root scripts
-└── pnpm-workspace.yaml # Optional leftover; prefer npm workspaces from root package.json
+└── package.json        # npm workspaces + root scripts
 ```
 
-Catalog domain: **products and brands** (not digital templates).
+Catalog domain: **products and brands**.
 
 ## Prerequisites
 
@@ -105,12 +103,6 @@ API has no compile step (`npm start` / `npm run dev` run Node directly).
 ```typescript
 import type { /* shared types */ } from '@trendvaulta/types';
 ```
-
-### `@trendvaulta/ui`
-
-**Location:** `packages/ui/`
-
-Used mainly by the dashboard (Vite aliases). Prefer existing components before adding new shared UI.
 
 ### `@trendvaulta/api-client`
 
