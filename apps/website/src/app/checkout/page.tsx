@@ -191,7 +191,9 @@ export default function CheckoutPage() {
           setShippingMethods(res.data || []);
           if (res.data?.length) {
             const firstMethod = res.data[0];
-            setSelectedShippingMethod(firstMethod.handle);
+            setSelectedShippingMethod(
+              firstMethod.handle as 'standard' | 'express',
+            );
           } else {
             setSelectedShippingMethod('standard');
           }
@@ -224,7 +226,9 @@ export default function CheckoutPage() {
     items,
     couponCode: appliedCoupon?.code,
     delivery: deliverySelected,
-    shippingMethod: deliverySelected ? selectedShippingMethod : 'none',
+    shippingMethod: deliverySelected
+      ? (selectedShippingMethod as 'standard' | 'express')
+      : 'none',
   });
   const itemsPrice = quote?.itemsPrice ?? subtotal;
   const discountAmount =
@@ -611,7 +615,9 @@ export default function CheckoutPage() {
                         className='h-4 w-4'
                         checked={selectedShippingMethod === method.handle}
                         onChange={() =>
-                          setSelectedShippingMethod(method.handle)
+                          setSelectedShippingMethod(
+                            method.handle as 'standard' | 'express',
+                          )
                         }
                       />
                       <span className='min-w-0'>
