@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Gift } from 'lucide-react';
 import {
@@ -166,11 +167,13 @@ export function GiftFinderSection({ config: configProp }: Props) {
             </div>
 
             <div className='relative min-h-[220px] border-t border-stone-200/80 lg:border-l lg:border-t-0'>
-              <img
+              <Image
                 src='/images/4.webp'
-                alt=''
-                className='absolute inset-0 h-full w-full object-cover'
-                loading='lazy'
+                alt='Gift finder illustration'
+                fill
+                className='object-cover'
+                priority
+                sizes='(max-width: 1024px) 100vw, 50vw'
               />
               <div className='absolute inset-0 bg-gradient-to-t from-stone-900/35 via-transparent to-transparent' />
             </div>

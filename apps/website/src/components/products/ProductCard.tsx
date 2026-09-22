@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { ShoppingCart, Star, Eye } from 'lucide-react';
 import { WishlistButton } from '@/components/page/wishlist/WishlistButton';
 import { motion } from 'framer-motion';
@@ -73,11 +74,12 @@ export function ProductCard({ product, badges = [] }: ProductCardProps) {
     >
       <Link href={`/products/${product._id}`}>
         <div className='relative aspect-square overflow-hidden bg-gray-100'>
-          <img
+          <Image
             src={product.cover}
             alt={product.title}
-            className='w-full h-full object-cover group-hover:scale-105 transition-transform duration-300'
-            loading='lazy'
+            fill
+            className='object-cover group-hover:scale-105 transition-transform duration-300'
+            sizes='(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw'
           />
           <div className='absolute top-2 left-2 flex flex-col gap-1 items-start'>
             {discount > 0 && (

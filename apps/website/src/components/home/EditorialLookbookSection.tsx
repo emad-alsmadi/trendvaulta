@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import {
   DEMO_LOOKBOOK_STORIES,
@@ -76,11 +77,12 @@ export function EditorialLookbookSection({ stories: storiesProp }: Props) {
                     }`}
                   >
                     <div className='relative aspect-[16/10] md:aspect-auto md:min-h-[280px]'>
-                      <img
+                      <Image
                         src={story.imageUrl}
-                        alt=''
-                        className='absolute inset-0 h-full w-full object-cover'
-                        loading='lazy'
+                        alt={story.title}
+                        fill
+                        className='object-cover'
+                        sizes='(max-width: 768px) 100vw, 50vw'
                       />
                     </div>
                     <div className='flex flex-col justify-center p-6 sm:p-8 lg:p-10'>

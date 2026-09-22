@@ -13,6 +13,15 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'images.pexels.com',
       },
+      // Allow images from the API (uploads or CDN)
+      ...(process.env.NEXT_PUBLIC_API_URL
+        ? [
+            {
+              protocol: new URL(process.env.NEXT_PUBLIC_API_URL).protocol.replace(':', ''),
+              hostname: new URL(process.env.NEXT_PUBLIC_API_URL).hostname,
+            },
+          ]
+        : []),
     ],
   },
   async rewrites() {

@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ChevronRight } from 'lucide-react';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { CategoryProductGrid } from '@/components/category/CategoryProductGrid';
@@ -104,11 +105,13 @@ export function CategoryLanding({ def, subcategories, subcategory }: Props) {
             </div>
             {def.image ? (
               <div className='relative min-h-[160px] border-t border-stone-200/80 md:border-l md:border-t-0'>
-                <img
+                <Image
                   src={def.image}
-                  alt=''
-                  className='absolute inset-0 h-full w-full object-cover'
-                  loading='eager'
+                  alt={def.label}
+                  fill
+                  className='object-cover'
+                  priority
+                  sizes='(max-width: 768px) 100vw, 50vw'
                 />
               </div>
             ) : null}

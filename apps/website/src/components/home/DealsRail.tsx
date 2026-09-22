@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { DEMO_DEALS, type DemoDeal } from '@/data/demoStorefront';
 import { useActiveOffers } from '@/hooks/storefront/offersQuery';
@@ -68,11 +69,12 @@ export function DealsRail({ deals: dealsProp }: Props) {
                   className='group block overflow-hidden rounded-2xl border border-stone-200 bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500'
                 >
                   <div className='relative aspect-[4/3] overflow-hidden'>
-                    <img
+                    <Image
                       src={deal.imageUrl}
-                      alt=''
-                      className='h-full w-full object-cover transition-transform duration-500 group-hover:scale-105'
-                      loading='lazy'
+                      alt={deal.title}
+                      fill
+                      className='object-cover transition-transform duration-500 group-hover:scale-105'
+                      sizes='(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw'
                     />
                     {deal.badge ? (
                       <span className='absolute left-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-stone-900 shadow-sm'>

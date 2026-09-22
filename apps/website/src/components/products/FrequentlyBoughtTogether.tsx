@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ShoppingCart, Loader2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useCart } from '@/lib/cartStore';
@@ -248,11 +249,12 @@ export function FrequentlyBoughtTogether({ primary }: Props) {
                 <div className='min-w-0 flex-1'>
                   {isPrimary ? (
                     <div className='flex gap-3'>
-                      <img
+                      <Image
                         src={item.cover}
-                        alt=''
-                        className='h-16 w-16 shrink-0 rounded-lg object-cover bg-stone-100'
-                        loading='lazy'
+                        alt={item.title}
+                        width={64}
+                        height={64}
+                        className='shrink-0 rounded-lg object-cover bg-stone-100'
                       />
                       <div className='min-w-0'>
                         <p className='text-[10px] font-semibold uppercase tracking-wide text-fuchsia-700'>
@@ -272,11 +274,12 @@ export function FrequentlyBoughtTogether({ primary }: Props) {
                       className='flex gap-3'
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <img
+                      <Image
                         src={item.cover}
-                        alt=''
-                        className='h-16 w-16 shrink-0 rounded-lg object-cover bg-stone-100'
-                        loading='lazy'
+                        alt={item.title}
+                        width={64}
+                        height={64}
+                        className='shrink-0 rounded-lg object-cover bg-stone-100'
                       />
                       <div className='min-w-0'>
                         <p className='line-clamp-2 text-sm font-medium text-stone-900'>

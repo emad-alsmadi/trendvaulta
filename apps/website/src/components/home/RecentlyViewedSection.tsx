@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRecentlyViewed } from '@/hooks/recentlyViewed/recentlyViewedQuery';
 
 /** Auth: GET /api/me/recently-viewed. Anonymous: localStorage. */
@@ -40,11 +41,12 @@ export function RecentlyViewedSection() {
                 className='block overflow-hidden rounded-xl border border-stone-200 bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500'
               >
                 <div className='aspect-square overflow-hidden bg-stone-100'>
-                  <img
+                  <Image
                     src={item.cover}
-                    alt=''
-                    className='h-full w-full object-cover'
-                    loading='lazy'
+                    alt={item.title}
+                    fill
+                    className='object-cover'
+                    sizes='160px'
                   />
                 </div>
                 <div className='p-2.5'>
