@@ -94,7 +94,15 @@ export type DemoHelpTopic = {
   title: string;
   description: string;
   href: string;
-  icon: 'truck' | 'refresh' | 'package' | 'shield' | 'gift' | 'headset' | 'user' | 'tag';
+  icon:
+    | 'truck'
+    | 'refresh'
+    | 'package'
+    | 'shield'
+    | 'gift'
+    | 'headset'
+    | 'user'
+    | 'tag';
 };
 
 /** DEMO deliver-to regions — expectation messaging only (no geo/shipping engine) */
@@ -158,7 +166,7 @@ export const DEMO_HERO_SLIDES: DemoHeroSlide[] = [
     title: 'Soft-glow essentials for every routine',
     subtitle: 'Skincare and makeup picks with clear prices.',
     ctaLabel: 'Shop beauty',
-    href: '/products?category=beauty',
+    href: '/products?category=makeup',
     imageUrl: '/images/1.webp',
     tone: 'rose',
   },
@@ -168,7 +176,7 @@ export const DEMO_HERO_SLIDES: DemoHeroSlide[] = [
     title: 'Everyday pieces that feel elevated',
     subtitle: 'Layer-ready looks without the noise.',
     ctaLabel: 'Shop fashion',
-    href: '/products?category=fashion',
+    href: '/products?category=clothing',
     imageUrl: '/images/2.webp',
     tone: 'indigo',
   },
@@ -188,7 +196,7 @@ export const DEMO_HERO_SLIDES: DemoHeroSlide[] = [
     title: 'Home & self-care that fits your pace',
     subtitle: 'Thoughtful details for calm, polished days.',
     ctaLabel: 'Explore lifestyle',
-    href: '/products?category=lifestyle',
+    href: '/products?category=home',
     imageUrl: '/images/4.webp',
     tone: 'stone',
   },
@@ -297,7 +305,9 @@ const DEMO_QA_BY_CATEGORY: Record<string, DemoProductQaItem[]> = {
  * Pick DEMO Q&A for a product category (falls back to common retail FAQs).
  * TODO(api): GET /api/products/:id/qa
  */
-export function getDemoProductQa(category?: string | null): DemoProductQaItem[] {
+export function getDemoProductQa(
+  category?: string | null,
+): DemoProductQaItem[] {
   const key = (category || '').toLowerCase().trim();
   const specific = key ? DEMO_QA_BY_CATEGORY[key] : undefined;
   return [...(specific ?? []), ...DEMO_QA_COMMON];
@@ -322,7 +332,8 @@ export const DEMO_HELP_TOPICS: DemoHelpTopic[] = [
   {
     id: 'returns',
     title: 'Returns & refunds',
-    description: 'Return window, eligible items, and how refunds are processed.',
+    description:
+      'Return window, eligible items, and how refunds are processed.',
     href: '/returns',
     icon: 'refresh',
   },
@@ -398,7 +409,7 @@ export const DEMO_DEALS: DemoDeal[] = [
     title: 'Glow edit',
     subtitle: 'Skincare picks for a fresh finish',
     badge: 'Limited',
-    href: '/products?category=beauty',
+    href: '/products?category=makeup',
     imageUrl: '/images/1.webp',
   },
   {
@@ -406,7 +417,7 @@ export const DEMO_DEALS: DemoDeal[] = [
     title: 'Wardrobe refresh',
     subtitle: 'New-season essentials under your budget',
     badge: 'Trending',
-    href: '/products?category=fashion',
+    href: '/products?category=clothing',
     imageUrl: '/images/2.webp',
   },
   {
@@ -414,7 +425,7 @@ export const DEMO_DEALS: DemoDeal[] = [
     title: 'Home & lifestyle',
     subtitle: 'Quiet luxury accents for everyday',
     badge: 'New',
-    href: '/products?category=lifestyle',
+    href: '/products?category=home',
     imageUrl: '/images/3.webp',
   },
   {
@@ -433,14 +444,14 @@ export const DEMO_FEATURED_BRANDS: DemoBrand[] = [
     id: 'brand-aura',
     name: 'Aura Lab',
     tagline: 'Clean beauty rituals',
-    href: '/products?q=beauty',
+    href: '/products?q=makeup',
     accent: 'from-rose-500 to-amber-400',
   },
   {
     id: 'brand-thread',
     name: 'Thread & Form',
     tagline: 'Modern wardrobe basics',
-    href: '/products?q=fashion',
+    href: '/products?q=clothing',
     accent: 'from-slate-700 to-stone-500',
   },
   {
@@ -464,21 +475,21 @@ export const DEMO_CATEGORY_SHORTCUTS: DemoCategoryShortcut[] = [
   {
     name: 'Beauty',
     countLabel: 'Skincare & makeup',
-    href: '/products?category=beauty',
+    href: '/products?category=makeup',
     accent: 'from-rose-500 to-pink-600',
     icon: 'sparkles',
   },
   {
     name: 'Fashion',
     countLabel: 'Ready-to-wear',
-    href: '/products?category=fashion',
+    href: '/products?category=clothing',
     accent: 'from-stone-600 to-neutral-800',
     icon: 'shirt',
   },
   {
     name: 'Wellness',
     countLabel: 'Self-care picks',
-    href: '/products?category=wellness',
+    href: '/products?category=skincare',
     accent: 'from-emerald-500 to-teal-600',
     icon: 'heart',
   },
@@ -527,12 +538,17 @@ export const DEMO_GIFT_FINDER: DemoGiftFinderConfig = {
   occasions: [
     { id: 'birthday', label: 'Birthday', q: 'gift' },
     { id: 'thank-you', label: 'Thank you', q: 'gift' },
-    { id: 'self-care', label: 'Self-care', category: 'skincare', q: 'skincare' },
+    {
+      id: 'self-care',
+      label: 'Self-care',
+      category: 'skincare',
+      q: 'skincare',
+    },
     { id: 'housewarming', label: 'Housewarming', category: 'home', q: 'home' },
     { id: 'just-because', label: 'Just because', q: 'gift' },
   ],
   recipients: [
-    { id: 'for-her', label: 'For her', q: 'beauty' },
+    { id: 'for-her', label: 'For her', q: 'makeup' },
     { id: 'for-him', label: 'For him', q: 'grooming' },
     { id: 'for-home', label: 'For home', category: 'home' },
     { id: 'for-anyone', label: 'For anyone', q: 'gift' },
@@ -569,8 +585,10 @@ export function buildGiftFinderHref(
   const rawCategory = occasion?.category || recipient?.category;
   const category = normalizeCategorySlug(rawCategory) ?? rawCategory;
   const q = (recipient?.q || occasion?.q || '').trim();
-  const minPrice = budget?.minPrice ?? occasion?.minPrice ?? recipient?.minPrice;
-  const maxPrice = budget?.maxPrice ?? occasion?.maxPrice ?? recipient?.maxPrice;
+  const minPrice =
+    budget?.minPrice ?? occasion?.minPrice ?? recipient?.minPrice;
+  const maxPrice =
+    budget?.maxPrice ?? occasion?.maxPrice ?? recipient?.maxPrice;
 
   const params = new URLSearchParams();
   if (q) params.set('q', q);
@@ -597,7 +615,7 @@ export const DEMO_LOOKBOOK_STORIES: DemoLookbookStory[] = [
     title: 'Soft morning ritual',
     body: 'Layer lightweight textures that wake skin without the fuss. Original TrendVaulta styling — demo content only.',
     ctaLabel: 'Shop the ritual',
-    href: '/products?category=beauty',
+    href: '/products?category=makeup',
     imageUrl: '/images/1.webp',
     tone: 'rose',
   },
@@ -607,7 +625,7 @@ export const DEMO_LOOKBOOK_STORIES: DemoLookbookStory[] = [
     title: 'Quiet wardrobe staples',
     body: 'Clean silhouettes and easy layers for days that move. Curated for polish, not noise.',
     ctaLabel: 'Browse fashion',
-    href: '/products?category=fashion',
+    href: '/products?category=clothing',
     imageUrl: '/images/2.webp',
     tone: 'stone',
   },
@@ -617,7 +635,7 @@ export const DEMO_LOOKBOOK_STORIES: DemoLookbookStory[] = [
     title: 'At-home calm corners',
     body: 'Small accents that make everyday spaces feel intentional — candles, linen, soft light.',
     ctaLabel: 'Explore lifestyle',
-    href: '/products?category=lifestyle',
+    href: '/products?category=home',
     imageUrl: '/images/3.webp',
     tone: 'teal',
   },

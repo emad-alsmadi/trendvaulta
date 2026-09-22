@@ -26,6 +26,7 @@ export const endpoints = {
     forgot: '/password/forgot-password',
     reset: (userId: string, token: string) =>
       `/password/reset-password/${userId}/${token}`,
+    change: '/password/change',
   },
   orders: {
     create: '/orders',
@@ -85,5 +86,9 @@ export const endpoints = {
   },
   contact: {
     send: '/contact',
+  },
+  shipping: {
+    zones: '/shipping/zones',
+    methods: '/shipping/methods',
   },
 } as const;

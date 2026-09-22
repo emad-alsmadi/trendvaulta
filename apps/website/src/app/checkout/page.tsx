@@ -19,7 +19,7 @@ import { useToast } from '@/components/ui/Toast';
 import { useCart, getCartLineKey, formatVariantLabel } from '@/lib/cartStore';
 import { useCartQuoteSync } from '@/hooks/cart/cartQuoteQuery';
 import axios from 'axios';
-import { paymentsApi } from '@/lib/api';
+import { paymentsApi, shippingApi, type ShippingMethod } from '@/lib/api';
 import { useCreateOrderMutation } from '@/hooks/orders/ordersQuery';
 import { useValidateCoupon } from '@/hooks/coupons/couponsQuery';
 import {
@@ -39,6 +39,7 @@ type CheckoutValues = {
   address: string;
   city: string;
   zip: string;
+  country: string;
   notes: string;
   delivery: boolean;
 };
@@ -77,13 +78,23 @@ export default function CheckoutPage() {
   const createAddress = useCreateAddress();
   const savedAddresses = addressesQuery.data ?? [];
   // `null` = "Use a new address"; otherwise the selected address id.
-  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
+    null,
+  );
   const [addressPickerReady, setAddressPickerReady] = useState(false);
   // Offered only when checking out with a new (unsaved) address.
   const [saveNewAddress, setSaveNewAddress] = useState(true);
   const [couponCode, setCouponCode] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(
+    null,
+  );
   const [validatingCoupon, setValidatingCoupon] = useState(false);
+  // Shipping methods
+  const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
+  const [selectedShippingMethod, setSelectedShippingMethod] = useState<
+    'standard' | 'express'
+  >('standard');
+  const [fetchingShippingMethods, setFetchingShippingMethods] = useState(false);
 
   const items = cart.state.items;
   const subtotal = cart.subtotal;
@@ -105,6 +116,7 @@ export default function CheckoutPage() {
       address: '',
       city: '',
       zip: '',
+      country: 'US',
       notes: '',
       delivery: false,
     },
@@ -113,7 +125,9 @@ export default function CheckoutPage() {
   });
 
   const deliverySelected = Boolean(watch('delivery'));
-  const shippingMethod = deliverySelected ? ('standard' as const) : ('none' as const);
+  const shippingMethod = deliverySelected
+    ? ('standard' as const)
+    : ('none' as const);
 
   /**
    * Copy a saved address onto the form. Only the shipping fields are touched —
@@ -126,6 +140,7 @@ export default function CheckoutPage() {
     setValue('address', addr.address, opts);
     setValue('city', addr.city, opts);
     setValue('zip', addr.zip, opts);
+    setValue('country', addr.country || 'US', opts);
   };
 
   // Pre-select the default address once, the first time the book arrives.
@@ -147,6 +162,7 @@ export default function CheckoutPage() {
 
   const handleUseNewAddress = () => {
     setSelectedAddressId(null);
+    setShippingMethods([]);
     const opts = { shouldValidate: false, shouldDirty: true } as const;
     setValue('name', '', opts);
     setValue('phone', '', opts);
@@ -155,13 +171,61 @@ export default function CheckoutPage() {
     setValue('zip', '', opts);
   };
 
+  // Fetch shipping methods when address changes
+  useEffect(() => {
+    const country = watch('country')?.toUpperCase?.();
+    const zip = watch('zip');
+    const region = watch('city');
+
+    if (!country || !deliverySelected) {
+      setShippingMethods([]);
+      return;
+    }
+
+    let cancelled = false;
+    setFetchingShippingMethods(true);
+
+    shippingApi
+      .getMethods({ country, zip, region })
+      .then((res) => {
+        if (!cancelled) {
+          setShippingMethods(res.data || []);
+          if (res.data?.length) {
+            const firstMethod = res.data[0];
+            setSelectedShippingMethod(firstMethod.handle);
+          } else {
+            setSelectedShippingMethod('standard');
+          }
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setShippingMethods([]);
+          setSelectedShippingMethod('standard');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setFetchingShippingMethods(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    watch('country'),
+    watch('zip'),
+    watch('city'),
+    deliverySelected,
+    shippingApi,
+  ]);
+
   // Server-side quote (same intent fields as the checkout payload). Falls
   // back to client-side totals while loading or if the endpoint is missing.
   const { quote, notices } = useCartQuoteSync({
     items,
     couponCode: appliedCoupon?.code,
     delivery: deliverySelected,
-    shippingMethod,
+    shippingMethod: deliverySelected ? selectedShippingMethod : 'none',
   });
   const itemsPrice = quote?.itemsPrice ?? subtotal;
   const discountAmount =
@@ -187,7 +251,10 @@ export default function CheckoutPage() {
 
     setValidatingCoupon(true);
     try {
-      const result = await couponMutation.mutateAsync({ code: couponCode, orderAmount: discountedSubtotal });
+      const result = await couponMutation.mutateAsync({
+        code: couponCode,
+        orderAmount: discountedSubtotal,
+      });
       if (result.valid && result.coupon) {
         setAppliedCoupon(result.coupon);
         toast('Coupon applied successfully', { variant: 'success' });
@@ -225,13 +292,18 @@ export default function CheckoutPage() {
         address: values.address,
         city: values.city,
         zip: values.zip,
+        country: values.country,
         notes: values.notes,
       },
       // Server computes shipping/tax/discount — send intent flags + coupon only
       delivery: Boolean(values.delivery),
-      shippingMethod: values.delivery ? ('standard' as const) : ('none' as const),
+      shippingMethod: values.delivery
+        ? (selectedShippingMethod as 'standard' | 'express')
+        : ('none' as const),
       couponCode:
-        appliedCoupon && !couponRejectedByServer ? appliedCoupon.code : undefined,
+        appliedCoupon && !couponRejectedByServer
+          ? appliedCoupon.code
+          : undefined,
     };
 
     // Best-effort: save a brand-new address to the book before we leave for
@@ -245,6 +317,7 @@ export default function CheckoutPage() {
           address: values.address,
           city: values.city,
           zip: values.zip,
+          country: values.country,
         })
         .catch((err) => logErrorForDev(err));
     }
@@ -351,7 +424,7 @@ export default function CheckoutPage() {
         title: 'Login required',
         variant: 'info',
       });
-      router.push('/auth/login');
+      router.push('/auth/login?redirect=/checkout');
       return;
     }
 
@@ -386,8 +459,8 @@ export default function CheckoutPage() {
         </h1>
         <p className='mt-2 text-sm font-semibold text-indigo-950/80'>
           After you confirm, you&apos;ll finish payment on Stripe&apos;s secure
-          page (card or wallet). Enter the address your order should ship
-          to; tracked local delivery is optional.
+          page (card or wallet). Enter the address your order should ship to;
+          tracked local delivery is optional.
         </p>
       </div>
 
@@ -522,6 +595,60 @@ export default function CheckoutPage() {
               </label>
             </div>
 
+            {deliverySelected && shippingMethods.length > 0 && (
+              <div>
+                <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+                  Shipping method
+                </label>
+                <div className='space-y-2'>
+                  {shippingMethods.map((method) => (
+                    <label
+                      key={method.handle}
+                      className='flex cursor-pointer items-center gap-3 rounded-xl border border-white/50 bg-white/60 p-3 transition-colors hover:bg-white/80'
+                    >
+                      <input
+                        type='radio'
+                        name='shippingMethod'
+                        className='h-4 w-4'
+                        checked={selectedShippingMethod === method.handle}
+                        onChange={() =>
+                          setSelectedShippingMethod(method.handle)
+                        }
+                      />
+                      <span className='min-w-0'>
+                        <span className='flex flex-wrap items-center gap-2'>
+                          <span className='text-sm font-bold text-indigo-950'>
+                            {method.name}
+                          </span>
+                          <span className='text-sm font-bold text-indigo-950'>
+                            ${method.priceUsd.toFixed(2)}
+                          </span>
+                          {method.estimatedDaysMin &&
+                            method.estimatedDaysMax && (
+                              <span className='rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-bold text-indigo-800'>
+                                {method.estimatedDaysMin}-
+                                {method.estimatedDaysMax} days
+                              </span>
+                            )}
+                        </span>
+                        {method.description && (
+                          <span className='mt-1 block text-xs text-indigo-950/70'>
+                            {method.description}
+                          </span>
+                        )}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                {fetchingShippingMethods && (
+                  <div className='mt-2 flex items-center gap-2 text-xs font-semibold text-indigo-950/70'>
+                    <Loader2 className='h-3.5 w-3.5 animate-spin text-fuchsia-700' />
+                    Loading shipping methods…
+                  </div>
+                )}
+              </div>
+            )}
+
             <div>
               <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
                 Street address
@@ -545,7 +672,7 @@ export default function CheckoutPage() {
               )}
             </div>
 
-            <div className='grid gap-4 sm:grid-cols-2'>
+            <div className='grid gap-4 sm:grid-cols-3'>
               <div>
                 <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
                   City
@@ -587,6 +714,28 @@ export default function CheckoutPage() {
                 {errors.zip?.message && (
                   <div className='mt-2 text-sm font-semibold text-rose-700'>
                     {errors.zip.message}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+                  Country
+                </label>
+                <Input
+                  placeholder='US'
+                  {...register('country', {
+                    validate: (v) =>
+                      (typeof v === 'string' && v.trim().length === 2) ||
+                      'Country code must be 2 letters',
+                    maxLength: {
+                      value: 2,
+                      message: 'Maximum 2 characters',
+                    },
+                  })}
+                />
+                {errors.country?.message && (
+                  <div className='mt-2 text-sm font-semibold text-rose-700'>
+                    {errors.country.message}
                   </div>
                 )}
               </div>
@@ -683,7 +832,10 @@ export default function CheckoutPage() {
               const variantLabel = formatVariantLabel(item.variant);
               const notice = notices[lineKey];
               return (
-                <li key={lineKey} className='flex items-start gap-3 py-2'>
+                <li
+                  key={lineKey}
+                  className='flex items-start gap-3 py-2'
+                >
                   <div className='min-w-0 flex-1'>
                     <div className='truncate text-sm font-extrabold text-indigo-950'>
                       {item.title}

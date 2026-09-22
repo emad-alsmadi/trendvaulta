@@ -339,6 +339,18 @@ export const passwordApi = {
     });
     return data;
   },
+  /**
+   * Change password for authenticated user
+   * @param payload - Current and new password
+   * @returns Password change response
+   */
+  changePassword: async (payload: {
+    currentPassword: string;
+    newPassword: string;
+  }) => {
+    const { data } = await api.post(endpoints.password.change, payload);
+    return data;
+  },
 };
 
 /**
@@ -1235,6 +1247,40 @@ export const contactApi = {
     payload: ContactMessagePayload,
   ): Promise<{ message: string }> => {
     const { data } = await api.post(endpoints.contact.send, payload);
+    return data;
+  },
+};
+
+export type ShippingMethod = {
+  _id: string;
+  name: string;
+  handle: string;
+  description: string;
+  priceUsd: number;
+  estimatedDaysMin: number;
+  estimatedDaysMax: number;
+  zoneId: string;
+  zoneName: string;
+};
+
+export type ShippingMethodsResponse = {
+  message: string;
+  data: ShippingMethod[];
+};
+
+/**
+ * Shipping API — public shipping methods by address
+ */
+export const shippingApi = {
+  /** GET /api/shipping/methods?country=US&zip=10001&region=NY */
+  getMethods: async (params: {
+    country: string;
+    zip?: string;
+    region?: string;
+  }): Promise<ShippingMethodsResponse> => {
+    const { data } = await api.get(endpoints.shipping.methods, {
+      params,
+    });
     return data;
   },
 };

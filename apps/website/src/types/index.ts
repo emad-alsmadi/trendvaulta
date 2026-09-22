@@ -18,6 +18,7 @@ export interface ShippingAddress {
   address: string;
   city: string;
   zip: string;
+  country: string;
   notes?: string;
 }
 
@@ -83,6 +84,13 @@ export interface Order {
   shippingMethod?: string;
   createdAt: string;
   updatedAt: string;
+  attentionReason?: string;
+  refundAmount?: number;
+  refundId?: string;
+  refundedAt?: string;
+  trackingNumber?: string;
+  trackingCarrier?: string;
+  trackingUrl?: string;
 }
 
 /**
