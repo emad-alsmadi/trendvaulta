@@ -233,9 +233,21 @@ export default function Brands() {
                 <div className="p-4">
                   <div className="mb-2 flex items-start justify-between gap-2">
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {brand.name}
-                      </h3>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                          {brand.name}
+                        </h3>
+                        {brand.isActive === false && (
+                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                            Inactive
+                          </span>
+                        )}
+                        {brand.featured && (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                            Featured
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-gray-500">{brand.slug}</p>
                     </div>
                     <div className="flex gap-1">

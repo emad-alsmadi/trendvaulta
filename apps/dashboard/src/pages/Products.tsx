@@ -27,6 +27,8 @@ const emptyForm: ProductFormPayload = {
   subcategory: '',
   stock: 0,
   sku: '',
+  isActive: true,
+  featured: false,
 };
 
 // Must match the Product model enum (apps/api/models/Product.js).
@@ -50,6 +52,8 @@ function toProductPayload(form: ProductFormPayload): ProductFormPayload {
     sku: (form.sku ?? '').trim(),
   };
   if (!payload.sku) delete (payload as Partial<ProductFormPayload>).sku;
+  payload.isActive = form.isActive ?? true;
+  payload.featured = form.featured ?? false;
   return payload;
 }
 
@@ -116,10 +120,12 @@ export default function Products() {
       description: product.description || '',
       price: product.price,
       cover: product.cover || '',
-      category: product.category || 'beauty',
+      category: product.category || 'makeup',
       subcategory: product.subcategory || '',
       stock: product.stock ?? 0,
       sku: product.sku || '',
+      isActive: product.isActive ?? true,
+      featured: product.featured ?? false,
     });
     setOpen(true);
   }
@@ -255,9 +261,23 @@ export default function Products() {
                 </div>
                 <div className="p-4">
                   <div className="mb-2 flex items-start justify-between gap-2">
-                    <h3 className="line-clamp-2 text-lg font-semibold text-gray-900 dark:text-white">
-                      {product.title}
-                    </h3>
+                    <div>
+                      <h3 className="line-clamp-2 text-lg font-semibold text-gray-900 dark:text-white">
+                        {product.title}
+                      </h3>
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {product.isActive === false && (
+                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                            Inactive
+                          </span>
+                        )}
+                        {product.featured && (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                            Featured
+                          </span>
+                        )}
+                      </div>
+                    </div>
                     <div className="flex shrink-0 gap-1">
                       {can('products:write') && (
                         <button
@@ -458,6 +478,30 @@ export default function Products() {
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                 />
               </label>
+              <div className="flex flex-wrap gap-4">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.isActive ?? true}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, isActive: e.target.checked }))
+                    }
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <span className="text-gray-700 dark:text-gray-300">Active</span>
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.featured ?? false}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, featured: e.target.checked }))
+                    }
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <span className="text-gray-700 dark:text-gray-300">Featured</span>
+                </label>
+              </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"

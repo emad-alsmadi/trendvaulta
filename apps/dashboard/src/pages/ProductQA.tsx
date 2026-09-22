@@ -19,32 +19,36 @@ export default function ProductQA() {
   const { can } = usePermissions();
   const toast = useToast();
   const confirm = useConfirm();
-  const qaQ = useAdminProductQA({ limit: 100 });
-  const answerMut = useAnswerProductQAMutation();
-  const deleteMut = useDeleteProductQAMutation();
-
   const [search, setSearch] = useState('');
   const [filterApproved, setFilterApproved] = useState<string>('');
   const [editing, setEditing] = useState<AdminProductQA | null>(null);
   const [answer, setAnswer] = useState('');
+
+  // approved/pending is a server-side filter (GET /qa/admin?approved=…);
+  // free-text search stays client-side over the fetched page.
+  const qaQ = useAdminProductQA({
+    limit: 100,
+    approved:
+      filterApproved === 'approved'
+        ? 'true'
+        : filterApproved === 'pending'
+          ? 'false'
+          : undefined,
+  });
+  const answerMut = useAnswerProductQAMutation();
+  const deleteMut = useDeleteProductQAMutation();
 
   const saving = answerMut.isPending;
 
   const filtered =
     qaQ.data?.data?.filter((qa) => {
       const q = search.trim().toLowerCase();
-      const matchesSearch =
+      return (
         !q ||
         qa.question.toLowerCase().includes(q) ||
         qa.product.title.toLowerCase().includes(q) ||
-        (qa.answer || '').toLowerCase().includes(q);
-
-      const matchesApproved =
-        !filterApproved ||
-        (filterApproved === 'approved' && qa.approved) ||
-        (filterApproved === 'pending' && !qa.approved);
-
-      return matchesSearch && matchesApproved;
+        (qa.answer || '').toLowerCase().includes(q)
+      );
     }) || [];
 
   function openEdit(qa: AdminProductQA) {
