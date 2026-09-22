@@ -1,6 +1,6 @@
 const Joi = require('joi');
 const mongoose = require('mongoose');
-const { normalizeSearchTerm, escapeRegex } = require('./search');
+const { normalizeTextSearchTerm, escapeRegex } = require('./search');
 
 /**
  * Pure builders for `GET /api/products`: query validation, Mongo `$match`,
@@ -132,12 +132,12 @@ function buildProductMatch(query = {}, options = {}) {
   if (query.subcategory) match.subcategory = String(query.subcategory);
   if (isTruthyFlag(query.featured)) match.featured = true;
 
-  const searchTerm = normalizeSearchTerm(query.q);
+  // $text must be a standalone top-level key: MongoDB allows at most one
+  // per query and it cannot be nested inside $or/$and like the other
+  // OR-groups below, so it does not go through `andClauses`.
+  const searchTerm = normalizeTextSearchTerm(query.q);
   if (searchTerm) {
-    andClauses.push([
-      { title: { $regex: searchTerm, $options: 'i' } },
-      { description: { $regex: searchTerm, $options: 'i' } },
-    ]);
+    match.$text = { $search: searchTerm };
   }
 
   if (withFacetFilters) {
@@ -167,10 +167,10 @@ function buildProductMatch(query = {}, options = {}) {
     if (isTruthyFlag(query.onSale)) match.$expr = ON_SALE_EXPR;
   }
 
+  // Only inStock ever pushes onto andClauses now that $text is a top-level
+  // key, so this is a single OR-group, not a list to $and together.
   if (andClauses.length === 1) {
     match.$or = andClauses[0];
-  } else if (andClauses.length > 1) {
-    match.$and = andClauses.map((clause) => ({ $or: clause }));
   }
 
   return match;

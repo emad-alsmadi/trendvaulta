@@ -16,4 +16,20 @@ function normalizeSearchTerm(q, maxLength = MAX_SEARCH_TERM_LENGTH) {
   return trimmed ? escapeRegex(trimmed) : '';
 }
 
-module.exports = { escapeRegex, normalizeSearchTerm, MAX_SEARCH_TERM_LENGTH };
+/**
+ * Normalize a free-text `q` query param for a MongoDB `$text` search:
+ * trims and caps the length only. Unlike `normalizeSearchTerm`, this must
+ * NOT escape regex metacharacters — `$text` is not a regex, and escaping
+ * would corrupt its own syntax (quoted phrases, `-exclusion`).
+ */
+function normalizeTextSearchTerm(q, maxLength = MAX_SEARCH_TERM_LENGTH) {
+  if (typeof q !== 'string') return '';
+  return q.trim().slice(0, maxLength);
+}
+
+module.exports = {
+  escapeRegex,
+  normalizeSearchTerm,
+  normalizeTextSearchTerm,
+  MAX_SEARCH_TERM_LENGTH,
+};

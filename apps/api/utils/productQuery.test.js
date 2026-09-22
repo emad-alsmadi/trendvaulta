@@ -123,18 +123,30 @@ describe('buildProductMatch', () => {
     assert.deepEqual(match.$expr, { $gt: ['$basePrice', '$price'] });
   });
 
-  it('combines search and inStock via $and so neither $or is lost', () => {
+  it('search uses a top-level $text, never nested in $or/$and', () => {
+    // MongoDB allows at most one $text per query and rejects it inside
+    // $or/$and — it must always be a standalone key.
     const match = buildProductMatch({ q: 'serum', inStock: 'true' });
-    assert.equal(match.$or, undefined);
-    assert.equal(match.$and.length, 2);
-    assert.ok(match.$and[0].$or[0].title);
-    assert.ok(match.$and[1].$or[0].stock);
+    assert.deepEqual(match.$text, { $search: 'serum' });
+    assert.equal(match.$and, undefined);
+    assert.deepEqual(match.$or, [
+      { stock: { $gt: 0 } },
+      { 'variants.stock': { $gt: 0 } },
+    ]);
   });
 
-  it('keeps search as a plain $or when it is the only clause', () => {
+  it('keeps search as a standalone $text with no other clause', () => {
     const match = buildProductMatch({ q: 'serum' });
-    assert.equal(match.$or.length, 2);
+    assert.deepEqual(match.$text, { $search: 'serum' });
+    assert.equal(match.$or, undefined);
     assert.equal(match.$and, undefined);
+  });
+
+  it('does not escape $text search terms like a regex', () => {
+    // Regex-escaping a $text term would corrupt its own syntax (quoted
+    // phrases, -exclusion) and is meaningless since $text is not a regex.
+    const match = buildProductMatch({ q: 'gift set (large)' });
+    assert.deepEqual(match.$text, { $search: 'gift set (large)' });
   });
 
   it('skips facet filters for the base (facet-count) match', () => {
@@ -154,12 +166,14 @@ describe('buildProductMatch', () => {
     );
     assert.equal(match.category, 'makeup');
     assert.deepEqual(match.price, { $gte: 5 });
-    assert.equal(match.$or.length, 2);
+    assert.deepEqual(match.$text, { $search: 'lip' });
     assert.equal('brand' in match, false);
     assert.equal('variants.size' in match, false);
     assert.equal('variants.color' in match, false);
     assert.equal('averageRating' in match, false);
     assert.equal('$expr' in match, false);
+    // inStock/onSale are behind withFacetFilters, so no $or/$and either.
+    assert.equal(match.$or, undefined);
     assert.equal(match.$and, undefined);
   });
 });
