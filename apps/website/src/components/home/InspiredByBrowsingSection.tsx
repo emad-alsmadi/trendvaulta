@@ -15,17 +15,27 @@ type Props = {
   loading?: boolean;
 };
 
+/** Live results are Product docs with `brand` populated as { name, slug, logo } */
+function isRenderableProduct(value: unknown): value is Product {
+  if (!value || typeof value !== 'object') return false;
+  const p = value as Partial<Product>;
+  return (
+    typeof p._id === 'string' &&
+    typeof p.title === 'string' &&
+    typeof p.price === 'number'
+  );
+}
+
 /**
  * Inspired-by-browsing rail.
- * Prefers GET /api/recommendations?context=home&limit=8;
- * falls back to local pickInspiredProducts(products) on failure/empty.
+ * Prefers GET /api/recommendations?context=home&limit=8 (`{ message,
+ * results, strategy }`); falls back to local pickInspiredProducts(products)
+ * only when the request fails or returns no results.
  */
 export function InspiredByBrowsingSection({
   products = [],
   loading: parentLoading = false,
 }: Props) {
-  const { data, isLoading: recLoading } = useHomeRecommendations(8);
-
   // getRecentlyViewed() reads localStorage (SSR-safe, returns [] on the
   // server) — a lazy initializer reads it exactly once on mount with no
   // extra render, instead of committing an empty state then correcting it
@@ -39,11 +49,23 @@ export function InspiredByBrowsingSection({
       .filter((c): c is string => Boolean(c)),
   );
 
-  const apiResults = data?.results;
-  const fromApi = Array.isArray(apiResults) && apiResults.length > 0;
+  // Most recently viewed category → API `similar_category` strategy
+  const { data, isLoading: recLoading, isError } = useHomeRecommendations(
+    8,
+    preferredCategories[0],
+  );
+
+  const apiResults = useMemo(
+    () =>
+      Array.isArray(data?.results)
+        ? data.results.filter(isRenderableProduct)
+        : [],
+    [data],
+  );
+  const fromApi = !isError && apiResults.length > 0;
 
   const inspired = useMemo(() => {
-    if (fromApi && apiResults) {
+    if (fromApi) {
       return apiResults.slice(0, 8);
     }
     return pickInspiredProducts(products, {
@@ -120,7 +142,7 @@ export function InspiredByBrowsingSection({
               key={product._id}
               className='min-w-[70%] snap-start sm:min-w-0'
             >
-              <ProductCard product={product} />
+              <ProductCard product={product} badges={product.badges ?? []} />
             </div>
           ))}
         </div>

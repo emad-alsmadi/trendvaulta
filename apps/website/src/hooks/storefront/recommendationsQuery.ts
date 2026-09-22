@@ -23,7 +23,15 @@ export function useRecommendations(params: RecommendationsQuery = {}) {
   });
 }
 
-/** Home rail: context=home, default limit 8 */
-export function useHomeRecommendations(limit = 8) {
-  return useRecommendations({ context: 'home', limit });
+/**
+ * Home rail: context=home, default limit 8.
+ * Pass a `category` (e.g. from recently viewed) to get the API's
+ * `similar_category` strategy instead of `recent_active`.
+ */
+export function useHomeRecommendations(limit = 8, category?: string) {
+  return useRecommendations({
+    context: 'home',
+    limit,
+    ...(category ? { category } : {}),
+  });
 }

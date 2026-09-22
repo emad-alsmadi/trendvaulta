@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { getServerApiBase, getSiteUrl } from '@/lib/site';
+import { CATEGORY_SLUGS } from '@/lib/categories';
 
 export const revalidate = 3600;
 
@@ -18,8 +19,6 @@ const STATIC_ROUTES = [
   '/terms',
   '/cookies',
 ];
-
-const CATEGORIES = ['makeup', 'perfumes', 'clothing', 'skincare', 'accessories', 'home'];
 
 type Listed = { _id: string; slug?: string; updatedAt?: string };
 
@@ -48,8 +47,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: path === '/' ? ('daily' as const) : ('weekly' as const),
       priority: path === '/' ? 1 : 0.7,
     })),
-    ...CATEGORIES.map((c) => ({
-      url: `${site}/products?category=${c}`,
+    ...CATEGORY_SLUGS.map((c) => ({
+      url: `${site}/c/${c}`,
       lastModified: now,
       changeFrequency: 'daily' as const,
       priority: 0.8,

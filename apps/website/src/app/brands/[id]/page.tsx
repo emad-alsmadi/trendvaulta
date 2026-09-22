@@ -1,15 +1,21 @@
 'use client';
 
+import { use } from 'react';
 import { useBrandById } from '@/hooks/brands/brandsQuery';
 import { useProducts } from '@/hooks/products/productsQuery';
 import { motion } from 'framer-motion';
 import { Loader2, Star, Globe, MapPin, ShoppingCart, Heart } from 'lucide-react';
 import { ProductCard } from '@/components/products/ProductCard';
 
-export default function BrandDetailPage({ params }: { params: { id: string } }) {
-  const { data: brand, isLoading: brandLoading, error: brandError } = useBrandById(params.id);
+export default function BrandDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
+  const { data: brand, isLoading: brandLoading, error: brandError } = useBrandById(id);
   const { data: productsResponse, isLoading: productsLoading } = useProducts({
-    brand: params.id,
+    brand: id,
     limit: 12,
     sort: 'createdAt',
   });

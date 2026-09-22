@@ -74,23 +74,47 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href='/products?category=makeup'
+                  href='/c/makeup'
                   className='text-gray-400 hover:text-white text-sm transition-colors'
                 >
-                  Beauty
+                  Makeup
                 </Link>
               </li>
               <li>
                 <Link
-                  href='/products?category=clothing'
+                  href='/c/perfumes'
                   className='text-gray-400 hover:text-white text-sm transition-colors'
                 >
-                  Fashion
+                  Perfumes
                 </Link>
               </li>
               <li>
                 <Link
-                  href='/products?category=home'
+                  href='/c/clothing'
+                  className='text-gray-400 hover:text-white text-sm transition-colors'
+                >
+                  Clothing
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href='/c/skincare'
+                  className='text-gray-400 hover:text-white text-sm transition-colors'
+                >
+                  Skincare
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href='/c/accessories'
+                  className='text-gray-400 hover:text-white text-sm transition-colors'
+                >
+                  Accessories
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href='/c/home'
                   className='text-gray-400 hover:text-white text-sm transition-colors'
                 >
                   Home

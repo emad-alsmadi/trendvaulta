@@ -47,34 +47,34 @@ export const navItems = [
 /** Department shortcuts — hrefs use the API's product category enum */
 export const categories = [
   {
-    name: 'Beauty',
-    href: '/products?category=makeup',
-    subcategories: ['Skincare', 'Makeup', 'Fragrance', 'Tools'],
+    name: 'Makeup',
+    href: '/c/makeup',
+    subcategories: ['Face', 'Eyes', 'Lips', 'Tools'],
   },
   {
-    name: 'Fashion',
-    href: '/products?category=clothing',
-    subcategories: ['Women', 'Men', 'Essentials', 'New'],
+    name: 'Perfumes',
+    href: '/c/perfumes',
+    subcategories: ['Women', 'Men', 'Unisex', 'Discovery Sets'],
+  },
+  {
+    name: 'Clothing',
+    href: '/c/clothing',
+    subcategories: ['Women', 'Men', 'Essentials', 'New Arrivals'],
   },
   {
     name: 'Skincare',
-    href: '/products?category=skincare',
-    subcategories: ['Cleansers', 'Serums', 'Moisturizers', 'Rituals'],
+    href: '/c/skincare',
+    subcategories: ['Cleansers', 'Serums', 'Moisturizers', 'Treatments'],
   },
   {
     name: 'Accessories',
-    href: '/products?category=accessories',
+    href: '/c/accessories',
     subcategories: ['Jewelry', 'Bags', 'Watches', 'Sunglasses'],
   },
   {
     name: 'Home',
-    href: '/products?category=home',
+    href: '/c/home',
     subcategories: ['Decor', 'Living', 'Bedding', 'Gifts'],
-  },
-  {
-    name: 'Gifts',
-    href: '/products?q=gift',
-    subcategories: ['Sets', 'Under budget', 'For her', 'For him'],
   },
 ];
 
@@ -136,7 +136,6 @@ export function Navbar() {
   const cart = useCart();
   const confirm = useConfirm();
   const user = meQuery.data?.user || null;
-  const loading = meQuery.isLoading;
   const hydrated = true;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [navSearch, setNavSearch] = useState('');
@@ -586,9 +585,12 @@ export function Navbar() {
             Today&apos;s offers
           </Link>
           {[
-            { href: '/products?category=makeup', label: 'Beauty' },
-            { href: '/products?category=clothing', label: 'Fashion' },
-            { href: '/products?category=home', label: 'Home' },
+            { href: '/c/makeup', label: 'Makeup' },
+            { href: '/c/perfumes', label: 'Perfumes' },
+            { href: '/c/clothing', label: 'Clothing' },
+            { href: '/c/skincare', label: 'Skincare' },
+            { href: '/c/accessories', label: 'Accessories' },
+            { href: '/c/home', label: 'Home' },
             { href: '/brands', label: 'Brands' },
             { href: '/#gift-finder', label: 'Gift finder' },
             { href: '/help', label: 'Customer service' },

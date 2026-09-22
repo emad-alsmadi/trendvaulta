@@ -12,6 +12,12 @@
  * TODO(api): GET /api/products/:id/qa
  */
 
+import {
+  categoryHref,
+  isCategorySlug,
+  normalizeCategorySlug,
+} from '@/lib/categories';
+
 export type DemoBadge = 'bestseller' | 'lowStock' | 'new';
 
 export type DemoTrustItem = {
@@ -521,7 +527,7 @@ export const DEMO_GIFT_FINDER: DemoGiftFinderConfig = {
   occasions: [
     { id: 'birthday', label: 'Birthday', q: 'gift' },
     { id: 'thank-you', label: 'Thank you', q: 'gift' },
-    { id: 'self-care', label: 'Self-care', category: 'beauty', q: 'skincare' },
+    { id: 'self-care', label: 'Self-care', category: 'skincare', q: 'skincare' },
     { id: 'housewarming', label: 'Housewarming', category: 'home', q: 'home' },
     { id: 'just-because', label: 'Just because', q: 'gift' },
   ],
@@ -540,9 +546,11 @@ export const DEMO_GIFT_FINDER: DemoGiftFinderConfig = {
 };
 
 /**
- * Build PLP URL from gift-finder selections. `config` is the live
- * GET /api/storefront/gift-finder config when available (ids differ from
- * the demo set), falling back to the demo config.
+ * Build catalog URL from gift-finder selections. `config` is the active
+ * config: the live GET /api/storefront/gift-finder config when loaded
+ * (option ids differ from the demo set), otherwise DEMO_GIFT_FINDER.
+ * Options resolve to their own `q` / `category` / `minPrice` / `maxPrice`.
+ * A category-only selection routes to the `/c/<category>` landing page.
  */
 export function buildGiftFinderHref(
   selection: {
@@ -558,17 +566,27 @@ export function buildGiftFinderHref(
   );
   const budget = config.budgets.find((b) => b.id === selection.budgetId);
 
+  const rawCategory = occasion?.category || recipient?.category;
+  const category = normalizeCategorySlug(rawCategory) ?? rawCategory;
+  const q = (recipient?.q || occasion?.q || '').trim();
+  const minPrice = budget?.minPrice ?? occasion?.minPrice ?? recipient?.minPrice;
+  const maxPrice = budget?.maxPrice ?? occasion?.maxPrice ?? recipient?.maxPrice;
+
   const params = new URLSearchParams();
-  const category = occasion?.category || recipient?.category;
-  const q = recipient?.q || occasion?.q || 'gift';
+  if (q) params.set('q', q);
+  if (minPrice != null) params.set('minPrice', String(minPrice));
+  if (maxPrice != null) params.set('maxPrice', String(maxPrice));
+
+  // Category without a search term → crawlable landing page
+  if (category && !q && isCategorySlug(category)) {
+    const qs = params.toString();
+    return qs ? `${categoryHref(category)}?${qs}` : categoryHref(category);
+  }
 
   if (category) params.set('category', category);
-  if (q) params.set('q', q);
-  if (budget?.minPrice != null) params.set('minPrice', String(budget.minPrice));
-  if (budget?.maxPrice != null) params.set('maxPrice', String(budget.maxPrice));
+  if (!q && !category) params.set('q', 'gift');
 
-  const qs = params.toString();
-  return qs ? `/products?${qs}` : '/products?q=gift';
+  return `/products?${params.toString()}`;
 }
 
 /** DEMO — editorial lookbook stories (replace with GET /api/storefront/lookbooks) */

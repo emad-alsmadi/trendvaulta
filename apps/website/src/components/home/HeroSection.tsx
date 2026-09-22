@@ -95,14 +95,14 @@ export function HeroSection({
               className='flex flex-wrap gap-3'
             >
               <Link
-                href='/products?category=makeup'
+                href='/c/makeup'
                 className='inline-flex items-center gap-2 rounded-md border border-stone-200 bg-white/80 px-4 py-2 text-sm font-medium text-stone-800 transition-colors hover:bg-white'
               >
                 <Sparkles className='h-4 w-4' />
                 Beauty
               </Link>
               <Link
-                href='/products?category=clothing'
+                href='/c/clothing'
                 className='inline-flex items-center gap-2 rounded-md border border-stone-200 bg-white/80 px-4 py-2 text-sm font-medium text-stone-800 transition-colors hover:bg-white'
               >
                 <Shirt className='h-4 w-4' />
