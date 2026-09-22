@@ -243,7 +243,7 @@
 - `.github/workflows/ci.yml` — CI pipeline
 - `apps/api/render.yaml` — إعدادات النشر
 - `docs/REMEDIATION_BACKLOG.md` — تراكم الإصلاحات
-- `docs/STOREFRONT_BACKEND_BACKLOG.md` — فجوات المتجر والـ backend
+- `docs/IMPLEMENTATION_PLAN.md` — خطة التنفيذ بالمراحل ومعايير القبول
 
 ---
 

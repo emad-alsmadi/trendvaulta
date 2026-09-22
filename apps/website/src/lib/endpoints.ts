@@ -15,6 +15,13 @@ export const endpoints = {
     logout: '/auth/logout',
     profile: '/auth/profile',
   },
+  addresses: {
+    list: '/auth/addresses',
+    create: '/auth/addresses',
+    update: (addressId: string) => `/auth/addresses/${addressId}`,
+    remove: (addressId: string) => `/auth/addresses/${addressId}`,
+    setDefault: (addressId: string) => `/auth/addresses/${addressId}/default`,
+  },
   password: {
     forgot: '/password/forgot-password',
     reset: (userId: string, token: string) =>
@@ -71,5 +78,12 @@ export const endpoints = {
     categories: '/storefront/categories',
     testimonials: '/storefront/testimonials',
     whyChooseUs: '/storefront/why-choose-us',
+  },
+  newsletter: {
+    subscribe: '/newsletter',
+    unsubscribe: '/newsletter/unsubscribe',
+  },
+  contact: {
+    send: '/contact',
   },
 } as const;

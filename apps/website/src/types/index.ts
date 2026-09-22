@@ -21,6 +21,35 @@ export interface ShippingAddress {
   notes?: string;
 }
 
+/**
+ * A saved entry in the user's address book (User.addresses[]).
+ * Field names mirror ShippingAddress so a saved address maps straight onto
+ * the checkout form; `notes` is per-order and is therefore not stored here.
+ */
+export interface Address {
+  _id: string;
+  label: string;
+  name: string;
+  phone: string;
+  address: string;
+  city: string;
+  zip: string;
+  country: string;
+  isDefault: boolean;
+}
+
+/** Create/update payload for the address book (server fills id + defaults). */
+export type AddressPayload = {
+  label?: string;
+  name: string;
+  phone: string;
+  address: string;
+  city: string;
+  zip: string;
+  country?: string;
+  isDefault?: boolean;
+};
+
 export interface OrderItem {
   productId: string;
   title: string;
@@ -159,11 +188,13 @@ export interface Review {
   user: {
     _id: string;
     username: string;
-    email: string;
+    /** Omitted on the public product feed; only owner/admin payloads carry it. */
+    email?: string;
   };
   product: string;
   rating: number;
   comment: string;
+  verifiedPurchase?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -315,3 +346,6 @@ export type BrandPayload = {
   website?: string;
   country?: string;
 };
+
+/** `Address` and `AddressPayload` are declared once near the top of this file. */
+export type AddressUpdatePayload = Partial<AddressPayload>;

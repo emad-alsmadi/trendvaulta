@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Save, Shield, Palette, User, LogOut, Loader2 } from 'lucide-react';
+import { Save, Shield, Palette, User, LogOut, Loader2, Store } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import {
   adminUsersApi,
@@ -11,6 +11,12 @@ import {
 } from '../lib/api';
 import { clearAuthSession, getAuthRole, getRefreshToken } from '../lib/auth';
 import { viteEnv } from '../lib/viteEnv';
+import { usePermissions } from '../hooks/usePermissions';
+import {
+  useAdminSettings,
+  useUpdateStoreSettingsMutation,
+} from '../hooks/useAdminSettings';
+import { useToast } from '../components/ui/Toast';
 
 const PROFILE_KEY = ['auth', 'profile'] as const;
 
@@ -18,6 +24,9 @@ export default function Settings() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { theme, toggleTheme } = useTheme();
+  const { role } = usePermissions();
+  const toast = useToast();
+  const isAdmin = role === 'admin';
 
   const profileQ = useQuery({
     queryKey: PROFILE_KEY,
@@ -45,6 +54,48 @@ export default function Settings() {
     setUsername(user.username || '');
     setEmail(user.email || '');
   }, [user]);
+
+  // Store settings (shipping/tax) — admin only
+  const storeSettingsQ = useAdminSettings();
+  const updateStoreSettingsMut = useUpdateStoreSettingsMutation();
+  const [storeName, setStoreName] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [standardRateUsd, setStandardRateUsd] = useState('');
+  const [expressRateUsd, setExpressRateUsd] = useState('');
+  const [freeShippingThresholdUsd, setFreeShippingThresholdUsd] = useState('');
+  const [taxRatePercent, setTaxRatePercent] = useState('');
+
+  useEffect(() => {
+    const data = storeSettingsQ.data?.data;
+    if (!data) return;
+    setStoreName(data.storeName || '');
+    setContactEmail(data.contactEmail || '');
+    setStandardRateUsd(String(data.shipping?.standardRateUsd ?? 5));
+    setExpressRateUsd(String(data.shipping?.expressRateUsd ?? 15));
+    setFreeShippingThresholdUsd(
+      String(data.shipping?.freeShippingThresholdUsd ?? 0),
+    );
+    setTaxRatePercent(String(data.taxRatePercent ?? 0));
+  }, [storeSettingsQ.data]);
+
+  async function saveStoreSettings(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      await updateStoreSettingsMut.mutateAsync({
+        storeName: storeName.trim(),
+        contactEmail: contactEmail.trim(),
+        shipping: {
+          standardRateUsd: Number(standardRateUsd),
+          expressRateUsd: Number(expressRateUsd),
+          freeShippingThresholdUsd: Number(freeShippingThresholdUsd),
+        },
+        taxRatePercent: Number(taxRatePercent),
+      });
+      toast.success('Store settings updated.');
+    } catch (err) {
+      toast.error(errorMessage(err, 'Could not update store settings'));
+    }
+  }
 
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -224,6 +275,121 @@ export default function Settings() {
             </button>
           </div>
         </section>
+
+        {/* Store settings (shipping/tax) — admin only */}
+        {isAdmin && (
+          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div className="mb-4 flex items-center">
+              <Store className="mr-2 h-5 w-5 text-blue-500" />
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Store settings
+              </h2>
+            </div>
+            <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+              Shipping rates and tax rate applied at checkout, storefront-wide.
+            </p>
+
+            {storeSettingsQ.isLoading && (
+              <div className="mb-4 flex items-center gap-2 text-sm text-gray-500">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading store settings…
+              </div>
+            )}
+
+            {storeSettingsQ.isError && (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+                {errorMessage(storeSettingsQ.error, 'Failed to load store settings')}
+              </div>
+            )}
+
+            <form onSubmit={saveStoreSettings} className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Store name
+                  </label>
+                  <input
+                    value={storeName}
+                    onChange={(e) => setStoreName(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Contact email
+                  </label>
+                  <input
+                    type="email"
+                    value={contactEmail}
+                    onChange={(e) => setContactEmail(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Standard shipping ($)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={standardRateUsd}
+                    onChange={(e) => setStandardRateUsd(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Express shipping ($)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={expressRateUsd}
+                    onChange={(e) => setExpressRateUsd(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Free shipping threshold ($, 0 = disabled)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={freeShippingThresholdUsd}
+                    onChange={(e) => setFreeShippingThresholdUsd(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Tax rate (%)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step="0.01"
+                    value={taxRatePercent}
+                    onChange={(e) => setTaxRatePercent(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                  />
+                </div>
+              </div>
+              <button
+                type="submit"
+                disabled={updateStoreSettingsMut.isPending || storeSettingsQ.isLoading}
+                className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
+              >
+                <Save className="mr-2 h-4 w-4" />
+                {updateStoreSettingsMut.isPending ? 'Saving…' : 'Save store settings'}
+              </button>
+            </form>
+          </section>
+        )}
 
         {/* Password */}
         <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">

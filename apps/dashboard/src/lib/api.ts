@@ -446,6 +446,25 @@ export const adminProductsApi = {
   },
 };
 
+export type UploadImageResponse = {
+  message?: string;
+  data: { url: string };
+};
+
+export const uploadsApi = {
+  /** Uploads a single product/brand image; returns its public URL. */
+  uploadImage: async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('image', file);
+    const { data } = await api.post<UploadImageResponse>(
+      '/uploads',
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    );
+    return data.data.url;
+  },
+};
+
 export type AppRole = 'user' | 'admin' | 'moderator';
 
 export type AdminUser = {
@@ -1192,6 +1211,47 @@ export const adminProductQAApi = {
 
   deleteProductQA: async (id: string): Promise<{ message: string }> => {
     const { data } = await api.delete<{ message: string }>(`/qa/${id}`);
+    return data;
+  },
+};
+
+export type StoreSettings = {
+  storeName: string;
+  contactEmail?: string;
+  currency: string;
+  shipping: {
+    standardRateUsd: number;
+    expressRateUsd: number;
+    freeShippingThresholdUsd: number;
+  };
+  taxRatePercent: number;
+  updatedAt?: string;
+  updatedBy?: string | null;
+};
+
+export type StoreSettingsPayload = {
+  storeName?: string;
+  contactEmail?: string;
+  currency?: string;
+  shipping?: Partial<StoreSettings['shipping']>;
+  taxRatePercent?: number;
+};
+
+export const adminSettingsApi = {
+  getSettings: async (): Promise<{ message: string; data: StoreSettings }> => {
+    const { data } = await api.get<{ message: string; data: StoreSettings }>(
+      '/admin/settings',
+    );
+    return data;
+  },
+
+  updateSettings: async (
+    payload: StoreSettingsPayload,
+  ): Promise<{ message: string; data: StoreSettings }> => {
+    const { data } = await api.put<{ message: string; data: StoreSettings }>(
+      '/admin/settings',
+      payload,
+    );
     return data;
   },
 };

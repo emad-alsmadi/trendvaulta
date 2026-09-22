@@ -16,6 +16,7 @@ import {
 import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
+import { ImageUploadField } from '../components/ui/ImageUploadField';
 
 const emptyForm: BrandFormPayload = {
   name: '',
@@ -359,18 +360,11 @@ export default function Brands() {
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                 />
               </label>
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Logo URL
-                </span>
-                <input
-                  value={form.logo}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, logo: e.target.value }))
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                />
-              </label>
+              <ImageUploadField
+                label="Logo"
+                value={form.logo ?? ''}
+                onChange={(url) => setForm((f) => ({ ...f, logo: url }))}
+              />
               <label className="block text-sm">
                 <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
                   Description

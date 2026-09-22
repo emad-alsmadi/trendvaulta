@@ -1,6 +1,6 @@
 import { Review } from '@/types';
 import { StarRating } from '../rating/StarRating';
-import { Trash2, Edit2 } from 'lucide-react';
+import { Trash2, Edit2, BadgeCheck } from 'lucide-react';
 import { Button } from '../../ui/Button';
 
 interface ReviewListProps {
@@ -46,9 +46,17 @@ export function ReviewList({
                     {review.user.username.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p className='font-semibold text-gray-900'>
-                      {review.user.username}
-                    </p>
+                    <div className='flex flex-wrap items-center gap-2'>
+                      <p className='font-semibold text-gray-900'>
+                        {review.user.username}
+                      </p>
+                      {review.verifiedPurchase && (
+                        <span className='inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200'>
+                          <BadgeCheck size={12} aria-hidden />
+                          Verified purchase
+                        </span>
+                      )}
+                    </div>
                     <p className='text-xs text-gray-500'>
                       {new Date(review.createdAt).toLocaleDateString('en-US', {
                         year: 'numeric',

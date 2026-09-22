@@ -11,6 +11,8 @@ import {
   ReviewUpdatePayload,
   Coupon,
   CouponValidationResponse,
+  Address,
+  AddressPayload,
 } from '@/types';
 import {
   clearAuthCookies,
@@ -270,6 +272,44 @@ export const authApi = {
    */
   logout: async () => {
     await api.post(endpoints.auth.logout).catch(() => {});
+  },
+};
+
+/**
+ * Addresses API - The signed-in user's saved address book.
+ * Every route is behind `verfiyToken`; the API returns public address shapes
+ * (never the password) under `data`.
+ */
+export const addressesApi = {
+  /** List saved addresses — GET /api/auth/addresses */
+  list: async (): Promise<Address[]> => {
+    const { data } = await api.get(endpoints.addresses.list);
+    return (data?.data ?? []) as Address[];
+  },
+  /** Save a new address — POST /api/auth/addresses (409 past the 10 cap) */
+  create: async (payload: AddressPayload): Promise<Address> => {
+    const { data } = await api.post(endpoints.addresses.create, payload);
+    return data?.data as Address;
+  },
+  /** Update one address — PUT /api/auth/addresses/:addressId */
+  update: async (
+    addressId: string,
+    payload: Partial<AddressPayload>,
+  ): Promise<Address> => {
+    const { data } = await api.put(
+      endpoints.addresses.update(addressId),
+      payload,
+    );
+    return data?.data as Address;
+  },
+  /** Remove one address — DELETE /api/auth/addresses/:addressId */
+  remove: async (addressId: string): Promise<void> => {
+    await api.delete(endpoints.addresses.remove(addressId));
+  },
+  /** Promote an address to default — PATCH /api/auth/addresses/:id/default */
+  setDefault: async (addressId: string): Promise<Address[]> => {
+    const { data } = await api.patch(endpoints.addresses.setDefault(addressId));
+    return (data?.data ?? []) as Address[];
   },
 };
 
@@ -1148,6 +1188,53 @@ export const storefrontHomeApi = {
     const { data } = await api.get<StorefrontHomeResponse>(
       endpoints.storefront.home,
     );
+    return data;
+  },
+};
+
+/**
+ * Newsletter API — public footer/checkout signup.
+ */
+export const newsletterApi = {
+  /**
+   * POST /api/newsletter — subscribe (or re-subscribe) an email.
+   * Always resolves with a generic message; never reveals whether the
+   * address was already known.
+   */
+  subscribe: async (payload: {
+    email: string;
+    source?: 'footer' | 'checkout' | 'other';
+  }): Promise<{ message: string }> => {
+    const { data } = await api.post(endpoints.newsletter.subscribe, payload);
+    return data;
+  },
+  /** POST /api/newsletter/unsubscribe */
+  unsubscribe: async (email: string): Promise<{ message: string }> => {
+    const { data } = await api.post(endpoints.newsletter.unsubscribe, {
+      email,
+    });
+    return data;
+  },
+};
+
+export type ContactMessagePayload = {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  /** Honeypot — must stay empty; a filled value silently no-ops server-side. */
+  website?: string;
+};
+
+/**
+ * Contact API — public contact form.
+ */
+export const contactApi = {
+  /** POST /api/contact */
+  sendMessage: async (
+    payload: ContactMessagePayload,
+  ): Promise<{ message: string }> => {
+    const { data } = await api.post(endpoints.contact.send, payload);
     return data;
   },
 };

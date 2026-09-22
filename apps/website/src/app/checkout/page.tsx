@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { motion } from 'framer-motion';
@@ -28,7 +28,8 @@ import {
 } from '@/lib/userFacingError';
 import { getAuthToken } from '@/lib/authCookies';
 import { useConfirm } from '@/components/confirm/ConfirmProvider';
-import type { CouponValidationResponse } from '@/types';
+import { useAddresses, useCreateAddress } from '@/hooks/profile/addressesQuery';
+import type { Address, CouponValidationResponse } from '@/types';
 
 type AppliedCoupon = NonNullable<CouponValidationResponse['coupon']>;
 
@@ -71,6 +72,15 @@ export default function CheckoutPage() {
   const createOrder = useCreateOrderMutation();
   const confirm = useConfirm();
   const [stripeRedirecting, setStripeRedirecting] = useState(false);
+  // Saved address book: only for signed-in shoppers; guests see the plain form.
+  const addressesQuery = useAddresses();
+  const createAddress = useCreateAddress();
+  const savedAddresses = addressesQuery.data ?? [];
+  // `null` = "Use a new address"; otherwise the selected address id.
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [addressPickerReady, setAddressPickerReady] = useState(false);
+  // Offered only when checking out with a new (unsaved) address.
+  const [saveNewAddress, setSaveNewAddress] = useState(true);
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const [validatingCoupon, setValidatingCoupon] = useState(false);
@@ -86,6 +96,7 @@ export default function CheckoutPage() {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<CheckoutValues>({
     defaultValues: {
@@ -103,6 +114,46 @@ export default function CheckoutPage() {
 
   const deliverySelected = Boolean(watch('delivery'));
   const shippingMethod = deliverySelected ? ('standard' as const) : ('none' as const);
+
+  /**
+   * Copy a saved address onto the form. Only the shipping fields are touched —
+   * `notes` and `delivery` stay whatever the shopper chose for this order.
+   */
+  const applySavedAddress = (addr: Address) => {
+    const opts = { shouldValidate: true, shouldDirty: true } as const;
+    setValue('name', addr.name, opts);
+    setValue('phone', addr.phone, opts);
+    setValue('address', addr.address, opts);
+    setValue('city', addr.city, opts);
+    setValue('zip', addr.zip, opts);
+  };
+
+  // Pre-select the default address once, the first time the book arrives.
+  useEffect(() => {
+    if (addressPickerReady || savedAddresses.length === 0) return;
+    const preferred =
+      savedAddresses.find((a) => a.isDefault) ?? savedAddresses[0];
+    setSelectedAddressId(preferred._id);
+    applySavedAddress(preferred);
+    setAddressPickerReady(true);
+    // applySavedAddress only closes over the stable RHF setValue.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addressPickerReady, savedAddresses]);
+
+  const handleSelectSavedAddress = (addr: Address) => {
+    setSelectedAddressId(addr._id);
+    applySavedAddress(addr);
+  };
+
+  const handleUseNewAddress = () => {
+    setSelectedAddressId(null);
+    const opts = { shouldValidate: false, shouldDirty: true } as const;
+    setValue('name', '', opts);
+    setValue('phone', '', opts);
+    setValue('address', '', opts);
+    setValue('city', '', opts);
+    setValue('zip', '', opts);
+  };
 
   // Server-side quote (same intent fields as the checkout payload). Falls
   // back to client-side totals while loading or if the endpoint is missing.
@@ -182,6 +233,21 @@ export default function CheckoutPage() {
       couponCode:
         appliedCoupon && !couponRejectedByServer ? appliedCoupon.code : undefined,
     };
+
+    // Best-effort: save a brand-new address to the book before we leave for
+    // Stripe (or complete the dev-mode order below). Never blocks checkout —
+    // a failed save is silent since the order itself is what matters here.
+    if (selectedAddressId === null && saveNewAddress) {
+      createAddress
+        .mutateAsync({
+          name: values.name,
+          phone: values.phone,
+          address: values.address,
+          city: values.city,
+          zip: values.zip,
+        })
+        .catch((err) => logErrorForDev(err));
+    }
 
     try {
       setStripeRedirecting(true);
@@ -336,6 +402,62 @@ export default function CheckoutPage() {
             onSubmit={onSubmit}
             className='space-y-4'
           >
+            {savedAddresses.length > 0 && (
+              <fieldset className='rounded-2xl border border-white/40 bg-white/40 p-4'>
+                <legend className='px-1 text-sm font-extrabold text-indigo-950/80'>
+                  Saved addresses
+                </legend>
+                <div className='mt-1 space-y-2'>
+                  {savedAddresses.map((addr) => (
+                    <label
+                      key={addr._id}
+                      className='flex cursor-pointer items-start gap-3 rounded-xl border border-white/50 bg-white/60 p-3 transition-colors hover:bg-white/80'
+                    >
+                      <input
+                        type='radio'
+                        name='savedAddress'
+                        className='mt-1 h-4 w-4'
+                        checked={selectedAddressId === addr._id}
+                        onChange={() => handleSelectSavedAddress(addr)}
+                      />
+                      <span className='min-w-0'>
+                        <span className='flex flex-wrap items-center gap-2'>
+                          <span className='text-sm font-bold text-indigo-950'>
+                            {addr.label || 'Home'}
+                          </span>
+                          {addr.isDefault && (
+                            <span className='rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800'>
+                              Default
+                            </span>
+                          )}
+                        </span>
+                        <span className='mt-1 block text-sm text-indigo-950/70'>
+                          {addr.name} · {addr.phone}
+                        </span>
+                        <span className='block text-sm text-indigo-950/70'>
+                          {addr.address}, {addr.city} {addr.zip}
+                          {addr.country ? `, ${addr.country}` : ''}
+                        </span>
+                      </span>
+                    </label>
+                  ))}
+
+                  <label className='flex cursor-pointer items-center gap-3 rounded-xl border border-white/50 bg-white/60 p-3 transition-colors hover:bg-white/80'>
+                    <input
+                      type='radio'
+                      name='savedAddress'
+                      className='h-4 w-4'
+                      checked={selectedAddressId === null}
+                      onChange={handleUseNewAddress}
+                    />
+                    <span className='text-sm font-bold text-indigo-950'>
+                      Use a new address
+                    </span>
+                  </label>
+                </div>
+              </fieldset>
+            )}
+
             <div>
               <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
                 Full name

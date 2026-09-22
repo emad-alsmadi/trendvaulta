@@ -14,7 +14,7 @@ These instructions apply to every task unless explicitly overridden. If a user r
 | Storefront | `apps/website` | **3001** | Next.js 16 App Router, React 19, TanStack Query, Zustand, Tailwind |
 | Dashboard | `apps/dashboard` | **3002** | Vite + React Router, React 19, TanStack Query, Tailwind |
 
-**Shared packages**: `@trendvaulta/types`, `@trendvaulta/api-client` (under `packages/`). `@trendvaulta/ui` referenced but not present.
+**Shared packages**: none. `@trendvaulta/types` and `@trendvaulta/api-client` were unused and removed; `@trendvaulta/ui` never existed. Each app owns its own types and API client.
 
 **Domain**: Products & brands catalog (not digital templates).
 

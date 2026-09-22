@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import axios from 'axios';
 import { Star } from 'lucide-react';
 import { Review, ReviewPayload, ReviewUpdatePayload } from '@/types';
 import { Button } from '../../ui/Button';
@@ -11,6 +12,17 @@ interface ReviewFormProps {
   isSubmitting?: boolean;
 }
 
+/** Extract the API's `code` field from an Axios error response, if present. */
+function getErrorCode(err: unknown): string | undefined {
+  if (!axios.isAxiosError(err)) return undefined;
+  const data = err.response?.data;
+  if (data && typeof data === 'object' && 'code' in data) {
+    const code = (data as { code?: unknown }).code;
+    return typeof code === 'string' ? code : undefined;
+  }
+  return undefined;
+}
+
 export function ReviewForm({
   productId,
   existingReview,
@@ -21,16 +33,33 @@ export function ReviewForm({
   const [rating, setRating] = useState(existingReview?.rating || 0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState(existingReview?.comment || '');
+  const [purchaseRequiredMessage, setPurchaseRequiredMessage] = useState<
+    string | null
+  >(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (rating === 0 || !comment.trim()) return;
 
+    setPurchaseRequiredMessage(null);
+
     const data = existingReview
       ? ({ rating, comment } as ReviewUpdatePayload)
       : ({ product: productId, rating, comment } as ReviewPayload);
 
-    await onSubmit(data);
+    try {
+      await onSubmit(data);
+    } catch (err) {
+      // A purchase-gated review gets a friendly inline message instead of
+      // the parent's generic error toast; anything else still bubbles up.
+      if (getErrorCode(err) === 'PURCHASE_REQUIRED') {
+        setPurchaseRequiredMessage(
+          'You can review this product after purchasing it.',
+        );
+        return;
+      }
+      throw err;
+    }
   };
 
   return (
@@ -87,6 +116,12 @@ export function ReviewForm({
           {comment.length}/1000 characters
         </p>
       </div>
+
+      {purchaseRequiredMessage && (
+        <p className='rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800'>
+          {purchaseRequiredMessage}
+        </p>
+      )}
 
       <div className='flex gap-3'>
         <Button

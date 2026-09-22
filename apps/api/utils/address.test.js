@@ -49,6 +49,22 @@ describe('address helpers', () => {
     );
   });
 
+  it('guards the sole remaining address against losing its default flag', () => {
+    // updateAddress relies on this: when the only address has isDefault
+    // cleared, pickDefaultToPromote names it again so the book keeps a default.
+    const sole = [{ _id: 'only', isDefault: false }];
+    assert.equal(pickDefaultToPromote(sole), 'only');
+
+    // With a sibling still flagged, nothing is promoted back.
+    assert.equal(
+      pickDefaultToPromote([
+        { _id: 'cleared', isDefault: false },
+        { _id: 'other', isDefault: true },
+      ]),
+      null,
+    );
+  });
+
   it('serializes a client-safe shape with defaults filled in', () => {
     const out = toPublicAddress({
       _id: { toString: () => '507f1f77bcf86cd799439011' },
