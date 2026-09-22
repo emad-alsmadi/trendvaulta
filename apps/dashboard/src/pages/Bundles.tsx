@@ -8,6 +8,9 @@ import {
   useUpdateBundleMutation,
 } from '../hooks/useAdminBundles';
 import { errorMessage, type AdminBundle, type BundlePayload } from '../lib/api';
+import { usePermissions } from '../hooks/usePermissions';
+import { useToast } from '../components/ui/Toast';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 
 const emptyForm: BundlePayload = {
   primaryProduct: '',
@@ -21,6 +24,9 @@ const emptyForm: BundlePayload = {
 };
 
 export default function Bundles() {
+  const { can } = usePermissions();
+  const toast = useToast();
+  const confirm = useConfirm();
   const bundlesQ = useAdminBundles({ limit: 100 });
   const createMut = useCreateBundleMutation();
   const updateMut = useUpdateBundleMutation();
@@ -93,16 +99,16 @@ export default function Bundles() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.primaryProduct.trim()) {
-      window.alert('Primary product is required.');
+      toast.error('Primary product is required.');
       return;
     }
     if (!form.items || form.items.length < 2) {
-      window.alert('At least 2 items are required.');
+      toast.error('At least 2 items are required.');
       return;
     }
     const hasEmptyItem = form.items.some((item) => !item.product.trim());
     if (hasEmptyItem) {
-      window.alert('All items must have a product selected.');
+      toast.error('All items must have a product selected.');
       return;
     }
 
@@ -126,19 +132,17 @@ export default function Bundles() {
       setOpen(false);
       setEditing(null);
     } catch (err) {
-      window.alert(errorMessage(err, 'Could not save bundle'));
+      toast.error(errorMessage(err, 'Could not save bundle'));
     }
   }
 
   async function handleDelete(bundle: AdminBundle) {
-    const ok = window.confirm(
-      `Deactivate bundle for "${bundle.primaryProduct.title}"?`,
-    );
+    const ok = await confirm({ message: `Deactivate bundle for "${bundle.primaryProduct.title}"?`, danger: true, confirmLabel: 'Delete' });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(bundle._id);
     } catch (err) {
-      window.alert(errorMessage(err, 'Could not delete bundle'));
+      toast.error(errorMessage(err, 'Could not delete bundle'));
     }
   }
 
@@ -157,14 +161,16 @@ export default function Bundles() {
             Frequently bought together product bundles.
           </p>
         </div>
-        <button
-          type='button'
-          onClick={openCreate}
-          className='inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600'
-        >
-          <Plus className='mr-2 h-5 w-5' />
-          Add bundle
-        </button>
+        {can('content:write') && (
+          <button
+            type='button'
+            onClick={openCreate}
+            className='inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600'
+          >
+            <Plus className='mr-2 h-5 w-5' />
+            Add bundle
+          </button>
+        )}
       </div>
 
       <div className='relative mb-6'>
@@ -254,22 +260,27 @@ export default function Bundles() {
                       </td>
                       <td className='px-4 py-3'>
                         <div className='flex gap-1'>
-                          <button
-                            type='button'
-                            onClick={() => openEdit(bundle)}
-                            className='rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600'
-                            aria-label={`Edit ${bundle.primaryProduct.title}`}
-                          >
-                            <Pencil className='h-4 w-4 text-gray-500' />
-                          </button>
-                          <button
-                            type='button'
-                            onClick={() => void handleDelete(bundle)}
-                            className='rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40'
-                            aria-label={`Delete ${bundle.primaryProduct.title}`}
-                          >
-                            <Trash2 className='h-4 w-4 text-red-500' />
-                          </button>
+                          {can('content:write') && (
+                            <button
+                              type='button'
+                              onClick={() => openEdit(bundle)}
+                              className='rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600'
+                              aria-label={`Edit ${bundle.primaryProduct.title}`}
+                            >
+                              <Pencil className='h-4 w-4 text-gray-500' />
+                            </button>
+                          )}
+                          {can('content:delete') && (
+                            <button
+                              type='button'
+                              onClick={() => void handleDelete(bundle)}
+                              disabled={deleteMut.isPending}
+                              className='rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40'
+                              aria-label={`Delete ${bundle.primaryProduct.title}`}
+                            >
+                              <Trash2 className='h-4 w-4 text-red-500' />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -288,7 +299,7 @@ export default function Bundles() {
 
       {open && (
         <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4'>
-          <div className='max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800'>
+          <div className='max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800' role='dialog' aria-modal='true'>
             <div className='mb-4 flex items-center justify-between'>
               <h2 className='text-xl font-bold text-gray-900 dark:text-white'>
                 {editing ? 'Edit bundle' : 'Create bundle'}

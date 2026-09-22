@@ -13,6 +13,9 @@ import {
   type LookbookPayload,
   type LookbookTone,
 } from '../lib/api';
+import { usePermissions } from '../hooks/usePermissions';
+import { useToast } from '../components/ui/Toast';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 
 const TONES: LookbookTone[] = ['rose', 'stone', 'teal'];
 
@@ -30,6 +33,9 @@ const emptyForm: LookbookPayload = {
 };
 
 export default function Lookbooks() {
+  const { can } = usePermissions();
+  const toast = useToast();
+  const confirm = useConfirm();
   const lookbooksQ = useAdminLookbooks({ limit: 100 });
   const createMut = useCreateLookbookMutation();
   const updateMut = useUpdateLookbookMutation();
@@ -86,7 +92,7 @@ export default function Lookbooks() {
       !form.ctaHref.trim() ||
       !form.imageUrl.trim()
     ) {
-      window.alert('ID, title, body, CTA href, and image URL are required.');
+      toast.error('ID, title, body, CTA href, and image URL are required.');
       return;
     }
 
@@ -112,17 +118,17 @@ export default function Lookbooks() {
       setOpen(false);
       setEditing(null);
     } catch (err) {
-      window.alert(errorMessage(err, 'Could not save lookbook'));
+      toast.error(errorMessage(err, 'Could not save lookbook'));
     }
   }
 
   async function handleDelete(lookbook: AdminLookbook) {
-    const ok = window.confirm(`Deactivate lookbook "${lookbook.title}"?`);
+    const ok = await confirm({ message: `Deactivate lookbook "${lookbook.title}"?`, danger: true, confirmLabel: 'Deactivate' });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(lookbook._id);
     } catch (err) {
-      window.alert(errorMessage(err, 'Could not delete lookbook'));
+      toast.error(errorMessage(err, 'Could not delete lookbook'));
     }
   }
 
@@ -141,14 +147,16 @@ export default function Lookbooks() {
             Editorial content modules for the storefront.
           </p>
         </div>
-        <button
-          type='button'
-          onClick={openCreate}
-          className='inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600'
-        >
-          <Plus className='mr-2 h-5 w-5' />
-          Add lookbook
-        </button>
+        {can('content:write') && (
+          <button
+            type='button'
+            onClick={openCreate}
+            className='inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600'
+          >
+            <Plus className='mr-2 h-5 w-5' />
+            Add lookbook
+          </button>
+        )}
       </div>
 
       <div className='relative mb-6'>
@@ -252,22 +260,27 @@ export default function Lookbooks() {
                       </td>
                       <td className='px-4 py-3'>
                         <div className='flex gap-1'>
-                          <button
-                            type='button'
-                            onClick={() => openEdit(lookbook)}
-                            className='rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600'
-                            aria-label={`Edit ${lookbook.id}`}
-                          >
-                            <Pencil className='h-4 w-4 text-gray-500' />
-                          </button>
-                          <button
-                            type='button'
-                            onClick={() => void handleDelete(lookbook)}
-                            className='rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40'
-                            aria-label={`Delete ${lookbook.id}`}
-                          >
-                            <Trash2 className='h-4 w-4 text-red-500' />
-                          </button>
+                          {can('content:write') && (
+                            <button
+                              type='button'
+                              onClick={() => openEdit(lookbook)}
+                              className='rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600'
+                              aria-label={`Edit ${lookbook.id}`}
+                            >
+                              <Pencil className='h-4 w-4 text-gray-500' />
+                            </button>
+                          )}
+                          {can('content:delete') && (
+                            <button
+                              type='button'
+                              onClick={() => void handleDelete(lookbook)}
+                              disabled={deleteMut.isPending}
+                              className='rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40'
+                              aria-label={`Delete ${lookbook.id}`}
+                            >
+                              <Trash2 className='h-4 w-4 text-red-500' />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -287,7 +300,7 @@ export default function Lookbooks() {
 
       {open && (
         <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4'>
-          <div className='max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800'>
+          <div className='max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800' role='dialog' aria-modal='true'>
             <div className='mb-4 flex items-center justify-between'>
               <h2 className='text-xl font-bold text-gray-900 dark:text-white'>
                 {editing ? 'Edit lookbook' : 'Create lookbook'}

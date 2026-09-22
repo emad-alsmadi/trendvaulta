@@ -11,8 +11,14 @@ import {
   type AdminProductQA,
   type ProductQAAnswerPayload,
 } from '../lib/api';
+import { usePermissions } from '../hooks/usePermissions';
+import { useToast } from '../components/ui/Toast';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 
 export default function ProductQA() {
+  const { can } = usePermissions();
+  const toast = useToast();
+  const confirm = useConfirm();
   const qaQ = useAdminProductQA({ limit: 100 });
   const answerMut = useAnswerProductQAMutation();
   const deleteMut = useDeleteProductQAMutation();
@@ -54,13 +60,13 @@ export default function ProductQA() {
   async function handleApprove(qa: AdminProductQA, approved: boolean) {
     const payload: ProductQAAnswerPayload = { approved };
     if (!qa.answer && approved) {
-      window.alert('Please provide an answer before approving.');
+      toast.error('Please provide an answer before approving.');
       return;
     }
     try {
       await answerMut.mutateAsync({ id: qa._id, payload });
     } catch (err) {
-      window.alert(errorMessage(err, 'Could not update Q&A'));
+      toast.error(errorMessage(err, 'Could not update Q&A'));
     }
   }
 
@@ -74,17 +80,17 @@ export default function ProductQA() {
       await answerMut.mutateAsync({ id: editing._id, payload });
       closeEdit();
     } catch (err) {
-      window.alert(errorMessage(err, 'Could not save answer'));
+      toast.error(errorMessage(err, 'Could not save answer'));
     }
   }
 
   async function handleDelete(qa: AdminProductQA) {
-    const ok = window.confirm('Delete this Q&A?');
+    const ok = await confirm({ message: 'Delete this Q&A?', danger: true, confirmLabel: 'Delete' });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(qa._id);
     } catch (err) {
-      window.alert(errorMessage(err, 'Could not delete Q&A'));
+      toast.error(errorMessage(err, 'Could not delete Q&A'));
     }
   }
 
@@ -172,22 +178,27 @@ export default function ProductQA() {
                     </div>
                   </div>
                   <div className='flex gap-2'>
-                    <button
-                      type='button'
-                      onClick={() => openEdit(qa)}
-                      className='rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700'
-                      aria-label='Edit answer'
-                    >
-                      <MessageSquare className='h-4 w-4 text-gray-500' />
-                    </button>
-                    <button
-                      type='button'
-                      onClick={() => void handleDelete(qa)}
-                      className='rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40'
-                      aria-label='Delete'
-                    >
-                      <Trash2 className='h-4 w-4 text-red-500' />
-                    </button>
+                    {can('content:write') && (
+                      <button
+                        type='button'
+                        onClick={() => openEdit(qa)}
+                        className='rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        aria-label='Edit answer'
+                      >
+                        <MessageSquare className='h-4 w-4 text-gray-500' />
+                      </button>
+                    )}
+                    {can('content:delete') && (
+                      <button
+                        type='button'
+                        onClick={() => void handleDelete(qa)}
+                        disabled={deleteMut.isPending}
+                        className='rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40'
+                        aria-label='Delete'
+                      >
+                        <Trash2 className='h-4 w-4 text-red-500' />
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className='flex items-center gap-2'>
@@ -227,7 +238,7 @@ export default function ProductQA() {
 
       {editing && (
         <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4'>
-          <div className='max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800'>
+          <div className='max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800' role='dialog' aria-modal='true'>
             <div className='mb-4 flex items-center justify-between'>
               <h2 className='text-xl font-bold text-gray-900 dark:text-white'>
                 Answer Question

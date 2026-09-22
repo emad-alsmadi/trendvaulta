@@ -13,6 +13,9 @@ import {
   type CouponPayload,
   type DiscountType,
 } from '../lib/api';
+import { usePermissions } from '../hooks/usePermissions';
+import { useToast } from '../components/ui/Toast';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 
 const emptyForm: CouponPayload = {
   code: '',
@@ -31,6 +34,9 @@ function toDateInput(value: string) {
 }
 
 export default function Coupons() {
+  const { can } = usePermissions();
+  const toast = useToast();
+  const confirm = useConfirm();
   const couponsQ = useAdminCoupons({ limit: 100 });
   const createMut = useCreateCouponMutation();
   const updateMut = useUpdateCouponMutation();
@@ -78,7 +84,7 @@ export default function Coupons() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.code.trim() || !form.discountValue || !form.expirationDate) {
-      window.alert('Code, discount value, and expiration date are required.');
+      toast.error('Code, discount value, and expiration date are required.');
       return;
     }
 
@@ -102,19 +108,17 @@ export default function Coupons() {
       setOpen(false);
       setEditing(null);
     } catch (err) {
-      window.alert(errorMessage(err, 'Could not save coupon'));
+      toast.error(errorMessage(err, 'Could not save coupon'));
     }
   }
 
   async function handleDelete(coupon: AdminCoupon) {
-    const ok = window.confirm(
-      `Deactivate / delete coupon "${coupon.code}"?`,
-    );
+    const ok = await confirm({ message: `Deactivate / delete coupon "${coupon.code}"?`, danger: true, confirmLabel: 'Delete' });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(coupon._id);
     } catch (err) {
-      window.alert(errorMessage(err, 'Could not delete coupon'));
+      toast.error(errorMessage(err, 'Could not delete coupon'));
     }
   }
 
@@ -134,14 +138,16 @@ export default function Coupons() {
             server-side.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-        >
-          <Plus className="mr-2 h-5 w-5" />
-          Add coupon
-        </button>
+        {can('coupons:write') && (
+          <button
+            type="button"
+            onClick={openCreate}
+            className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+          >
+            <Plus className="mr-2 h-5 w-5" />
+            Add coupon
+          </button>
+        )}
       </div>
 
       <div className="relative mb-6">
@@ -240,22 +246,27 @@ export default function Coupons() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
-                          <button
-                            type="button"
-                            onClick={() => openEdit(coupon)}
-                            className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600"
-                            aria-label={`Edit ${coupon.code}`}
-                          >
-                            <Pencil className="h-4 w-4 text-gray-500" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void handleDelete(coupon)}
-                            className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
-                            aria-label={`Delete ${coupon.code}`}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </button>
+                          {can('coupons:write') && (
+                            <button
+                              type="button"
+                              onClick={() => openEdit(coupon)}
+                              className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600"
+                              aria-label={`Edit ${coupon.code}`}
+                            >
+                              <Pencil className="h-4 w-4 text-gray-500" />
+                            </button>
+                          )}
+                          {can('coupons:delete') && (
+                            <button
+                              type="button"
+                              onClick={() => void handleDelete(coupon)}
+                              disabled={deleteMut.isPending}
+                              className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
+                              aria-label={`Delete ${coupon.code}`}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -274,7 +285,7 @@ export default function Coupons() {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800" role="dialog" aria-modal="true">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                 {editing ? 'Edit coupon' : 'Create coupon'}

@@ -10,6 +10,17 @@ export const AUTH_REFRESH_COOKIE = 'refreshToken';
 // admin session alive without asking for re-login constantly.
 const REFRESH_COOKIE_DAYS = 30;
 
+/** `secure` follows the page protocol so http://localhost dev keeps working. */
+function cookieOptions(days: number): Cookies.CookieAttributes {
+  return {
+    expires: days,
+    path: '/',
+    sameSite: 'lax',
+    secure:
+      typeof window !== 'undefined' && window.location.protocol === 'https:',
+  };
+}
+
 export function getAuthToken(): string | undefined {
   return Cookies.get(AUTH_TOKEN_COOKIE);
 }
@@ -29,15 +40,16 @@ export function setAuthSession(opts: {
   remember?: boolean;
 }) {
   const expires = opts.remember ? 30 : 1;
-  Cookies.set(AUTH_TOKEN_COOKIE, opts.token, { expires, path: '/' });
+  Cookies.set(AUTH_TOKEN_COOKIE, opts.token, cookieOptions(expires));
   if (opts.role) {
-    Cookies.set(AUTH_ROLE_COOKIE, opts.role, { expires, path: '/' });
+    Cookies.set(AUTH_ROLE_COOKIE, opts.role, cookieOptions(expires));
   }
   if (opts.refreshToken) {
-    Cookies.set(AUTH_REFRESH_COOKIE, opts.refreshToken, {
-      expires: REFRESH_COOKIE_DAYS,
-      path: '/',
-    });
+    Cookies.set(
+      AUTH_REFRESH_COOKIE,
+      opts.refreshToken,
+      cookieOptions(REFRESH_COOKIE_DAYS),
+    );
   }
 }
 
@@ -49,12 +61,13 @@ export function setRefreshedTokens(opts: {
   token: string;
   refreshToken?: string;
 }) {
-  Cookies.set(AUTH_TOKEN_COOKIE, opts.token, { expires: 1, path: '/' });
+  Cookies.set(AUTH_TOKEN_COOKIE, opts.token, cookieOptions(1));
   if (opts.refreshToken) {
-    Cookies.set(AUTH_REFRESH_COOKIE, opts.refreshToken, {
-      expires: REFRESH_COOKIE_DAYS,
-      path: '/',
-    });
+    Cookies.set(
+      AUTH_REFRESH_COOKIE,
+      opts.refreshToken,
+      cookieOptions(REFRESH_COOKIE_DAYS),
+    );
   }
 }
 

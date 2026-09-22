@@ -13,6 +13,9 @@ import {
   type AdminProduct,
   type ProductFormPayload,
 } from '../lib/api';
+import { usePermissions } from '../hooks/usePermissions';
+import { useToast } from '../components/ui/Toast';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 
 const emptyForm: ProductFormPayload = {
   title: '',
@@ -63,6 +66,9 @@ function brandName(product: AdminProduct) {
 }
 
 export default function Products() {
+  const { can } = usePermissions();
+  const toast = useToast();
+  const confirm = useConfirm();
   const [search, setSearch] = useState('');
   const [appliedQ, setAppliedQ] = useState('');
   const [category, setCategory] = useState('');
@@ -121,11 +127,11 @@ export default function Products() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.title.trim() || !form.brand || !form.cover.trim()) {
-      window.alert('Title, brand, and cover URL are required.');
+      toast.error('Title, brand, and cover URL are required.');
       return;
     }
     if (!form.subcategory.trim() || form.description.trim().length < 3) {
-      window.alert('Subcategory and a description (3+ characters) are required.');
+      toast.error('Subcategory and a description (3+ characters) are required.');
       return;
     }
     const payload = toProductPayload(form);
@@ -138,17 +144,17 @@ export default function Products() {
       setOpen(false);
       setEditing(null);
     } catch (err) {
-      window.alert(errorMessage(err, 'Could not save product'));
+      toast.error(errorMessage(err, 'Could not save product'));
     }
   }
 
   async function handleDelete(product: AdminProduct) {
-    const ok = window.confirm(`Delete "${product.title}" permanently?`);
+    const ok = await confirm({ message: `Delete "${product.title}" permanently?`, danger: true, confirmLabel: 'Delete' });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(product._id);
     } catch (err) {
-      window.alert(errorMessage(err, 'Could not delete product'));
+      toast.error(errorMessage(err, 'Could not delete product'));
     }
   }
 
@@ -167,16 +173,18 @@ export default function Products() {
             Live catalog (includes inactive when signed in as staff)
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openCreate}
-          disabled={!brands.length}
-          title={!brands.length ? 'Create a brand first' : undefined}
-          className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <Plus className="mr-2 h-5 w-5" />
-          Add Product
-        </button>
+        {can('products:write') && (
+          <button
+            type="button"
+            onClick={openCreate}
+            disabled={!brands.length}
+            title={!brands.length ? 'Create a brand first' : undefined}
+            className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Plus className="mr-2 h-5 w-5" />
+            Add Product
+          </button>
+        )}
       </div>
 
       <div className="mb-6 flex flex-col gap-3 sm:flex-row">
@@ -251,22 +259,27 @@ export default function Products() {
                       {product.title}
                     </h3>
                     <div className="flex shrink-0 gap-1">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(product)}
-                        className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        aria-label={`Edit ${product.title}`}
-                      >
-                        <Pencil className="h-4 w-4 text-gray-500" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleDelete(product)}
-                        className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
-                        aria-label={`Delete ${product.title}`}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </button>
+                      {can('products:write') && (
+                        <button
+                          type="button"
+                          onClick={() => openEdit(product)}
+                          className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          aria-label={`Edit ${product.title}`}
+                        >
+                          <Pencil className="h-4 w-4 text-gray-500" />
+                        </button>
+                      )}
+                      {can('products:delete') && (
+                        <button
+                          type="button"
+                          onClick={() => void handleDelete(product)}
+                          disabled={deleteMut.isPending}
+                          className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
+                          aria-label={`Delete ${product.title}`}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </button>
+                      )}
                     </div>
                   </div>
                   <p className="mb-1 text-sm text-gray-500 dark:text-gray-400">
@@ -291,7 +304,7 @@ export default function Products() {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800" role="dialog" aria-modal="true">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                 {editing ? 'Edit product' : 'Create product'}

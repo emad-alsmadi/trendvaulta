@@ -1,15 +1,25 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { authApi, errorMessage } from '../lib/api';
 import { pickPrimaryRole, setAuthSession } from '../lib/auth';
+import { isStaffRole } from '../lib/permissions';
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const locationState = (location.state ?? {}) as {
+    from?: string;
+    reason?: string;
+  };
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    locationState.reason === 'forbidden'
+      ? 'This account does not have dashboard access (staff role required).'
+      : null,
+  );
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -22,13 +32,18 @@ export default function Login() {
         throw new Error('Login succeeded but no token was returned');
       }
       const role = pickPrimaryRole(data.roles);
+      if (!isStaffRole(role)) {
+        throw new Error(
+          'This account does not have dashboard access (staff role required).',
+        );
+      }
       setAuthSession({
         token: data.token,
         role,
         refreshToken: data.refreshToken,
         remember,
       });
-      navigate('/orders');
+      navigate(locationState.from || '/orders', { replace: true });
     } catch (err) {
       setError(errorMessage(err, 'Invalid email or password'));
     } finally {

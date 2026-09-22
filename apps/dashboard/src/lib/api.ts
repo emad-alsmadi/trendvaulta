@@ -148,6 +148,43 @@ export type AdminOrder = {
   refundAmount?: number;
 };
 
+export type AdminOrderItem = {
+  productId: string;
+  title: string;
+  price: number;
+  qty: number;
+  cover?: string;
+  variant?: {
+    size?: string;
+    color?: string;
+    colorCode?: string;
+    sku?: string;
+  };
+};
+
+export type AdminOrderShippingAddress = {
+  name: string;
+  phone: string;
+  address: string;
+  city: string;
+  zip: string;
+  notes?: string;
+};
+
+export type AdminOrderDetail = AdminOrder & {
+  items: AdminOrderItem[];
+  shippingAddress: AdminOrderShippingAddress;
+  itemsPrice: number;
+  shippingPrice: number;
+  taxPrice: number;
+  discountAmount: number;
+  couponCode?: string;
+  stripeSessionId?: string;
+  paymentIntentId?: string;
+  paidAt?: string;
+  updatedAt?: string;
+};
+
 export type AdminOrdersQuery = {
   page?: number;
   limit?: number;
@@ -243,6 +280,11 @@ export const adminOrdersApi = {
     });
     return data;
   },
+
+  getOrderById: async (id: string): Promise<AdminOrderDetail> => {
+    const { data } = await api.get<AdminOrderDetail>(`/orders/${id}`);
+    return data;
+  },
 };
 
 export type AdminStatsStatusCounts = {
@@ -284,6 +326,8 @@ export type AdminBrand = {
   logo?: string;
   website?: string;
   country?: string;
+  isActive?: boolean;
+  featured?: boolean;
 };
 
 export type BrandFormPayload = {
@@ -293,6 +337,8 @@ export type BrandFormPayload = {
   logo?: string;
   website?: string;
   country?: string;
+  isActive?: boolean;
+  featured?: boolean;
 };
 
 export type AdminProduct = {
@@ -307,6 +353,7 @@ export type AdminProduct = {
   sku?: string;
   averageRating?: number;
   isActive?: boolean;
+  featured?: boolean;
   brand?: string | { _id?: string; name?: string; slug?: string };
 };
 
@@ -320,6 +367,8 @@ export type ProductFormPayload = {
   subcategory: string;
   stock: number;
   sku?: string;
+  isActive?: boolean;
+  featured?: boolean;
 };
 
 export type PaginatedList<T> = {
@@ -368,6 +417,7 @@ export const adminProductsApi = {
       limit?: number;
       q?: string;
       category?: string;
+      brand?: string;
       includeInactive?: boolean;
     } = {},
   ): Promise<PaginatedList<AdminProduct>> => {
@@ -404,7 +454,6 @@ export type AdminUser = {
   username: string;
   roles?: AppRole[];
   createdAt?: string;
-  isAccountVerified?: boolean;
 };
 
 export type UserUpdatePayload = {

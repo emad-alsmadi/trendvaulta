@@ -11,6 +11,9 @@ import {
   type AdminOrder,
 } from '../lib/api';
 import { getAuthToken } from '../lib/auth';
+import { usePermissions } from '../hooks/usePermissions';
+import { useToast } from '../components/ui/Toast';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 
 const STATUS_FILTERS = [
   { value: '', label: 'All statuses' },
@@ -87,6 +90,9 @@ function statusBadgeClass(status: string) {
 }
 
 export default function Orders() {
+  const { can } = usePermissions();
+  const toast = useToast();
+  const confirm = useConfirm();
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
   const [appliedQ, setAppliedQ] = useState('');
@@ -111,14 +117,12 @@ export default function Orders() {
     const refundNote = triggersRefund(order, next)
       ? ' This order is paid — a Stripe refund will be issued.'
       : '';
-    const ok = window.confirm(
-      `Change order ${shortId(order._id)} from "${statusLabel(order.status)}" to "${statusLabel(next)}"?${refundNote}`,
-    );
+    const ok = await confirm({ message: `Change order ${shortId(order._id)} from "${statusLabel(order.status)}" to "${statusLabel(next)}"?${refundNote}`, confirmLabel: 'Change status' });
     if (!ok) return;
     try {
       await updateMut.mutateAsync({ id: order._id, status: next });
     } catch (err) {
-      window.alert(errorMessage(err, 'Failed to update order'));
+      toast.error(errorMessage(err, 'Failed to update order'));
     }
   }
 
@@ -259,7 +263,9 @@ export default function Orders() {
                         className="hover:bg-gray-50 dark:hover:bg-gray-700/60"
                       >
                         <td className="px-4 py-3 font-mono text-xs font-semibold text-gray-900 dark:text-white">
-                          {shortId(order._id)}
+                          <Link to={`/orders/${order._id}`} className='hover:underline'>
+                            {shortId(order._id)}
+                          </Link>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
                           {customerLabel(order)}
@@ -299,7 +305,7 @@ export default function Orders() {
                             : '—'}
                         </td>
                         <td className="px-4 py-3">
-                          {next.length === 0 ? (
+                          {next.length === 0 || !can('orders:write') ? (
                             <span className="text-xs text-gray-400">—</span>
                           ) : (
                             <select

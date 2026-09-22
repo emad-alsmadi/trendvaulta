@@ -10,6 +10,7 @@ import {
   errorMessage,
 } from '../lib/api';
 import { clearAuthSession, getAuthRole, getRefreshToken } from '../lib/auth';
+import { viteEnv } from '../lib/viteEnv';
 
 const PROFILE_KEY = ['auth', 'profile'] as const;
 
@@ -107,8 +108,7 @@ export default function Settings() {
     navigate('/login');
   }
 
-  const apiBase =
-    (import.meta.env.VITE_API_URL as string | undefined) || '/api (Vite proxy)';
+  const apiBase = viteEnv.VITE_API_URL || '/api (Vite proxy)';
 
   return (
     <motion.div

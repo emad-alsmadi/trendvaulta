@@ -12,6 +12,9 @@ import {
   type AdminOffer,
   type OfferPayload,
 } from '../lib/api';
+import { usePermissions } from '../hooks/usePermissions';
+import { useToast } from '../components/ui/Toast';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 
 const emptyForm: OfferPayload = {
   title: '',
@@ -30,6 +33,9 @@ function toDateInput(value?: string | null) {
 }
 
 export default function Offers() {
+  const { can } = usePermissions();
+  const toast = useToast();
+  const confirm = useConfirm();
   const offersQ = useAdminOffers({ limit: 100 });
   const createMut = useCreateOfferMutation();
   const updateMut = useUpdateOfferMutation();
@@ -79,7 +85,7 @@ export default function Offers() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.title.trim() || !form.href.trim()) {
-      window.alert('Title and href are required.');
+      toast.error('Title and href are required.');
       return;
     }
 
@@ -104,19 +110,17 @@ export default function Offers() {
       setOpen(false);
       setEditing(null);
     } catch (err) {
-      window.alert(errorMessage(err, 'Could not save offer'));
+      toast.error(errorMessage(err, 'Could not save offer'));
     }
   }
 
   async function handleDelete(offer: AdminOffer) {
-    const ok = window.confirm(
-      `Deactivate / delete offer "${offer.title}"?`,
-    );
+    const ok = await confirm({ message: `Deactivate / delete offer "${offer.title}"?`, danger: true, confirmLabel: 'Delete' });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(offer._id);
     } catch (err) {
-      window.alert(errorMessage(err, 'Could not delete offer'));
+      toast.error(errorMessage(err, 'Could not delete offer'));
     }
   }
 
@@ -135,14 +139,16 @@ export default function Offers() {
             Merchandising deals shown on the storefront. Delete deactivates.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-        >
-          <Plus className="mr-2 h-5 w-5" />
-          Add offer
-        </button>
+        {can('offers:write') && (
+          <button
+            type="button"
+            onClick={openCreate}
+            className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+          >
+            <Plus className="mr-2 h-5 w-5" />
+            Add offer
+          </button>
+        )}
       </div>
 
       <div className="relative mb-6">
@@ -243,22 +249,27 @@ export default function Offers() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
-                          <button
-                            type="button"
-                            onClick={() => openEdit(offer)}
-                            className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600"
-                            aria-label={`Edit ${offer.title}`}
-                          >
-                            <Pencil className="h-4 w-4 text-gray-500" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void handleDelete(offer)}
-                            className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
-                            aria-label={`Delete ${offer.title}`}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </button>
+                          {can('offers:write') && (
+                            <button
+                              type="button"
+                              onClick={() => openEdit(offer)}
+                              className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600"
+                              aria-label={`Edit ${offer.title}`}
+                            >
+                              <Pencil className="h-4 w-4 text-gray-500" />
+                            </button>
+                          )}
+                          {can('offers:delete') && (
+                            <button
+                              type="button"
+                              onClick={() => void handleDelete(offer)}
+                              disabled={deleteMut.isPending}
+                              className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
+                              aria-label={`Delete ${offer.title}`}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -277,7 +288,7 @@ export default function Offers() {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800" role="dialog" aria-modal="true">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                 {editing ? 'Edit offer' : 'Create offer'}

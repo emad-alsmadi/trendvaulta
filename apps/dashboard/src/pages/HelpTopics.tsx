@@ -12,6 +12,9 @@ import {
   type AdminHelpTopic,
   type HelpTopicPayload,
 } from '../lib/api';
+import { usePermissions } from '../hooks/usePermissions';
+import { useToast } from '../components/ui/Toast';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 
 const emptyForm: HelpTopicPayload = {
   id: '',
@@ -24,6 +27,9 @@ const emptyForm: HelpTopicPayload = {
 };
 
 export default function HelpTopics() {
+  const { can } = usePermissions();
+  const toast = useToast();
+  const confirm = useConfirm();
   const helpTopicsQ = useAdminHelpTopics({ limit: 100 });
   const createMut = useCreateHelpTopicMutation();
   const updateMut = useUpdateHelpTopicMutation();
@@ -72,7 +78,7 @@ export default function HelpTopics() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.id.trim() || !form.title.trim() || !form.href.trim()) {
-      window.alert('ID, title, and href are required.');
+      toast.error('ID, title, and href are required.');
       return;
     }
 
@@ -96,19 +102,17 @@ export default function HelpTopics() {
       setOpen(false);
       setEditing(null);
     } catch (err) {
-      window.alert(errorMessage(err, 'Could not save help topic'));
+      toast.error(errorMessage(err, 'Could not save help topic'));
     }
   }
 
   async function handleDelete(topic: AdminHelpTopic) {
-    const ok = window.confirm(
-      `Deactivate / delete help topic "${topic.title}"?`,
-    );
+    const ok = await confirm({ message: `Deactivate / delete help topic "${topic.title}"?`, danger: true, confirmLabel: 'Delete' });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(topic._id);
     } catch (err) {
-      window.alert(errorMessage(err, 'Could not delete help topic'));
+      toast.error(errorMessage(err, 'Could not delete help topic'));
     }
   }
 
@@ -127,14 +131,16 @@ export default function HelpTopics() {
             Customer service topics shown on the storefront help page.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-        >
-          <Plus className="mr-2 h-5 w-5" />
-          Add topic
-        </button>
+        {can('content:write') && (
+          <button
+            type="button"
+            onClick={openCreate}
+            className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+          >
+            <Plus className="mr-2 h-5 w-5" />
+            Add topic
+          </button>
+        )}
       </div>
 
       <div className="relative mb-6">
@@ -224,22 +230,27 @@ export default function HelpTopics() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
-                          <button
-                            type="button"
-                            onClick={() => openEdit(topic)}
-                            className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600"
-                            aria-label={`Edit ${topic.title}`}
-                          >
-                            <Pencil className="h-4 w-4 text-gray-500" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void handleDelete(topic)}
-                            className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
-                            aria-label={`Delete ${topic.title}`}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </button>
+                          {can('content:write') && (
+                            <button
+                              type="button"
+                              onClick={() => openEdit(topic)}
+                              className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600"
+                              aria-label={`Edit ${topic.title}`}
+                            >
+                              <Pencil className="h-4 w-4 text-gray-500" />
+                            </button>
+                          )}
+                          {can('content:delete') && (
+                            <button
+                              type="button"
+                              onClick={() => void handleDelete(topic)}
+                              disabled={deleteMut.isPending}
+                              className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
+                              aria-label={`Delete ${topic.title}`}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -258,7 +269,7 @@ export default function HelpTopics() {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800" role="dialog" aria-modal="true">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                 {editing ? 'Edit help topic' : 'Create help topic'}

@@ -12,6 +12,9 @@ import {
   type AppRole,
   type UserUpdatePayload,
 } from '../lib/api';
+import { usePermissions } from '../hooks/usePermissions';
+import { useToast } from '../components/ui/Toast';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 
 const ROLES: AppRole[] = ['user', 'moderator', 'admin'];
 
@@ -30,6 +33,9 @@ function primaryRole(roles?: AppRole[]) {
 }
 
 export default function Users() {
+  const { can } = usePermissions();
+  const toast = useToast();
+  const confirm = useConfirm();
   const usersQ = useAdminUsers();
   const updateMut = useUpdateUserMutation();
   const deleteMut = useDeleteUserMutation();
@@ -84,7 +90,7 @@ export default function Users() {
     e.preventDefault();
     if (!editing) return;
     if (!form.email.trim() || !form.username.trim()) {
-      window.alert('Email and username are required.');
+      toast.error('Email and username are required.');
       return;
     }
 
@@ -102,19 +108,17 @@ export default function Users() {
       setOpen(false);
       setEditing(null);
     } catch (err) {
-      window.alert(errorMessage(err, 'Could not update user'));
+      toast.error(errorMessage(err, 'Could not update user'));
     }
   }
 
   async function handleDelete(user: AdminUser) {
-    const ok = window.confirm(
-      `Delete user "${user.email}" permanently? This cannot be undone.`,
-    );
+    const ok = await confirm({ message: `Delete user "${user.email}" permanently? This cannot be undone.`, danger: true, confirmLabel: 'Delete' });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(user._id);
     } catch (err) {
-      window.alert(errorMessage(err, 'Could not delete user'));
+      toast.error(errorMessage(err, 'Could not delete user'));
     }
   }
 
@@ -219,23 +223,27 @@ export default function Users() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => openEdit(user)}
-                            className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600"
-                            aria-label={`Edit ${user.username}`}
-                          >
-                            <Pencil className="h-4 w-4 text-gray-500" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void handleDelete(user)}
-                            disabled={deleteMut.isPending}
-                            className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
-                            aria-label={`Delete ${user.username}`}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </button>
+                          {can('users:write') && (
+                            <button
+                              type="button"
+                              onClick={() => openEdit(user)}
+                              className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600"
+                              aria-label={`Edit ${user.username}`}
+                            >
+                              <Pencil className="h-4 w-4 text-gray-500" />
+                            </button>
+                          )}
+                          {can('users:delete') && (
+                            <button
+                              type="button"
+                              onClick={() => void handleDelete(user)}
+                              disabled={deleteMut.isPending}
+                              className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
+                              aria-label={`Delete ${user.username}`}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -252,7 +260,7 @@ export default function Users() {
 
       {open && editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800">
+          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800" role="dialog" aria-modal="true">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                 Edit user

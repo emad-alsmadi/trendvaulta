@@ -6,6 +6,9 @@ import {
   useDeleteAdminReviewMutation,
 } from '../hooks/useAdminReviews';
 import { errorMessage, type AdminReview } from '../lib/api';
+import { usePermissions } from '../hooks/usePermissions';
+import { useToast } from '../components/ui/Toast';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 
 function productLabel(review: AdminReview) {
   if (review.product && typeof review.product === 'object') {
@@ -22,6 +25,9 @@ function userLabel(review: AdminReview) {
 }
 
 export default function Reviews() {
+  const { can } = usePermissions();
+  const toast = useToast();
+  const confirm = useConfirm();
   const reviewsQ = useAdminReviews({ limit: 100 });
   const deleteMut = useDeleteAdminReviewMutation();
   const [search, setSearch] = useState('');
@@ -44,12 +50,12 @@ export default function Reviews() {
   }, [reviewsQ.data, search]);
 
   async function handleDelete(review: AdminReview) {
-    const ok = window.confirm('Delete this review permanently?');
+    const ok = await confirm({ message: 'Delete this review permanently?', danger: true, confirmLabel: 'Delete' });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(review._id);
     } catch (err) {
-      window.alert(errorMessage(err, 'Could not delete review'));
+      toast.error(errorMessage(err, 'Could not delete review'));
     }
   }
 
@@ -143,15 +149,17 @@ export default function Reviews() {
                           : '—'}
                       </td>
                       <td className="px-4 py-3">
-                        <button
-                          type="button"
-                          onClick={() => void handleDelete(review)}
-                          disabled={deleteMut.isPending}
-                          className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
-                          aria-label="Delete review"
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </button>
+                        {can('reviews:delete') && (
+                          <button
+                            type="button"
+                            onClick={() => void handleDelete(review)}
+                            disabled={deleteMut.isPending}
+                            className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
+                            aria-label="Delete review"
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))

@@ -12,6 +12,9 @@ import {
   type AdminTestimonial,
   type TestimonialPayload,
 } from '../lib/api';
+import { usePermissions } from '../hooks/usePermissions';
+import { useToast } from '../components/ui/Toast';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 
 const emptyForm: TestimonialPayload = {
   id: '',
@@ -24,6 +27,9 @@ const emptyForm: TestimonialPayload = {
 };
 
 export default function Testimonials() {
+  const { can } = usePermissions();
+  const toast = useToast();
+  const confirm = useConfirm();
   const testimonialsQ = useAdminTestimonials({ limit: 100 });
   const createMut = useCreateTestimonialMutation();
   const updateMut = useUpdateTestimonialMutation();
@@ -71,7 +77,7 @@ export default function Testimonials() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.id.trim() || !form.name.trim() || !form.quote.trim()) {
-      window.alert('ID, name, and quote are required.');
+      toast.error('ID, name, and quote are required.');
       return;
     }
 
@@ -95,19 +101,17 @@ export default function Testimonials() {
       setOpen(false);
       setEditing(null);
     } catch (err) {
-      window.alert(errorMessage(err, 'Could not save testimonial'));
+      toast.error(errorMessage(err, 'Could not save testimonial'));
     }
   }
 
   async function handleDelete(testimonial: AdminTestimonial) {
-    const ok = window.confirm(
-      `Deactivate testimonial from "${testimonial.name}"?`,
-    );
+    const ok = await confirm({ message: `Deactivate testimonial from "${testimonial.name}"?`, danger: true, confirmLabel: 'Delete' });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(testimonial._id);
     } catch (err) {
-      window.alert(errorMessage(err, 'Could not delete testimonial'));
+      toast.error(errorMessage(err, 'Could not delete testimonial'));
     }
   }
 
@@ -126,14 +130,16 @@ export default function Testimonials() {
             Customer reviews and feedback for the storefront.
           </p>
         </div>
-        <button
-          type='button'
-          onClick={openCreate}
-          className='inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600'
-        >
-          <Plus className='mr-2 h-5 w-5' />
-          Add testimonial
-        </button>
+        {can('content:write') && (
+          <button
+            type='button'
+            onClick={openCreate}
+            className='inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600'
+          >
+            <Plus className='mr-2 h-5 w-5' />
+            Add testimonial
+          </button>
+        )}
       </div>
 
       <div className='relative mb-6'>
@@ -240,22 +246,27 @@ export default function Testimonials() {
                       </td>
                       <td className='px-4 py-3'>
                         <div className='flex gap-1'>
-                          <button
-                            type='button'
-                            onClick={() => openEdit(testimonial)}
-                            className='rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600'
-                            aria-label={`Edit ${testimonial.id}`}
-                          >
-                            <Pencil className='h-4 w-4 text-gray-500' />
-                          </button>
-                          <button
-                            type='button'
-                            onClick={() => void handleDelete(testimonial)}
-                            className='rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40'
-                            aria-label={`Delete ${testimonial.id}`}
-                          >
-                            <Trash2 className='h-4 w-4 text-red-500' />
-                          </button>
+                          {can('content:write') && (
+                            <button
+                              type='button'
+                              onClick={() => openEdit(testimonial)}
+                              className='rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600'
+                              aria-label={`Edit ${testimonial.id}`}
+                            >
+                              <Pencil className='h-4 w-4 text-gray-500' />
+                            </button>
+                          )}
+                          {can('content:delete') && (
+                            <button
+                              type='button'
+                              onClick={() => void handleDelete(testimonial)}
+                              disabled={deleteMut.isPending}
+                              className='rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40'
+                              aria-label={`Delete ${testimonial.id}`}
+                            >
+                              <Trash2 className='h-4 w-4 text-red-500' />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -275,7 +286,7 @@ export default function Testimonials() {
 
       {open && (
         <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4'>
-          <div className='max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800'>
+          <div className='max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800' role='dialog' aria-modal='true'>
             <div className='mb-4 flex items-center justify-between'>
               <h2 className='text-xl font-bold text-gray-900 dark:text-white'>
                 {editing ? 'Edit testimonial' : 'Create testimonial'}

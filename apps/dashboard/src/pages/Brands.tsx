@@ -8,10 +8,14 @@ import {
   useUpdateBrandMutation,
 } from '../hooks/useAdminCatalog';
 import {
+  adminProductsApi,
   errorMessage,
   type AdminBrand,
   type BrandFormPayload,
 } from '../lib/api';
+import { usePermissions } from '../hooks/usePermissions';
+import { useToast } from '../components/ui/Toast';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 
 const emptyForm: BrandFormPayload = {
   name: '',
@@ -20,6 +24,8 @@ const emptyForm: BrandFormPayload = {
   logo: '',
   website: '',
   country: '',
+  isActive: true,
+  featured: false,
 };
 
 /** Backend Joi uses `Joi.string()` for optional fields, which rejects ''. */
@@ -32,6 +38,8 @@ function toBrandPayload(form: BrandFormPayload): BrandFormPayload {
   if (form.logo?.trim()) payload.logo = form.logo.trim();
   if (form.website?.trim()) payload.website = form.website.trim();
   if (form.country?.trim()) payload.country = form.country.trim();
+  payload.isActive = form.isActive ?? true;
+  payload.featured = form.featured ?? false;
   return payload;
 }
 
@@ -44,6 +52,9 @@ function slugify(name: string) {
 }
 
 export default function Brands() {
+  const { can } = usePermissions();
+  const toast = useToast();
+  const confirm = useConfirm();
   const [search, setSearch] = useState('');
   const [appliedQ, setAppliedQ] = useState('');
   const [open, setOpen] = useState(false);
@@ -87,14 +98,18 @@ export default function Brands() {
       logo: brand.logo || '',
       website: brand.website || '',
       country: brand.country || '',
+      isActive: brand.isActive ?? true,
+      featured: brand.featured ?? false,
     });
     setOpen(true);
   }
 
+
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.name.trim() || !form.slug.trim()) {
-      window.alert('Name and slug are required.');
+      toast.error('Name and slug are required.');
       return;
     }
     const payload = toBrandPayload(form);
@@ -107,17 +122,31 @@ export default function Brands() {
       setOpen(false);
       setEditing(null);
     } catch (err) {
-      window.alert(errorMessage(err, 'Could not save brand'));
+      toast.error(errorMessage(err, 'Could not save brand'));
     }
   }
 
   async function handleDelete(brand: AdminBrand) {
-    const ok = window.confirm(`Delete brand "${brand.name}" permanently?`);
+    let hasProducts = false;
+    try {
+      const check = await adminProductsApi.getProducts({
+        brand: brand._id,
+        limit: 1,
+      });
+      hasProducts = (check.meta?.total ?? check.data.length) > 0;
+    } catch {
+      // If the check fails, fall back to the plain confirmation below.
+    }
+
+    const message = hasProducts
+      ? `Delete brand "${brand.name}" permanently? Products still assigned to this brand will be left without a valid brand reference.`
+      : `Delete brand "${brand.name}" permanently?`;
+    const ok = await confirm({ message, danger: true, confirmLabel: 'Delete' });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(brand._id);
     } catch (err) {
-      window.alert(errorMessage(err, 'Could not delete brand'));
+      toast.error(errorMessage(err, 'Could not delete brand'));
     }
   }
 
@@ -136,14 +165,16 @@ export default function Brands() {
             Live brand catalog from the API
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-        >
-          <Plus className="mr-2 h-5 w-5" />
-          Add Brand
-        </button>
+        {can('brands:write') && (
+          <button
+            type="button"
+            onClick={openCreate}
+            className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+          >
+            <Plus className="mr-2 h-5 w-5" />
+            Add Brand
+          </button>
+        )}
       </div>
 
       <form
@@ -208,22 +239,27 @@ export default function Brands() {
                       <p className="text-xs text-gray-500">{brand.slug}</p>
                     </div>
                     <div className="flex gap-1">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(brand)}
-                        className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        aria-label={`Edit ${brand.name}`}
-                      >
-                        <Pencil className="h-4 w-4 text-gray-500" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleDelete(brand)}
-                        className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
-                        aria-label={`Delete ${brand.name}`}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </button>
+                      {can('brands:write') && (
+                        <button
+                          type="button"
+                          onClick={() => openEdit(brand)}
+                          className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          aria-label={`Edit ${brand.name}`}
+                        >
+                          <Pencil className="h-4 w-4 text-gray-500" />
+                        </button>
+                      )}
+                      {can('brands:delete') && (
+                        <button
+                          type="button"
+                          onClick={() => void handleDelete(brand)}
+                          disabled={deleteMut.isPending}
+                          className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
+                          aria-label={`Delete ${brand.name}`}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </button>
+                      )}
                     </div>
                   </div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -241,7 +277,7 @@ export default function Brands() {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800" role="dialog" aria-modal="true">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                 {editing ? 'Edit brand' : 'Create brand'}
@@ -336,6 +372,30 @@ export default function Brands() {
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                 />
               </label>
+              <div className="flex flex-wrap gap-4">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.isActive ?? true}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, isActive: e.target.checked }))
+                    }
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <span className="text-gray-700 dark:text-gray-300">Active</span>
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.featured ?? false}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, featured: e.target.checked }))
+                    }
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <span className="text-gray-700 dark:text-gray-300">Featured</span>
+                </label>
+              </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"

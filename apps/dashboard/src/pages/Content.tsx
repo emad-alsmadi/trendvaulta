@@ -13,6 +13,9 @@ import {
   type ContentPayload,
   type ContentType,
 } from '../lib/api';
+import { usePermissions } from '../hooks/usePermissions';
+import { useToast } from '../components/ui/Toast';
+import { useConfirm } from '../components/ui/ConfirmDialog';
 
 const CONTENT_TYPES: ContentType[] = ['SHIPPING', 'RETURNS', 'PRIVACY', 'TERMS', 'STOREFRONT_TRUST'];
 
@@ -24,6 +27,9 @@ const emptyForm: ContentPayload = {
 };
 
 export default function Content() {
+  const { can } = usePermissions();
+  const toast = useToast();
+  const confirm = useConfirm();
   const contentQ = useAdminContent({ limit: 100 });
   const createMut = useCreateContentMutation();
   const updateMut = useUpdateContentMutation();
@@ -68,7 +74,7 @@ export default function Content() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.type || !form.title.trim() || !form.body.trim()) {
-      window.alert('Type, title, and body are required.');
+      toast.error('Type, title, and body are required.');
       return;
     }
 
@@ -88,19 +94,17 @@ export default function Content() {
       setOpen(false);
       setEditing(null);
     } catch (err) {
-      window.alert(errorMessage(err, 'Could not save content'));
+      toast.error(errorMessage(err, 'Could not save content'));
     }
   }
 
   async function handleDelete(content: AdminContent) {
-    const ok = window.confirm(
-      `Deactivate / delete content "${content.title}" (${content.type})?`,
-    );
+    const ok = await confirm({ message: `Deactivate / delete content "${content.title}" (${content.type})?`, danger: true, confirmLabel: 'Delete' });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(content._id);
     } catch (err) {
-      window.alert(errorMessage(err, 'Could not delete content'));
+      toast.error(errorMessage(err, 'Could not delete content'));
     }
   }
 
@@ -119,14 +123,16 @@ export default function Content() {
             Shipping, returns, privacy, and policy content for the storefront.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-        >
-          <Plus className="mr-2 h-5 w-5" />
-          Add content
-        </button>
+        {can('content:write') && (
+          <button
+            type="button"
+            onClick={openCreate}
+            className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+          >
+            <Plus className="mr-2 h-5 w-5" />
+            Add content
+          </button>
+        )}
       </div>
 
       <div className="relative mb-6">
@@ -207,22 +213,27 @@ export default function Content() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
-                          <button
-                            type="button"
-                            onClick={() => openEdit(content)}
-                            className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600"
-                            aria-label={`Edit ${content.title}`}
-                          >
-                            <Pencil className="h-4 w-4 text-gray-500" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void handleDelete(content)}
-                            className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
-                            aria-label={`Delete ${content.title}`}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </button>
+                          {can('content:write') && (
+                            <button
+                              type="button"
+                              onClick={() => openEdit(content)}
+                              className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600"
+                              aria-label={`Edit ${content.title}`}
+                            >
+                              <Pencil className="h-4 w-4 text-gray-500" />
+                            </button>
+                          )}
+                          {can('content:delete') && (
+                            <button
+                              type="button"
+                              onClick={() => void handleDelete(content)}
+                              disabled={deleteMut.isPending}
+                              className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
+                              aria-label={`Delete ${content.title}`}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -241,7 +252,7 @@ export default function Content() {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800" role='dialog' aria-modal='true'>
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                 {editing ? 'Edit content' : 'Create content'}

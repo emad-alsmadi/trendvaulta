@@ -1,12 +1,15 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from './hooks/useTheme';
+import { ToastProvider } from './components/ui/Toast';
+import { ConfirmProvider } from './components/ui/ConfirmDialog';
 import DashboardLayout from './layouts/DashboardLayout';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import Products from './pages/Products';
 import Brands from './pages/Brands';
 import Orders from './pages/Orders';
+import OrderDetail from './pages/OrderDetail';
 import Coupons from './pages/Coupons';
 import Offers from './pages/Offers';
 import Reviews from './pages/Reviews';
@@ -34,6 +37,8 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
+        <ToastProvider>
+        <ConfirmProvider>
         <BrowserRouter>
           <Routes>
             <Route
@@ -63,6 +68,10 @@ function App() {
               <Route
                 path='orders'
                 element={<Orders />}
+              />
+              <Route
+                path='orders/:id'
+                element={<OrderDetail />}
               />
               <Route
                 path='coupons'
@@ -115,6 +124,8 @@ function App() {
             </Route>
           </Routes>
         </BrowserRouter>
+        </ConfirmProvider>
+        </ToastProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
