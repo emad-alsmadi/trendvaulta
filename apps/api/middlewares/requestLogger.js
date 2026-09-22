@@ -49,23 +49,26 @@ const requestLogger = pinoHttp({
     req.id = req.headers['x-request-id'] || generateRequestId();
     return req.id;
   },
-  // Custom log message
-  customLogLevel: (res, err) => {
+  // Custom log message. pino-http v10 calls these hooks as
+  // (req, res, ...) — NOT (res, ...) — passing the wrong argument order
+  // here throws on every response (res.req was undefined) and mislabels
+  // every request's log level.
+  customLogLevel: (req, res, err) => {
     if (err || res.statusCode >= 500) return 'error';
     if (res.statusCode >= 400) return 'warn';
     return 'info';
   },
   // Custom success message
-  customSuccessMessage: (res) => {
-    return `${res.req.method} ${res.req.url} completed`;
+  customSuccessMessage: (req, res, responseTime) => {
+    return `${req.method} ${req.url} completed in ${responseTime}ms`;
   },
   // Custom error message
-  customErrorMessage: (err, res) => {
-    return `${res.req.method} ${res.req.url} failed`;
+  customErrorMessage: (req, res, err) => {
+    return `${req.method} ${req.url} failed: ${err?.message || 'error'}`;
   },
   // Include response time
-  customProps: (res, resTime) => ({
-    responseTime: resTime,
+  customProps: (req, res) => ({
+    responseTime: res.responseTime,
   }),
 });
 

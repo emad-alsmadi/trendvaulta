@@ -41,13 +41,20 @@ const ROLE_PERMISSIONS = {
     'content:read',
     'content:write',
     'content:delete',
+    'content:*',
   ],
 };
 
 const hasPermission = (userPermissions, requiredPermission) => {
-  return userPermissions.some(
-    (permission) => permission === requiredPermission,
-  );
+  // Exact match
+  if (userPermissions.includes(requiredPermission)) {
+    return true;
+  }
+
+  // Wildcard match (e.g., content:* matches content:read)
+  const [resource] = requiredPermission.split(':');
+  const wildcard = `${resource}:*`;
+  return userPermissions.includes(wildcard);
 };
 
 const getRolePermissions = (role) => {

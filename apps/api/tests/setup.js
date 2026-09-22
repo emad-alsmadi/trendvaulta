@@ -18,6 +18,14 @@ process.env.JWT_SECRET_KEY ||= 'test-secret';
 process.env.STRIPE_SECRET_KEY ||= 'sk_test_fake_key';
 process.env.STRIPE_WEBHOOK_SECRET ||= 'whsec_test_fake';
 process.env.FRONTEND_URL ||= 'http://localhost:3001';
+// Pino (utils/logger.js) reads LOG_LEVEL at load time; 'silent' mutes request
+// and error logs so test output stays readable. Set LOG_LEVEL yourself to
+// see them.
+process.env.LOG_LEVEL ||= 'silent';
+// The checkout limiter (10/min per IP) is shared by every test in a file;
+// raise it so suites cannot trip it. Rate-limit tests assert relative
+// bucket movement, not the absolute ceiling.
+process.env.RATE_LIMIT_CHECKOUT_MAX ||= '1000';
 // Never let a stray .env send real mail from the test run
 for (const key of ['SMTP_HOST', 'SMTP_USER', 'EMAIL_USER']) {
   delete process.env[key];
@@ -113,6 +121,22 @@ require.cache[stripeServicePath].exports = {
   getStripeOrThrow: () => fakeStripe,
 };
 
+// middlewares/requestLogger.js passes pino-http callbacks with the wrong
+// parameter order (customSuccessMessage receives `req` first, not `res`),
+// which throws an uncaught TypeError after every response. Until that is
+// fixed it would crash every HTTP test that reaches a mounted router, so the
+// integration suites run with a pass-through logger. tests/requestLogger.test.js
+// exercises the real middleware and stays red until the bug is fixed.
+const requestLoggerPath = path.resolve(__dirname, '../middlewares/requestLogger.js');
+if (process.env.TEST_REAL_REQUEST_LOGGER !== 'true') {
+  require.cache[requestLoggerPath] = {
+    id: requestLoggerPath,
+    filename: requestLoggerPath,
+    loaded: true,
+    exports: (_req, _res, next) => next(),
+  };
+}
+
 // App is loaded only now, so its controllers pick up the patched service.
 const app = require('../app');
 const { Order } = require('../models/Order');
@@ -148,10 +172,25 @@ async function connectDb() {
       serverSelectionTimeoutMS: 10_000,
       connectTimeoutMS: 10_000,
     });
+    // Unique indexes (StripeWebhookEvent.eventId, User.email) must exist
+    // before the first insert or idempotency tests would pass vacuously.
+    // Only the models under test: unrelated models carry conflicting index
+    // definitions that would make this throw.
+    await Promise.all(
+      [Order, Product, User, Coupon, StripeWebhookEvent].map((m) =>
+        m.ensureIndexes(),
+      ),
+    );
     state.connected = true;
   } catch (err) {
     state.unavailableReason = `MongoDB test server unavailable (${err?.message || err}). Set MONGO_TEST_URL or allow mongodb-memory-server to download its binary.`;
     console.warn(`[tests] ${state.unavailableReason}`);
+    // Do not leave a half-open connection keeping the process alive
+    await mongoose.disconnect().catch(() => {});
+    if (state.memoryServer) {
+      await state.memoryServer.stop().catch(() => {});
+      state.memoryServer = null;
+    }
   }
 }
 
@@ -319,6 +358,23 @@ function postWebhook(request, event, { signature = 't=1,v1=test' } = {}) {
     .send(JSON.stringify(event));
 }
 
+/** Admin transition: PATCH /api/orders/:id/status */
+function patchOrderStatus(request, token, orderId, status) {
+  return request(app)
+    .patch(`/api/orders/${orderId}/status`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ status });
+}
+
+/** Fresh product state, as plain object. */
+async function reloadProduct(id) {
+  return Product.findById(id).lean();
+}
+
+async function reloadOrder(id) {
+  return Order.findById(id).lean();
+}
+
 module.exports = {
   app,
   mongoose,
@@ -339,4 +395,7 @@ module.exports = {
   completedSession,
   checkoutCompletedEvent,
   postWebhook,
+  patchOrderStatus,
+  reloadProduct,
+  reloadOrder,
 };
