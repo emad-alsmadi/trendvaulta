@@ -86,6 +86,7 @@ app.use('/api/', require('./routes/helpTopics'));
 app.use('/api/', require('./routes/content'));
 app.use('/api/', require('./routes/adminStats'));
 app.use('/api/', require('./routes/settings'));
+app.use('/api/', require('./routes/shipping'));
 app.use('/api/', require('./routes/newsletter'));
 app.use('/api/', require('./routes/contact'));
 app.use('/api/', require('./routes/trendvaulta'));

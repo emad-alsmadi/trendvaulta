@@ -42,6 +42,8 @@ const ROLE_PERMISSIONS = {
     'content:write',
     'content:delete',
     'content:*',
+    'shipping:read',
+    'shipping:write',
   ],
 };
 

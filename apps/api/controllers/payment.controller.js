@@ -53,7 +53,7 @@ const quoteOrder = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: error.details[0].message });
   }
 
-  const { items, couponCode, delivery, shippingMethod } = value;
+  const { items, couponCode, delivery, shippingMethod, shippingAddress } = value;
   const { lines, itemsPrice, warnings } = await quoteOrderLines(Product, items);
 
   let discountAmount = 0;
@@ -71,6 +71,9 @@ const quoteOrder = asyncHandler(async (req, res) => {
     delivery,
     shippingMethod,
     itemsPrice,
+    country: shippingAddress?.country,
+    zip: shippingAddress?.zip,
+    region: shippingAddress?.city,
   });
   const taxPrice = await resolveTaxPrice(itemsPrice);
   const totalPrice = Math.max(
@@ -148,6 +151,9 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
     delivery,
     shippingMethod,
     itemsPrice,
+    country: shippingAddress.country,
+    zip: shippingAddress.zip,
+    region: shippingAddress.city,
   });
   const taxPrice = await resolveTaxPrice(itemsPrice);
   const totalPrice = Math.max(
@@ -382,7 +388,10 @@ async function applyPaidSideEffects(order) {
     }
   }
 
-  if (order.couponId && (await leaseOrderFlag(order._id, 'couponIncremented'))) {
+  if (
+    order.couponId &&
+    (await leaseOrderFlag(order._id, 'couponIncremented'))
+  ) {
     try {
       await incrementCouponUsedCount(order.couponId);
     } catch (e) {
@@ -434,7 +443,11 @@ async function markOrderPaidFromSession(session) {
       !order.salesCountIncremented ||
       !order.confirmationEmailSent;
     if (!pendingWork || !['pending', 'paid'].includes(order.status)) {
-      return { claimed: false, status: order.status, orderId: String(order._id) };
+      return {
+        claimed: false,
+        status: order.status,
+        orderId: String(order._id),
+      };
     }
   }
 
@@ -447,15 +460,28 @@ async function markOrderPaidFromSession(session) {
     if (previousStatus === 'canceled') {
       await Order.updateOne(
         { _id: order._id, status: previousStatus },
-        { $set: { status: 'needs_attention', attentionReason: 'paid_after_cancel' } },
+        {
+          $set: {
+            status: 'needs_attention',
+            attentionReason: 'paid_after_cancel',
+          },
+        },
       );
       console.warn(
         `Order ${order._id} was paid after cancellation; flagged needs_attention`,
       );
-      return { claimed: true, status: 'needs_attention', orderId: String(order._id) };
+      return {
+        claimed: true,
+        status: 'needs_attention',
+        orderId: String(order._id),
+      };
     }
     // Already paid/shipped/delivered/refunded/needs_attention: nothing to change
-    return { claimed: true, status: previousStatus, orderId: String(order._id) };
+    return {
+      claimed: true,
+      status: previousStatus,
+      orderId: String(order._id),
+    };
   }
 
   const { status, attentionReason } = await applyPaidSideEffects(order);
@@ -587,7 +613,10 @@ const stripeWebhook = asyncHandler(async (req, res) => {
   try {
     switch (event.type) {
       case 'checkout.session.completed':
-        orderId = await handleCheckoutSessionCompleted(event.data.object, stripe);
+        orderId = await handleCheckoutSessionCompleted(
+          event.data.object,
+          stripe,
+        );
         break;
       case 'checkout.session.expired':
         orderId = await handleCheckoutSessionExpired(event.data.object, stripe);
@@ -597,6 +626,25 @@ const stripeWebhook = asyncHandler(async (req, res) => {
         break;
       case 'charge.refunded':
         orderId = await handleChargeRefunded(event.data.object);
+        break;
+      case 'payment_intent.succeeded':
+        // Payment intent succeeded - ensure order is marked as paid
+        const paymentIntent = event.data.object;
+        if (paymentIntent.metadata?.orderId) {
+          const order = await Order.findById(paymentIntent.metadata.orderId);
+          if (order && order.paymentStatus !== 'paid') {
+            await Order.updateOne(
+              { _id: order._id },
+              {
+                $set: {
+                  paymentStatus: 'paid',
+                  paidAt: new Date(),
+                  paymentIntentId: paymentIntent.id,
+                },
+              },
+            );
+          }
+        }
         break;
       default:
         break;

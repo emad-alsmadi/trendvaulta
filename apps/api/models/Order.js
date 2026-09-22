@@ -75,6 +75,13 @@ const ShippingAddressSchema = new mongoose.Schema(
       minlength: 2,
       maxlength: 20,
     },
+    country: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      maxlength: 2,
+      default: '',
+    },
     notes: { type: String, trim: true, maxlength: 500, default: '' },
   },
   { _id: false },
@@ -253,6 +260,7 @@ const validateCreateOrder = (obj) => {
       address: Joi.string().trim().min(5).max(300).required(),
       city: Joi.string().trim().min(2).max(100).required(),
       zip: Joi.string().trim().min(2).max(20).required(),
+      country: Joi.string().trim().length(2).uppercase().optional(),
       notes: Joi.string().trim().max(500).allow('').optional(),
     }).required(),
     // Client shippingPrice/taxPrice ignored — use delivery / shippingMethod
@@ -284,6 +292,11 @@ const validateQuote = (obj) => {
     shippingMethod: Joi.string()
       .valid('none', 'standard', 'express')
       .optional(),
+    shippingAddress: Joi.object({
+      country: Joi.string().trim().length(2).uppercase().optional(),
+      zip: Joi.string().trim().min(2).max(20).optional(),
+      city: Joi.string().trim().min(2).max(100).optional(),
+    }).optional(),
   });
 
   return schema.validate(obj, { stripUnknown: true });

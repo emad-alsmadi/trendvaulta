@@ -76,12 +76,19 @@ function resolveAvailableStock(product, matchedVariant) {
 }
 
 /**
- * Resolve the shipping charge from StoreSettings (falling back to the
- * env-based flat rate when no settings document exists yet). `itemsPrice`
+ * Resolve the shipping charge from ShippingZone model (falling back to
+ * StoreSettings/env-based flat rate when no zone matches). `itemsPrice`
  * is optional and, when provided, zeroes the rate once it meets the
  * configured free-shipping threshold (0 = disabled).
  */
-async function resolveShippingPrice({ delivery, shippingMethod, itemsPrice = 0 } = {}) {
+async function resolveShippingPrice({
+  delivery,
+  shippingMethod,
+  itemsPrice = 0,
+  country,
+  zip,
+  region,
+} = {}) {
   const isStandard = shippingMethod === 'standard' || delivery === true;
   const isExpress = shippingMethod === 'express';
   if (!isStandard && !isExpress) {
@@ -90,16 +97,60 @@ async function resolveShippingPrice({ delivery, shippingMethod, itemsPrice = 0 }
     return 0;
   }
 
-  const settings = await getStoreSettings();
-  const standardRate = Number.isFinite(Number(settings?.shipping?.standardRateUsd))
-    ? Number(settings.shipping.standardRateUsd)
-    : FLAT_SHIPPING_USD();
-  const expressRate = Number.isFinite(Number(settings?.shipping?.expressRateUsd))
-    ? Number(settings.shipping.expressRateUsd)
-    : FLAT_SHIPPING_USD();
-  const freeThreshold = Number(settings?.shipping?.freeShippingThresholdUsd) || 0;
+  let rate = 0;
+  let freeThreshold = 0;
 
-  const rate = isExpress ? expressRate : standardRate;
+  if (country) {
+    const { ShippingZone } = require('../models/ShippingZone');
+    const countryCode = String(country).toUpperCase();
+    const zones = await ShippingZone.find({
+      isActive: true,
+      $or: [
+        { countries: countryCode },
+        { countries: { $size: 0 } },
+      ],
+    }).sort({ sortOrder: 1 }).lean();
+
+    let matchedZone = null;
+    for (const zone of zones) {
+      if (zone.countries.length === 0 || zone.countries.includes(countryCode)) {
+        if (zone.regionPattern) {
+          const regex = new RegExp(zone.regionPattern, 'i');
+          if (region && !regex.test(region)) continue;
+        }
+        if (zone.postalCodePattern) {
+          const regex = new RegExp(zone.postalCodePattern, 'i');
+          if (zip && !regex.test(zip)) continue;
+        }
+        matchedZone = zone;
+        break;
+      }
+    }
+
+    if (matchedZone) {
+      const method = matchedZone.methods.find(
+        (m) => m.handle === shippingMethod && m.isActive,
+      );
+      if (method) {
+        rate = method.priceUsd;
+      }
+    }
+  }
+
+  if (rate === 0) {
+    const settings = await getStoreSettings();
+    const standardRate = Number.isFinite(Number(settings?.shipping?.standardRateUsd))
+      ? Number(settings.shipping.standardRateUsd)
+      : FLAT_SHIPPING_USD();
+    const expressRate = Number.isFinite(Number(settings?.shipping?.expressRateUsd))
+      ? Number(settings.shipping.expressRateUsd)
+      : FLAT_SHIPPING_USD();
+    freeThreshold = Number(settings?.shipping?.freeShippingThresholdUsd) || 0;
+    rate = isExpress ? expressRate : standardRate;
+  } else {
+    const settings = await getStoreSettings();
+    freeThreshold = Number(settings?.shipping?.freeShippingThresholdUsd) || 0;
+  }
 
   if (freeThreshold > 0 && Number(itemsPrice) >= freeThreshold) {
     return 0;

@@ -152,7 +152,54 @@ const resetPassword = asyncHandler(async (req, res) => {
   return res.status(200).json({ message: 'Password updated successfully' });
 });
 
+/**
+ * Change password for authenticated user.
+ *
+ * @route POST /api/password/change
+ * @access Private
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<void>} JSON confirmation message
+ */
+const changePassword = asyncHandler(async (req, res) => {
+  const userId = req.user?.id ?? req.user?._id;
+  if (!userId) {
+    return res.status(401).json({ message: 'Token is not valid!' });
+  }
+
+  const schema = Joi.object({
+    currentPassword: Joi.string().min(8).required(),
+    newPassword: Joi.string().min(8).required(),
+  });
+
+  const { error, value } = schema.validate(req.body || {});
+  if (error) {
+    return res.status(400).json({ message: error.details[0].message });
+  }
+
+  const user = await User.findById(userId);
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+
+  const isMatch = await bcrypt.compare(value.currentPassword, user.password);
+  if (!isMatch) {
+    return res.status(400).json({ message: 'Current password is incorrect' });
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  user.password = await bcrypt.hash(value.newPassword, salt);
+  await user.save();
+
+  await revokeAllForUser(RefreshToken, user._id).catch((revokeErr) => {
+    console.error('Failed to revoke sessions after password change:', revokeErr);
+  });
+
+  return res.status(200).json({ message: 'Password updated successfully' });
+});
+
 module.exports = {
   sendForgotPasswordLink,
   resetPassword,
+  changePassword,
 };

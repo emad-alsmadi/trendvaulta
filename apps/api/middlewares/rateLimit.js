@@ -15,12 +15,14 @@ const config = require('../config/rateLimit.config');
 const logger = require('../utils/logger');
 
 /**
- * Client identifier: IP (+ user id when authenticated).
+ * Get client identifier (IP + user ID if authenticated)
  * req.ip is resolved by Express from `trust proxy` (see app.js); reading
  * X-Forwarded-For directly would let any client pick its own bucket.
  */
 function getClientKey(req) {
   const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+
+  // If authenticated, include user ID in key for per-user rate limiting
   const userId = req.user?.id || 'anonymous';
   return `${ip}:${userId}`;
 }

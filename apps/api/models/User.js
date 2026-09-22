@@ -51,7 +51,8 @@ const AddressSchema = new mongoose.Schema({
   country: {
     type: String,
     trim: true,
-    maxlength: 100,
+    uppercase: true,
+    maxlength: 2,
     default: '',
   },
   isDefault: {
@@ -159,7 +160,7 @@ const validateCreateAddress = (obj) => {
     address: Joi.string().trim().min(5).max(300).required(),
     city: Joi.string().trim().min(2).max(100).required(),
     zip: Joi.string().trim().min(2).max(20).required(),
-    country: Joi.string().trim().max(100).allow('').optional(),
+    country: Joi.string().trim().length(2).uppercase().allow('').optional(),
     isDefault: Joi.boolean().optional(),
   });
   return schema.validate(obj);
@@ -174,7 +175,7 @@ const validateUpdateAddress = (obj) => {
     address: Joi.string().trim().min(5).max(300),
     city: Joi.string().trim().min(2).max(100),
     zip: Joi.string().trim().min(2).max(20),
-    country: Joi.string().trim().max(100).allow(''),
+    country: Joi.string().trim().length(2).uppercase().allow(''),
     isDefault: Joi.boolean(),
   }).min(1);
   return schema.validate(obj);

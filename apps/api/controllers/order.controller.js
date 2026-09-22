@@ -71,6 +71,9 @@ const createOrder = asyncHandler(async (req, res) => {
     delivery,
     shippingMethod,
     itemsPrice,
+    country: shippingAddress.country,
+    zip: shippingAddress.zip,
+    region: shippingAddress.city,
   });
   const taxPrice = await resolveTaxPrice(itemsPrice);
   const totalPrice = Math.max(
