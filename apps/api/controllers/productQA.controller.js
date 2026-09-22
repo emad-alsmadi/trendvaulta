@@ -1,12 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const { parsePagination } = require('../utils/pagination');
 const ProductQA = require('../models/ProductQA');
-<<<<<<< HEAD
-const Product = require('../models/Product');
-const { NotFoundError, ValidationError } = require('../utils/errors');
-=======
 const { Product } = require('../models/Product');
->>>>>>> 67b9dc3e877d9b331e31c1fa941386f5e3b4c602
 
 /**
  * Get Q&A for a product (public)

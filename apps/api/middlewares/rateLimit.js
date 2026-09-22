@@ -11,29 +11,18 @@
  * Suitable for single-instance deployments.
  */
 
-<<<<<<< HEAD
 const config = require('../config/rateLimit.config');
 const logger = require('../utils/logger');
 
 /**
- * Get client identifier (IP + user ID if authenticated)
+ * Client identifier: IP (+ user id when authenticated).
+ * req.ip is resolved by Express from `trust proxy` (see app.js); reading
+ * X-Forwarded-For directly would let any client pick its own bucket.
  */
 function getClientKey(req) {
-  const forwarded = req.headers['x-forwarded-for'];
-  const ip =
-    typeof forwarded === 'string' && forwarded.length > 0
-      ? forwarded.split(',')[0].trim()
-      : req.ip || req.socket?.remoteAddress || 'unknown';
-
-  // If authenticated, include user ID in key for per-user rate limiting
+  const ip = req.ip || req.socket?.remoteAddress || 'unknown';
   const userId = req.user?.id || 'anonymous';
   return `${ip}:${userId}`;
-=======
-// req.ip is resolved by Express from `trust proxy` (see app.js); reading
-// X-Forwarded-For directly would let any client pick its own bucket.
-function getClientKey(req) {
-  return req.ip || req.socket?.remoteAddress || 'unknown';
->>>>>>> 67b9dc3e877d9b331e31c1fa941386f5e3b4c602
 }
 
 /**
@@ -145,8 +134,6 @@ const couponValidateRateLimit = rateLimit({
   message: 'Too many coupon validation attempts. Please try again later.',
 });
 
-<<<<<<< HEAD
-=======
 // Success-page polling: separate bucket so verifying a payment never eats
 // into the shopper's checkout-session quota.
 const verifyPaymentRateLimit = rateLimit({
@@ -167,7 +154,6 @@ const quoteRateLimit = rateLimit({
 // Higher ceiling than authRateLimit: with a 15-minute access token, every
 // active user legitimately calls this every ~14 minutes, and many users can
 // share one IP behind NAT/a corporate proxy.
->>>>>>> 67b9dc3e877d9b331e31c1fa941386f5e3b4c602
 const refreshRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: Number(process.env.RATE_LIMIT_REFRESH_MAX) || 20,
