@@ -17,7 +17,9 @@ const nextConfig: NextConfig = {
       ...(process.env.NEXT_PUBLIC_API_URL
         ? [
             {
-              protocol: new URL(process.env.NEXT_PUBLIC_API_URL).protocol.replace(':', ''),
+              protocol: new URL(
+                process.env.NEXT_PUBLIC_API_URL,
+              ).protocol.replace(':', '') as 'http' | 'https',
               hostname: new URL(process.env.NEXT_PUBLIC_API_URL).hostname,
             },
           ]

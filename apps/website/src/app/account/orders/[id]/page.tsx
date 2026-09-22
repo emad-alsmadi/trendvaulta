@@ -2,7 +2,17 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Package, MapPin, CreditCard, Truck, CheckCircle, XCircle, AlertCircle, Copy } from 'lucide-react';
+import {
+  ArrowLeft,
+  Package,
+  MapPin,
+  CreditCard,
+  Truck,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Copy,
+} from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
@@ -67,7 +77,12 @@ function formatDate(dateString: string | undefined) {
   });
 }
 
-function variantLabel(variant?: { size?: string; color?: string; colorCode?: string; sku?: string }) {
+function variantLabel(variant?: {
+  size?: string;
+  color?: string;
+  colorCode?: string;
+  sku?: string;
+}) {
   if (!variant) return null;
   const parts = [
     variant.size ? `Size: ${variant.size}` : null,
@@ -79,7 +94,7 @@ function variantLabel(variant?: { size?: string; color?: string; colorCode?: str
 
 export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
-  const toast = useToast();
+  const { toast } = useToast();
   const orderId = params.id;
   const orderQuery = useOrderById(orderId);
   const order = orderQuery.data;
@@ -149,15 +164,22 @@ export default function OrderDetailPage() {
                 )}
               </div>
               <div className='flex flex-wrap gap-2'>
-                <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(order.status)}`}>
+                <span
+                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(order.status)}`}
+                >
                   {STATUS_LABELS[order.status] || order.status}
                 </span>
                 <span className='inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-200'>
-                  Payment: {order.paymentStatus ? (PAYMENT_STATUS_LABELS[order.paymentStatus] || order.paymentStatus) : '—'}
+                  Payment:{' '}
+                  {order.paymentStatus
+                    ? PAYMENT_STATUS_LABELS[order.paymentStatus] ||
+                      order.paymentStatus
+                    : '—'}
                 </span>
                 {order.attentionReason && (
                   <span className='inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'>
-                    {ATTENTION_REASON_LABELS[order.attentionReason] || order.attentionReason}
+                    {ATTENTION_REASON_LABELS[order.attentionReason] ||
+                      order.attentionReason}
                   </span>
                 )}
               </div>
@@ -185,9 +207,13 @@ export default function OrderDetailPage() {
                           <div className='h-14 w-14 shrink-0 rounded-lg bg-white/30' />
                         )}
                         <div className='min-w-0 flex-1'>
-                          <p className='truncate text-sm font-bold text-indigo-950'>{item.title}</p>
+                          <p className='truncate text-sm font-bold text-indigo-950'>
+                            {item.title}
+                          </p>
                           {variantLabel(item.variant) && (
-                            <p className='text-xs font-semibold text-indigo-950/60'>{variantLabel(item.variant)}</p>
+                            <p className='text-xs font-semibold text-indigo-950/60'>
+                              {variantLabel(item.variant)}
+                            </p>
                           )}
                           <p className='text-xs font-semibold text-indigo-950/60'>
                             Qty {item.qty} × {formatCurrency(item.price)}
@@ -208,26 +234,36 @@ export default function OrderDetailPage() {
                   <dl className='grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2'>
                     <div>
                       <dt className='text-indigo-950/50'>Name</dt>
-                      <dd className='font-medium text-indigo-950'>{order.shippingAddress?.name || '—'}</dd>
+                      <dd className='font-medium text-indigo-950'>
+                        {order.shippingAddress?.name || '—'}
+                      </dd>
                     </div>
                     <div>
                       <dt className='text-indigo-950/50'>Phone</dt>
-                      <dd className='font-medium text-indigo-950'>{order.shippingAddress?.phone || '—'}</dd>
+                      <dd className='font-medium text-indigo-950'>
+                        {order.shippingAddress?.phone || '—'}
+                      </dd>
                     </div>
                     <div className='sm:col-span-2'>
                       <dt className='text-indigo-950/50'>Address</dt>
                       <dd className='font-medium text-indigo-950'>
-                        {order.shippingAddress?.address || '—'}, {order.shippingAddress?.city || '—'} {order.shippingAddress?.zip || ''}
+                        {order.shippingAddress?.address || '—'},{' '}
+                        {order.shippingAddress?.city || '—'}{' '}
+                        {order.shippingAddress?.zip || ''}
                       </dd>
                     </div>
                     <div>
                       <dt className='text-indigo-950/50'>Country</dt>
-                      <dd className='font-medium text-indigo-950'>{order.shippingAddress?.country || '—'}</dd>
+                      <dd className='font-medium text-indigo-950'>
+                        {order.shippingAddress?.country || '—'}
+                      </dd>
                     </div>
                     {order.shippingAddress?.notes && (
                       <div className='sm:col-span-2'>
                         <dt className='text-indigo-950/50'>Notes</dt>
-                        <dd className='font-medium text-indigo-950'>{order.shippingAddress.notes}</dd>
+                        <dd className='font-medium text-indigo-950'>
+                          {order.shippingAddress.notes}
+                        </dd>
                       </div>
                     )}
                   </dl>
@@ -241,16 +277,23 @@ export default function OrderDetailPage() {
                   </h2>
                   <dl className='space-y-3 text-sm'>
                     <div className='flex justify-between'>
-                      <dt className='text-indigo-950/70'>Subtotal ({order.items.length} items)</dt>
-                      <dd className='font-medium text-indigo-950'>{formatCurrency(order.itemsPrice)}</dd>
+                      <dt className='text-indigo-950/70'>
+                        Subtotal ({order.items.length} items)
+                      </dt>
+                      <dd className='font-medium text-indigo-950'>
+                        {formatCurrency(order.itemsPrice)}
+                      </dd>
                     </div>
                     {(order.discountAmount ?? 0) > 0 && (
                       <div className='flex justify-between text-green-700 bg-green-50 rounded-lg px-3 py-2'>
                         <dt className='flex items-center gap-2'>
                           <CheckCircle className='h-4 w-4' />
-                          Discount {order.couponCode ? `(${order.couponCode})` : ''}
+                          Discount{' '}
+                          {order.couponCode ? `(${order.couponCode})` : ''}
                         </dt>
-                        <dd className='font-medium'>-{formatCurrency(order.discountAmount ?? 0)}</dd>
+                        <dd className='font-medium'>
+                          -{formatCurrency(order.discountAmount ?? 0)}
+                        </dd>
                       </div>
                     )}
                     <div className='flex justify-between'>
@@ -258,14 +301,18 @@ export default function OrderDetailPage() {
                         <Truck className='h-4 w-4' />
                         Shipping
                       </dt>
-                      <dd className='font-medium text-indigo-950'>{formatCurrency(order.shippingPrice)}</dd>
+                      <dd className='font-medium text-indigo-950'>
+                        {formatCurrency(order.shippingPrice)}
+                      </dd>
                     </div>
                     <div className='flex justify-between'>
                       <dt className='text-indigo-950/70 flex items-center gap-2'>
                         <CreditCard className='h-4 w-4' />
                         Tax
                       </dt>
-                      <dd className='font-medium text-indigo-950'>{formatCurrency(order.taxPrice)}</dd>
+                      <dd className='font-medium text-indigo-950'>
+                        {formatCurrency(order.taxPrice)}
+                      </dd>
                     </div>
                     <div className='flex justify-between border-t border-white/30 pt-3 font-bold text-indigo-950'>
                       <dt>Total</dt>
@@ -280,7 +327,9 @@ export default function OrderDetailPage() {
                   </dl>
                 </section>
 
-                {(order.stripeSessionId || order.paymentIntentId || order.refundId) && (
+                {(order.stripeSessionId ||
+                  order.paymentIntentId ||
+                  order.refundId) && (
                   <section className='rounded-2xl border border-white/30 bg-white/35 p-5 shadow-sm backdrop-blur-xl'>
                     <h2 className='mb-4 text-sm font-bold uppercase tracking-wide text-indigo-950/70'>
                       Payment References
@@ -288,20 +337,28 @@ export default function OrderDetailPage() {
                     <dl className='space-y-2 text-xs font-mono'>
                       {order.stripeSessionId && (
                         <div>
-                          <dt className='text-indigo-950/50'>Checkout Session</dt>
-                          <dd className='break-all text-indigo-950/70'>{order.stripeSessionId}</dd>
+                          <dt className='text-indigo-950/50'>
+                            Checkout Session
+                          </dt>
+                          <dd className='break-all text-indigo-950/70'>
+                            {order.stripeSessionId}
+                          </dd>
                         </div>
                       )}
                       {order.paymentIntentId && (
                         <div>
                           <dt className='text-indigo-950/50'>Payment Intent</dt>
-                          <dd className='break-all text-indigo-950/70'>{order.paymentIntentId}</dd>
+                          <dd className='break-all text-indigo-950/70'>
+                            {order.paymentIntentId}
+                          </dd>
                         </div>
                       )}
                       {order.refundId && (
                         <div>
                           <dt className='text-indigo-950/50'>Refund ID</dt>
-                          <dd className='break-all text-rose-600 dark:text-rose-400'>{order.refundId}</dd>
+                          <dd className='break-all text-rose-600 dark:text-rose-400'>
+                            {order.refundId}
+                          </dd>
                         </div>
                       )}
                     </dl>
@@ -317,12 +374,16 @@ export default function OrderDetailPage() {
                     <dl className='space-y-2 text-sm'>
                       <div className='flex justify-between'>
                         <dt className='text-indigo-950/70'>Tracking Number</dt>
-                        <dd className='font-mono font-medium text-indigo-950'>{order.trackingNumber}</dd>
+                        <dd className='font-mono font-medium text-indigo-950'>
+                          {order.trackingNumber}
+                        </dd>
                       </div>
                       {order.trackingCarrier && (
                         <div className='flex justify-between'>
                           <dt className='text-indigo-950/70'>Carrier</dt>
-                          <dd className='font-medium text-indigo-950'>{order.trackingCarrier}</dd>
+                          <dd className='font-medium text-indigo-950'>
+                            {order.trackingCarrier}
+                          </dd>
                         </div>
                       )}
                       {order.trackingUrl && (

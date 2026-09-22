@@ -91,9 +91,8 @@ export default function CheckoutPage() {
   const [validatingCoupon, setValidatingCoupon] = useState(false);
   // Shipping methods
   const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
-  const [selectedShippingMethod, setSelectedShippingMethod] = useState<
-    'standard' | 'express'
-  >('standard');
+  const [selectedShippingMethod, setSelectedShippingMethod] =
+    useState<string>('standard');
   const [fetchingShippingMethods, setFetchingShippingMethods] = useState(false);
 
   const items = cart.state.items;
