@@ -2,11 +2,6 @@ const express = require('express');
 const router = express.Router();
 const { verfiyToken } = require('../middlewares/verfiyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
-const { validate } = require('../middlewares/validate');
-const {
-  createHelpTopicSchema,
-  updateHelpTopicSchema,
-} = require('../validators/helpTopic.validator');
 
 const {
   getHelpTopics,
@@ -39,7 +34,6 @@ router.post(
   '/help-topics',
   verfiyToken,
   checkRolePermission('content:write'),
-  validate(createHelpTopicSchema),
   createHelpTopic,
 );
 
@@ -47,7 +41,6 @@ router.put(
   '/help-topics/:id',
   verfiyToken,
   checkRolePermission('content:write'),
-  validate(updateHelpTopicSchema),
   updateHelpTopic,
 );
 

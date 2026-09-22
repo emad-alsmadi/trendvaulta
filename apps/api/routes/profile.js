@@ -1,11 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const { verfiyToken } = require('../middlewares/verfiyToken');
-const { validate } = require('../middlewares/validate');
-const {
-  updateProfileSchema,
-  changePasswordSchema,
-} = require('../validators/user.validator');
 const {
   getProfile,
   updateProfile,
@@ -25,11 +20,6 @@ router.get('/auth/profile', verfiyToken, getProfile);
  * @method PUT
  * @access private
  */
-router.put(
-  '/auth/profile',
-  verfiyToken,
-  validate(updateProfileSchema),
-  updateProfile,
-);
+router.put('/auth/profile', verfiyToken, updateProfile);
 
 module.exports = router;

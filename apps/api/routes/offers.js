@@ -2,11 +2,6 @@ const express = require('express');
 const router = express.Router();
 const { verfiyToken } = require('../middlewares/verfiyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
-const { validate } = require('../middlewares/validate');
-const {
-  createOfferSchema,
-  updateOfferSchema,
-} = require('../validators/offer.validator');
 
 const {
   getOffers,
@@ -39,7 +34,6 @@ router.post(
   '/offers',
   verfiyToken,
   checkRolePermission('offers:write'),
-  validate(createOfferSchema),
   createOffer,
 );
 
@@ -47,7 +41,6 @@ router.put(
   '/offers/:id',
   verfiyToken,
   checkRolePermission('offers:write'),
-  validate(updateOfferSchema),
   updateOffer,
 );
 

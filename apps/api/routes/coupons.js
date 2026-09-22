@@ -3,11 +3,6 @@ const router = express.Router();
 const { verfiyToken } = require('../middlewares/verfiyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 const { couponValidateRateLimit } = require('../middlewares/rateLimit');
-const { validate } = require('../middlewares/validate');
-const {
-  createCouponSchema,
-  updateCouponSchema,
-} = require('../validators/coupon.validator');
 
 const {
   getAllCoupons,
@@ -42,7 +37,6 @@ router.post(
   '/coupons',
   verfiyToken,
   checkRolePermission('coupons:write'),
-  validate(createCouponSchema),
   createCoupon,
 );
 
@@ -50,7 +44,6 @@ router.put(
   '/coupons/:id',
   verfiyToken,
   checkRolePermission('coupons:write'),
-  validate(updateCouponSchema),
   updateCoupon,
 );
 

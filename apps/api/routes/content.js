@@ -2,11 +2,6 @@ const express = require('express');
 const router = express.Router();
 const { verfiyToken } = require('../middlewares/verfiyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
-const { validate } = require('../middlewares/validate');
-const {
-  createContentSchema,
-  updateContentSchema,
-} = require('../validators/content.validator');
 
 const {
   getContent,
@@ -39,7 +34,6 @@ router.post(
   '/content',
   verfiyToken,
   checkRolePermission('content:write'),
-  validate(createContentSchema),
   createContent,
 );
 
@@ -47,7 +41,6 @@ router.put(
   '/content/:id',
   verfiyToken,
   checkRolePermission('content:write'),
-  validate(updateContentSchema),
   updateContent,
 );
 

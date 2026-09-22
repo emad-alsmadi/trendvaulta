@@ -101,7 +101,9 @@ const getProductQAById = asyncHandler(async (req, res) => {
  * Public endpoint (requires auth)
  */
 const createProductQuestion = asyncHandler(async (req, res) => {
-  const { productId, question } = req.body;
+  // Route is POST /products/:id/qa; the storefront sends only { question }.
+  const productId = req.params.id || req.body.productId;
+  const { question } = req.body;
   const userId = req.user?.id;
 
   if (!productId || !question) {

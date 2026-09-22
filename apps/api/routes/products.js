@@ -3,11 +3,6 @@ const router = express.Router();
 const { verfiyToken } = require('../middlewares/verfiyToken');
 const { optionalVerifyToken } = require('../middlewares/optionalVerifyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
-const { validate } = require('../middlewares/validate');
-const {
-  createProductSchema,
-  updateProductSchema,
-} = require('../validators/product.validator');
 
 const {
   getAllProducts,
@@ -24,7 +19,6 @@ router.post(
   '/products',
   verfiyToken,
   checkRolePermission('products:write'),
-  validate(createProductSchema),
   createProduct,
 );
 
@@ -32,7 +26,6 @@ router.put(
   '/products/:id',
   verfiyToken,
   checkRolePermission('products:write'),
-  validate(updateProductSchema),
   updateProduct,
 );
 

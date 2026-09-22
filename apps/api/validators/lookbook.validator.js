@@ -14,7 +14,6 @@ const createLookbookSchema = Joi.object({
 });
 
 const updateLookbookSchema = Joi.object({
-  id: Joi.string().max(50),
   eyebrow: Joi.string().allow('', null).max(100),
   title: Joi.string().max(200),
   body: Joi.string(),

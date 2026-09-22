@@ -1,7 +1,9 @@
 const Joi = require('joi');
 
+// productId is the route param (/products/:id/qa); body copy is accepted for
+// clients that still send it. The controller enforces presence.
 const createProductQuestionSchema = Joi.object({
-  productId: Joi.string().required(),
+  productId: Joi.string(),
   question: Joi.string().required(),
 });
 
