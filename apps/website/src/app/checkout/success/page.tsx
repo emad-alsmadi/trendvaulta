@@ -16,18 +16,24 @@ function CheckoutSuccessInner() {
   const q = useOrderById(orderId ?? undefined);
   const order = q.data;
 
+  // Clear cart when order is confirmed paid
   useEffect(() => {
     if (!orderId || order?.paymentStatus !== 'paid') return;
     clearCart();
   }, [orderId, order?.paymentStatus]);
 
-  // Latest values for the poller without re-creating it on every render.
+  // Polling for payment confirmation — uses refs to avoid stale closures
+  // and prevent effect re-runs on status changes.
   const paymentStatusRef = useRef(order?.paymentStatus);
-  paymentStatusRef.current = order?.paymentStatus;
   const orderStatusRef = useRef(order?.status);
-  orderStatusRef.current = order?.status;
   const refetchRef = useRef(q.refetch);
-  refetchRef.current = q.refetch;
+
+  // Update refs in a layout effect to avoid the lint warning about setting refs during render
+  useEffect(() => {
+    paymentStatusRef.current = order?.paymentStatus;
+    orderStatusRef.current = order?.status;
+    refetchRef.current = q.refetch;
+  });
 
   useEffect(() => {
     if (!orderId) return;
