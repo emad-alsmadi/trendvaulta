@@ -539,21 +539,24 @@ export const DEMO_GIFT_FINDER: DemoGiftFinderConfig = {
   ],
 };
 
-/** Build PLP URL from gift-finder demo selections */
-export function buildGiftFinderHref(selection: {
-  occasionId?: string | null;
-  recipientId?: string | null;
-  budgetId?: string | null;
-}): string {
-  const occasion = DEMO_GIFT_FINDER.occasions.find(
-    (o) => o.id === selection.occasionId,
-  );
-  const recipient = DEMO_GIFT_FINDER.recipients.find(
+/**
+ * Build PLP URL from gift-finder selections. `config` is the live
+ * GET /api/storefront/gift-finder config when available (ids differ from
+ * the demo set), falling back to the demo config.
+ */
+export function buildGiftFinderHref(
+  selection: {
+    occasionId?: string | null;
+    recipientId?: string | null;
+    budgetId?: string | null;
+  },
+  config: DemoGiftFinderConfig = DEMO_GIFT_FINDER,
+): string {
+  const occasion = config.occasions.find((o) => o.id === selection.occasionId);
+  const recipient = config.recipients.find(
     (r) => r.id === selection.recipientId,
   );
-  const budget = DEMO_GIFT_FINDER.budgets.find(
-    (b) => b.id === selection.budgetId,
-  );
+  const budget = config.budgets.find((b) => b.id === selection.budgetId);
 
   const params = new URLSearchParams();
   const category = occasion?.category || recipient?.category;

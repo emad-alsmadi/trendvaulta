@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { ShoppingCart, Star, Heart, Eye } from 'lucide-react';
+import { ShoppingCart, Star, Eye } from 'lucide-react';
+import { WishlistButton } from '@/components/page/wishlist/WishlistButton';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import { useCart } from '@/lib/cartStore';
@@ -27,7 +28,7 @@ export type ProductCardProduct = Pick<
 
 interface ProductCardProps {
   product: ProductCardProduct;
-  /** DEMO / future API merchandising flags */
+  /** Merchandising flags — from Product.badges (API) */
   badges?: ProductCardBadge[];
 }
 
@@ -187,13 +188,12 @@ export function ProductCard({ product, badges = [] }: ProductCardProps) {
             <ShoppingCart className='h-4 w-4' />
             Add
           </Button>
-          <Button
-            size='sm'
-            variant='outline'
-            className='px-3'
-          >
-            <Heart className='h-4 w-4' />
-          </Button>
+          <WishlistButton
+            productId={product._id}
+            variant='icon'
+            tone='onLight'
+            className='h-9 w-9 shrink-0 rounded-md border border-stone-200 !p-0 [&>svg]:mx-auto [&>svg]:h-4 [&>svg]:w-4'
+          />
         </div>
       </div>
     </motion.div>

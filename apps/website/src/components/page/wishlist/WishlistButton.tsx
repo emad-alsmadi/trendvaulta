@@ -12,12 +12,15 @@ interface WishlistButtonProps {
   productId: string;
   className?: string;
   variant?: 'icon' | 'button';
+  /** 'onDark' (default) is for image overlays; 'onLight' for white cards. */
+  tone?: 'onDark' | 'onLight';
 }
 
 export function WishlistButton({
   productId,
   className = '',
   variant = 'icon',
+  tone = 'onDark',
 }: WishlistButtonProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -72,8 +75,11 @@ export function WishlistButton({
       <button
         onClick={handleClick}
         disabled={isPending || checkLoading}
-        className={`p-2 rounded-full transition-all duration-200 hover:bg-white/20 ${className}`}
+        className={`p-2 rounded-full transition-all duration-200 ${
+          tone === 'onLight' ? 'hover:bg-stone-100' : 'hover:bg-white/20'
+        } ${className}`}
         aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+        aria-pressed={isWishlisted}
       >
         <svg
           xmlns='http://www.w3.org/2000/svg'
@@ -85,7 +91,13 @@ export function WishlistButton({
           strokeWidth='2'
           strokeLinecap='round'
           strokeLinejoin='round'
-          className={isWishlisted ? 'text-red-500' : 'text-white'}
+          className={
+            isWishlisted
+              ? 'text-red-500'
+              : tone === 'onLight'
+                ? 'text-stone-700'
+                : 'text-white'
+          }
         >
           <path d='M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z' />
         </svg>

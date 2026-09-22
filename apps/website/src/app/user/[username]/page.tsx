@@ -55,7 +55,9 @@ export default function UserProfilePage() {
             <p className='text-sm text-gray-600'>Manage your account details</p>
           </div>
           <Link
-            href='/profile/edit'
+            href={`/user/${encodeURIComponent(
+              user.username || (user.email || '').split('@')[0],
+            )}/edit`}
             className='inline-flex items-center gap-2 px-4 py-2 bg-fuchsia-600 text-white text-sm font-semibold rounded-lg hover:bg-fuchsia-700 transition'
           >
             <Pencil className='w-4 h-4' />

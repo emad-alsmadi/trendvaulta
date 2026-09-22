@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ChevronRight, X, ChevronDown, ChevronUp, Star } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useBrands } from '@/hooks/brands/brandsQuery';
 
 const categories = [
   {
@@ -107,13 +108,6 @@ const pricePresets = [
   { label: '$100+', min: '100', max: '' },
 ];
 
-const demoBrands = [
-  { label: 'Aura Botanica', q: 'Aura' },
-  { label: 'Noir Atelier', q: 'Noir' },
-  { label: 'Lumen Skin', q: 'Lumen' },
-  { label: 'Velvet & Co', q: 'Velvet' },
-];
-
 const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 const colors = [
   { name: 'Black', code: '#000000' },
@@ -154,6 +148,8 @@ export function CategorySidebar({
   const urlInStock = searchParams.get('inStock') === '1';
   const urlOnSale = searchParams.get('onSale') === '1';
   const urlBrand = searchParams.get('brand') || '';
+  // GET /api/brands — filter value is the brand _id (server-side filter)
+  const { data: brands = [], isLoading: brandsLoading } = useBrands();
   const urlSizes = (searchParams.get('size') || '')
     .split(',')
     .filter(Boolean);
@@ -459,7 +455,7 @@ export function CategorySidebar({
           )}
         </div>
 
-        {/* Brands — DEMO name match */}
+        {/* Brands — API-backed (brand=<id>) */}
         <div className='mb-4 border-b border-stone-100 pb-4'>
           <button
             type='button'
@@ -467,7 +463,7 @@ export function CategorySidebar({
             className='mb-3 flex w-full items-center justify-between'
           >
             <h4 className='text-sm font-semibold text-stone-900'>
-              Brands <span className='font-normal text-stone-400'>(demo)</span>
+              Brands
             </h4>
             {expandedSections.brands ? (
               <ChevronUp className='h-4 w-4 text-stone-500' />
@@ -477,18 +473,29 @@ export function CategorySidebar({
           </button>
           {expandedSections.brands && (
             <ul className='space-y-1'>
-              {demoBrands.map((brand) => (
-                <li key={brand.q}>
+              {brandsLoading && brands.length === 0 && (
+                <li className='px-3 py-2 text-sm text-stone-400'>
+                  Loading brands…
+                </li>
+              )}
+              {!brandsLoading && brands.length === 0 && (
+                <li className='px-3 py-2 text-sm text-stone-400'>
+                  No brands yet
+                </li>
+              )}
+              {brands.map((brand) => (
+                <li key={brand._id}>
                   <button
                     type='button'
-                    onClick={() => setBrand(brand.q)}
+                    onClick={() => setBrand(brand._id)}
+                    aria-pressed={urlBrand === brand._id}
                     className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
-                      urlBrand === brand.q
+                      urlBrand === brand._id
                         ? 'bg-fuchsia-50 font-medium text-fuchsia-700'
                         : 'text-stone-700 hover:bg-stone-50'
                     }`}
                   >
-                    {brand.label}
+                    {brand.name}
                   </button>
                 </li>
               ))}

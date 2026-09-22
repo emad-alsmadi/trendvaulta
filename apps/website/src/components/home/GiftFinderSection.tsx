@@ -75,9 +75,20 @@ export function GiftFinderSection({ config: configProp }: Props) {
     () => config.budgets[3]?.id ?? config.budgets[0]?.id ?? null,
   );
 
+  // The live config arrives after first render with its own option ids:
+  // re-seed the selection so the built href matches real options rather
+  // than stale demo ids (reset-during-render pattern, no effect needed).
+  const [syncedConfig, setSyncedConfig] = useState(config);
+  if (syncedConfig !== config) {
+    setSyncedConfig(config);
+    setOccasionId(config.occasions[0]?.id ?? null);
+    setRecipientId(config.recipients[0]?.id ?? null);
+    setBudgetId(config.budgets[3]?.id ?? config.budgets[0]?.id ?? null);
+  }
+
   const href = useMemo(
-    () => buildGiftFinderHref({ occasionId, recipientId, budgetId }),
-    [occasionId, recipientId, budgetId],
+    () => buildGiftFinderHref({ occasionId, recipientId, budgetId }, config),
+    [occasionId, recipientId, budgetId, config],
   );
 
   return (

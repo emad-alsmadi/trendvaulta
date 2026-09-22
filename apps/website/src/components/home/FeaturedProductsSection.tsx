@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { ProductCard } from '@/components/products/ProductCard';
 import type { ProductCardBadge } from '@/components/products/ProductCard';
-import { getDemoBadgesForIndex } from '@/data/demoStorefront';
 import type { Product } from '@/types';
 
 type Props = {
@@ -12,18 +11,12 @@ type Props = {
   error?: string | null;
 };
 
-function badgesFromProduct(
-  product: Product,
-  index: number,
-): ProductCardBadge[] {
-  if (product.badges?.length) {
-    return product.badges.filter(
-      (b): b is ProductCardBadge =>
-        b === 'bestseller' || b === 'new' || b === 'lowStock',
-    );
-  }
-  // DEMO until Product.badges ships from API
-  return getDemoBadgesForIndex(index);
+/** Product.badges is computed server-side (bestseller / new / lowStock). */
+function badgesFromProduct(product: Product): ProductCardBadge[] {
+  return (product.badges ?? []).filter(
+    (b): b is ProductCardBadge =>
+      b === 'bestseller' || b === 'new' || b === 'lowStock',
+  );
 }
 
 /**
@@ -90,11 +83,11 @@ export function FeaturedProductsSection({
 
         {!loading && !error && products.length > 0 && (
           <div className='grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4'>
-            {products.map((product, index) => (
+            {products.map((product) => (
               <ProductCard
                 key={product._id}
                 product={product}
-                badges={badgesFromProduct(product, index)}
+                badges={badgesFromProduct(product)}
               />
             ))}
           </div>

@@ -1135,13 +1135,14 @@ export type ProductQAItem = {
   answer?: string;
   askedBy?: {
     _id: string;
-    name: string;
-    email: string;
+    username?: string;
+    /** Legacy field name; the API now returns `username` */
+    name?: string;
   };
   answeredBy?: {
     _id: string;
-    name: string;
-    email: string;
+    username?: string;
+    name?: string;
   };
   helpful: number;
   notHelpful: number;

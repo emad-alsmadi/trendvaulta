@@ -11,7 +11,7 @@ import { CategorySidebar } from '@/components/products/CategorySidebar';
 import { ProductFiltersDrawer } from '@/components/products/ProductFiltersDrawer';
 import { Pagination } from '@/components/ui/Pagination';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { getDemoBadgesForIndex } from '@/data/demoStorefront';
+import { useBrands } from '@/hooks/brands/brandsQuery';
 
 /**
  * API Product.category enum: makeup, perfumes, clothing, skincare,
@@ -113,6 +113,8 @@ export default function ProductsPage() {
       q: qParam || undefined,
       minPrice: minPrice ? Number(minPrice) : undefined,
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
+      // Brand is a server-side filter (brand=<id>)
+      brand: brandParam || undefined,
     }),
     [
       currentPage,
@@ -123,8 +125,13 @@ export default function ProductsPage() {
       qParam,
       minPrice,
       maxPrice,
+      brandParam,
     ],
   );
+
+  const { data: brands = [] } = useBrands();
+  const brandName =
+    brands.find((b) => b._id === brandParam)?.name || brandParam;
 
   const {
     data: response,
@@ -155,22 +162,6 @@ export default function ProductsPage() {
           product.basePrice > product.price;
         if (!onSale) return false;
       }
-      if (brandParam) {
-        const brand = product.brand;
-        const name =
-          typeof brand === 'string'
-            ? brand
-            : brand && typeof brand === 'object' && 'name' in brand
-              ? String((brand as { name?: string }).name || '')
-              : '';
-        if (
-          name &&
-          !name.toLowerCase().includes(brandParam.toLowerCase())
-        ) {
-          return false;
-        }
-        if (!name) return false;
-      }
       if (selectedSizes.length > 0) {
         const sizes = (product.variants || [])
           .map((v) => v.size)
@@ -197,7 +188,6 @@ export default function ProductsPage() {
     minRating,
     inStockOnly,
     onSaleOnly,
-    brandParam,
     selectedSizes,
     selectedColors,
   ]);
@@ -277,7 +267,7 @@ export default function ProductsPage() {
     if (brandParam) {
       chips.push({
         key: 'brand',
-        label: `Brand: ${brandParam} (demo)`,
+        label: `Brand: ${brandName}`,
         clear: () =>
           replaceParams((p) => {
             p.delete('brand');
@@ -322,6 +312,7 @@ export default function ProductsPage() {
     inStockOnly,
     onSaleOnly,
     brandParam,
+    brandName,
     selectedSizes,
     selectedColors,
     replaceParams,
@@ -521,13 +512,11 @@ export default function ProductsPage() {
             ) : filteredProducts.length > 0 ? (
               <>
                 <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
-                  {filteredProducts.map((product, index) => (
+                  {filteredProducts.map((product) => (
                     <ProductCard
                       key={product._id}
                       product={product}
-                      badges={getDemoBadgesForIndex(
-                        (currentPage - 1) * limit + index,
-                      )}
+                      badges={product.badges ?? []}
                     />
                   ))}
                 </div>

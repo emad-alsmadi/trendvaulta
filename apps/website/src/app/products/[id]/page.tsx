@@ -7,7 +7,6 @@ import {
   Loader2,
   Star,
   ShoppingCart,
-  Heart,
   Share2,
   Truck,
   Shield,
@@ -23,6 +22,8 @@ import Link from 'next/link';
 import { useCart, formatVariantLabel } from '@/lib/cartStore';
 import { FrequentlyBoughtTogether } from '@/components/products/FrequentlyBoughtTogether';
 import { ProductQaSection } from '@/components/products/ProductQaSection';
+import { ProductReviewsSection } from '@/components/products/ProductReviewsSection';
+import { WishlistButton } from '@/components/page/wishlist/WishlistButton';
 import { trackRecentlyViewed } from '@/lib/recentlyViewed';
 import type { ProductVariant } from '@/types';
 
@@ -422,13 +423,12 @@ export default function ProductDetailPage({
               >
                 Buy Now
               </Button>
-              <Button
-                size='lg'
-                variant='outline'
-                className='px-4'
-              >
-                <Heart className='h-5 w-5' />
-              </Button>
+              <WishlistButton
+                productId={product._id}
+                variant='icon'
+                tone='onLight'
+                className='inline-flex h-11 w-12 items-center justify-center rounded-md border border-stone-200 !p-0 [&>svg]:h-5 [&>svg]:w-5'
+              />
               <Button
                 size='lg'
                 variant='outline'
@@ -519,7 +519,7 @@ export default function ProductDetailPage({
           </div>
         </motion.div>
 
-        <ProductQaSection category={product.category} />
+        <ProductQaSection productId={product._id} />
 
         {/* Reviews Section */}
         <motion.div
@@ -553,9 +553,7 @@ export default function ProductDetailPage({
               </p>
             </div>
           </div>
-          <p className='text-gray-600'>
-            No reviews yet. Be the first to review this product!
-          </p>
+          <ProductReviewsSection productId={product._id} />
         </motion.div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { offersApi } from '@/lib/api';
+import { offersApi, type StorefrontOffer } from '@/lib/api';
 import type { DemoDeal } from '@/data/demoStorefront';
 
 export type OffersQueryParams = {
@@ -38,6 +38,21 @@ export function useActiveOffers(limit = 12) {
     queryFn: async () => {
       const res = await offersApi.getOffers(params);
       return (res.results ?? []).map(mapOfferToDeal);
+    },
+    staleTime: 60_000,
+    retry: 1,
+  });
+}
+
+/** Full offers listing for /offers — raw API shape (keeps endsAt/badge). */
+export function useOffersList(limit = 24) {
+  const params: OffersQueryParams = { active: true, limit };
+
+  return useQuery<StorefrontOffer[]>({
+    queryKey: [...offersKey(params), 'raw'] as const,
+    queryFn: async () => {
+      const res = await offersApi.getOffers(params);
+      return res.results ?? [];
     },
     staleTime: 60_000,
     retry: 1,
