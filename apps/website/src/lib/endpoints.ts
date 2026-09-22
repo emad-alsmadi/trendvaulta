@@ -34,24 +34,6 @@ export const endpoints = {
     /** Server-side cart revalidation + totals — POST /api/payments/quote */
     quote: '/payments/quote',
   },
-  admin: {
-    users: {
-      list: '/users',
-      details: (id: string) => `/users/${id}`,
-      update: (id: string) => `/users/${id}`,
-      delete: (id: string) => `/users/${id}`,
-    },
-    coupons: {
-      list: '/coupons',
-      create: '/coupons',
-      update: (id: string) => `/coupons/${id}`,
-      delete: (id: string) => `/coupons/${id}`,
-    },
-    orders: {
-      list: '/orders',
-      updateStatus: (id: string) => `/orders/${id}/status`,
-    },
-  },
   wishlist: {
     add: (productId: string) => `/wishlist/${productId}`,
     remove: (productId: string) => `/wishlist/${productId}`,

@@ -13,7 +13,6 @@ export function proxy(request: NextRequest) {
 
   const protectedPaths: Array<{ path: string; role: string | string[] }> = [
     { path: '/profile', role: ['user', 'admin', 'moderator'] },
-    { path: '/welcome', role: ['user', 'admin', 'moderator'] },
     { path: '/orders', role: ['user', 'admin', 'moderator'] },
     { path: '/checkout', role: ['user', 'admin', 'moderator'] },
   ];
@@ -54,23 +53,6 @@ export function proxy(request: NextRequest) {
       if (userRole !== requiredRole) {
         return NextResponse.redirect(new URL('/unauthorized', request.url));
       }
-    }
-  }
-
-  // Scenario 3: Welcome page should only be accessible immediately after login
-  if (path === '/welcome') {
-    if (!token || !userRole) {
-      return NextResponse.redirect(new URL('/auth/login', request.url));
-    }
-
-    // Check if this is a fresh login or signup (has redirect param or from login page)
-    const isFromLogin =
-      request.nextUrl.searchParams.has('redirected') ||
-      request.headers.get('referer')?.includes('/auth');
-
-    if (!isFromLogin) {
-      // If not from login, redirect to home
-      return NextResponse.redirect(new URL('/', request.url));
     }
   }
 
