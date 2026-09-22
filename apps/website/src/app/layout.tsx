@@ -8,12 +8,13 @@ import { SITE_DESCRIPTION, SITE_NAME, getSiteUrl } from '@/lib/site';
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
+  display: 'swap',
 });
 
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
-  preload: false,
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
