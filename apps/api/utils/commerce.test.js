@@ -59,13 +59,32 @@ describe('calculateCouponDiscount', () => {
 
 describe('resolveShippingPrice', () => {
   it('charges flat shipping for delivery/standard', async () => {
-    assert.equal(await resolveShippingPrice({ delivery: true }), 5);
-    assert.equal(await resolveShippingPrice({ shippingMethod: 'standard' }), 5);
+    // Test without country to avoid DB dependency
+    assert.equal(
+      await resolveShippingPrice({ delivery: true, country: undefined }),
+      5,
+    );
+    assert.equal(
+      await resolveShippingPrice({
+        shippingMethod: 'standard',
+        country: undefined,
+      }),
+      5,
+    );
   });
 
   it('is zero when no delivery', async () => {
-    assert.equal(await resolveShippingPrice({ delivery: false }), 0);
-    assert.equal(await resolveShippingPrice({ shippingMethod: 'none' }), 0);
+    assert.equal(
+      await resolveShippingPrice({ delivery: false, country: undefined }),
+      0,
+    );
+    assert.equal(
+      await resolveShippingPrice({
+        shippingMethod: 'none',
+        country: undefined,
+      }),
+      0,
+    );
   });
 });
 
