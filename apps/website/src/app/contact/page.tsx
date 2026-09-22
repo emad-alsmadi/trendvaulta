@@ -3,7 +3,45 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Sparkles, Mail, Phone, MapPin, Send, CheckCircle } from 'lucide-react';
+import { z } from 'zod';
+import {
+  Sparkles,
+  Mail,
+  Phone,
+  MapPin,
+  Send,
+  CheckCircle,
+  Loader2,
+} from 'lucide-react';
+import { useSendContactMessage } from '@/hooks/marketing/marketingMutations';
+import {
+  getUserFacingErrorMessage,
+  logErrorForDev,
+} from '@/lib/userFacingError';
+
+/** Mirrors the server's Joi rules so the shopper sees problems before posting. */
+const contactSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, 'Enter your name (at least 2 characters)')
+    .max(80, 'Name is too long'),
+  email: z.string().trim().email('Enter a valid email address'),
+  subject: z
+    .string()
+    .trim()
+    .min(2, 'Choose a subject')
+    .max(120, 'Subject is too long'),
+  message: z
+    .string()
+    .trim()
+    .min(10, 'Tell us a little more (at least 10 characters)')
+    .max(2000, 'Message is too long (2000 characters max)'),
+});
+
+type FieldErrors = Partial<
+  Record<'name' | 'email' | 'subject' | 'message', string>
+>;
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -11,14 +49,45 @@ export default function ContactPage() {
     email: '',
     subject: '',
     message: '',
+    // Honeypot: hidden from real users, so anything here means a bot. The
+    // server silently discards those submissions.
+    website: '',
   });
-  const [submitted, setSubmitted] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const sendMessage = useSendContactMessage();
+  const submitted = sendMessage.isSuccess;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    // In a real app, this would send the form data to an API
-    setTimeout(() => setSubmitted(false), 3000);
+    setFormError(null);
+
+    const parsed = contactSchema.safeParse(formData);
+    if (!parsed.success) {
+      const errors: FieldErrors = {};
+      for (const issue of parsed.error.issues) {
+        const key = issue.path[0] as keyof FieldErrors;
+        if (key && !errors[key]) errors[key] = issue.message;
+      }
+      setFieldErrors(errors);
+      return;
+    }
+
+    setFieldErrors({});
+    try {
+      await sendMessage.mutateAsync({
+        ...parsed.data,
+        website: formData.website,
+      });
+    } catch (err) {
+      logErrorForDev(err);
+      setFormError(
+        getUserFacingErrorMessage(
+          err,
+          'Could not send your message. Please try again.',
+        ),
+      );
+    }
   };
 
   const handleChange = (
@@ -26,7 +95,13 @@ export default function ContactPage() {
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >,
   ) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFieldErrors((prev) =>
+      prev[name as keyof FieldErrors]
+        ? { ...prev, [name]: undefined }
+        : prev,
+    );
   };
 
   return (
@@ -148,7 +223,7 @@ export default function ContactPage() {
                   </p>
                 </motion.div>
               ) : (
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} noValidate>
                   <div className='grid md:grid-cols-2 gap-6 mb-6'>
                     <div>
                       <label
@@ -167,6 +242,11 @@ export default function ContactPage() {
                         className='w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors'
                         placeholder='Your name'
                       />
+                      {fieldErrors.name && (
+                        <p className='mt-1 text-sm text-rose-600'>
+                          {fieldErrors.name}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label
@@ -185,6 +265,11 @@ export default function ContactPage() {
                         className='w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors'
                         placeholder='your@email.com'
                       />
+                      {fieldErrors.email && (
+                        <p className='mt-1 text-sm text-rose-600'>
+                          {fieldErrors.email}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -210,6 +295,11 @@ export default function ContactPage() {
                       <option value='billing'>Payment / billing</option>
                       <option value='other'>Other</option>
                     </select>
+                    {fieldErrors.subject && (
+                      <p className='mt-1 text-sm text-rose-600'>
+                        {fieldErrors.subject}
+                      </p>
+                    )}
                   </div>
 
                   <div className='mb-6'>
@@ -228,15 +318,52 @@ export default function ContactPage() {
                       rows={6}
                       className='w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-fuchsia-500 focus:border-transparent transition-colors resize-none'
                       placeholder='How can we help you?'
+                      maxLength={2000}
+                    />
+                    {fieldErrors.message && (
+                      <p className='mt-1 text-sm text-rose-600'>
+                        {fieldErrors.message}
+                      </p>
+                    )}
+                  </div>
+
+                  {/*
+                    Honeypot: positioned off-screen and hidden from assistive
+                    tech, so only automated submitters ever fill it in.
+                  */}
+                  <div aria-hidden className='hidden'>
+                    <label htmlFor='website'>Website</label>
+                    <input
+                      type='text'
+                      id='website'
+                      name='website'
+                      value={formData.website}
+                      onChange={handleChange}
+                      tabIndex={-1}
+                      autoComplete='off'
                     />
                   </div>
 
+                  {formError && (
+                    <p
+                      role='alert'
+                      className='mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700'
+                    >
+                      {formError}
+                    </p>
+                  )}
+
                   <button
                     type='submit'
-                    className='w-full inline-flex items-center justify-center gap-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors'
+                    disabled={sendMessage.isPending}
+                    className='w-full inline-flex items-center justify-center gap-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60'
                   >
-                    <Send className='h-4 w-4' />
-                    Send Message
+                    {sendMessage.isPending ? (
+                      <Loader2 className='h-4 w-4 animate-spin' aria-hidden />
+                    ) : (
+                      <Send className='h-4 w-4' />
+                    )}
+                    {sendMessage.isPending ? 'Sending…' : 'Send Message'}
                   </button>
                 </form>
               )}

@@ -220,6 +220,11 @@ ProductSchema.index({ featured: 1, isActive: 1 });
 ProductSchema.index({ isActive: 1, category: 1, price: 1 });
 ProductSchema.index({ isActive: 1, brand: 1 });
 ProductSchema.index({ isActive: 1, createdAt: -1 });
+// Full-text search index (replaces $regex scans)
+ProductSchema.index(
+  { title: 'text', description: 'text', subcategory: 'text' },
+  { weights: { title: 10, description: 5, subcategory: 2 }, name: 'ProductTextIndex' },
+);
 // Facet filters / sorts (GET /api/products)
 ProductSchema.index({ 'variants.size': 1 });
 ProductSchema.index({ 'variants.color': 1 });
