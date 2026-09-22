@@ -92,7 +92,7 @@ export default function OrderDetailPage() {
             >
               <img
                 src={item.cover}
-                alt=''
+                alt={item.title}
                 className='h-16 w-16 rounded-lg object-cover bg-stone-100'
               />
               <div className='min-w-0 flex-1'>

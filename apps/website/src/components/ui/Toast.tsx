@@ -78,7 +78,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className='pointer-events-none fixed right-4 top-4 z-80 flex w-[calc(100vw-2rem)] max-w-sm flex-col gap-3'>
+      <div
+        role='status'
+        aria-live='polite'
+        aria-atomic='false'
+        className='pointer-events-none fixed right-4 top-4 z-80 flex w-[calc(100vw-2rem)] max-w-sm flex-col gap-3'
+      >
         <AnimatePresence initial={false}>
           {items.map((t) => (
             <motion.div

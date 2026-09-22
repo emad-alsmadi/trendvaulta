@@ -1,7 +1,6 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { navItems, Navbar } from '@/components/navigation/Navbar';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
@@ -31,18 +30,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Navbar />
       <div className='gap-6 py-6'>
         <main className='min-w-0 px-4 pb-20 sm:px-6 md:pb-0 lg:px-20'>
-          <AnimatePresence mode='wait'>
-            <motion.div
-              key={pathname}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-              className='min-w-0'
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
+          {/* No pathname-keyed AnimatePresence: it remounted every route
+              and threw away layout/query state on each navigation. */}
+          <div className='min-w-0'>{children}</div>
         </main>
       </div>
 

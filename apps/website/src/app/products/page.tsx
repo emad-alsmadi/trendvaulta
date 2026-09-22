@@ -138,6 +138,7 @@ export default function ProductsPage() {
     isLoading,
     isFetching,
     error,
+    refetch,
   } = useProducts(query);
 
   const products = response?.data || [];
@@ -504,7 +505,7 @@ export default function ProductsPage() {
                 <Button
                   type='button'
                   className='mt-4'
-                  onClick={() => router.refresh()}
+                  onClick={() => refetch()}
                 >
                   Retry
                 </Button>
