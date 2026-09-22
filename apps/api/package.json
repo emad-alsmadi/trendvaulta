@@ -18,7 +18,7 @@
     "express": "^5.2.1",
     "express-async-handler": "^1.2.0",
     "helmet": "^8.3.0",
-    "joi": "^18.0.2",
+    "joi": "^18.2.9",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.22.1",
     "nodemailer": "^8.0.1",
