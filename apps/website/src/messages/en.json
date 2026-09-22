@@ -1,0 +1,67 @@
+{
+  "common": {
+    "home": "Home",
+    "products": "Products",
+    "brands": "Brands",
+    "about": "About",
+    "contact": "Contact",
+    "login": "Sign In",
+    "logout": "Sign Out",
+    "register": "Register",
+    "search": "Search",
+    "cart": "Cart",
+    "checkout": "Checkout",
+    "account": "My Account",
+    "orders": "My Orders",
+    "addresses": "Addresses",
+    "security": "Security",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  },
+  "nav": {
+    "shop": "Shop",
+    "categories": "Categories",
+    "deals": "Deals",
+    "account": "Account"
+  },
+  "product": {
+    "addToCart": "Add to Cart",
+    "outOfStock": "Out of Stock",
+    "inStock": "In Stock",
+    "price": "Price",
+    "quantity": "Quantity",
+    "description": "Description",
+    "reviews": "Reviews",
+    "questions": "Questions",
+    "variant": "Variant",
+    "size": "Size",
+    "color": "Color"
+  },
+  "checkout": {
+    "shippingAddress": "Shipping Address",
+    "paymentMethod": "Payment Method",
+    "placeOrder": "Place Order",
+    "subtotal": "Subtotal",
+    "shipping": "Shipping",
+    "tax": "Tax",
+    "total": "Total",
+    "name": "Full Name",
+    "phone": "Phone",
+    "address": "Address",
+    "city": "City",
+    "zip": "Postal Code",
+    "country": "Country",
+    "notes": "Order Notes"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot Password?",
+    "rememberMe": "Remember me",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?"
+  }
+}

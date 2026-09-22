@@ -23,6 +23,7 @@ import {
   Scale,
   Search,
   Truck,
+  Globe,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLogout, useMe } from '@/hooks/auth/authQuery';
@@ -30,6 +31,7 @@ import { getUserRole } from '@/lib/authCookies';
 import { useCart } from '@/lib/cartStore';
 import { useConfirm } from '@/components/confirm/ConfirmProvider';
 import { DeliverToControl } from '@/components/navigation/DeliverToControl';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { useState } from 'react';
 
 // Admin management lives in the standalone dashboard app, not in the
@@ -135,6 +137,7 @@ export function Navbar() {
   const logout = useLogout();
   const cart = useCart();
   const confirm = useConfirm();
+  const { locale, setLocale, t } = useTranslation();
   const user = meQuery.data?.user || null;
   const hydrated = true;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -172,11 +175,25 @@ export function Navbar() {
         <div className='mx-auto flex max-w-[1400px] items-center justify-between gap-3 px-4 py-1.5 text-xs sm:px-6 lg:px-8'>
           <DeliverToControl />
           <div className='hidden items-center gap-4 sm:flex'>
+            <button
+              onClick={() => setLocale(locale === 'en' ? 'ar' : 'en')}
+              className='inline-flex items-center gap-1.5 hover:text-stone-900'
+              title={locale === 'en' ? 'Switch to Arabic' : 'Switch to English'}
+            >
+              <Globe
+                className='h-3.5 w-3.5'
+                aria-hidden
+              />
+              {locale === 'en' ? 'العربية' : 'English'}
+            </button>
             <Link
               href='/offers'
               className='inline-flex items-center gap-1 font-extrabold text-fuchsia-700 hover:text-fuchsia-800'
             >
-              <Sparkles className='h-3.5 w-3.5' aria-hidden />
+              <Sparkles
+                className='h-3.5 w-3.5'
+                aria-hidden
+              />
               Today&apos;s offers
             </Link>
             <p className='inline-flex items-center gap-1.5 text-stone-500'>

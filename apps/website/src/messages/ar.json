@@ -1,0 +1,67 @@
+{
+  "common": {
+    "home": "الرئيسية",
+    "products": "المنتجات",
+    "brands": "العلامات التجارية",
+    "about": "من نحن",
+    "contact": "اتصل بنا",
+    "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج",
+    "register": "إنشاء حساب",
+    "search": "بحث",
+    "cart": "السلة",
+    "checkout": "إتمام الطلب",
+    "account": "حسابي",
+    "orders": "طلباتي",
+    "addresses": "العناوين",
+    "security": "الأمان",
+    "loading": "جاري التحميل...",
+    "error": "خطأ",
+    "success": "نجح"
+  },
+  "nav": {
+    "shop": "تسوق",
+    "categories": "الفئات",
+    "deals": "العروض",
+    "account": "الحساب"
+  },
+  "product": {
+    "addToCart": "أضف إلى السلة",
+    "outOfStock": "نفدت الكمية",
+    "inStock": "متوفر",
+    "price": "السعر",
+    "quantity": "الكمية",
+    "description": "الوصف",
+    "reviews": "التقييمات",
+    "questions": "الأسئلة",
+    "variant": "الخيار",
+    "size": "المقاس",
+    "color": "اللون"
+  },
+  "checkout": {
+    "shippingAddress": "عنوان الشحن",
+    "paymentMethod": "طريقة الدفع",
+    "placeOrder": "إتمام الطلب",
+    "subtotal": "المجموع الفرعي",
+    "shipping": "الشحن",
+    "tax": "الضريبة",
+    "total": "الإجمالي",
+    "name": "الاسم الكامل",
+    "phone": "رقم الهاتف",
+    "address": "العنوان",
+    "city": "المدينة",
+    "zip": "الرمز البريدي",
+    "country": "البلد",
+    "notes": "ملاحظات الطلب"
+  },
+  "auth": {
+    "signIn": "تسجيل الدخول",
+    "signUp": "إنشاء حساب",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "rememberMe": "تذكرني",
+    "noAccount": "ليس لديك حساب؟",
+    "hasAccount": "لديك حساب بالفعل؟"
+  }
+}
