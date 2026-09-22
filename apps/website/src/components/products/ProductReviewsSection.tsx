@@ -6,7 +6,10 @@ import { usePathname } from 'next/navigation';
 import { Loader2, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
-import { ReviewForm } from '@/components/page/review/ReviewForm';
+import {
+  ReviewForm,
+  isPurchaseRequiredError,
+} from '@/components/page/review/ReviewForm';
 import { ReviewList } from '@/components/page/review/ReviewList';
 import { useMe } from '@/hooks/auth/authQuery';
 import {
@@ -70,6 +73,10 @@ export function ProductReviewsSection({ productId }: Props) {
       setEditing(null);
       setFormOpen(false);
     } catch (err) {
+      // The purchase gate is an expected outcome, not a failure: let it
+      // bubble back to ReviewForm, which shows it inline next to the fields.
+      // Everything else keeps the generic toast.
+      if (isPurchaseRequiredError(err)) throw err;
       logErrorForDev(err);
       toast(getUserFacingErrorMessage(err, 'Could not save your review'), {
         variant: 'error',

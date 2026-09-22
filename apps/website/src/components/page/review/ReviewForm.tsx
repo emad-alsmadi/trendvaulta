@@ -12,6 +12,16 @@ interface ReviewFormProps {
   isSubmitting?: boolean;
 }
 
+/**
+ * True when the API refused a review because the shopper has not bought the
+ * product (403 + code PURCHASE_REQUIRED). Exported so the parent screen can
+ * let this one case bubble through to the form's inline message instead of
+ * turning it into a generic error toast.
+ */
+export function isPurchaseRequiredError(err: unknown): boolean {
+  return getErrorCode(err) === 'PURCHASE_REQUIRED';
+}
+
 /** Extract the API's `code` field from an Axios error response, if present. */
 function getErrorCode(err: unknown): string | undefined {
   if (!axios.isAxiosError(err)) return undefined;
@@ -52,9 +62,9 @@ export function ReviewForm({
     } catch (err) {
       // A purchase-gated review gets a friendly inline message instead of
       // the parent's generic error toast; anything else still bubbles up.
-      if (getErrorCode(err) === 'PURCHASE_REQUIRED') {
+      if (isPurchaseRequiredError(err)) {
         setPurchaseRequiredMessage(
-          'You can review this product after purchasing it.',
+          'Only customers who bought this item can review it',
         );
         return;
       }
@@ -118,7 +128,10 @@ export function ReviewForm({
       </div>
 
       {purchaseRequiredMessage && (
-        <p className='rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800'>
+        <p
+          role='status'
+          className='rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800'
+        >
           {purchaseRequiredMessage}
         </p>
       )}

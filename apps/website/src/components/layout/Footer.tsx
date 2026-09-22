@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import {
   Sparkles,
@@ -7,7 +8,82 @@ import {
   Facebook,
   Instagram,
   Linkedin,
+  Loader2,
+  CheckCircle2,
 } from 'lucide-react';
+import { useSubscribeNewsletter } from '@/hooks/marketing/marketingMutations';
+import {
+  getUserFacingErrorMessage,
+  logErrorForDev,
+} from '@/lib/userFacingError';
+
+function NewsletterForm() {
+  const [email, setEmail] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const subscribe = useSubscribeNewsletter();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    const trimmed = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setError('Enter a valid email address');
+      return;
+    }
+
+    try {
+      await subscribe.mutateAsync({ email: trimmed, source: 'footer' });
+      setEmail('');
+    } catch (err) {
+      logErrorForDev(err);
+      setError(getUserFacingErrorMessage(err, 'Could not subscribe right now'));
+    }
+  };
+
+  if (subscribe.isSuccess) {
+    return (
+      <div className='flex items-center gap-2 text-sm font-semibold text-emerald-400'>
+        <CheckCircle2 className='h-4 w-4 shrink-0' aria-hidden />
+        You&apos;re subscribed! Watch your inbox for deals.
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className='max-w-sm'>
+      <label
+        htmlFor='footer-newsletter-email'
+        className='mb-2 block text-sm font-semibold text-white'
+      >
+        Get deals in your inbox
+      </label>
+      <div className='flex gap-2'>
+        <input
+          id='footer-newsletter-email'
+          type='email'
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder='you@example.com'
+          maxLength={100}
+          disabled={subscribe.isPending}
+          className='min-w-0 flex-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500'
+        />
+        <button
+          type='submit'
+          disabled={subscribe.isPending || !email.trim()}
+          className='inline-flex shrink-0 items-center gap-2 rounded-lg bg-fuchsia-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-fuchsia-700 disabled:cursor-not-allowed disabled:opacity-60'
+        >
+          {subscribe.isPending && (
+            <Loader2 className='h-4 w-4 animate-spin' aria-hidden />
+          )}
+          Subscribe
+        </button>
+      </div>
+      {error && <p className='mt-2 text-sm text-rose-400'>{error}</p>}
+    </form>
+  );
+}
 
 export function Footer() {
   return (
@@ -30,6 +106,9 @@ export function Footer() {
               Beauty, fashion, and lifestyle retail — curated products, clear
               pricing, and secure checkout.
             </p>
+            <div className='mb-6'>
+              <NewsletterForm />
+            </div>
             <div className='flex gap-4'>
               <a
                 href='#'
