@@ -10,9 +10,6 @@ trendvaulta/
 │   ├── website/        # Next.js storefront (port 3001)
 │   ├── dashboard/      # Vite + React admin (port 3002)
 │   └── api/            # Express.js API (port 3000)
-├── packages/
-│   ├── types/          # Shared TypeScript types (@trendvaulta/types)
-│   └── api-client/     # Shared API client (@trendvaulta/api-client)
 └── package.json        # npm workspaces + root scripts
 ```
 
@@ -94,21 +91,14 @@ npm run build:dashboard
 
 API has no compile step (`npm start` / `npm run dev` run Node directly).
 
-## Shared packages
+## Shared code
 
-### `@trendvaulta/types`
-
-**Location:** `packages/types/`
-
-```typescript
-import type { /* shared types */ } from '@trendvaulta/types';
-```
-
-### `@trendvaulta/api-client`
-
-**Location:** `packages/api-client/`
-
-Dashboard may use this package. The storefront primarily uses `apps/website/src/lib/api.ts`. Always verify paths against `apps/api/routes/` — do not assume package endpoints are complete.
+There is no shared `packages/` workspace: each app keeps its own API
+client and types (`apps/website/src/lib/api.ts`, `apps/website/src/types/`,
+`apps/dashboard/src/lib/api.ts`). The former `@trendvaulta/types` and
+`@trendvaulta/api-client` packages were removed — neither app ever
+imported them. Always verify paths against `apps/api/routes/` — do not
+assume a client's types are complete or current.
 
 ## App roles
 

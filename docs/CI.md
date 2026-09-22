@@ -12,7 +12,7 @@ Workflow: [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)
 |-----|--------|
 | **API** | root `npm ci` → `npm test` in `apps/api` |
 | **Website** | root `npm ci` → lint → `tsc --noEmit` → vitest → `next build` |
-| **Dashboard** | root `npm ci` → `packages/types` + `packages/api-client` typecheck → lint → jest → `tsc && vite build` |
+| **Dashboard** | root `npm ci` → lint → jest → `tsc && vite build` |
 | **Dependency audit** | root `npm ci` → `npm audit --audit-level=critical` (fails only on critical advisories) |
 
 ## Local equivalents
@@ -23,7 +23,6 @@ npm run test --workspace=apps/api
 npm run lint --workspace=apps/website -- .
 npx --workspace=apps/website tsc --noEmit
 npm run build --workspace=apps/website
-npm run type-check --workspace=packages/types
 npm run lint --workspace=apps/dashboard
 npm run test --workspace=apps/dashboard
 npm run build --workspace=apps/dashboard

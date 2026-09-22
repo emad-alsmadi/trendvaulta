@@ -92,9 +92,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build shared packages
-        run: npm run type-check --workspace=packages/types && npm run type-check --workspace=packages/api-client
-
       - name: Lint
         working-directory: apps/dashboard
         run: npm run lint

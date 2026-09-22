@@ -8,9 +8,8 @@ Retail e-commerce monorepo for beauty, fashion, and lifestyle products. Buyers s
 | Storefront | `apps/website` | **3001** | Next.js 16 App Router |
 | Dashboard | `apps/dashboard` | **3002** | Vite + React admin |
 
-Shared packages: `@trendvaulta/types`, `@trendvaulta/api-client` under `packages/`.
-
-Package manager: **npm workspaces** (root `package.json`).
+Package manager: **npm workspaces** (root `package.json`, `apps/*`). Each app
+keeps its own API client and types — there is no shared `packages/` workspace.
 
 ---
 
@@ -145,7 +144,7 @@ Common areas:
 Typical JSON shape: `{ message, data?, errors? }` (confirm per controller). Auth uses `Authorization: Bearer <token>` via `verfiyToken`.
 
 Storefront client: `apps/website/src/lib/api.ts`  
-Dashboard client: `apps/dashboard/src/lib/api.ts` and/or `@trendvaulta/api-client`
+Dashboard client: `apps/dashboard/src/lib/api.ts`
 
 ---
 
