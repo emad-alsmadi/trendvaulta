@@ -56,19 +56,65 @@ export interface Order {
   updatedAt: string;
 }
 
+/**
+ * Sort presets accepted by GET /api/products. Legacy field strings
+ * (`createdAt`, `-price`, …) are still accepted by the API.
+ */
+export type ProductSort =
+  | 'featured'
+  | 'newest'
+  | 'price_asc'
+  | 'price_desc'
+  | 'rating'
+  | 'bestselling'
+  | (string & {});
+
 export interface ProductsQuery {
   q?: string;
   minPrice?: number;
   maxPrice?: number;
-  brand?: string;
+  /** Brand id(s) — arrays are sent comma-separated */
+  brand?: string | string[];
   category?: string;
   subcategory?: string;
+  /** Variant size(s), e.g. `M` */
+  size?: string | string[];
+  /** Variant color(s), matched case-insensitively */
+  color?: string | string[];
+  /** 0–5 → averageRating >= value */
+  minRating?: number;
+  /** stock > 0 on the product or any variant */
+  inStock?: boolean;
+  /** basePrice > price */
+  onSale?: boolean;
+  featured?: boolean;
+  /** Ask the API for `meta.facets` (PLP only — extra aggregation) */
+  facets?: boolean;
   page?: number;
   limit?: number;
-  sort?: string;
+  sort?: ProductSort;
   /** Staff only — ignored for anonymous catalog requests */
   includeInactive?: boolean | string;
   isActive?: boolean | string;
+}
+
+export interface FacetCount {
+  value: string;
+  count: number;
+}
+
+/** Disjunctive facet counts from GET /api/products?facets=true */
+export interface ProductFacets {
+  brands: Array<{ _id: string; name: string; slug: string; count: number }>;
+  sizes: FacetCount[];
+  colors: Array<{ value: string; colorCode: string | null; count: number }>;
+  categories: FacetCount[];
+  subcategories: FacetCount[];
+  priceRange: { min: number; max: number };
+  /** Products with averageRating >= value (4, 3, 2, 1) */
+  ratings: Array<{ value: number; count: number }>;
+  inStock: number;
+  onSale: number;
 }
 
 export interface ProductsResponse {
@@ -78,6 +124,7 @@ export interface ProductsResponse {
     page: number;
     pages: number;
     limit: number;
+    facets?: ProductFacets;
   };
 }
 

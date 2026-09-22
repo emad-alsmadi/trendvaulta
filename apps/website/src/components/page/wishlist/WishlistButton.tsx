@@ -58,7 +58,7 @@ export function WishlistButton({
         await addToWishlist.mutateAsync(productId);
         toast('Added to wishlist', { variant: 'success' });
       }
-    } catch (error) {
+    } catch {
       toast(
         isWishlisted
           ? 'Failed to remove from wishlist'

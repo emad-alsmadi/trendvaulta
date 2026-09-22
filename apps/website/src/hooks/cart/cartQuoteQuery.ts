@@ -118,7 +118,9 @@ export function useCartQuoteSync(opts: CartQuoteOptions) {
   const [notices, setNotices] = useState<Record<string, CartLineNotice>>({});
   const appliedAtRef = useRef<number>(0);
   const itemsRef = useRef(opts.items);
-  itemsRef.current = opts.items;
+  useEffect(() => {
+    itemsRef.current = opts.items;
+  }, [opts.items]);
 
   const quote = query.data ?? null;
   const dataUpdatedAt = query.dataUpdatedAt;

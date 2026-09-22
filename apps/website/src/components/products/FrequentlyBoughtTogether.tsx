@@ -54,7 +54,10 @@ export function FrequentlyBoughtTogether({ primary }: Props) {
     },
     { enabled: useFallback },
   );
-  const catalog = (data?.data ?? []) as BundleProduct[];
+  const catalog = useMemo(
+    () => (data?.data ?? []) as BundleProduct[],
+    [data],
+  );
 
   const demoCompanions = useMemo(
     () =>

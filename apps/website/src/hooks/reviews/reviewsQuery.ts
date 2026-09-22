@@ -101,9 +101,9 @@ export function useDeleteReviewMutation() {
   return useMutation({
     mutationFn: async ({
       reviewId,
-      productId,
     }: {
       reviewId: string;
+      /** Used by onSuccess to invalidate the product's review queries */
       productId: string;
     }) => {
       return await reviewsApi.deleteReview(reviewId);

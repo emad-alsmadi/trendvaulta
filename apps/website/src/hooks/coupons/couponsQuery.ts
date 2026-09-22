@@ -1,26 +1,20 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { couponsApi } from '@/lib/api';
-
-export function couponValidationKey(code: string, orderAmount: number) {
-  return ['coupons', 'validate', code, orderAmount] as const;
-}
 
 export function couponByCodeKey(code: string) {
   return ['coupons', 'byCode', code] as const;
 }
 
 /**
- * Manual-only: validation is a rate-limited POST, so it must run when the
- * shopper presses "Apply" (`refetch()`), never on every keystroke.
+ * Coupon validation is a rate-limited POST — use useMutation so it only runs
+ * when the shopper explicitly presses "Apply". This avoids accidental
+ * background refetches that would consume rate-limit budget.
  */
-export function useValidateCoupon(code: string, orderAmount: number) {
-  return useQuery({
-    queryKey: couponValidationKey(code, orderAmount),
-    queryFn: async () => {
+export function useValidateCoupon() {
+  return useMutation({
+    mutationFn: async ({ code, orderAmount }: { code: string; orderAmount: number }) => {
       return await couponsApi.validateCoupon(code, orderAmount);
     },
-    enabled: false,
-    staleTime: 30_000,
     retry: 1,
   });
 }

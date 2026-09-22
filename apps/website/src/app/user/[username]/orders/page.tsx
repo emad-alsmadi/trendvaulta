@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import {
-  Loader2,
   Receipt,
   ArrowRight,
   ExternalLink,

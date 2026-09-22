@@ -126,7 +126,7 @@ export default function CheckoutPage() {
     ([key]) => !presentKeys.has(key),
   );
 
-  const couponQuery = useValidateCoupon(couponCode, discountedSubtotal);
+  const couponMutation = useValidateCoupon();
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) {
@@ -136,13 +136,13 @@ export default function CheckoutPage() {
 
     setValidatingCoupon(true);
     try {
-      const result = await couponQuery.refetch();
-      if (result.data?.valid && result.data.coupon) {
-        setAppliedCoupon(result.data.coupon);
+      const result = await couponMutation.mutateAsync({ code: couponCode, orderAmount: discountedSubtotal });
+      if (result.valid && result.coupon) {
+        setAppliedCoupon(result.coupon);
         toast('Coupon applied successfully', { variant: 'success' });
         setCouponCode('');
       } else {
-        toast(result.data?.message || 'Invalid coupon code', {
+        toast(result.message || 'Invalid coupon code', {
           variant: 'error',
         });
       }
@@ -648,10 +648,10 @@ export default function CheckoutPage() {
                     {validatingCoupon ? 'Checking...' : 'Apply'}
                   </Button>
                 </div>
-                {couponQuery.error && (
+                {couponMutation.error && (
                   <div className='text-xs font-semibold text-rose-700'>
                     {getUserFacingErrorMessage(
-                      couponQuery.error,
+                      couponMutation.error,
                       'Invalid coupon',
                     )}
                   </div>

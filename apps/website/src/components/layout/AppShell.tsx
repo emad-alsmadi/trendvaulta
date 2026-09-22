@@ -17,7 +17,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const logout = useLogout();
   const confirm = useConfirm();
   const user = meQuery.data?.user || null;
-  const loading = meQuery.isLoading;
   const hydrated = true;
   const currentUsername =
     user?.username || (user?.email ? user.email.split('@')[0] : '');

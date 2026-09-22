@@ -7,7 +7,7 @@ import { Loader2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
-import { useMe, useUpdateProfile } from '@/hooks/auth/authQuery';
+import { useMe, useUpdateProfile, type MeResponse } from '@/hooks/auth/authQuery';
 import { getAuthToken } from '@/lib/authCookies';
 import { buildLoginUrl } from '@/lib/safeRedirect';
 import {
@@ -16,30 +16,40 @@ import {
 } from '@/lib/userFacingError';
 
 /** Edit profile — PUT /api/auth/profile (username, email) */
+type ProfileUser = NonNullable<MeResponse['user']>;
+
 export default function EditProfilePage() {
   const router = useRouter();
   const pathname = usePathname();
-  const { toast } = useToast();
   const meQuery = useMe();
-  const updateProfile = useUpdateProfile();
   const user = meQuery.data?.user || null;
-
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [seeded, setSeeded] = useState(false);
 
   useEffect(() => {
     if (!getAuthToken()) router.replace(buildLoginUrl(pathname));
   }, [router, pathname]);
 
-  // Seed the form once the profile arrives (keeps edits if it refetches).
-  useEffect(() => {
-    if (user && !seeded) {
-      setUsername(user.username || '');
-      setEmail(user.email || '');
-      setSeeded(true);
-    }
-  }, [user, seeded]);
+  if (meQuery.isLoading || (!user && getAuthToken())) {
+    return (
+      <div className='animate-pulse'>
+        <div className='mb-8 h-8 w-48 rounded bg-gray-200' />
+        <div className='h-64 rounded bg-gray-200' />
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
+  // Keyed on the account so the form re-initialises if the user changes.
+  return <EditProfileForm key={user._id ?? user.email} user={user} />;
+}
+
+function EditProfileForm({ user }: { user: ProfileUser }) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const updateProfile = useUpdateProfile();
+
+  const [username, setUsername] = useState(user.username || '');
+  const [email, setEmail] = useState(user.email || '');
 
   const trimmedUsername = username.trim();
   const trimmedEmail = email.trim();
@@ -52,8 +62,8 @@ export default function EditProfilePage() {
       ? 'Enter a valid email address'
       : null;
   const unchanged =
-    trimmedUsername === (user?.username || '') &&
-    trimmedEmail.toLowerCase() === (user?.email || '').toLowerCase();
+    trimmedUsername === (user.username || '') &&
+    trimmedEmail.toLowerCase() === (user.email || '').toLowerCase();
   const canSave =
     !updateProfile.isPending &&
     trimmedUsername.length >= 3 &&
@@ -81,17 +91,6 @@ export default function EditProfilePage() {
       });
     }
   };
-
-  if (meQuery.isLoading || (!user && getAuthToken())) {
-    return (
-      <div className='animate-pulse'>
-        <div className='mb-8 h-8 w-48 rounded bg-gray-200' />
-        <div className='h-64 rounded bg-gray-200' />
-      </div>
-    );
-  }
-
-  if (!user) return null;
 
   const backHref = `/user/${encodeURIComponent(
     user.username || (user.email || '').split('@')[0],

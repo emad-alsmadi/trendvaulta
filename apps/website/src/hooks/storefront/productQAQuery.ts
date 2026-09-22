@@ -1,11 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  productQAApi,
-  type ProductQAItem,
-  type ProductQAResponse,
-} from '@/lib/api';
+import { productQAApi, type ProductQAResponse } from '@/lib/api';
 
 export function productQAKey(productId: string) {
   return ['product-qa', productId] as const;

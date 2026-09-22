@@ -1,30 +1,14 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import {
-  User,
-  ShieldCheck,
-  LogOut,
-  KeyRound,
-  Pencil,
-  Sparkles,
-  Loader2,
-  ExternalLink,
-  Mail,
-} from 'lucide-react';
+import { ShieldCheck, LogOut, KeyRound, Pencil, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useLogout, useMe } from '@/hooks/auth/authQuery';
-import { useToast } from '@/components/ui/Toast';
-import {
-  getUserFacingErrorMessage,
-  logErrorForDev,
-} from '@/lib/userFacingError';
 import { useConfirm } from '@/components/confirm/ConfirmProvider';
 import Link from 'next/link';
 
 export default function UserProfilePage() {
   const router = useRouter();
-  const { toast } = useToast();
   const meQuery = useMe();
   const logout = useLogout();
   const confirm = useConfirm();

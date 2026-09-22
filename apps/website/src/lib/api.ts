@@ -177,7 +177,19 @@ export const productsApi = {
   getProducts: async (
     params: ProductsQuery = {},
   ): Promise<ProductsResponse> => {
-    const { data } = await api.get('/products', { params });
+    // Multi-value facets travel as comma lists (`size=M,L`); the API also
+    // accepts repeated keys. Drop empty values so they never hit the URL.
+    const query: Record<string, string | number | boolean> = {};
+    Object.entries(params).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '') return;
+      if (Array.isArray(value)) {
+        if (value.length) query[key] = value.join(',');
+        return;
+      }
+      if (value === false) return;
+      query[key] = value;
+    });
+    const { data } = await api.get('/products', { params: query });
     return data;
   },
   /**
