@@ -12,6 +12,7 @@ import { ProductFiltersDrawer } from '@/components/products/ProductFiltersDrawer
 import { Pagination } from '@/components/ui/Pagination';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useBrands } from '@/hooks/brands/brandsQuery';
+import type { ProductSort } from '@/types';
 
 /**
  * API Product.category enum: makeup, perfumes, clothing, skincare,
@@ -32,14 +33,35 @@ function normalizeCategoryParam(value: string | null): string | undefined {
   return CATEGORY_ALIASES[key] ?? key;
 }
 
-const sortOptions = [
-  { value: 'createdAt', label: 'Featured' },
+const DEFAULT_SORT: ProductSort = 'featured';
+
+const sortOptions: { value: ProductSort; label: string }[] = [
+  { value: 'featured', label: 'Featured' },
   { value: 'bestselling', label: 'Best Sellers' },
-  { value: 'price', label: 'Price: Low to High' },
-  { value: '-price', label: 'Price: High to Low' },
-  { value: '-averageRating', label: 'Avg. Customer Review' },
-  { value: '-createdAt', label: 'Newest Arrivals' },
+  { value: 'price_asc', label: 'Price: Low to High' },
+  { value: 'price_desc', label: 'Price: High to Low' },
+  { value: 'rating', label: 'Avg. Customer Review' },
+  { value: 'newest', label: 'Newest Arrivals' },
 ];
+
+/** Older links used raw field sorts — map them onto the API presets. */
+const LEGACY_SORT: Record<string, ProductSort> = {
+  createdAt: 'featured',
+  '-createdAt': 'newest',
+  price: 'price_asc',
+  '-price': 'price_desc',
+  '-averageRating': 'rating',
+};
+
+function normalizeSortParam(value: string | null): ProductSort {
+  if (!value) return DEFAULT_SORT;
+  if (LEGACY_SORT[value]) return LEGACY_SORT[value];
+  return sortOptions.some((o) => o.value === value) ? value : DEFAULT_SORT;
+}
+
+function listParam(value: string | null): string[] {
+  return value ? value.split(',').map((v) => v.trim()).filter(Boolean) : [];
+}
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -58,20 +80,24 @@ export default function ProductsPage() {
   const category = normalizeCategoryParam(searchParams.get('category'));
   const subcategory = searchParams.get('subcategory') || undefined;
   const qParam = searchParams.get('q') || '';
-  const sortBy = searchParams.get('sort') || 'createdAt';
+  const sortBy = normalizeSortParam(searchParams.get('sort'));
   const minPrice = searchParams.get('minPrice') || undefined;
   const maxPrice = searchParams.get('maxPrice') || undefined;
-  const minRatingParam = searchParams.get('minRating');
-  const minRating = minRatingParam ? Number(minRatingParam) : null;
+  const minRatingParam = Number(searchParams.get('minRating'));
+  const minRating =
+    Number.isFinite(minRatingParam) && minRatingParam > 0
+      ? minRatingParam
+      : null;
   const pageParam = Number(searchParams.get('page') || '1');
   const currentPage = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
   const sizeParam = searchParams.get('size');
   const colorParam = searchParams.get('color');
-  const selectedSizes = sizeParam ? sizeParam.split(',').filter(Boolean) : [];
-  const selectedColors = colorParam ? colorParam.split(',').filter(Boolean) : [];
-  const inStockOnly = searchParams.get('inStock') === '1';
-  const onSaleOnly = searchParams.get('onSale') === '1';
-  const brandParam = searchParams.get('brand') || '';
+  const brandParam = searchParams.get('brand');
+  const selectedSizes = useMemo(() => listParam(sizeParam), [sizeParam]);
+  const selectedColors = useMemo(() => listParam(colorParam), [colorParam]);
+  const selectedBrands = useMemo(() => listParam(brandParam), [brandParam]);
+  const inStockOnly = ['1', 'true'].includes(searchParams.get('inStock') || '');
+  const onSaleOnly = ['1', 'true'].includes(searchParams.get('onSale') || '');
 
   const [searchInput, setSearchInput] = useState(qParam);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -113,8 +139,14 @@ export default function ProductsPage() {
       q: qParam || undefined,
       minPrice: minPrice ? Number(minPrice) : undefined,
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
-      // Brand is a server-side filter (brand=<id>)
-      brand: brandParam || undefined,
+      brand: selectedBrands.length ? selectedBrands : undefined,
+      size: selectedSizes.length ? selectedSizes : undefined,
+      color: selectedColors.length ? selectedColors : undefined,
+      minRating: minRating ?? undefined,
+      inStock: inStockOnly || undefined,
+      onSale: onSaleOnly || undefined,
+      // Facet counts drive the sidebar; only the PLP pays for the aggregation
+      facets: true,
     }),
     [
       currentPage,
@@ -125,13 +157,17 @@ export default function ProductsPage() {
       qParam,
       minPrice,
       maxPrice,
-      brandParam,
+      selectedBrands,
+      selectedSizes,
+      selectedColors,
+      minRating,
+      inStockOnly,
+      onSaleOnly,
     ],
   );
 
+  // Fallback brand names for chips when facets are not loaded yet
   const { data: brands = [] } = useBrands();
-  const brandName =
-    brands.find((b) => b._id === brandParam)?.name || brandParam;
 
   const {
     data: response,
@@ -143,55 +179,15 @@ export default function ProductsPage() {
 
   const products = response?.data || [];
   const meta = response?.meta || { total: 0, page: 1, pages: 1, limit };
+  const facets = response?.meta?.facets;
 
-  /**
-   * DEMO client facets for rating / size / color (not backend-backed).
-   * Price + search + category already go through the API.
-   * TODO(api): server-side facet counts + variant filters
-   */
-  const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
-      if (minRating != null && !Number.isNaN(minRating)) {
-        if ((product.averageRating || 0) < minRating) return false;
-      }
-      if (inStockOnly && product.stock !== undefined && product.stock <= 0) {
-        return false;
-      }
-      if (onSaleOnly) {
-        const onSale =
-          typeof product.basePrice === 'number' &&
-          product.basePrice > product.price;
-        if (!onSale) return false;
-      }
-      if (selectedSizes.length > 0) {
-        const sizes = (product.variants || [])
-          .map((v) => v.size)
-          .filter(Boolean) as string[];
-        if (sizes.length > 0 && !selectedSizes.some((s) => sizes.includes(s))) {
-          return false;
-        }
-      }
-      if (selectedColors.length > 0) {
-        const colors = (product.variants || [])
-          .map((v) => v.color)
-          .filter(Boolean) as string[];
-        if (
-          colors.length > 0 &&
-          !selectedColors.some((c) => colors.includes(c))
-        ) {
-          return false;
-        }
-      }
-      return true;
-    });
-  }, [
-    products,
-    minRating,
-    inStockOnly,
-    onSaleOnly,
-    selectedSizes,
-    selectedColors,
-  ]);
+  const brandLabel = useCallback(
+    (id: string) =>
+      facets?.brands.find((b) => b._id === id)?.name ||
+      brands.find((b) => b._id === id)?.name ||
+      'Brand',
+    [facets, brands],
+  );
 
   const activeChips = useMemo(() => {
     const chips: { key: string; label: string; clear: () => void }[] = [];
@@ -235,7 +231,7 @@ export default function ProductsPage() {
     if (minRating != null && !Number.isNaN(minRating)) {
       chips.push({
         key: 'rating',
-        label: `${minRating}★ & up (demo)`,
+        label: `${minRating}★ & up`,
         clear: () =>
           replaceParams((p) => {
             p.delete('minRating');
@@ -246,7 +242,7 @@ export default function ProductsPage() {
     if (inStockOnly) {
       chips.push({
         key: 'inStock',
-        label: 'In stock (demo)',
+        label: 'In stock',
         clear: () =>
           replaceParams((p) => {
             p.delete('inStock');
@@ -257,7 +253,7 @@ export default function ProductsPage() {
     if (onSaleOnly) {
       chips.push({
         key: 'onSale',
-        label: 'On sale (demo)',
+        label: 'On sale',
         clear: () =>
           replaceParams((p) => {
             p.delete('onSale');
@@ -265,21 +261,23 @@ export default function ProductsPage() {
           }),
       });
     }
-    if (brandParam) {
+    selectedBrands.forEach((id) => {
       chips.push({
-        key: 'brand',
-        label: `Brand: ${brandName}`,
+        key: `brand-${id}`,
+        label: `Brand: ${brandLabel(id)}`,
         clear: () =>
           replaceParams((p) => {
-            p.delete('brand');
+            const next = selectedBrands.filter((b) => b !== id);
+            if (next.length) p.set('brand', next.join(','));
+            else p.delete('brand');
             p.delete('page');
           }),
       });
-    }
+    });
     selectedSizes.forEach((size) => {
       chips.push({
         key: `size-${size}`,
-        label: `Size: ${size} (demo)`,
+        label: `Size: ${size}`,
         clear: () =>
           replaceParams((p) => {
             const next = selectedSizes.filter((s) => s !== size);
@@ -292,7 +290,7 @@ export default function ProductsPage() {
     selectedColors.forEach((color) => {
       chips.push({
         key: `color-${color}`,
-        label: `Color: ${color} (demo)`,
+        label: `Color: ${color}`,
         clear: () =>
           replaceParams((p) => {
             const next = selectedColors.filter((c) => c !== color);
@@ -312,8 +310,8 @@ export default function ProductsPage() {
     minRating,
     inStockOnly,
     onSaleOnly,
-    brandParam,
-    brandName,
+    selectedBrands,
+    brandLabel,
     selectedSizes,
     selectedColors,
     replaceParams,
@@ -329,7 +327,7 @@ export default function ProductsPage() {
 
   const handleSortChange = (value: string) => {
     replaceParams((params) => {
-      if (value === 'createdAt') params.delete('sort');
+      if (value === DEFAULT_SORT) params.delete('sort');
       else params.set('sort', value);
       params.delete('page');
     });
@@ -346,13 +344,14 @@ export default function ProductsPage() {
       <div className='mx-auto max-w-[1400px] px-4 py-8 sm:px-6 lg:px-8'>
         <div className='flex gap-8'>
           <div className='hidden lg:block'>
-            <CategorySidebar />
+            <CategorySidebar facets={facets} />
           </div>
 
           <ProductFiltersDrawer
             open={filtersOpen}
             onClose={() => setFiltersOpen(false)}
             activeCount={activeChips.length}
+            facets={facets}
           />
 
           <div className='min-w-0 flex-1'>
@@ -478,16 +477,6 @@ export default function ProductsPage() {
               {isFetching && response ? (
                 <span className='text-xs text-stone-400'>Updating…</span>
               ) : null}
-              {(minRating != null ||
-                inStockOnly ||
-                onSaleOnly ||
-                !!brandParam ||
-                selectedSizes.length > 0 ||
-                selectedColors.length > 0) && (
-                <span className='rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800'>
-                  Demo facets applied on this page
-                </span>
-              )}
             </div>
 
             {isLoading && !response ? (
@@ -510,10 +499,10 @@ export default function ProductsPage() {
                   Retry
                 </Button>
               </div>
-            ) : filteredProducts.length > 0 ? (
+            ) : products.length > 0 ? (
               <>
                 <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
-                  {filteredProducts.map((product) => (
+                  {products.map((product) => (
                     <ProductCard
                       key={product._id}
                       product={product}

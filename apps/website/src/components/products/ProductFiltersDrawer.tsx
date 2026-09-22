@@ -4,12 +4,15 @@ import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { CategorySidebar } from '@/components/products/CategorySidebar';
+import type { ProductFacets } from '@/types';
 
 type Props = {
   open: boolean;
   onClose: () => void;
   /** Active filter chip count for footer copy */
   activeCount?: number;
+  /** Facet counts from the products query (passed through to the sidebar) */
+  facets?: ProductFacets;
 };
 
 /**
@@ -20,6 +23,7 @@ export function ProductFiltersDrawer({
   open,
   onClose,
   activeCount = 0,
+  facets,
 }: Props) {
   useEffect(() => {
     if (!open) return;
@@ -61,7 +65,7 @@ export function ProductFiltersDrawer({
             </p>
             <p className='text-[11px] font-semibold text-stone-500'>
               {activeCount > 0
-                ? `${activeCount} active · some facets are demo-only`
+                ? `${activeCount} active`
                 : 'Refine by category, price, and more'}
             </p>
           </div>
@@ -79,6 +83,7 @@ export function ProductFiltersDrawer({
           <CategorySidebar
             variant='drawer'
             onAfterNavigate={onClose}
+            facets={facets}
           />
         </div>
 

@@ -5,6 +5,7 @@ import { ChevronRight, X, ChevronDown, ChevronUp, Star } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useBrands } from '@/hooks/brands/brandsQuery';
+import type { ProductFacets } from '@/types';
 
 const categories = [
   {
@@ -108,8 +109,9 @@ const pricePresets = [
   { label: '$100+', min: '100', max: '' },
 ];
 
-const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-const colors = [
+/** Fallbacks shown until `meta.facets` arrives from GET /api/products?facets=true */
+const defaultSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+const defaultColors = [
   { name: 'Black', code: '#000000' },
   { name: 'White', code: '#FFFFFF' },
   { name: 'Red', code: '#EF4444' },
@@ -132,11 +134,31 @@ type Props = {
   onAfterNavigate?: () => void;
   /** `drawer` drops sticky positioning for mobile sheet */
   variant?: 'sidebar' | 'drawer';
+  /** Disjunctive counts from `meta.facets` (undefined until first load) */
+  facets?: ProductFacets;
 };
+
+function listParam(value: string | null): string[] {
+  return value ? value.split(',').map((v) => v.trim()).filter(Boolean) : [];
+}
+
+function toggleValue(list: string[], value: string): string[] {
+  return list.includes(value)
+    ? list.filter((v) => v !== value)
+    : [...list, value];
+}
+
+function Count({ value }: { value?: number }) {
+  if (value === undefined) return null;
+  return (
+    <span className='ml-1 text-xs tabular-nums text-stone-400'>({value})</span>
+  );
+}
 
 export function CategorySidebar({
   onAfterNavigate,
   variant = 'sidebar',
+  facets,
 }: Props) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -145,17 +167,37 @@ export function CategorySidebar({
   const urlMin = searchParams.get('minPrice');
   const urlMax = searchParams.get('maxPrice');
   const urlRating = searchParams.get('minRating');
-  const urlInStock = searchParams.get('inStock') === '1';
-  const urlOnSale = searchParams.get('onSale') === '1';
-  const urlBrand = searchParams.get('brand') || '';
-  // GET /api/brands — filter value is the brand _id (server-side filter)
-  const { data: brands = [], isLoading: brandsLoading } = useBrands();
-  const urlSizes = (searchParams.get('size') || '')
-    .split(',')
-    .filter(Boolean);
-  const urlColors = (searchParams.get('color') || '')
-    .split(',')
-    .filter(Boolean);
+  const urlInStock = ['1', 'true'].includes(searchParams.get('inStock') || '');
+  const urlOnSale = ['1', 'true'].includes(searchParams.get('onSale') || '');
+  const urlBrands = listParam(searchParams.get('brand'));
+  const urlSizes = listParam(searchParams.get('size'));
+  const urlColors = listParam(searchParams.get('color'));
+
+  // Brand options: facet counts when loaded, else GET /api/brands (no counts).
+  // Filter value is always the brand _id (server-side `brand=` filter).
+  const { data: allBrands = [], isLoading: brandsLoading } = useBrands();
+  const brandOptions = facets
+    ? facets.brands.map((b) => ({ _id: b._id, name: b.name, count: b.count }))
+    : allBrands.map((b) => ({ _id: b._id, name: b.name, count: undefined }));
+  const sizeOptions = facets
+    ? facets.sizes.map((s) => ({ value: s.value, count: s.count }))
+    : defaultSizes.map((value) => ({ value, count: undefined }));
+  const colorOptions = facets
+    ? facets.colors.map((c) => ({
+        name: c.value,
+        code: c.colorCode || undefined,
+        count: c.count,
+      }))
+    : defaultColors.map((c) => ({ ...c, count: undefined }));
+  const ratingCount = (value: number) =>
+    facets?.ratings.find((r) => r.value === value)?.count;
+  const categoryCount = (value: string) =>
+    facets?.categories.find((c) => c.value === value)?.count;
+  const subcategoryCount = (value: string) =>
+    facets?.subcategories.find((c) => c.value === value)?.count;
+  /** Zero-count options are disabled unless already selected (so they can be cleared). */
+  const isDisabled = (count: number | undefined, selected: boolean) =>
+    count === 0 && !selected;
 
   // priceMin/priceMax are draft input values the user edits before clicking
   // "Apply" — they must reset to the URL's value whenever it changes from
@@ -199,23 +241,13 @@ export function CategorySidebar({
     onAfterNavigate?.();
   };
 
-  const toggleSize = (size: string) => {
+  const toggleListParam = (key: 'size' | 'color' | 'brand', value: string) => {
+    const current =
+      key === 'size' ? urlSizes : key === 'color' ? urlColors : urlBrands;
     pushParams((params) => {
-      const next = urlSizes.includes(size)
-        ? urlSizes.filter((s) => s !== size)
-        : [...urlSizes, size];
-      if (next.length) params.set('size', next.join(','));
-      else params.delete('size');
-    });
-  };
-
-  const toggleColor = (color: string) => {
-    pushParams((params) => {
-      const next = urlColors.includes(color)
-        ? urlColors.filter((c) => c !== color)
-        : [...urlColors, color];
-      if (next.length) params.set('color', next.join(','));
-      else params.delete('color');
+      const next = toggleValue(current, value);
+      if (next.length) params.set(key, next.join(','));
+      else params.delete(key);
     });
   };
 
@@ -262,14 +294,6 @@ export function CategorySidebar({
     });
   };
 
-  const setBrand = (brand: string) => {
-    pushParams((params) => {
-      if (brand && params.get('brand') !== brand) params.set('brand', brand);
-      else params.delete('brand');
-      params.delete('page');
-    });
-  };
-
   const hasActiveFilters = Boolean(
     currentCategory ||
       urlMin ||
@@ -277,7 +301,7 @@ export function CategorySidebar({
       urlRating ||
       urlInStock ||
       urlOnSale ||
-      urlBrand ||
+      urlBrands.length ||
       urlSizes.length ||
       urlColors.length,
   );
@@ -372,7 +396,10 @@ export function CategorySidebar({
                         : 'text-stone-700 hover:bg-stone-50'
                     }`}
                   >
-                    <span>{category.name}</span>
+                    <span>
+                      {category.name}
+                      <Count value={categoryCount(category.slug)} />
+                    </span>
                     <ChevronRight className='h-4 w-4' />
                   </Link>
 
@@ -390,6 +417,7 @@ export function CategorySidebar({
                           }`}
                         >
                           {sub.replace(/-/g, ' ')}
+                          <Count value={subcategoryCount(sub)} />
                         </Link>
                       ))}
                     </div>
@@ -414,17 +442,14 @@ export function CategorySidebar({
           )}
         </div>
 
-        {/* Availability + deals — DEMO client flags */}
+        {/* Availability + deals — API flags (inStock / onSale) */}
         <div className='mb-4 border-b border-stone-100 pb-4'>
           <button
             type='button'
             onClick={() => toggleSection('availability')}
             className='mb-3 flex w-full items-center justify-between'
           >
-            <h4 className='text-sm font-semibold text-stone-900'>
-              Availability{' '}
-              <span className='font-normal text-stone-400'>(demo)</span>
-            </h4>
+            <h4 className='text-sm font-semibold text-stone-900'>Availability</h4>
             {expandedSections.availability ? (
               <ChevronUp className='h-4 w-4 text-stone-500' />
             ) : (
@@ -438,24 +463,32 @@ export function CategorySidebar({
                   type='checkbox'
                   className='h-4 w-4 rounded border-stone-300 text-fuchsia-600 focus:ring-fuchsia-500'
                   checked={urlInStock}
+                  disabled={isDisabled(facets?.inStock, urlInStock)}
                   onChange={(e) => toggleFlag('inStock', e.target.checked)}
                 />
-                In stock only
+                <span>
+                  In stock only
+                  <Count value={facets?.inStock} />
+                </span>
               </label>
               <label className='flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-stone-700 hover:bg-stone-50'>
                 <input
                   type='checkbox'
                   className='h-4 w-4 rounded border-stone-300 text-fuchsia-600 focus:ring-fuchsia-500'
                   checked={urlOnSale}
+                  disabled={isDisabled(facets?.onSale, urlOnSale)}
                   onChange={(e) => toggleFlag('onSale', e.target.checked)}
                 />
-                On sale
+                <span>
+                  On sale
+                  <Count value={facets?.onSale} />
+                </span>
               </label>
             </div>
           )}
         </div>
 
-        {/* Brands — API-backed (brand=<id>) */}
+        {/* Brands — API-backed multi-select (brand=<id>,<id>) */}
         <div className='mb-4 border-b border-stone-100 pb-4'>
           <button
             type='button'
@@ -472,33 +505,41 @@ export function CategorySidebar({
             )}
           </button>
           {expandedSections.brands && (
-            <ul className='space-y-1'>
-              {brandsLoading && brands.length === 0 && (
+            <ul className='max-h-64 space-y-1 overflow-y-auto'>
+              {!facets && brandsLoading && brandOptions.length === 0 && (
                 <li className='px-3 py-2 text-sm text-stone-400'>
                   Loading brands…
                 </li>
               )}
-              {!brandsLoading && brands.length === 0 && (
+              {(facets || !brandsLoading) && brandOptions.length === 0 && (
                 <li className='px-3 py-2 text-sm text-stone-400'>
                   No brands yet
                 </li>
               )}
-              {brands.map((brand) => (
-                <li key={brand._id}>
-                  <button
-                    type='button'
-                    onClick={() => setBrand(brand._id)}
-                    aria-pressed={urlBrand === brand._id}
-                    className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
-                      urlBrand === brand._id
-                        ? 'bg-fuchsia-50 font-medium text-fuchsia-700'
-                        : 'text-stone-700 hover:bg-stone-50'
-                    }`}
-                  >
-                    {brand.name}
-                  </button>
-                </li>
-              ))}
+              {brandOptions.map((brand) => {
+                const selected = urlBrands.includes(brand._id);
+                return (
+                  <li key={brand._id}>
+                    <label
+                      className={`flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
+                        selected
+                          ? 'bg-fuchsia-50 font-medium text-fuchsia-700'
+                          : 'text-stone-700 hover:bg-stone-50'
+                      } ${isDisabled(brand.count, selected) ? 'cursor-not-allowed opacity-50' : ''}`}
+                    >
+                      <input
+                        type='checkbox'
+                        className='h-4 w-4 rounded border-stone-300 text-fuchsia-600 focus:ring-fuchsia-500'
+                        checked={selected}
+                        disabled={isDisabled(brand.count, selected)}
+                        onChange={() => toggleListParam('brand', brand._id)}
+                      />
+                      <span className='min-w-0 flex-1 truncate'>{brand.name}</span>
+                      <Count value={brand.count} />
+                    </label>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
@@ -582,17 +623,14 @@ export function CategorySidebar({
           )}
         </div>
 
-        {/* Size — DEMO client facet */}
+        {/* Size — API facet (variants.size) */}
         <div className='mb-4 border-b border-stone-100 pb-4'>
           <button
             type='button'
             onClick={() => toggleSection('size')}
             className='mb-3 flex w-full items-center justify-between'
           >
-            <h4 className='text-sm font-semibold text-stone-900'>
-              Size{' '}
-              <span className='font-normal text-stone-400'>(demo)</span>
-            </h4>
+            <h4 className='text-sm font-semibold text-stone-900'>Size</h4>
             {expandedSections.size ? (
               <ChevronUp className='h-4 w-4 text-stone-500' />
             ) : (
@@ -602,35 +640,41 @@ export function CategorySidebar({
 
           {expandedSections.size && (
             <div className='flex flex-wrap gap-2'>
-              {sizes.map((size) => (
-                <button
-                  key={size}
-                  type='button'
-                  onClick={() => toggleSize(size)}
-                  className={`rounded-lg border px-4 py-2 text-sm transition-all ${
-                    urlSizes.includes(size)
-                      ? 'border-fuchsia-600 bg-fuchsia-50 font-medium text-fuchsia-700'
-                      : 'border-stone-300 text-stone-700 hover:border-stone-400'
-                  }`}
-                >
-                  {size}
-                </button>
-              ))}
+              {sizeOptions.length === 0 && (
+                <p className='px-1 text-sm text-stone-400'>No sizes here</p>
+              )}
+              {sizeOptions.map((size) => {
+                const selected = urlSizes.includes(size.value);
+                return (
+                  <button
+                    key={size.value}
+                    type='button'
+                    onClick={() => toggleListParam('size', size.value)}
+                    aria-pressed={selected}
+                    disabled={isDisabled(size.count, selected)}
+                    className={`rounded-lg border px-3 py-2 text-sm transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
+                      selected
+                        ? 'border-fuchsia-600 bg-fuchsia-50 font-medium text-fuchsia-700'
+                        : 'border-stone-300 text-stone-700 hover:border-stone-400'
+                    }`}
+                  >
+                    {size.value}
+                    <Count value={size.count} />
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* Color — DEMO client facet */}
+        {/* Color — API facet (variants.color, case-insensitive) */}
         <div className='mb-4 border-b border-stone-100 pb-4'>
           <button
             type='button'
             onClick={() => toggleSection('color')}
             className='mb-3 flex w-full items-center justify-between'
           >
-            <h4 className='text-sm font-semibold text-stone-900'>
-              Color{' '}
-              <span className='font-normal text-stone-400'>(demo)</span>
-            </h4>
+            <h4 className='text-sm font-semibold text-stone-900'>Color</h4>
             {expandedSections.color ? (
               <ChevronUp className='h-4 w-4 text-stone-500' />
             ) : (
@@ -640,26 +684,42 @@ export function CategorySidebar({
 
           {expandedSections.color && (
             <div className='flex flex-wrap gap-3'>
-              {colors.map((color) => (
-                <button
-                  key={color.name}
-                  type='button'
-                  onClick={() => toggleColor(color.name)}
-                  className={`h-7 w-7 rounded-full border-2 transition-all hover:scale-110 ${
-                    urlColors.includes(color.name)
-                      ? 'border-fuchsia-600 ring-2 ring-fuchsia-200'
-                      : 'border-stone-300 hover:border-stone-400'
-                  }`}
-                  style={{ backgroundColor: color.code }}
-                  title={color.name}
-                  aria-label={`Filter by ${color.name}`}
-                />
-              ))}
+              {colorOptions.length === 0 && (
+                <p className='px-1 text-sm text-stone-400'>No colors here</p>
+              )}
+              {colorOptions.map((color) => {
+                const selected = urlColors.some(
+                  (c) => c.toLowerCase() === color.name.toLowerCase(),
+                );
+                const title =
+                  color.count === undefined
+                    ? color.name
+                    : `${color.name} (${color.count})`;
+                return (
+                  <button
+                    key={color.name}
+                    type='button'
+                    onClick={() => toggleListParam('color', color.name)}
+                    aria-pressed={selected}
+                    disabled={isDisabled(color.count, selected)}
+                    className={`h-7 w-7 rounded-full border-2 transition-all hover:scale-110 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100 ${
+                      selected
+                        ? 'border-fuchsia-600 ring-2 ring-fuchsia-200'
+                        : 'border-stone-300 hover:border-stone-400'
+                    }`}
+                    style={{
+                      backgroundColor: color.code || '#d6d3d1',
+                    }}
+                    title={title}
+                    aria-label={`Filter by ${title}`}
+                  />
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* Rating — DEMO client facet */}
+        {/* Rating — API filter (minRating), single choice */}
         <div>
           <button
             type='button'
@@ -667,8 +727,7 @@ export function CategorySidebar({
             className='mb-3 flex w-full items-center justify-between'
           >
             <h4 className='text-sm font-semibold text-stone-900'>
-              Customer rating{' '}
-              <span className='font-normal text-stone-400'>(demo)</span>
+              Customer rating
             </h4>
             {expandedSections.rating ? (
               <ChevronUp className='h-4 w-4 text-stone-500' />
@@ -678,14 +737,20 @@ export function CategorySidebar({
           </button>
 
           {expandedSections.rating && (
-            <div className='space-y-2'>
-              {ratings.map((rating) => (
+            <div className='space-y-2' role='radiogroup' aria-label='Customer rating'>
+              {ratings.map((rating) => {
+                const selected = urlRating === String(rating.value);
+                const count = ratingCount(rating.value);
+                return (
                 <button
                   key={rating.value}
                   type='button'
+                  role='radio'
+                  aria-checked={selected}
                   onClick={() => setRating(rating.value)}
-                  className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
-                    urlRating === String(rating.value)
+                  disabled={isDisabled(count, selected)}
+                  className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                    selected
                       ? 'bg-fuchsia-50 text-fuchsia-700'
                       : 'text-stone-700 hover:bg-stone-50'
                   }`}
@@ -703,8 +768,10 @@ export function CategorySidebar({
                     ))}
                   </div>
                   <span>& Up</span>
+                  <Count value={count} />
                 </button>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

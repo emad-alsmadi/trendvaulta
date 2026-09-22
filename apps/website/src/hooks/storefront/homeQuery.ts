@@ -5,6 +5,7 @@ import {
   storefrontHomeApi,
   type StorefrontHomeModule,
   type StorefrontModule,
+  type StorefrontTrustItem,
 } from '@/lib/api';
 import { useStorefrontModules } from './storefrontModulesQuery';
 import type { DemoHeroSlide } from '@/data/demoStorefront';
@@ -85,7 +86,7 @@ function convertModuleToLegacy(mod: StorefrontModule): StorefrontHomeModule {
     limit: mod.limit,
     sort: undefined,
     slides: mod.slides,
-    items: mod.trustItems || (mod.items as any),
+    items: mod.trustItems || (mod.items as StorefrontTrustItem[] | undefined),
   };
 }
 

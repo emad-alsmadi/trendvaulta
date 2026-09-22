@@ -6,124 +6,88 @@ const {
   resolveProductBadges,
 } = require('../models/Product');
 const { parsePagination } = require('../utils/pagination');
-const { normalizeSearchTerm } = require('../utils/search');
+const {
+  validateProductListQuery,
+  isTruthyFlag,
+  buildProductMatch,
+  buildProductSort,
+  buildFacetPipeline,
+  normalizeFacets,
+} = require('../utils/productQuery');
 
 /**
- * Get all products with filtering, sorting and pagination.
+ * Get all products with filtering, sorting, facets and pagination.
  *
- * Supported query params:
+ * Supported query params (all optional, combinable):
  * - q: search term in title/description
  * - minPrice/maxPrice: price range
- * - category: product category
- * - subcategory: product subcategory
- * - brand: brand id
+ * - category / subcategory
+ * - brand: brand id — single, comma-separated or repeated (`?brand=a&brand=b`)
+ * - size / color: variant facets — comma-separated or repeated
+ *   (color matches `variants.color` case-insensitively)
+ * - minRating: 0–5 → averageRating >= value
+ * - inStock: `true` → stock > 0 on the product or any variant
+ * - onSale: `true` → basePrice > price
  * - page/limit: pagination
- * - sort: comma-separated fields, prefix with '-' for desc;
- *   use `bestselling` for salesCount desc (then reviewCount, createdAt)
+ * - sort: preset `newest` | `price_asc` | `price_desc` | `rating` |
+ *   `bestselling` | `featured`, or legacy comma-separated fields with a
+ *   `-` prefix for desc (`-price`, `createdAt`)
  * - featured: show only featured products (`true`)
+ * - facets: `true` → adds `meta.facets` (disjunctive counts over the base
+ *   match: category/subcategory/q/active/price, without brand/size/color/
+ *   rating/stock/sale filters)
  * - includeInactive: admin/moderator only — include inactive products
  * - isActive: admin/moderator only — filter by active flag (true|false)
  *
  * Product payloads include `badges`: curated + computed
  * (`bestseller` from featured/salesCount, `lowStock`, `new`).
  *
+ * Malformed numeric params return 400; unknown facet values are ignored.
+ *
  * @route GET /api/products
  * @access Public (staff filters require Bearer token)
  * @param {import('express').Request} req
  * @param {import('express').Response} res
- * @returns {Promise<void>} JSON containing data and meta
+ * @returns {Promise<void>} JSON containing data and meta (+ meta.facets)
  */
 const getAllProducts = asyncHandler(async (req, res) => {
-  const {
-    q,
-    minPrice,
-    maxPrice,
-    category,
-    subcategory,
-    brand,
-    page = 1,
-    limit = 12,
-    sort = 'createdAt',
-    featured,
-    includeInactive,
-    isActive,
-  } = req.query;
+  const { value: query, error } = validateProductListQuery(req.query);
+  if (error) {
+    return res.status(400).json({ message: error });
+  }
 
   const isStaff =
     Array.isArray(req.user?.roles) &&
     req.user.roles.some((r) => r === 'admin' || r === 'moderator');
 
-  const query = {};
-  if (isStaff && (includeInactive === 'true' || includeInactive === '1')) {
-    if (isActive === 'true' || isActive === 'false') {
-      query.isActive = isActive === 'true';
-    }
-  } else {
-    query.isActive = true;
-  }
-
-  if (minPrice || maxPrice) {
-    query.price = {};
-    if (minPrice) query.price.$gte = Number(minPrice);
-    if (maxPrice) query.price.$lte = Number(maxPrice);
-  }
-  
-  if (category) {
-    query.category = category;
-  }
-  
-  if (subcategory) {
-    query.subcategory = subcategory;
-  }
-  
-  if (brand) {
-    query.brand = brand;
-  }
-  
-  if (featured === 'true') {
-    query.featured = true;
-  }
-  
-  const searchTerm = normalizeSearchTerm(q);
-  if (searchTerm) {
-    query.$or = [
-      { title: { $regex: searchTerm, $options: 'i' } },
-      { description: { $regex: searchTerm, $options: 'i' } },
-    ];
-  }
-
-  const sortObj = {};
-  const sortFields = String(sort).split(',').map((f) => f.trim()).filter(Boolean);
-  if (sortFields.length === 1 && sortFields[0] === 'bestselling') {
-    sortObj.salesCount = -1;
-    sortObj.reviewCount = -1;
-    sortObj.createdAt = -1;
-  } else {
-    sortFields.forEach((field) => {
-      const direction = field.startsWith('-') ? -1 : 1;
-      const fieldName = field.replace(/^-/, '');
-      if (fieldName === 'bestselling') {
-        sortObj.salesCount = -1;
-        return;
-      }
-      sortObj[fieldName] = direction;
-    });
-  }
+  const match = buildProductMatch(query, { isStaff });
+  const sortObj = buildProductSort(query.sort);
+  const wantFacets = isTruthyFlag(query.facets);
 
   const {
     page: pageNum,
     limit: limitNum,
     skip,
-  } = parsePagination({ page, limit }, { defaultLimit: 12, maxLimit: 100 });
+  } = parsePagination(
+    { page: query.page, limit: query.limit },
+    { defaultLimit: 12, maxLimit: 100 },
+  );
 
-  const [products, total] = await Promise.all([
-    Product.find(query)
+  const [products, total, facetRows] = await Promise.all([
+    Product.find(match)
       .populate('brand', ['name', 'slug', 'logo'])
       .sort(sortObj)
       .skip(skip)
       .limit(limitNum)
       .lean(),
-    Product.countDocuments(query),
+    Product.countDocuments(match),
+    wantFacets
+      ? Product.aggregate(
+          buildFacetPipeline(
+            buildProductMatch(query, { isStaff, withFacetFilters: false }),
+          ),
+        )
+      : Promise.resolve(null),
   ]);
 
   const pages = Math.ceil(total / limitNum);
@@ -132,15 +96,17 @@ const getAllProducts = asyncHandler(async (req, res) => {
     badges: resolveProductBadges(product),
   }));
 
-  res.status(200).json({
-    data,
-    meta: {
-      total,
-      page: pageNum,
-      pages,
-      limit: limitNum,
-    },
-  });
+  const meta = {
+    total,
+    page: pageNum,
+    pages,
+    limit: limitNum,
+  };
+  if (wantFacets) {
+    meta.facets = normalizeFacets(facetRows?.[0]);
+  }
+
+  res.status(200).json({ data, meta });
 });
 
 /**
