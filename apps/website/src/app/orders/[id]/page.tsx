@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, Loader2, Package } from 'lucide-react';
 import { useOrderById } from '@/hooks/orders/ordersQuery';
@@ -12,13 +13,21 @@ import { formatVariantLabel } from '@/lib/cartStore';
 export default function OrderDetailPage() {
   const params = useParams();
   const id = typeof params?.id === 'string' ? params.id : '';
-  const { data: order, isLoading, error, refetch } = useOrderById(id || undefined);
+  const {
+    data: order,
+    isLoading,
+    error,
+    refetch,
+  } = useOrderById(id || undefined);
 
   if (!id) {
     return (
       <div className='rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-900'>
         Missing order id.{' '}
-        <Link href='/orders' className='font-bold underline'>
+        <Link
+          href='/orders'
+          className='font-bold underline'
+        >
           Back to orders
         </Link>
       </div>
@@ -37,7 +46,11 @@ export default function OrderDetailPage() {
     return (
       <div className='rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center text-rose-900'>
         <p className='font-semibold'>Couldn’t load this order.</p>
-        <Button type='button' className='mt-4' onClick={() => void refetch()}>
+        <Button
+          type='button'
+          className='mt-4'
+          onClick={() => void refetch()}
+        >
           Retry
         </Button>
       </div>
@@ -53,7 +66,10 @@ export default function OrderDetailPage() {
           href='/orders'
           className='inline-flex items-center gap-2 text-sm font-bold text-stone-700 hover:text-stone-900'
         >
-          <ArrowLeft className='h-4 w-4' aria-hidden />
+          <ArrowLeft
+            className='h-4 w-4'
+            aria-hidden
+          />
           All orders
         </Link>
         <Link
@@ -66,7 +82,10 @@ export default function OrderDetailPage() {
 
       <header className='rounded-2xl border border-stone-200 bg-white p-6'>
         <div className='inline-flex items-center gap-2 rounded-full bg-stone-100 px-3 py-1 text-xs font-extrabold text-stone-700'>
-          <Package className='h-3.5 w-3.5' aria-hidden />
+          <Package
+            className='h-3.5 w-3.5'
+            aria-hidden
+          />
           Order #{shortId}
         </div>
         <h1 className='mt-3 text-2xl font-extrabold text-stone-900 sm:text-3xl'>
@@ -90,10 +109,12 @@ export default function OrderDetailPage() {
               key={`${item.productId}-${item.variant?.sku ?? ''}-${item.variant?.size ?? ''}-${item.variant?.color ?? ''}-${idx}`}
               className='flex gap-3 py-3'
             >
-              <img
+              <Image
                 src={item.cover}
                 alt={item.title}
-                className='h-16 w-16 rounded-lg object-cover bg-stone-100'
+                width={64}
+                height={64}
+                className='rounded-lg object-cover bg-stone-100'
               />
               <div className='min-w-0 flex-1'>
                 <p className='truncate text-sm font-bold text-stone-900'>

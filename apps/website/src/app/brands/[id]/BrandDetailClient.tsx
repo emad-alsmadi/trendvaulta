@@ -1,13 +1,25 @@
 'use client';
 
+import Image from 'next/image';
 import { useBrandById } from '@/hooks/brands/brandsQuery';
 import { useProducts } from '@/hooks/products/productsQuery';
 import { motion } from 'framer-motion';
-import { Loader2, Star, Globe, MapPin, ShoppingCart, Heart } from 'lucide-react';
+import {
+  Loader2,
+  Star,
+  Globe,
+  MapPin,
+  ShoppingCart,
+  Heart,
+} from 'lucide-react';
 import { ProductCard } from '@/components/products/ProductCard';
 
 export function BrandDetailClient({ id }: { id: string }) {
-  const { data: brand, isLoading: brandLoading, error: brandError } = useBrandById(id);
+  const {
+    data: brand,
+    isLoading: brandLoading,
+    error: brandError,
+  } = useBrandById(id);
   const { data: productsResponse, isLoading: productsLoading } = useProducts({
     brand: id,
     limit: 12,
@@ -29,9 +41,7 @@ export function BrandDetailClient({ id }: { id: string }) {
   if (brandError || !brand) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
-        <div className='text-center text-red-600'>
-          Brand not found
-        </div>
+        <div className='text-center text-red-600'>Brand not found</div>
       </div>
     );
   }
@@ -48,15 +58,19 @@ export function BrandDetailClient({ id }: { id: string }) {
           <div className='flex flex-col md:flex-row items-center gap-8'>
             {brand.logo && (
               <div className='w-32 h-32 bg-white rounded-2xl p-4 shadow-xl'>
-                <img
+                <Image
                   src={brand.logo}
                   alt={brand.name}
-                  className='w-full h-full object-contain'
+                  width={128}
+                  height={128}
+                  className='object-contain'
                 />
               </div>
             )}
             <div className='flex-1 text-center md:text-left'>
-              <h1 className='text-4xl md:text-5xl font-bold mb-4'>{brand.name}</h1>
+              <h1 className='text-4xl md:text-5xl font-bold mb-4'>
+                {brand.name}
+              </h1>
               {brand.country && (
                 <div className='flex items-center justify-center md:justify-start gap-2 mb-3'>
                   <MapPin className='h-5 w-5' />
@@ -88,7 +102,9 @@ export function BrandDetailClient({ id }: { id: string }) {
             transition={{ delay: 0.1 }}
             className='bg-white/70 backdrop-blur-xl rounded-2xl border border-white/30 p-8 shadow-lg mb-8'
           >
-            <h2 className='text-2xl font-bold text-gray-900 mb-4'>About {brand.name}</h2>
+            <h2 className='text-2xl font-bold text-gray-900 mb-4'>
+              About {brand.name}
+            </h2>
             <p className='text-gray-700 leading-relaxed'>{brand.description}</p>
           </motion.div>
         )}
@@ -113,12 +129,17 @@ export function BrandDetailClient({ id }: { id: string }) {
           ) : products.length > 0 ? (
             <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'>
               {products.map((product) => (
-                <ProductCard key={product._id} product={product} />
+                <ProductCard
+                  key={product._id}
+                  product={product}
+                />
               ))}
             </div>
           ) : (
             <div className='text-center py-12 bg-white/70 backdrop-blur-xl rounded-2xl border border-white/30'>
-              <p className='text-gray-600 text-lg'>No products available from this brand yet.</p>
+              <p className='text-gray-600 text-lg'>
+                No products available from this brand yet.
+              </p>
             </div>
           )}
         </motion.div>
@@ -134,21 +155,31 @@ export function BrandDetailClient({ id }: { id: string }) {
             <div className='w-12 h-12 bg-fuchsia-100 rounded-full flex items-center justify-center mx-auto mb-4'>
               <ShoppingCart className='h-6 w-6 text-fuchsia-600' />
             </div>
-            <h3 className='font-semibold text-gray-900 mb-2'>Secure Checkout</h3>
-            <p className='text-sm text-gray-600'>Safe and encrypted payment processing</p>
+            <h3 className='font-semibold text-gray-900 mb-2'>
+              Secure Checkout
+            </h3>
+            <p className='text-sm text-gray-600'>
+              Safe and encrypted payment processing
+            </p>
           </div>
           <div className='bg-white/70 backdrop-blur-xl rounded-2xl border border-white/30 p-6 text-center shadow-lg'>
             <div className='w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4'>
               <Heart className='h-6 w-6 text-purple-600' />
             </div>
-            <h3 className='font-semibold text-gray-900 mb-2'>Authentic Products</h3>
-            <p className='text-sm text-gray-600'>100% genuine {brand.name} products</p>
+            <h3 className='font-semibold text-gray-900 mb-2'>
+              Authentic Products
+            </h3>
+            <p className='text-sm text-gray-600'>
+              100% genuine {brand.name} products
+            </p>
           </div>
           <div className='bg-white/70 backdrop-blur-xl rounded-2xl border border-white/30 p-6 text-center shadow-lg'>
             <div className='w-12 h-12 bg-cyan-100 rounded-full flex items-center justify-center mx-auto mb-4'>
               <Star className='h-6 w-6 text-cyan-600' />
             </div>
-            <h3 className='font-semibold text-gray-900 mb-2'>Customer Reviews</h3>
+            <h3 className='font-semibold text-gray-900 mb-2'>
+              Customer Reviews
+            </h3>
             <p className='text-sm text-gray-600'>Verified customer feedback</p>
           </div>
         </motion.div>

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Tag, Clock, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -28,16 +29,19 @@ function OfferCard({ offer }: { offer: StorefrontOffer }) {
       className='flex flex-col overflow-hidden rounded-2xl border border-white/30 bg-white/70 shadow-lg backdrop-blur-xl transition-shadow hover:shadow-xl'
     >
       {offer.imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
           src={offer.imageUrl}
           alt=''
+          width={400}
+          height={176}
           className='h-44 w-full object-cover'
-          loading='lazy'
         />
       ) : (
         <div className='flex h-44 items-center justify-center bg-gradient-to-br from-fuchsia-600 to-purple-600'>
-          <Tag className='h-10 w-10 text-white' aria-hidden />
+          <Tag
+            className='h-10 w-10 text-white'
+            aria-hidden
+          />
         </div>
       )}
       <div className='flex flex-1 flex-col p-6'>
@@ -53,7 +57,10 @@ function OfferCard({ offer }: { offer: StorefrontOffer }) {
         <div className='mt-auto flex items-center justify-between pt-4'>
           {ends ? (
             <span className='inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600'>
-              <Clock className='h-3.5 w-3.5' aria-hidden />
+              <Clock
+                className='h-3.5 w-3.5'
+                aria-hidden
+              />
               Ends {ends}
             </span>
           ) : (
@@ -64,7 +71,10 @@ function OfferCard({ offer }: { offer: StorefrontOffer }) {
             className='inline-flex items-center gap-1 text-sm font-bold text-fuchsia-700 hover:underline'
           >
             Shop offer
-            <ArrowRight className='h-4 w-4' aria-hidden />
+            <ArrowRight
+              className='h-4 w-4'
+              aria-hidden
+            />
           </Link>
         </div>
       </div>
@@ -122,13 +132,19 @@ export default function OffersPage() {
                 className='mt-4 inline-flex items-center gap-1 text-sm font-bold text-fuchsia-700 hover:underline'
               >
                 Browse products
-                <ArrowRight className='h-4 w-4' aria-hidden />
+                <ArrowRight
+                  className='h-4 w-4'
+                  aria-hidden
+                />
               </Link>
             </div>
           ) : (
             <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
               {offers.map((offer) => (
-                <OfferCard key={offer._id} offer={offer} />
+                <OfferCard
+                  key={offer._id}
+                  offer={offer}
+                />
               ))}
             </div>
           )}

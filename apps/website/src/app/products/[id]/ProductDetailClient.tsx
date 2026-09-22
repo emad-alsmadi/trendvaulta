@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useCart, formatVariantLabel } from '@/lib/cartStore';
 import { FrequentlyBoughtTogether } from '@/components/products/FrequentlyBoughtTogether';
 import { ProductQaSection } from '@/components/products/ProductQaSection';
@@ -31,7 +32,9 @@ export function ProductDetailClient({ id }: { id: string }) {
   const { data: product, isLoading, error } = useProductById(id);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
+    null,
+  );
   const cart = useCart();
 
   // DEMO: local recently viewed — TODO(api): POST /api/me/recently-viewed
@@ -177,10 +180,11 @@ export function ProductDetailClient({ id }: { id: string }) {
             className='space-y-4'
           >
             <div className='relative aspect-square bg-white rounded-2xl overflow-hidden shadow-lg'>
-              <img
+              <Image
                 src={images[selectedImage]}
                 alt={product.title}
-                className='w-full h-full object-cover'
+                fill
+                className='object-cover'
               />
               {images.length > 1 && (
                 <>
@@ -211,16 +215,17 @@ export function ProductDetailClient({ id }: { id: string }) {
                   <button
                     key={idx}
                     onClick={() => setSelectedImage(idx)}
-                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all relative ${
                       selectedImage === idx
                         ? 'border-fuchsia-600 ring-2 ring-fuchsia-200'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <img
+                    <Image
                       src={img}
                       alt={`${product.title} view ${idx + 1}`}
-                      className='w-full h-full object-cover'
+                      fill
+                      className='object-cover'
                     />
                   </button>
                 ))}
@@ -241,10 +246,12 @@ export function ProductDetailClient({ id }: { id: string }) {
                 className='inline-flex items-center gap-2 text-fuchsia-600 hover:text-fuchsia-700 font-medium'
               >
                 {product.brand.logo && (
-                  <img
+                  <Image
                     src={product.brand.logo}
                     alt={product.brand.name}
-                    className='w-6 h-6 object-contain'
+                    width={24}
+                    height={24}
+                    className='object-contain'
                   />
                 )}
                 {product.brand.name}
@@ -313,11 +320,15 @@ export function ProductDetailClient({ id }: { id: string }) {
                     const stock = variant.stock ?? product.stock;
                     const soldOut = stock <= 0;
                     const label =
-                      [variant.size, variant.color].filter(Boolean).join(' / ') ||
-                      `Option ${idx + 1}`;
+                      [variant.size, variant.color]
+                        .filter(Boolean)
+                        .join(' / ') || `Option ${idx + 1}`;
                     return (
                       <button
-                        key={variant.sku || `${variant.size}-${variant.color}-${idx}`}
+                        key={
+                          variant.sku ||
+                          `${variant.size}-${variant.color}-${idx}`
+                        }
                         type='button'
                         onClick={() => handleSelectVariant(variant)}
                         disabled={soldOut}
@@ -328,7 +339,9 @@ export function ProductDetailClient({ id }: { id: string }) {
                             : 'border-gray-300 hover:border-gray-400'
                         } ${soldOut ? 'cursor-not-allowed opacity-50 line-through' : ''}`}
                       >
-                        <span className='block text-sm font-semibold'>{label}</span>
+                        <span className='block text-sm font-semibold'>
+                          {label}
+                        </span>
                         <span className='block text-xs text-gray-500'>
                           ${(variant.price ?? product.price).toFixed(2)}
                           {soldOut
@@ -373,7 +386,9 @@ export function ProductDetailClient({ id }: { id: string }) {
                   type='button'
                   onClick={() =>
                     setQuantity(
-                      maxQty > 0 ? Math.min(maxQty, quantity + 1) : quantity + 1,
+                      maxQty > 0
+                        ? Math.min(maxQty, quantity + 1)
+                        : quantity + 1,
                     )
                   }
                   disabled={outOfStock || atMax}

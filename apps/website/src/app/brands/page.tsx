@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useBrands } from '@/hooks/brands/brandsQuery';
 import { motion } from 'framer-motion';
 import { Loader2, Globe, MapPin, ArrowRight } from 'lucide-react';
@@ -75,9 +76,11 @@ export default function BrandsPage() {
                       {/* Brand Logo */}
                       <div className='flex items-center justify-center mb-4 h-24 bg-gray-50 rounded-lg'>
                         {brand.logo ? (
-                          <img
+                          <Image
                             src={brand.logo}
                             alt={brand.name}
+                            width={80}
+                            height={80}
                             className='max-h-20 max-w-full object-contain'
                           />
                         ) : (
