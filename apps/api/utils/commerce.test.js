@@ -58,14 +58,14 @@ describe('calculateCouponDiscount', () => {
 });
 
 describe('resolveShippingPrice', () => {
-  it('charges flat shipping for delivery/standard', () => {
-    assert.equal(resolveShippingPrice({ delivery: true }), 5);
-    assert.equal(resolveShippingPrice({ shippingMethod: 'standard' }), 5);
+  it('charges flat shipping for delivery/standard', async () => {
+    assert.equal(await resolveShippingPrice({ delivery: true }), 5);
+    assert.equal(await resolveShippingPrice({ shippingMethod: 'standard' }), 5);
   });
 
-  it('is zero when no delivery', () => {
-    assert.equal(resolveShippingPrice({ delivery: false }), 0);
-    assert.equal(resolveShippingPrice({ shippingMethod: 'none' }), 0);
+  it('is zero when no delivery', async () => {
+    assert.equal(await resolveShippingPrice({ delivery: false }), 0);
+    assert.equal(await resolveShippingPrice({ shippingMethod: 'none' }), 0);
   });
 });
 

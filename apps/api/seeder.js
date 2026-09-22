@@ -1,10 +1,68 @@
+const bcrypt = require('bcryptjs');
 const { Product } = require('./models/Product');
 const { Brand } = require('./models/Brand');
 const { Coupon } = require('./models/Coupon');
 const { Offer } = require('./models/Offer');
+const { User } = require('./models/User');
 const { buildSeedData } = require('./data');
 const { connectToDB } = require('./config/db');
 require('dotenv').config();
+
+// Refuses to wipe collections outside development/test unless explicitly
+// overridden — deleteMany({}) on a production database is unrecoverable.
+const FORCE_FLAG = process.argv.includes('--force');
+function assertSafeToWrite() {
+  const env = process.env.NODE_ENV || 'development';
+  if (env === 'production' && !FORCE_FLAG) {
+    console.error(
+      `❌ Refusing to run against NODE_ENV=production (this deletes all products, brands, coupons and offers).\n` +
+        `   Re-run with --force if you really mean to do this.`,
+    );
+    process.exit(1);
+  }
+}
+
+/**
+ * Create the admin user if none exists yet, or ensure an existing account
+ * with SEED_ADMIN_EMAIL has the admin role. Needs SEED_ADMIN_EMAIL and
+ * SEED_ADMIN_PASSWORD in the environment; silently skipped otherwise so a
+ * bare `-import` still works without extra setup.
+ */
+async function seedAdminUser() {
+  const email = process.env.SEED_ADMIN_EMAIL;
+  const password = process.env.SEED_ADMIN_PASSWORD;
+  const username = process.env.SEED_ADMIN_USERNAME || 'admin';
+
+  if (!email || !password) {
+    console.log(
+      'ℹ️  Skipping admin user (set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD to create one).',
+    );
+    return;
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const existing = await User.findOne({ email: normalizedEmail });
+  if (existing) {
+    if (!existing.roles?.includes('admin')) {
+      existing.roles = [...new Set([...(existing.roles || []), 'admin'])];
+      await existing.save();
+      console.log(`👑 Granted admin role to existing user ${normalizedEmail}`);
+    } else {
+      console.log(`👑 Admin user ${normalizedEmail} already exists`);
+    }
+    return;
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(password, salt);
+  await User.create({
+    email: normalizedEmail,
+    username,
+    password: hashedPassword,
+    roles: ['admin'],
+  });
+  console.log(`👑 Created admin user ${normalizedEmail}`);
+}
 
 const dayMs = 24 * 60 * 60 * 1000;
 
@@ -175,6 +233,7 @@ const coupons = [
 // Import Products, Brands, Coupons & Offers
 const importData = async () => {
   try {
+    assertSafeToWrite();
     await connectToDB();
 
     // Get products per category from command line argument or default to 50
@@ -201,6 +260,8 @@ const importData = async () => {
     console.log(`🏷️  Inserting ${offers.length} offers...`);
     await Offer.insertMany(offers);
 
+    await seedAdminUser();
+
     console.log('✅ Data imported successfully!');
     console.log(`📊 Summary:`);
     console.log(`   - Brands: ${brands.length}`);
@@ -219,6 +280,7 @@ const importData = async () => {
 // Remove Products, Brands, Coupons & Offers
 const removeData = async () => {
   try {
+    assertSafeToWrite();
     await connectToDB();
     console.log('🗑️  Removing data...');
     await Product.deleteMany({});
@@ -244,6 +306,13 @@ const showUsage = () => {
   console.log('');
   console.log('  Remove data:');
   console.log('    node seeder.js -remove');
+  console.log('');
+  console.log('  Safety:');
+  console.log('    Refuses to run when NODE_ENV=production unless --force is passed.');
+  console.log('');
+  console.log('  Admin user (optional):');
+  console.log('    Set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD to create/promote an admin');
+  console.log('    account during -import. SEED_ADMIN_USERNAME defaults to "admin".');
   console.log('');
   console.log('  Show this help:');
   console.log('    node seeder.js -help');

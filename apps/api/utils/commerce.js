@@ -5,6 +5,40 @@ const FLAT_SHIPPING_USD = () => {
   return Number.isFinite(n) && n >= 0 ? n : 5;
 };
 
+const TAX_RATE_PERCENT_ENV = () => {
+  const n = Number(process.env.TAX_RATE_PERCENT);
+  return Number.isFinite(n) && n >= 0 && n <= 100 ? n : 0;
+};
+
+// In-process cache of the StoreSettings singleton, refreshed at most every
+// 30s so checkout/quote requests don't hit the DB on every call. Cleared
+// immediately whenever the admin updates settings (see invalidateStoreSettingsCache).
+const STORE_SETTINGS_CACHE_TTL_MS = 30_000;
+let storeSettingsCache = { value: undefined, expiresAt: 0 };
+
+function invalidateStoreSettingsCache() {
+  storeSettingsCache = { value: undefined, expiresAt: 0 };
+}
+
+async function getStoreSettings() {
+  const now = Date.now();
+  if (storeSettingsCache.value !== undefined && storeSettingsCache.expiresAt > now) {
+    return storeSettingsCache.value;
+  }
+
+  let value = null;
+  try {
+    // Lazy require avoids a require cycle at module load time.
+    const { StoreSettings, SINGLETON_ID } = require('../models/StoreSettings');
+    value = await StoreSettings.findById(SINGLETON_ID).lean();
+  } catch (_err) {
+    value = null;
+  }
+
+  storeSettingsCache = { value, expiresAt: now + STORE_SETTINGS_CACHE_TTL_MS };
+  return value;
+}
+
 function matchVariant(product, variant) {
   if (!variant || !Array.isArray(product.variants) || product.variants.length === 0) {
     return null;
@@ -41,15 +75,49 @@ function resolveAvailableStock(product, matchedVariant) {
   return Number(product.stock ?? 0);
 }
 
-function resolveShippingPrice({ delivery, shippingMethod } = {}) {
-  if (shippingMethod === 'standard' || shippingMethod === 'express' || delivery === true) {
-    return FLAT_SHIPPING_USD();
-  }
-  if (shippingMethod === 'none' || delivery === false) {
+/**
+ * Resolve the shipping charge from StoreSettings (falling back to the
+ * env-based flat rate when no settings document exists yet). `itemsPrice`
+ * is optional and, when provided, zeroes the rate once it meets the
+ * configured free-shipping threshold (0 = disabled).
+ */
+async function resolveShippingPrice({ delivery, shippingMethod, itemsPrice = 0 } = {}) {
+  const isStandard = shippingMethod === 'standard' || delivery === true;
+  const isExpress = shippingMethod === 'express';
+  if (!isStandard && !isExpress) {
+    if (shippingMethod === 'none' || delivery === false) return 0;
+    // Default: no physical shipping charge unless explicitly requested
     return 0;
   }
-  // Default: no physical shipping charge unless explicitly requested
-  return 0;
+
+  const settings = await getStoreSettings();
+  const standardRate = Number.isFinite(Number(settings?.shipping?.standardRateUsd))
+    ? Number(settings.shipping.standardRateUsd)
+    : FLAT_SHIPPING_USD();
+  const expressRate = Number.isFinite(Number(settings?.shipping?.expressRateUsd))
+    ? Number(settings.shipping.expressRateUsd)
+    : FLAT_SHIPPING_USD();
+  const freeThreshold = Number(settings?.shipping?.freeShippingThresholdUsd) || 0;
+
+  const rate = isExpress ? expressRate : standardRate;
+
+  if (freeThreshold > 0 && Number(itemsPrice) >= freeThreshold) {
+    return 0;
+  }
+  return rate;
+}
+
+/**
+ * Resolve the tax charge from StoreSettings' taxRatePercent (env fallback
+ * when no settings document exists yet).
+ */
+async function resolveTaxPrice(itemsPrice = 0) {
+  const settings = await getStoreSettings();
+  const ratePercent = Number.isFinite(Number(settings?.taxRatePercent))
+    ? Number(settings.taxRatePercent)
+    : TAX_RATE_PERCENT_ENV();
+  const amount = (Math.max(0, Number(itemsPrice) || 0) * ratePercent) / 100;
+  return Math.round(amount * 100) / 100;
 }
 
 function calculateCouponDiscount(coupon, orderAmount) {
@@ -447,6 +515,8 @@ module.exports = {
   resolveUnitPrice,
   resolveAvailableStock,
   resolveShippingPrice,
+  resolveTaxPrice,
+  invalidateStoreSettingsCache,
   calculateCouponDiscount,
   loadValidCouponByCode,
   buildNormalizedOrderLines,

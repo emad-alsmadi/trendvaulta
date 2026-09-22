@@ -50,6 +50,30 @@ node apps/api/seeder.js -remove
 node apps/api/seeder.js -help
 ```
 
+### Safety Guard
+
+Both `-import` and `-remove` wipe the products, brands, coupons and offers
+collections. The seeder therefore **refuses to run when `NODE_ENV=production`**.
+If you genuinely need to reseed a production database, pass `--force`:
+
+```bash
+NODE_ENV=production node apps/api/seeder.js -import --force
+```
+
+### Admin User
+
+Set these in `apps/api/.env` (see `.env.example`) and `-import` will create an
+admin account, or grant the `admin` role to an existing account with that email:
+
+```bash
+SEED_ADMIN_EMAIL=admin@example.com
+SEED_ADMIN_PASSWORD=change-me-please
+SEED_ADMIN_USERNAME=admin   # optional, defaults to "admin"
+```
+
+The admin user is never deleted by `-remove`. When the variables are unset the
+step is skipped, so a plain `-import` still works with no extra setup.
+
 ## Data Structure
 
 ### Brands
@@ -163,3 +187,5 @@ For very large datasets (500+ products per category), consider:
 - All brands are set to active by default
 - Coupons are included with the seeder for testing payment flows
 - Offers (merchandising deals) are seeded so `GET /api/offers` returns beauty/fashion promos after `-import` (active + one inactive for filter testing)
+- `apps/api/seeder.js` is the only seeder; the older `apps/api/seeders/seeder.js` copy was removed
+- Not yet seeded: help topics, CMS content, storefront modules, lookbooks, testimonials, bundles, gift-finder config and product Q&A. Those dashboard pages start empty after `-import`

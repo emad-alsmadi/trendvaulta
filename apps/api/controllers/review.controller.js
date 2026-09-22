@@ -5,6 +5,22 @@ const {
   validateUpdateReview,
 } = require('../models/Review');
 const { Product } = require('../models/Product');
+const { Order } = require('../models/Order');
+
+/**
+ * Whether userId has a paid/refunded, non-canceled order containing productId.
+ * Factored out so the query shape is unit-testable / reusable.
+ */
+const hasVerifiedPurchase = async (userId, productId) => {
+  return Boolean(
+    await Order.exists({
+      user: userId,
+      'items.productId': productId,
+      paymentStatus: { $in: ['paid', 'refunded'] },
+      status: { $ne: 'canceled' },
+    }),
+  );
+};
 
 /**
  * Helper function to update product's average rating and review count
@@ -67,12 +83,27 @@ const createReview = asyncHandler(async (req, res) => {
       .json({ message: 'You have already reviewed this product' });
   }
 
+  // Reviews are gated on having actually purchased the product (paid or
+  // refunded order, not canceled). Admin/moderator can still bypass to
+  // moderate, but only a real purchase earns the verified badge.
+  const verifiedPurchase = await hasVerifiedPurchase(userId, product);
+  const roles = req.user?.roles || [];
+  const canBypass = roles.includes('admin') || roles.includes('moderator');
+
+  if (!verifiedPurchase && !canBypass) {
+    return res.status(403).json({
+      message: 'You can review this product after purchasing it.',
+      code: 'PURCHASE_REQUIRED',
+    });
+  }
+
   // Create review
   const review = new Review({
     user: userId,
     product,
     rating,
     comment,
+    verifiedPurchase,
   });
 
   await review.save();
@@ -291,4 +322,5 @@ module.exports = {
   getMyReviews,
   getAdminReviews,
   adminDeleteReview,
+  hasVerifiedPurchase,
 };

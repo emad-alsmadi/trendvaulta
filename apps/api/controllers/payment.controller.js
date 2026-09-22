@@ -14,6 +14,7 @@ const {
   buildNormalizedOrderLines,
   quoteOrderLines,
   resolveShippingPrice,
+  resolveTaxPrice,
   loadValidCouponByCode,
   calculateCouponDiscount,
   decrementStockForPaidOrder,
@@ -66,8 +67,12 @@ const quoteOrder = asyncHandler(async (req, res) => {
     discountAmount = result.discountAmount;
   }
 
-  const shippingPrice = resolveShippingPrice({ delivery, shippingMethod });
-  const taxPrice = 0;
+  const shippingPrice = await resolveShippingPrice({
+    delivery,
+    shippingMethod,
+    itemsPrice,
+  });
+  const taxPrice = await resolveTaxPrice(itemsPrice);
   const totalPrice = Math.max(
     0,
     itemsPrice - discountAmount + shippingPrice + taxPrice,
@@ -139,8 +144,12 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
     normalizedCouponCode = coupon.code;
   }
 
-  const shippingPrice = resolveShippingPrice({ delivery, shippingMethod });
-  const taxPrice = 0;
+  const shippingPrice = await resolveShippingPrice({
+    delivery,
+    shippingMethod,
+    itemsPrice,
+  });
+  const taxPrice = await resolveTaxPrice(itemsPrice);
   const totalPrice = Math.max(
     0,
     itemsPrice - discountAmount + shippingPrice + taxPrice,

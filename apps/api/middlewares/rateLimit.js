@@ -161,6 +161,22 @@ const refreshRateLimit = rateLimit({
   message: 'Too many session refresh attempts. Please sign in again.',
 });
 
+// Public newsletter signup — generous ceiling but still bounded per IP.
+const newsletterRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.RATE_LIMIT_NEWSLETTER_MAX) || 10,
+  keyPrefix: 'newsletter',
+  message: 'Too many newsletter signup attempts. Please try again later.',
+});
+
+// Public contact form — tighter than newsletter since it also triggers email.
+const contactRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.RATE_LIMIT_CONTACT_MAX) || 5,
+  keyPrefix: 'contact',
+  message: 'Too many messages sent. Please try again later.',
+});
+
 module.exports = {
   rateLimit,
   getClientKey,
@@ -171,4 +187,6 @@ module.exports = {
   quoteRateLimit,
   couponValidateRateLimit,
   refreshRateLimit,
+  newsletterRateLimit,
+  contactRateLimit,
 };

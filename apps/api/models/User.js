@@ -1,6 +1,65 @@
 const mongoose = require('mongoose');
 const Joi = require('joi');
 const jwt = require('jsonwebtoken');
+
+// Saved address book entry. Same field names/constraints as Order's
+// ShippingAddressSchema (apps/api/models/Order.js) so it maps directly onto
+// the checkout form; see apps/api/utils/address.js for the pure
+// default-selection helpers shared by the controller.
+const AddressSchema = new mongoose.Schema({
+  label: {
+    type: String,
+    trim: true,
+    maxlength: 40,
+    default: 'Home',
+  },
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+    minlength: 2,
+    maxlength: 200,
+  },
+  phone: {
+    type: String,
+    required: true,
+    trim: true,
+    minlength: 6,
+    maxlength: 30,
+  },
+  address: {
+    type: String,
+    required: true,
+    trim: true,
+    minlength: 5,
+    maxlength: 300,
+  },
+  city: {
+    type: String,
+    required: true,
+    trim: true,
+    minlength: 2,
+    maxlength: 100,
+  },
+  zip: {
+    type: String,
+    required: true,
+    trim: true,
+    minlength: 2,
+    maxlength: 20,
+  },
+  country: {
+    type: String,
+    trim: true,
+    maxlength: 100,
+    default: '',
+  },
+  isDefault: {
+    type: Boolean,
+    default: false,
+  },
+});
+
 // User Schema
 const UserSchema = new mongoose.Schema(
   {
@@ -38,6 +97,10 @@ const UserSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: '',
+    },
+    addresses: {
+      type: [AddressSchema],
+      default: [],
     },
   },
   { timestamps: true },
@@ -87,9 +150,41 @@ const validateUpdateUser = (obj) => {
   }).min(1);
   return schema.validate(obj);
 };
+// Validate Create Address
+const validateCreateAddress = (obj) => {
+  const schema = Joi.object({
+    label: Joi.string().trim().max(40).allow('').optional(),
+    name: Joi.string().trim().min(2).max(200).required(),
+    phone: Joi.string().trim().min(6).max(30).required(),
+    address: Joi.string().trim().min(5).max(300).required(),
+    city: Joi.string().trim().min(2).max(100).required(),
+    zip: Joi.string().trim().min(2).max(20).required(),
+    country: Joi.string().trim().max(100).allow('').optional(),
+    isDefault: Joi.boolean().optional(),
+  });
+  return schema.validate(obj);
+};
+
+// Validate Update Address
+const validateUpdateAddress = (obj) => {
+  const schema = Joi.object({
+    label: Joi.string().trim().max(40).allow(''),
+    name: Joi.string().trim().min(2).max(200),
+    phone: Joi.string().trim().min(6).max(30),
+    address: Joi.string().trim().min(5).max(300),
+    city: Joi.string().trim().min(2).max(100),
+    zip: Joi.string().trim().min(2).max(20),
+    country: Joi.string().trim().max(100).allow(''),
+    isDefault: Joi.boolean(),
+  }).min(1);
+  return schema.validate(obj);
+};
+
 module.exports = {
   User,
   validateLoginUser,
   validateRegisterUser,
   validateUpdateUser,
+  validateCreateAddress,
+  validateUpdateAddress,
 };

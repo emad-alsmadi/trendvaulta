@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('node:path');
 const helmet = require('helmet');
 const requestLogger = require('./middlewares/requestLogger');
 const cors = require('cors');
@@ -7,6 +8,8 @@ const { connectToDB } = require('./config/db');
 const { createCorsOriginDelegate } = require('./middlewares/corsAllowlist');
 const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler');
 const { validateEnv } = require('./config/env');
+const logger = require('./utils/logger');
+const mongoose = require('mongoose');
 
 const paymentController = require('./controllers/payment.controller');
 
@@ -40,7 +43,21 @@ app.use(helmet({ contentSecurityPolicy: false }));
 // Apply request logging middleware
 app.use(requestLogger);
 
+// Locally-stored product/brand upload images (see services/storage.service.js).
+// Files are content-addressed by uuid, so a hard, long-lived cache is safe.
+// `index: false` prevents directory-listing disclosure of the uploads folder.
+app.use(
+  '/uploads',
+  express.static(path.join(__dirname, 'uploads'), {
+    index: false,
+    setHeaders: (res) => {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    },
+  }),
+);
+
 //Routers
+app.use('/api/', require('./routes/uploads'));
 app.use('/api/', require('./routes/products'));
 app.use('/api/', require('./routes/productQA'));
 app.use('/api/', require('./routes/bundles'));
@@ -68,6 +85,9 @@ app.use('/api/', require('./routes/storefrontModules'));
 app.use('/api/', require('./routes/helpTopics'));
 app.use('/api/', require('./routes/content'));
 app.use('/api/', require('./routes/adminStats'));
+app.use('/api/', require('./routes/settings'));
+app.use('/api/', require('./routes/newsletter'));
+app.use('/api/', require('./routes/contact'));
 app.use('/api/', require('./routes/trendvaulta'));
 
 // Friendly roots (this process is API-only; the Next.js app is a separate server)
@@ -127,20 +147,79 @@ app.use(errorHandler);
 // Running Server
 const port = process.env.PORT || 3000;
 
+// How long to let in-flight requests finish before forcing the process down.
+const SHUTDOWN_GRACE_MS = Number(process.env.SHUTDOWN_GRACE_MS) || 10_000;
+
+/**
+ * Close the HTTP server (stop accepting new connections, let in-flight
+ * requests finish), then the Mongo connection. A hard timeout guarantees the
+ * process still exits if a socket refuses to drain — otherwise the platform
+ * (Render/Docker) SIGKILLs us mid-request anyway.
+ */
+function registerGracefulShutdown(server) {
+  let shuttingDown = false;
+
+  const shutdown = async (signal) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    logger.info(`${signal} received — shutting down gracefully`);
+
+    const force = setTimeout(() => {
+      logger.error('Graceful shutdown timed out — forcing exit');
+      process.exit(1);
+    }, SHUTDOWN_GRACE_MS);
+    // Don't let the timer itself keep the event loop alive.
+    force.unref();
+
+    try {
+      await new Promise((resolve, reject) => {
+        server.close((err) => (err ? reject(err) : resolve()));
+      });
+      await mongoose.connection.close(false);
+      logger.info('Shutdown complete');
+      clearTimeout(force);
+      process.exit(0);
+    } catch (err) {
+      logger.error({ err }, 'Error during shutdown');
+      clearTimeout(force);
+      process.exit(1);
+    }
+  };
+
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  process.on('SIGINT', () => void shutdown('SIGINT'));
+
+  // A rejected promise nobody handled leaves the process in an unknown
+  // state; log it with full context and restart rather than limping on.
+  process.on('unhandledRejection', (reason) => {
+    logger.error({ err: reason }, 'Unhandled promise rejection');
+    void shutdown('unhandledRejection');
+  });
+
+  process.on('uncaughtException', (err) => {
+    logger.error({ err }, 'Uncaught exception');
+    void shutdown('uncaughtException');
+  });
+}
+
 async function start() {
   try {
     validateEnv();
     // function Connnection To Database
     await connectToDB();
 
-    app.listen(port, () => {
-      console.log(
+    const server = app.listen(port, () => {
+      logger.info(
         `Server is running in ${process.env.NODE_ENV} mode on port ${port}`,
       );
     });
+
+    registerGracefulShutdown(server);
   } catch (err) {
-    console.error('Fatal: server failed to start (invalid environment or database unreachable)');
-    console.error(err);
+    logger.error(
+      { err },
+      'Fatal: server failed to start (invalid environment or database unreachable)',
+    );
     process.exit(1);
   }
 }

@@ -109,6 +109,9 @@ temp/
 *.sqlite
 *.sqlite3
 
+# Locally-stored uploaded images (services/storage.service.js)
+uploads/*
+
 # Backup files
 *.backup
 *.bak
@@ -172,3 +175,4 @@ docs/build/
 
 # Git
 .gitkeep
+!uploads/.gitkeep

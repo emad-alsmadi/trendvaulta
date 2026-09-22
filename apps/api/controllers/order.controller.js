@@ -6,6 +6,7 @@ const { serializeOrder, serializeOrders } = require('../utils/serializeOrder');
 const {
   buildNormalizedOrderLines,
   resolveShippingPrice,
+  resolveTaxPrice,
   loadValidCouponByCode,
   calculateCouponDiscount,
   decrementStockForPaidOrder,
@@ -66,8 +67,12 @@ const createOrder = asyncHandler(async (req, res) => {
     normalizedCouponCode = coupon.code;
   }
 
-  const shippingPrice = resolveShippingPrice({ delivery, shippingMethod });
-  const taxPrice = 0;
+  const shippingPrice = await resolveShippingPrice({
+    delivery,
+    shippingMethod,
+    itemsPrice,
+  });
+  const taxPrice = await resolveTaxPrice(itemsPrice);
   const totalPrice = Math.max(
     0,
     itemsPrice - discountAmount + shippingPrice + taxPrice,
