@@ -235,6 +235,11 @@ const OrderSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    // Set when staff mark the order delivered; starts the return window
+    // (utils/returns.js). Older orders fall back to tracking/updatedAt.
+    deliveredAt: {
+      type: Date,
+    },
     trackingEvents: {
       type: [
         {
@@ -314,11 +319,31 @@ const OrderSchema = new mongoose.Schema(
         receivedAt: {
           type: Date,
         },
+        rejectedAt: {
+          type: Date,
+        },
+        refundedAt: {
+          type: Date,
+        },
+        refundId: {
+          type: String,
+          trim: true,
+          default: '',
+        },
         refundAmount: {
           type: Number,
           min: 0,
           default: 0,
         },
+        // Where and how to send the items back — written by staff on
+        // approval, shown to the customer.
+        instructions: {
+          type: String,
+          trim: true,
+          maxlength: 2000,
+          default: '',
+        },
+        // Message to the customer (e.g. why a return was rejected).
         notes: {
           type: String,
           trim: true,

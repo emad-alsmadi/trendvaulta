@@ -29,6 +29,7 @@ const {
   getAllowedNextStatuses,
 } = require('../utils/orderTransitions');
 const { buildSort } = require('../utils/sort');
+const { canCustomerReturn, RETURN_TRANSITIONS } = require('../utils/returns');
 const { normalizeSearchTerm } = require('../utils/search');
 const { User } = require('../models/User');
 
@@ -133,6 +134,15 @@ const getMyOrders = asyncHandler(async (req, res) => {
   res.status(200).json(serializeOrders(orders));
 });
 
+/** `canReturn` plus, once delivered, the date the return window closes. */
+function returnEligibility(order) {
+  const verdict = canCustomerReturn(order);
+  return {
+    canReturn: verdict.ok,
+    returnWindowEndsAt: verdict.windowEndsAt ? verdict.windowEndsAt.toISOString() : undefined,
+  };
+}
+
 const getOrderById = asyncHandler(async (req, res) => {
   const userId = req.user?.id ?? req.user?._id;
   if (!userId) {
@@ -161,6 +171,7 @@ const getOrderById = asyncHandler(async (req, res) => {
     // The storefront shows a Cancel button from this, so the rule lives in
     // one place (canCustomerCancel) rather than being re-derived client-side.
     canCancel: canCustomerCancel(order).ok,
+    ...returnEligibility(order),
   });
 });
 
@@ -204,6 +215,13 @@ const getAllOrders = asyncHandler(async (req, res) => {
         .lean();
       query.user = { $in: customers.map((u) => u._id) };
     }
+  }
+
+  // Returns queue: orders whose return is at a given step.
+  const returnStatus =
+    typeof req.query.returnStatus === 'string' ? req.query.returnStatus : '';
+  if (Object.prototype.hasOwnProperty.call(RETURN_TRANSITIONS, returnStatus)) {
+    query['returnRequest.status'] = returnStatus;
   }
 
   // One customer's history (the Users screen links here). Combined with an
@@ -425,6 +443,9 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   }
 
   order.status = value.status;
+  if (value.status === 'delivered' && !order.deliveredAt) {
+    order.deliveredAt = new Date();
+  }
   await order.save();
 
   // Send email notifications based on status change. (populate() resolves

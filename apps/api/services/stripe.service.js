@@ -21,12 +21,17 @@ function getFrontendBaseUrl() {
 /**
  * Refund a captured PaymentIntent (full refund unless amountCents is given).
  * Full refunds use a deterministic idempotency key so a retried admin action
- * cannot refund the same payment twice.
+ * cannot refund the same payment twice. A partial refund is only protected
+ * when the caller passes its own `idempotencyKey` (e.g. one per return).
  * @param {import('stripe').Stripe} stripe
  * @param {string} paymentIntentId
- * @param {{ amountCents?: number }} [options]
+ * @param {{ amountCents?: number, idempotencyKey?: string }} [options]
  */
-async function refundPaymentIntent(stripe, paymentIntentId, { amountCents } = {}) {
+async function refundPaymentIntent(
+  stripe,
+  paymentIntentId,
+  { amountCents, idempotencyKey } = {},
+) {
   if (!paymentIntentId) {
     const err = new Error('Missing payment intent id');
     err.statusCode = 400;
@@ -37,6 +42,7 @@ async function refundPaymentIntent(stripe, paymentIntentId, { amountCents } = {}
   const requestOptions = {};
   if (Number.isInteger(amountCents) && amountCents > 0) {
     params.amount = amountCents;
+    if (idempotencyKey) requestOptions.idempotencyKey = idempotencyKey;
   } else {
     requestOptions.idempotencyKey = `refund:${paymentIntentId}:full`;
   }
