@@ -14,6 +14,7 @@ import {
   getDemoBundlePricing,
   pickBundleCompanions,
 } from '@/data/demoStorefront';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 type BundleProduct = {
   _id: string;
@@ -34,6 +35,7 @@ type Props = {
  * Cart add uses real product prices; API savings are display-only.
  */
 export function FrequentlyBoughtTogether({ primary }: Props) {
+  const { t, formatPrice } = useTranslation();
   const cart = useCart();
   const bundlesQuery = useProductBundles(primary._id);
   const apiItems = (bundlesQuery.data?.items ?? []) as BundleProduct[];
@@ -169,7 +171,7 @@ export function FrequentlyBoughtTogether({ primary }: Props) {
             className='h-4 w-4 animate-spin'
             aria-hidden
           />
-          Loading bundle suggestions…
+          {t('bundle.loading')}
         </div>
       </section>
     );
@@ -187,24 +189,28 @@ export function FrequentlyBoughtTogether({ primary }: Props) {
         <div>
           <p className='text-xs font-medium uppercase tracking-wider text-stone-500'>
             {useApi
-              ? 'Frequently bought together'
-              : 'Demo · frequently bought together'}
+              ? t('bundle.frequentlyBoughtTogether')
+              : t('bundle.demoFrequentlyBoughtTogether')}
           </p>
           <h2
             id='fbt-heading'
             className='mt-1 text-xl font-bold text-stone-900 sm:text-2xl'
           >
-            Buy it with
+            {t('bundle.title')}
           </h2>
           <p className='mt-1 text-sm text-stone-600'>
             {useApi
-              ? 'Suggested companions for this product. Bundle savings are display-only — checkout still uses real product prices.'
-              : 'Companion picks from the catalog. Bundle savings are demo-only — checkout still uses real product prices.'}
+              ? t('bundle.apiDescription')
+              : t('bundle.demoDescription')}
           </p>
         </div>
         {pricing.savings > 0 && selectedItems.length > 1 && (
           <span className='rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900'>
-            {useApi ? 'Save' : 'Demo save'} ${pricing.savings.toFixed(2)}
+            {useApi
+              ? t('bundle.saveAmount', { amount: formatPrice(pricing.savings) })
+              : t('bundle.demoSaveAmount', {
+                  amount: formatPrice(pricing.savings),
+                })}
           </span>
         )}
       </div>
@@ -242,8 +248,8 @@ export function FrequentlyBoughtTogether({ primary }: Props) {
                   onChange={() => toggle(item._id)}
                   aria-label={
                     isPrimary
-                      ? `${item.title} (this product)`
-                      : `Select ${item.title}`
+                      ? t('bundle.thisProductLabel', { title: item.title })
+                      : t('bundle.selectProduct', { title: item.title })
                   }
                 />
                 <div className='min-w-0 flex-1'>
@@ -258,13 +264,13 @@ export function FrequentlyBoughtTogether({ primary }: Props) {
                       />
                       <div className='min-w-0'>
                         <p className='text-[10px] font-semibold uppercase tracking-wide text-fuchsia-700'>
-                          This item
+                          {t('bundle.thisItem')}
                         </p>
                         <p className='line-clamp-2 text-sm font-medium text-stone-900'>
                           {item.title}
                         </p>
                         <p className='mt-1 text-sm font-semibold text-stone-800'>
-                          ${item.price.toFixed(2)}
+                          {formatPrice(item.price)}
                         </p>
                       </div>
                     </div>
@@ -286,7 +292,7 @@ export function FrequentlyBoughtTogether({ primary }: Props) {
                           {item.title}
                         </p>
                         <p className='mt-1 text-sm font-semibold text-stone-800'>
-                          ${item.price.toFixed(2)}
+                          {formatPrice(item.price)}
                         </p>
                       </div>
                     </Link>
@@ -301,20 +307,23 @@ export function FrequentlyBoughtTogether({ primary }: Props) {
       <div className='mt-6 flex flex-col gap-3 border-t border-stone-100 pt-5 sm:flex-row sm:items-center sm:justify-between'>
         <div className='text-sm text-stone-600'>
           {selectedItems.length <= 1 ? (
-            <span>Select a companion to build a bundle</span>
+            <span>{t('bundle.selectCompanion')}</span>
           ) : (
             <>
               {pricing.savings > 0 && (
                 <span className='text-stone-500 line-through me-2'>
-                  ${pricing.subtotal.toFixed(2)}
+                  {formatPrice(pricing.subtotal)}
                 </span>
               )}
               <span className='font-semibold text-stone-900'>
-                ${pricing.bundleTotal.toFixed(2)}
+                {formatPrice(pricing.bundleTotal)}
               </span>
               <span className='ms-1 text-xs text-stone-500'>
-                for {selectedItems.length} items
-                {useApi ? ' (display total)' : ' (demo total)'}
+                {useApi
+                  ? t('bundle.itemsDisplayTotal', {
+                      count: selectedItems.length,
+                    })
+                  : t('bundle.itemsDemoTotal', { count: selectedItems.length })}
               </span>
             </>
           )}
@@ -329,7 +338,7 @@ export function FrequentlyBoughtTogether({ primary }: Props) {
             className='h-4 w-4'
             aria-hidden
           />
-          Add {selectedItems.length} to cart
+          {t('bundle.addCountToCart', { count: selectedItems.length })}
         </Button>
       </div>
     </section>

@@ -278,5 +278,342 @@
     "reviewCart": "مراجعة السلة",
     "confirm": "تأكيد",
     "close": "إغلاق"
+  },
+  "addresses": {
+    "title": "العناوين المحفوظة",
+    "subtitle": "أدِر عناوين الشحن الخاصة بك لإتمام الطلب بشكل أسرع. الحد الأقصى لعدد العناوين: {max}.",
+    "addAddress": "إضافة عنوان",
+    "emptyTitle": "لا توجد عناوين بعد",
+    "emptyBody": "أضف عنوانك الأول لتسريع عمليات الشراء القادمة.",
+    "labelPlaceholder": "التسمية",
+    "labelPlaceholderExample": "التسمية (مثل: المنزل، العمل)",
+    "countryPlaceholder": "البلد (رمز ISO من حرفين)",
+    "countryPlaceholderExample": "البلد (رمز ISO من حرفين، مثل: US)",
+    "zipPostalPlaceholder": "الرمز البريدي",
+    "name": "الاسم",
+    "cityZipCountry": "المدينة / الرمز البريدي / البلد",
+    "save": "حفظ",
+    "update": "تحديث",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "setDefault": "تعيين كافتراضي",
+    "editAddress": "تعديل العنوان",
+    "addNewAddress": "إضافة عنوان جديد",
+    "confirmDelete": "هل تريد بالتأكيد حذف هذا العنوان؟",
+    "validation": {
+      "countryCode": "استخدم رمز البلد المكوّن من حرفين",
+      "minChars": "الحد الأدنى لعدد الأحرف: {count}"
+    },
+    "toast": {
+      "added": "تمت إضافة العنوان بنجاح",
+      "addFailed": "تعذّرت إضافة العنوان",
+      "updated": "تم تحديث العنوان بنجاح",
+      "updateFailed": "تعذّر تحديث العنوان",
+      "deleted": "تم حذف العنوان",
+      "deleteFailed": "تعذّر حذف العنوان",
+      "defaultUpdated": "تم تحديث العنوان الافتراضي",
+      "defaultFailed": "تعذّر تعيين العنوان الافتراضي"
+    }
+  },
+  "security": {
+    "title": "كلمة المرور والأمان",
+    "subtitle": "حدّث كلمة المرور للحفاظ على أمان حسابك.",
+    "changePassword": "تغيير كلمة المرور",
+    "currentPassword": "كلمة المرور الحالية",
+    "currentPasswordPlaceholder": "أدخل كلمة المرور الحالية",
+    "newPassword": "كلمة المرور الجديدة",
+    "newPasswordPlaceholder": "أدخل كلمة المرور الجديدة (8 أحرف على الأقل)",
+    "confirmPassword": "تأكيد كلمة المرور الجديدة",
+    "confirmPasswordPlaceholder": "أكّد كلمة المرور الجديدة",
+    "showPassword": "إظهار كلمة المرور",
+    "hidePassword": "إخفاء كلمة المرور",
+    "charsNeeded": "عدد الأحرف المتبقية: {count}",
+    "passwordsMatch": "كلمتا المرور متطابقتان",
+    "updating": "جارٍ التحديث…",
+    "updatePassword": "تحديث كلمة المرور",
+    "minLengthHint": "يجب ألا تقل كلمة المرور عن 8 أحرف.",
+    "tipsTitle": "نصائح الأمان",
+    "tipUnique": "استخدم كلمة مرور فريدة لا تستخدمها في أي مكان آخر",
+    "tipMix": "استخدم مزيجًا من الأحرف الكبيرة والصغيرة والأرقام والرموز",
+    "tipPersonal": "تجنّب المعلومات الشخصية (مثل الاسم وتاريخ الميلاد)",
+    "tipManager": "يُفضّل استخدام تطبيق لإدارة كلمات المرور",
+    "sessionsTitle": "الجلسات النشطة",
+    "sessionsBody": "سيؤدي تغيير كلمة المرور إلى تسجيل خروجك من جميع الأجهزة الأخرى حفاظًا على الأمان.",
+    "currentSession": "الجلسة الحالية",
+    "thisDeviceActiveNow": "هذا الجهاز · نشط الآن",
+    "active": "نشطة",
+    "validation": {
+      "currentRequired": "كلمة المرور الحالية مطلوبة",
+      "newRequired": "كلمة المرور الجديدة مطلوبة",
+      "minLength": "يجب ألا تقل كلمة المرور عن 8 أحرف",
+      "confirmRequired": "يُرجى تأكيد كلمة المرور الجديدة",
+      "mismatch": "كلمتا المرور غير متطابقتين"
+    },
+    "toast": {
+      "updated": "تم تحديث كلمة المرور بنجاح",
+      "updateFailed": "تعذّر تحديث كلمة المرور"
+    }
+  },
+  "returns": {
+    "steps": {
+      "requested": {
+        "title": "تم تقديم طلب الإرجاع",
+        "body": "استلمنا طلبك. بعد الموافقة عليه، ستظهر هنا تعليمات إعادة المنتجات."
+      },
+      "approved": {
+        "title": "تمت الموافقة على الإرجاع",
+        "body": "اتبع التعليمات أدناه لإعادة المنتجات."
+      },
+      "received": {
+        "title": "تم استلام الطرد",
+        "body": "وصلت منتجاتك إلينا. نقوم الآن بفحصها وسنُصدر الاسترداد قريبًا."
+      },
+      "refunded": {
+        "title": "تم إصدار الاسترداد",
+        "body": "يظهر المبلغ المسترد عادةً في كشف حسابك خلال 5–10 أيام عمل.",
+        "bodyWithAmount": "تم استرداد {amount} لك. يظهر المبلغ المسترد عادةً في كشف حسابك خلال 5–10 أيام عمل."
+      },
+      "rejected": {
+        "title": "لم يتم قبول الإرجاع",
+        "body": "نأسف، لم نتمكن من قبول طلب الإرجاع هذا."
+      }
+    },
+    "stepLabels": {
+      "requested": "تم الطلب",
+      "approved": "تمت الموافقة",
+      "received": "تم الاستلام",
+      "refunded": "تم الاسترداد"
+    },
+    "progressLabel": "مراحل الإرجاع",
+    "howToSendBack": "طريقة إعادة المنتجات",
+    "teamMessage": "رسالة من فريقنا",
+    "itemsSummary": "المنتجات: {items}",
+    "itemsSummaryRequested": "المنتجات: {items} · تاريخ الطلب {date}",
+    "formTitle": "هل تحتاج إلى إرجاع منتج؟",
+    "windowOpenUntil": "يمكنك طلب الإرجاع حتى {date}.",
+    "requestReturn": "طلب إرجاع",
+    "whichItems": "ما المنتجات التي تريد إرجاعها؟",
+    "qtyAriaLabel": "الكمية المراد إرجاعها من {title}",
+    "qtyOfMax": "{n} من {max}",
+    "reasonLabel": "ما سبب الإرجاع؟",
+    "reasonPlaceholder": "مثال: مقاس غير مناسب، وصل تالفًا، غير مطابق للوصف",
+    "reviewNote": "سنراجع طلبك ونرسل إليك تعليمات الإرجاع. يُصدر الاسترداد بعد وصول المنتجات إلينا.",
+    "sending": "جارٍ الإرسال…",
+    "sendRequest": "إرسال طلب الإرجاع",
+    "notNow": "ليس الآن",
+    "toast": {
+      "chooseItem": "اختر منتجًا واحدًا على الأقل لإرجاعه",
+      "reasonRequired": "يُرجى ذكر سبب إرجاع المنتجات",
+      "requested": "تم تقديم طلب الإرجاع — تابع هذه الصفحة لمعرفة الخطوات التالية",
+      "requestFailed": "تعذّر تقديم طلب الإرجاع"
+    }
+  },
+  "account": {
+    "welcomeBack": "مرحبًا بعودتك، {name}",
+    "customerFallback": "عميلنا العزيز",
+    "subtitle": "أدِر طلباتك وعناوينك وإعدادات حسابك.",
+    "signOut": "تسجيل الخروج",
+    "sectionsLabel": "أقسام الحساب",
+    "overview": {
+      "viewOrders": "عرض الطلبات",
+      "savedAddresses": "العناوين المحفوظة",
+      "addressesDescription": "أدِر عناوين الشحن الخاصة بك لإتمام الطلب بشكل أسرع.",
+      "manageAddresses": "إدارة العناوين",
+      "securityDescription": "حدِّث كلمة المرور وأدِر أمان حسابك.",
+      "securitySettings": "إعدادات الأمان"
+    }
+  },
+  "orders": {
+    "badge": "الطلبات",
+    "subtitle": "اطّلع على سجل طلباتك وتتبّع شحناتك.",
+    "refresh": "تحديث",
+    "loadError": "تعذّر تحميل الطلبات",
+    "loadErrorHint": "يُرجى المحاولة مرة أخرى أو التواصل مع الدعم إذا استمرت المشكلة.",
+    "retry": "إعادة المحاولة",
+    "emptyTitle": "لا توجد طلبات بعد",
+    "emptyDescription": "ستظهر طلباتك هنا بمجرد تقديمها.",
+    "startShopping": "ابدأ التسوق",
+    "table": {
+      "order": "الطلب",
+      "date": "التاريخ",
+      "status": "الحالة",
+      "payment": "الدفع",
+      "action": "الإجراء"
+    },
+    "itemCount": "عدد المنتجات: {count}",
+    "refundedAmount": "تم استرداد {amount}",
+    "view": "عرض",
+    "status": {
+      "pending": "قيد الانتظار",
+      "paid": "مدفوع",
+      "shipped": "تم الشحن",
+      "delivered": "تم التوصيل",
+      "canceled": "ملغي",
+      "needs_attention": "بحاجة إلى مراجعة",
+      "refunded": "مسترد"
+    },
+    "paymentStatus": {
+      "unpaid": "غير مدفوع",
+      "pending": "قيد المعالجة",
+      "paid": "مدفوع",
+      "failed": "فشل الدفع",
+      "refunded": "مسترد"
+    },
+    "attentionReason": {
+      "insufficient_stock": "المخزون غير كافٍ بعد الدفع",
+      "paid_after_cancel": "تم الدفع بعد الإلغاء",
+      "refund_failed": "فشل الاسترداد — يلزم إجراء يدوي",
+      "manual_refund_required": "يلزم استرداد يدوي"
+    },
+    "toast": {
+      "cancelFailed": "تعذّر إلغاء هذا الطلب",
+      "copied": "تم النسخ",
+      "copyFailed": "تعذّر النسخ"
+    },
+    "cancel": {
+      "prompt": "غيّرت رأيك؟ لم يتم شحن هذا الطلب بعد، لذا لا يزال بإمكانك إلغاؤه.",
+      "button": "إلغاء الطلب",
+      "title": "هل تريد إلغاء هذا الطلب؟",
+      "refundNotice": "سنسترد مبلغ {amount} إلى وسيلة الدفع الأصلية. يظهر المبلغ المسترد عادةً خلال 5–10 أيام عمل. لا يمكن التراجع عن هذا الإجراء.",
+      "noChargeNotice": "لم يتم خصم أي مبلغ منك، لذا لا يوجد ما يُسترد. لا يمكن التراجع عن هذا الإجراء.",
+      "canceling": "جارٍ الإلغاء…",
+      "confirm": "نعم، ألغِ الطلب",
+      "keep": "الاحتفاظ بالطلب",
+      "success": "تم إلغاء الطلب.",
+      "successRefunded": "تم إلغاء الطلب. تم إصدار المبلغ المسترد، ويُتوقع ظهوره خلال 5–10 أيام عمل.",
+      "successRefundPending": "تم إلغاء الطلب. سيقوم فريقنا بإصدار المبلغ المسترد قريبًا، ولا يلزمك اتخاذ أي إجراء."
+    },
+    "detail": {
+      "back": "العودة إلى الطلبات",
+      "loading": "جارٍ تحميل الطلب…",
+      "loadError": "تعذّر تحميل الطلب",
+      "title": "الطلب {id}",
+      "copyId": "نسخ رقم الطلب كاملًا",
+      "placed": "تاريخ الطلب: {date}",
+      "paymentBadge": "الدفع: {status}",
+      "items": "المنتجات",
+      "skuValue": "رمز المنتج: {value}",
+      "name": "الاسم",
+      "summaryTitle": "ملخص الطلب",
+      "subtotalItems": "المجموع الفرعي (عدد المنتجات: {count})",
+      "discountWithCode": "الخصم ({code})",
+      "refunded": "المبلغ المسترد",
+      "paymentReferences": "مراجع الدفع",
+      "checkoutSession": "جلسة إتمام الطلب",
+      "paymentIntent": "معرّف عملية الدفع",
+      "refundId": "رقم الاسترداد",
+      "tracking": "التتبع",
+      "trackingNumber": "رقم التتبع",
+      "carrier": "شركة الشحن",
+      "trackShipment": "تتبّع الشحنة"
+    },
+    "tracking": {
+      "demoLabel": "تتبع تجريبي",
+      "heading": "مراحل الطلب",
+      "shippingPolicy": "سياسة الشحن",
+      "estimatedNote": "المراحل تقديرية بناءً على حالة الطلب إلى أن يتم ربط التتبع المباشر مع شركة الشحن.",
+      "placedTitle": "تم تقديم الطلب",
+      "placedDescription": "استلمنا تفاصيل طلبك.",
+      "placedCanceledDescription": "استلمنا طلبك.",
+      "canceledTitle": "ملغي",
+      "canceledDescription": "تم إلغاء هذا الطلب. تواصل مع الدعم إذا احتجت إلى مساعدة.",
+      "paymentConfirmedTitle": "تم تأكيد الدفع",
+      "paymentConfirmedDescription": "تمت عملية الدفع بأمان.",
+      "awaitingPaymentTitle": "بانتظار الدفع",
+      "awaitingPaymentDescription": "أكمل إتمام الطلب لمتابعة التجهيز.",
+      "preparingTitle": "جارٍ تجهيز طلبك",
+      "preparingDescription": "نغلّف منتجات الجمال والأزياء ونمط الحياة بعناية.",
+      "shippedTitle": "تم الشحن",
+      "shippedToCityDescription": "في الطريق إلى {city}.",
+      "shippedDescription": "يُسلَّم إلى شركة الشحن عند اختيار التوصيل.",
+      "deliveredTitle": "تم التوصيل",
+      "deliveredDescription": "تُحدَّث الحالة إلى «تم التوصيل» عند اكتمال الشحنة.",
+      "demoCarrierNote": "مرجع التتبع التجريبي {ref} — ليس تتبعًا مباشرًا من شركة الشحن"
+    }
+  },
+  "bundle": {
+    "loading": "جارٍ تحميل اقتراحات الباقات…",
+    "frequentlyBoughtTogether": "يُشترى معًا عادةً",
+    "demoFrequentlyBoughtTogether": "تجريبي · يُشترى معًا عادةً",
+    "title": "منتجات تُشترى معه",
+    "apiDescription": "منتجات مقترحة تُكمّل هذا المنتج. التوفير في الباقة للعرض فقط — تُحتسب الأسعار الفعلية للمنتجات عند إتمام الطلب.",
+    "demoDescription": "اختيارات مكمّلة من الكتالوج. التوفير في الباقة تجريبي فقط — تُحتسب الأسعار الفعلية للمنتجات عند إتمام الطلب.",
+    "saveAmount": "توفير {amount}",
+    "demoSaveAmount": "توفير تجريبي {amount}",
+    "thisProductLabel": "{title} (هذا المنتج)",
+    "selectProduct": "تحديد {title}",
+    "thisItem": "هذا المنتج",
+    "selectCompanion": "يُرجى اختيار منتج مكمّل لتكوين باقة",
+    "itemsDisplayTotal": "مقابل {count} من المنتجات (إجمالي استرشادي)",
+    "itemsDemoTotal": "مقابل {count} من المنتجات (إجمالي تجريبي)",
+    "addCountToCart": "إضافة {count} إلى سلة التسوق"
+  },
+  "wishlist": {
+    "signInRequired": "يُرجى تسجيل الدخول لحفظ المنتجات في قائمة الأمنيات",
+    "removed": "تمت الإزالة من قائمة الأمنيات",
+    "added": "تمت الإضافة إلى قائمة الأمنيات",
+    "removeFailed": "تعذّرت الإزالة من قائمة الأمنيات",
+    "addFailed": "تعذّرت الإضافة إلى قائمة الأمنيات",
+    "removeFromWishlist": "إزالة من قائمة الأمنيات",
+    "addToWishlist": "إضافة إلى قائمة الأمنيات",
+    "saved": "محفوظ",
+    "save": "حفظ"
+  },
+  "reviews": {
+    "updated": "تم تحديث التقييم",
+    "thanks": "شكرًا على تقييمك!",
+    "saveError": "تعذّر حفظ تقييمك",
+    "deleted": "تم حذف التقييم",
+    "deleteError": "تعذّر حذف تقييمك",
+    "editYourReview": "تعديل تقييمك",
+    "writeReview": "اكتب تقييمًا",
+    "signIn": "سجّل الدخول",
+    "signInToReview": "{signIn} لكتابة تقييم.",
+    "loading": "جارٍ تحميل التقييمات…",
+    "loadError": "تعذّر تحميل التقييمات حاليًا.",
+    "retry": "إعادة المحاولة",
+    "form": {
+      "ratingLabel": "التقييم",
+      "commentLabel": "تعليقك",
+      "commentPlaceholder": "شاركنا تجربتك مع هذا المنتج...",
+      "charCount": "عدد الأحرف: {count}/{max}",
+      "purchaseRequired": "يقتصر تقييم هذا المنتج على العملاء الذين اشتروه",
+      "submitting": "جارٍ الإرسال...",
+      "update": "تحديث التقييم",
+      "submit": "إرسال التقييم"
+    },
+    "list": {
+      "empty": "لا توجد تقييمات بعد.",
+      "beFirst": "شارِك أول تقييم لهذا المنتج!",
+      "verifiedPurchase": "شراء موثّق",
+      "storeResponse": "رد من {name}",
+      "edit": "تعديل التقييم",
+      "delete": "حذف التقييم"
+    }
+  },
+  "productQa": {
+    "submitted": "تم إرسال سؤالك، وسيظهر بعد الموافقة عليه.",
+    "submitError": "تعذّر إرسال سؤالك",
+    "signInToVote": "سجّل الدخول للتصويت على الإجابات",
+    "voteError": "تعذّر تسجيل تصويتك",
+    "eyebrow": "أسئلة العملاء",
+    "title": "الأسئلة والأجوبة",
+    "subtitle": "يجيب فريقنا عن الأسئلة، وتظهر الأسئلة بعد مراجعتها.",
+    "askQuestion": "اطرح سؤالًا",
+    "signInToAsk": "سجّل الدخول لطرح سؤال",
+    "helpCenter": "مركز المساعدة",
+    "questionLabel": "سؤالك",
+    "questionPlaceholder": "ما الذي تودّ معرفته عن هذا المنتج؟",
+    "charCount": "{count}/{max} · الحد الأدنى للأحرف: {min}",
+    "submitting": "جارٍ الإرسال…",
+    "submitQuestion": "إرسال السؤال",
+    "loading": "جارٍ تحميل الأسئلة…",
+    "loadError": "تعذّر تحميل الأسئلة حاليًا.",
+    "retry": "إعادة المحاولة",
+    "empty": "لا توجد أسئلة بعد. اطرح أول سؤال عن هذا المنتج.",
+    "askedBy": "سؤال من: {name}",
+    "anonymousAsker": "أحد العملاء",
+    "notAnswered": "لم يُجب فريقنا عن هذا السؤال بعد.",
+    "helpful": "مفيد ({count})"
   }
 }

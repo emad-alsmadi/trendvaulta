@@ -10,7 +10,9 @@ import { useToast } from '@/components/ui/Toast';
 import { useForm } from 'react-hook-form';
 import { useChangePassword } from '@/hooks/auth/useChangePassword';
 import { getAuthToken } from '@/lib/authCookies';
+import { getUserFacingErrorMessage } from '@/lib/userFacingError';
 import { useProfile } from '@/hooks/profile/useProfile';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 type PasswordFormValues = {
   currentPassword: string;
@@ -21,6 +23,7 @@ type PasswordFormValues = {
 export default function SecurityPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const { data: profile } = useProfile();
   const changePassword = useChangePassword();
 
@@ -55,11 +58,12 @@ export default function SecurityPage() {
         currentPassword: data.currentPassword,
         newPassword: data.newPassword,
       });
-      toast('Password updated successfully', { variant: 'success' });
+      toast(t('security.toast.updated'), { variant: 'success' });
       reset();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to update password';
-      toast(message, { variant: 'error' });
+      toast(getUserFacingErrorMessage(err, t('security.toast.updateFailed')), {
+        variant: 'error',
+      });
     }
   };
 
@@ -80,13 +84,13 @@ export default function SecurityPage() {
           <div>
             <div className='inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/40 px-3 py-1 text-xs font-extrabold text-indigo-950'>
               <Shield className='h-4 w-4 text-fuchsia-700' />
-              Security
+              {t('common.security')}
             </div>
             <h1 className='mt-4 text-3xl font-extrabold tracking-tight text-indigo-950 sm:text-4xl'>
-              Password & Security
+              {t('security.title')}
             </h1>
             <p className='mt-2 text-sm font-semibold text-indigo-950/80'>
-              Update your password to keep your account secure.
+              {t('security.subtitle')}
             </p>
           </div>
         </div>
@@ -102,28 +106,28 @@ export default function SecurityPage() {
           <div>
             <h2 className='mb-4 text-lg font-bold text-indigo-950 flex items-center gap-2'>
               <Lock className='h-5 w-5' />
-              Change Password
+              {t('security.changePassword')}
             </h2>
 
             <div className='space-y-4'>
               <div>
                 <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                  Current Password
+                  {t('security.currentPassword')}
                 </label>
                 <div className='relative'>
                   <Input
                     type={showCurrent ? 'text' : 'password'}
-                    placeholder='Enter current password'
+                    placeholder={t('security.currentPasswordPlaceholder')}
                     autoComplete='current-password'
                     {...register('currentPassword', {
-                      required: 'Current password is required',
+                      required: t('security.validation.currentRequired'),
                     })}
                   />
                   <button
                     type='button'
                     onClick={() => setShowCurrent(!showCurrent)}
                     className='absolute end-3 top-1/2 -translate-y-1/2 text-indigo-950/50 hover:text-indigo-950'
-                    aria-label={showCurrent ? 'Hide password' : 'Show password'}
+                    aria-label={showCurrent ? t('security.hidePassword') : t('security.showPassword')}
                   >
                     {showCurrent ? <EyeOff className='h-5 w-5' /> : <Eye className='h-5 w-5' />}
                   </button>
@@ -135,18 +139,18 @@ export default function SecurityPage() {
 
               <div>
                 <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                  New Password
+                  {t('security.newPassword')}
                 </label>
                 <div className='relative'>
                   <Input
                     type={showNew ? 'text' : 'password'}
-                    placeholder='Enter new password (min 8 characters)'
+                    placeholder={t('security.newPasswordPlaceholder')}
                     autoComplete='new-password'
                     {...register('newPassword', {
-                      required: 'New password is required',
+                      required: t('security.validation.newRequired'),
                       minLength: {
                         value: 8,
-                        message: 'Password must be at least 8 characters',
+                        message: t('security.validation.minLength'),
                       },
                     })}
                   />
@@ -154,7 +158,7 @@ export default function SecurityPage() {
                     type='button'
                     onClick={() => setShowNew(!showNew)}
                     className='absolute end-3 top-1/2 -translate-y-1/2 text-indigo-950/50 hover:text-indigo-950'
-                    aria-label={showNew ? 'Hide password' : 'Show password'}
+                    aria-label={showNew ? t('security.hidePassword') : t('security.showPassword')}
                   >
                     {showNew ? <EyeOff className='h-5 w-5' /> : <Eye className='h-5 w-5' />}
                   </button>
@@ -185,10 +189,10 @@ export default function SecurityPage() {
                     </div>
                     <p className='text-xs font-semibold text-indigo-950/60'>
                       {newPassword.length < 8
-                        ? `${8 - newPassword.length} more characters needed`
+                        ? t('security.charsNeeded', { count: 8 - newPassword.length })
                         : passwordsMatch
-                        ? 'Passwords match'
-                        : 'Passwords do not match'}
+                        ? t('security.passwordsMatch')
+                        : t('security.validation.mismatch')}
                     </p>
                   </div>
                 )}
@@ -196,24 +200,24 @@ export default function SecurityPage() {
 
               <div>
                 <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                  Confirm New Password
+                  {t('security.confirmPassword')}
                 </label>
                 <div className='relative'>
                   <Input
                     type={showConfirm ? 'text' : 'password'}
-                    placeholder='Confirm new password'
+                    placeholder={t('security.confirmPasswordPlaceholder')}
                     autoComplete='new-password'
                     {...register('confirmPassword', {
-                      required: 'Please confirm your new password',
+                      required: t('security.validation.confirmRequired'),
                       validate: (value) =>
-                        value === newPassword || 'Passwords do not match',
+                        value === newPassword || t('security.validation.mismatch'),
                     })}
                   />
                   <button
                     type='button'
                     onClick={() => setShowConfirm(!showConfirm)}
                     className='absolute end-3 top-1/2 -translate-y-1/2 text-indigo-950/50 hover:text-indigo-950'
-                    aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                    aria-label={showConfirm ? t('security.hidePassword') : t('security.showPassword')}
                   >
                     {showConfirm ? <EyeOff className='h-5 w-5' /> : <Eye className='h-5 w-5' />}
                   </button>
@@ -233,18 +237,18 @@ export default function SecurityPage() {
               {changePassword.isPending ? (
                 <span className='inline-flex items-center gap-2'>
                   <Loader2 className='h-4 w-4 animate-spin' />
-                  Updating…
+                  {t('security.updating')}
                 </span>
               ) : (
                 <>
                   <CheckCircle className='me-2 h-4 w-4' />
-                  Update Password
+                  {t('security.updatePassword')}
                 </>
               )}
             </Button>
 
             <p className='text-center text-xs text-indigo-950/50'>
-              Your password must be at least 8 characters long.
+              {t('security.minLengthHint')}
             </p>
           </div>
         </form>
@@ -252,24 +256,24 @@ export default function SecurityPage() {
         <div className='mt-8 pt-6 border-t border-white/30'>
           <h3 className='mb-4 text-lg font-bold text-indigo-950 flex items-center gap-2'>
             <Shield className='h-5 w-5' />
-            Security Tips
+            {t('security.tipsTitle')}
           </h3>
           <ul className='space-y-2 text-sm font-semibold text-indigo-950/70'>
             <li className='flex items-center gap-2'>
               <CheckCircle className='h-4 w-4 text-emerald-600' />
-              Use a unique password you don&apos;t use elsewhere
+              {t('security.tipUnique')}
             </li>
             <li className='flex items-center gap-2'>
               <CheckCircle className='h-4 w-4 text-emerald-600' />
-              Include uppercase, lowercase, numbers, and symbols
+              {t('security.tipMix')}
             </li>
             <li className='flex items-center gap-2'>
               <CheckCircle className='h-4 w-4 text-emerald-600' />
-              Avoid personal information (name, birthdate, etc.)
+              {t('security.tipPersonal')}
             </li>
             <li className='flex items-center gap-2'>
               <CheckCircle className='h-4 w-4 text-emerald-600' />
-              Consider using a password manager
+              {t('security.tipManager')}
             </li>
           </ul>
         </div>
@@ -283,10 +287,10 @@ export default function SecurityPage() {
       >
         <h3 className='mb-4 text-lg font-bold text-indigo-950 flex items-center gap-2'>
           <Shield className='h-5 w-5' />
-          Active Sessions
+          {t('security.sessionsTitle')}
         </h3>
         <p className='text-sm font-semibold text-indigo-950/70'>
-          Changing your password will sign you out of all other devices for security.
+          {t('security.sessionsBody')}
         </p>
         <div className='mt-4 flex items-center justify-between'>
           <div className='flex items-center gap-3'>
@@ -294,12 +298,12 @@ export default function SecurityPage() {
               <Shield className='h-5 w-5 text-indigo-600' />
             </div>
             <div>
-              <p className='font-medium text-indigo-950'>Current Session</p>
-              <p className='text-sm text-indigo-950/60'>This device · Active now</p>
+              <p className='font-medium text-indigo-950'>{t('security.currentSession')}</p>
+              <p className='text-sm text-indigo-950/60'>{t('security.thisDeviceActiveNow')}</p>
             </div>
           </div>
           <span className='inline-flex items-center rounded-full bg-emerald-100 px-2 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'>
-            Active
+            {t('security.active')}
           </span>
         </div>
       </motion.div>

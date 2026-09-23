@@ -17,25 +17,27 @@ import { useToast } from '@/components/ui/Toast';
 import { authApi } from '@/lib/api';
 import { clearAuthCookies, getAuthToken } from '@/lib/authCookies';
 import { useProfile } from '@/hooks/profile/useProfile';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 type Tab = 'orders' | 'addresses' | 'security';
 
+/** `label` is a message key, resolved with t() at render. */
 const TABS: { id: Tab; label: string; icon: React.ReactNode; href: string }[] = [
   {
     id: 'orders',
-    label: 'My Orders',
+    label: 'common.orders',
     icon: <Package className='h-4 w-4' />,
     href: '/account/orders',
   },
   {
     id: 'addresses',
-    label: 'Addresses',
+    label: 'common.addresses',
     icon: <MapPin className='h-4 w-4' />,
     href: '/account/addresses',
   },
   {
     id: 'security',
-    label: 'Security',
+    label: 'common.security',
     icon: <Shield className='h-4 w-4' />,
     href: '/account/security',
   },
@@ -46,6 +48,7 @@ function AccountNav() {
   const pathname = usePathname();
   const { toast } = useToast();
   const { data: profile } = useProfile();
+  const { t } = useTranslation();
 
   const currentTab = TABS.find((t) => pathname.startsWith(t.href)) || TABS[0];
 
@@ -66,7 +69,7 @@ function AccountNav() {
   }
 
   return (
-    <nav className='flex gap-2 overflow-x-auto pb-2' role='tablist' aria-label='Account sections'>
+    <nav className='flex gap-2 overflow-x-auto pb-2' role='tablist' aria-label={t('account.sectionsLabel')}>
       {TABS.map((tab) => (
         <Link
           key={tab.id}
@@ -80,7 +83,7 @@ function AccountNav() {
           }`}
         >
           {tab.icon}
-          {tab.label}
+          {t(tab.label)}
         </Link>
       ))}
     </nav>
@@ -91,6 +94,7 @@ export default function AccountLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { toast } = useToast();
   const { data: profile } = useProfile();
+  const { t } = useTranslation();
 
   const handleLogout = async () => {
     try {
@@ -115,18 +119,20 @@ export default function AccountLayout({ children }: { children: ReactNode }) {
           <div>
             <div className='inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/40 px-3 py-1 text-xs font-extrabold text-indigo-950'>
               <User className='h-4 w-4 text-fuchsia-700' />
-              My Account
+              {t('common.account')}
             </div>
             <h1 className='mt-4 text-3xl font-extrabold tracking-tight text-indigo-950 sm:text-4xl'>
-              Welcome back, {profile?.user?.username || 'Customer'}
+              {t('account.welcomeBack', {
+                name: profile?.user?.username || t('account.customerFallback'),
+              })}
             </h1>
             <p className='mt-2 text-sm font-semibold text-indigo-950/80'>
-              Manage your orders, addresses, and account settings.
+              {t('account.subtitle')}
             </p>
           </div>
           <Button variant='outline' size='sm' onClick={handleLogout}>
             <LogOut className='me-2 h-4 w-4' />
-            Sign out
+            {t('account.signOut')}
           </Button>
         </div>
       </div>

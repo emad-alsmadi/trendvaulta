@@ -7,6 +7,7 @@ import {
 import { getAuthToken } from '@/lib/authCookies';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/Toast';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface WishlistButtonProps {
   productId: string;
@@ -22,6 +23,7 @@ export function WishlistButton({
   variant = 'icon',
   tone = 'onDark',
 }: WishlistButtonProps) {
+  const { t } = useTranslation();
   const router = useRouter();
   const { toast } = useToast();
   const isAuthenticated = !!getAuthToken();
@@ -39,7 +41,7 @@ export function WishlistButton({
     e.stopPropagation();
 
     if (!isAuthenticated) {
-      toast('Please sign in to save products to your wishlist', {
+      toast(t('wishlist.signInRequired'), {
         variant: 'error',
       });
       router.push('/auth/login');
@@ -53,16 +55,16 @@ export function WishlistButton({
     try {
       if (isWishlisted) {
         await removeFromWishlist.mutateAsync(productId);
-        toast('Removed from wishlist', { variant: 'success' });
+        toast(t('wishlist.removed'), { variant: 'success' });
       } else {
         await addToWishlist.mutateAsync(productId);
-        toast('Added to wishlist', { variant: 'success' });
+        toast(t('wishlist.added'), { variant: 'success' });
       }
     } catch {
       toast(
         isWishlisted
-          ? 'Failed to remove from wishlist'
-          : 'Failed to add to wishlist',
+          ? t('wishlist.removeFailed')
+          : t('wishlist.addFailed'),
         { variant: 'error' },
       );
     } finally {
@@ -78,7 +80,11 @@ export function WishlistButton({
         className={`p-2 rounded-full transition-all duration-200 ${
           tone === 'onLight' ? 'hover:bg-stone-100' : 'hover:bg-white/20'
         } ${className}`}
-        aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+        aria-label={
+          isWishlisted
+            ? t('wishlist.removeFromWishlist')
+            : t('wishlist.addToWishlist')
+        }
         aria-pressed={isWishlisted}
       >
         <svg
@@ -128,7 +134,7 @@ export function WishlistButton({
       >
         <path d='M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z' />
       </svg>
-      {isWishlisted ? 'Saved' : 'Save'}
+      {isWishlisted ? t('wishlist.saved') : t('wishlist.save')}
     </button>
   );
 }

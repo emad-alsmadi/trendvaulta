@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Loader2, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
+import { useTranslation } from '@/contexts/TranslationContext';
 import {
   ReviewForm,
   isPurchaseRequiredError,
@@ -38,6 +39,7 @@ type Props = {
 export function ProductReviewsSection({ productId }: Props) {
   const pathname = usePathname();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const isAuthenticated = Boolean(getAuthToken());
   const meQuery = useMe();
   const currentUserId = meQuery.data?.user?._id;
@@ -65,10 +67,10 @@ export function ProductReviewsSection({ productId }: Props) {
           reviewId: editing._id,
           payload: data as ReviewUpdatePayload,
         });
-        toast('Review updated', { variant: 'success' });
+        toast(t('reviews.updated'), { variant: 'success' });
       } else {
         await createReview.mutateAsync(data as ReviewPayload);
-        toast('Thanks for your review!', { variant: 'success' });
+        toast(t('reviews.thanks'), { variant: 'success' });
       }
       setEditing(null);
       setFormOpen(false);
@@ -78,7 +80,7 @@ export function ProductReviewsSection({ productId }: Props) {
       // Everything else keeps the generic toast.
       if (isPurchaseRequiredError(err)) throw err;
       logErrorForDev(err);
-      toast(getUserFacingErrorMessage(err, 'Could not save your review'), {
+      toast(getUserFacingErrorMessage(err, t('reviews.saveError')), {
         variant: 'error',
       });
     }
@@ -87,18 +89,23 @@ export function ProductReviewsSection({ productId }: Props) {
   const handleDelete = async (reviewId: string) => {
     try {
       await deleteReview.mutateAsync({ reviewId, productId });
-      toast('Review deleted', { variant: 'success' });
+      toast(t('reviews.deleted'), { variant: 'success' });
       setEditing(null);
       setFormOpen(false);
     } catch (err) {
       logErrorForDev(err);
-      toast(getUserFacingErrorMessage(err, 'Could not delete your review'), {
+      toast(getUserFacingErrorMessage(err, t('reviews.deleteError')), {
         variant: 'error',
       });
     }
   };
 
   const showForm = formOpen || editing != null;
+  // One sentence with a {signIn} slot so the link can sit anywhere in the
+  // translated text (word order differs between English and Arabic).
+  const [signInBefore, signInAfter] = t('reviews.signInToReview').split(
+    '{signIn}',
+  );
 
   return (
     <div className='space-y-6'>
@@ -106,7 +113,7 @@ export function ProductReviewsSection({ productId }: Props) {
         showForm ? (
           <div className='rounded-2xl border border-stone-200 bg-stone-50/60 p-5'>
             <h3 className='mb-4 text-lg font-bold text-stone-900'>
-              {editing ? 'Edit your review' : 'Write a review'}
+              {editing ? t('reviews.editYourReview') : t('reviews.writeReview')}
             </h3>
             <ReviewForm
               key={editing?._id ?? 'new'}
@@ -131,36 +138,37 @@ export function ProductReviewsSection({ productId }: Props) {
             }}
           >
             <MessageSquare className='h-4 w-4' />
-            {myReview ? 'Edit your review' : 'Write a review'}
+            {myReview ? t('reviews.editYourReview') : t('reviews.writeReview')}
           </Button>
         )
       ) : (
         <p className='text-sm text-stone-600'>
+          {signInBefore}
           <Link
             href={buildLoginUrl(pathname)}
             className='font-bold text-fuchsia-700 hover:underline'
           >
-            Sign in
-          </Link>{' '}
-          to write a review.
+            {t('reviews.signIn')}
+          </Link>
+          {signInAfter}
         </p>
       )}
 
       {reviewsQuery.isLoading ? (
         <div className='flex items-center gap-2 py-6 text-sm text-stone-500'>
           <Loader2 className='h-4 w-4 animate-spin' aria-hidden />
-          Loading reviews…
+          {t('reviews.loading')}
         </div>
       ) : reviewsQuery.error ? (
         <div className='flex flex-wrap items-center gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800'>
-          <span>Reviews could not be loaded right now.</span>
+          <span>{t('reviews.loadError')}</span>
           <Button
             type='button'
             size='sm'
             variant='outline'
             onClick={() => reviewsQuery.refetch()}
           >
-            Retry
+            {t('reviews.retry')}
           </Button>
         </div>
       ) : (

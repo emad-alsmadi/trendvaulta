@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/Accordion';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
+import { useTranslation } from '@/contexts/TranslationContext';
 import {
   useCreateProductQuestion,
   useMarkProductQAHelpful,
@@ -32,8 +33,8 @@ type Props = {
 const QUESTION_MIN = 10;
 const QUESTION_MAX = 500;
 
-function askerName(item: ProductQAItem): string {
-  return item.askedBy?.username || item.askedBy?.name || 'A shopper';
+function askerName(item: ProductQAItem, fallback: string): string {
+  return item.askedBy?.username || item.askedBy?.name || fallback;
 }
 
 /**
@@ -43,6 +44,7 @@ function askerName(item: ProductQAItem): string {
 export function ProductQaSection({ productId }: Props) {
   const pathname = usePathname();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const isAuthenticated = Boolean(getAuthToken());
 
   const qaQuery = useProductQA(productId);
@@ -66,12 +68,12 @@ export function ProductQaSection({ productId }: Props) {
       await createQuestion.mutateAsync({ productId, question: trimmed });
       setQuestion('');
       setAskOpen(false);
-      toast('Question submitted. It will appear once approved.', {
+      toast(t('productQa.submitted'), {
         variant: 'success',
       });
     } catch (err) {
       logErrorForDev(err);
-      toast(getUserFacingErrorMessage(err, 'Could not submit your question'), {
+      toast(getUserFacingErrorMessage(err, t('productQa.submitError')), {
         variant: 'error',
       });
     }
@@ -79,14 +81,14 @@ export function ProductQaSection({ productId }: Props) {
 
   const handleHelpful = async (qaId: string) => {
     if (!isAuthenticated) {
-      toast('Sign in to vote on answers', { variant: 'info' });
+      toast(t('productQa.signInToVote'), { variant: 'info' });
       return;
     }
     try {
       await markHelpful.mutateAsync({ qaId, helpful: true });
     } catch (err) {
       logErrorForDev(err);
-      toast(getUserFacingErrorMessage(err, 'Could not record your vote'), {
+      toast(getUserFacingErrorMessage(err, t('productQa.voteError')), {
         variant: 'error',
       });
     }
@@ -101,16 +103,16 @@ export function ProductQaSection({ productId }: Props) {
         <div>
           <p className='inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-stone-500'>
             <HelpCircle className='h-3.5 w-3.5' aria-hidden />
-            Customer Q&amp;A
+            {t('productQa.eyebrow')}
           </p>
           <h2
             id='pdp-qa-heading'
             className='mt-1 text-2xl font-bold text-stone-900'
           >
-            Questions &amp; answers
+            {t('productQa.title')}
           </h2>
           <p className='mt-1 text-sm font-semibold text-stone-600'>
-            Answers come from our team. Questions appear after moderation.
+            {t('productQa.subtitle')}
           </p>
         </div>
         <div className='flex items-center gap-3'>
@@ -121,21 +123,21 @@ export function ProductQaSection({ productId }: Props) {
               size='sm'
               onClick={() => setAskOpen((v) => !v)}
             >
-              {askOpen ? 'Close' : 'Ask a question'}
+              {askOpen ? t('confirmDialog.close') : t('productQa.askQuestion')}
             </Button>
           ) : (
             <Link
               href={buildLoginUrl(pathname)}
               className='text-sm font-bold text-fuchsia-700 hover:underline'
             >
-              Sign in to ask
+              {t('productQa.signInToAsk')}
             </Link>
           )}
           <Link
             href='/help'
             className='text-sm font-bold text-fuchsia-700 hover:underline'
           >
-            Help Center
+            {t('productQa.helpCenter')}
           </Link>
         </div>
       </div>
@@ -149,7 +151,7 @@ export function ProductQaSection({ productId }: Props) {
             htmlFor='pdp-qa-question'
             className='mb-2 block text-sm font-semibold text-stone-800'
           >
-            Your question
+            {t('productQa.questionLabel')}
           </label>
           <textarea
             id='pdp-qa-question'
@@ -157,17 +159,22 @@ export function ProductQaSection({ productId }: Props) {
             onChange={(e) => setQuestion(e.target.value)}
             rows={3}
             maxLength={QUESTION_MAX}
-            placeholder='What would you like to know about this product?'
+            placeholder={t('productQa.questionPlaceholder')}
             className='w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 focus:border-fuchsia-400 focus:outline-none focus:ring-2 focus:ring-fuchsia-200'
             disabled={createQuestion.isPending}
           />
           <div className='mt-2 flex items-center justify-between gap-3'>
             <span className='text-xs text-stone-500'>
-              {trimmed.length}/{QUESTION_MAX} · at least {QUESTION_MIN}{' '}
-              characters
+              {t('productQa.charCount', {
+                count: trimmed.length,
+                max: QUESTION_MAX,
+                min: QUESTION_MIN,
+              })}
             </span>
             <Button type='submit' size='sm' disabled={!canSubmit}>
-              {createQuestion.isPending ? 'Submitting…' : 'Submit question'}
+              {createQuestion.isPending
+                ? t('productQa.submitting')
+                : t('productQa.submitQuestion')}
             </Button>
           </div>
         </form>
@@ -176,23 +183,23 @@ export function ProductQaSection({ productId }: Props) {
       {qaQuery.isLoading ? (
         <div className='flex items-center gap-2 py-4 text-sm text-stone-500'>
           <Loader2 className='h-4 w-4 animate-spin' aria-hidden />
-          Loading questions…
+          {t('productQa.loading')}
         </div>
       ) : qaQuery.error ? (
         <div className='flex flex-wrap items-center gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800'>
-          <span>Questions could not be loaded right now.</span>
+          <span>{t('productQa.loadError')}</span>
           <Button
             type='button'
             size='sm'
             variant='outline'
             onClick={() => qaQuery.refetch()}
           >
-            Retry
+            {t('productQa.retry')}
           </Button>
         </div>
       ) : items.length === 0 ? (
         <p className='text-sm text-stone-600'>
-          No questions yet. Be the first to ask about this product.
+          {t('productQa.empty')}
         </p>
       ) : (
         <Accordion
@@ -212,13 +219,15 @@ export function ProductQaSection({ productId }: Props) {
               </AccordionTrigger>
               <AccordionContent className='text-stone-700'>
                 <p className='mb-2 text-xs text-stone-500'>
-                  Asked by {askerName(item)}
+                  {t('productQa.askedBy', {
+                    name: askerName(item, t('productQa.anonymousAsker')),
+                  })}
                 </p>
                 {item.answer ? (
                   <p className='whitespace-pre-line'>{item.answer}</p>
                 ) : (
                   <p className='italic text-stone-500'>
-                    Our team hasn&apos;t answered this yet.
+                    {t('productQa.notAnswered')}
                   </p>
                 )}
                 {item.answer && (
@@ -229,7 +238,7 @@ export function ProductQaSection({ productId }: Props) {
                     className='mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-stone-600 hover:text-fuchsia-700 disabled:opacity-60'
                   >
                     <ThumbsUp className='h-3.5 w-3.5' aria-hidden />
-                    Helpful ({item.helpful ?? 0})
+                    {t('productQa.helpful', { count: item.helpful ?? 0 })}
                   </button>
                 )}
               </AccordionContent>

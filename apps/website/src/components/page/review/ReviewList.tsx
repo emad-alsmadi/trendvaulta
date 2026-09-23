@@ -3,6 +3,8 @@ import { StarRating } from '../rating/StarRating';
 import { Trash2, Edit2, BadgeCheck } from 'lucide-react';
 import { Button } from '../../ui/Button';
 import { SITE_NAME } from '@/lib/site';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { intlLocale } from '@/lib/locale';
 
 interface ReviewListProps {
   reviews: Review[];
@@ -19,12 +21,14 @@ export function ReviewList({
   onDelete,
   isDeleting,
 }: ReviewListProps) {
+  const { t, locale } = useTranslation();
+
   if (reviews.length === 0) {
     return (
       <div className='text-center py-12'>
-        <p className='text-gray-500 text-lg'>No reviews yet.</p>
+        <p className='text-gray-500 text-lg'>{t('reviews.list.empty')}</p>
         <p className='text-gray-400 text-sm mt-2'>
-          Be the first to review this product!
+          {t('reviews.list.beFirst')}
         </p>
       </div>
     );
@@ -54,12 +58,12 @@ export function ReviewList({
                       {review.verifiedPurchase && (
                         <span className='inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200'>
                           <BadgeCheck size={12} aria-hidden />
-                          Verified purchase
+                          {t('reviews.list.verifiedPurchase')}
                         </span>
                       )}
                     </div>
                     <p className='text-xs text-gray-500'>
-                      {new Date(review.createdAt).toLocaleDateString('en-US', {
+                      {new Date(review.createdAt).toLocaleDateString(intlLocale(locale), {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric',
@@ -81,9 +85,10 @@ export function ReviewList({
                       variant='ghost'
                       size='sm'
                       onClick={() => onEdit(review)}
+                      aria-label={t('reviews.list.edit')}
                       className='text-gray-600 hover:text-fuchsia-600'
                     >
-                      <Edit2 size={16} />
+                      <Edit2 size={16} aria-hidden />
                     </Button>
                   )}
                   {onDelete && (
@@ -92,9 +97,10 @@ export function ReviewList({
                       size='sm'
                       onClick={() => onDelete(review._id)}
                       disabled={isDeleting}
+                      aria-label={t('reviews.list.delete')}
                       className='text-gray-600 hover:text-red-600'
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={16} aria-hidden />
                     </Button>
                   )}
                 </div>
@@ -108,10 +114,10 @@ export function ReviewList({
             {review.reply?.text && (
               <div className='mt-4 rounded-xl border-s-4 border-blue-500 bg-blue-50/60 px-4 py-3'>
                 <p className='text-xs font-semibold uppercase tracking-wide text-blue-700'>
-                  Response from {SITE_NAME}
+                  {t('reviews.list.storeResponse', { name: SITE_NAME })}
                   {review.reply.repliedAt && (
                     <span className='ms-2 font-normal normal-case tracking-normal text-gray-500'>
-                      {new Date(review.reply.repliedAt).toLocaleDateString('en-US', {
+                      {new Date(review.reply.repliedAt).toLocaleDateString(intlLocale(locale), {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric',

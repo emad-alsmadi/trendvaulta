@@ -17,6 +17,9 @@ export type OrderTrackingStep = {
   at?: string;
 };
 
+/** Optional translator: when omitted, helpers keep their English output. */
+type Translate = (key: string, vars?: Record<string, string | number>) => string;
+
 function paymentDone(payment?: PaymentStatus): boolean {
   return payment === 'paid';
 }
@@ -25,10 +28,13 @@ function paymentDone(payment?: PaymentStatus): boolean {
  * Build a display timeline from order.status (+ paymentStatus).
  * Pure UI helper — does not invent backend mutations.
  */
-export function buildDemoOrderTracking(order: Pick<
-  Order,
-  'status' | 'paymentStatus' | 'createdAt' | 'paidAt' | 'updatedAt' | 'shippingAddress'
->): {
+export function buildDemoOrderTracking(
+  order: Pick<
+    Order,
+    'status' | 'paymentStatus' | 'createdAt' | 'paidAt' | 'updatedAt' | 'shippingAddress'
+  >,
+  t?: Translate,
+): {
   steps: OrderTrackingStep[];
   demoCarrierNote: string | null;
   isDemo: true;
@@ -43,15 +49,19 @@ export function buildDemoOrderTracking(order: Pick<
       steps: [
         {
           id: 'placed',
-          title: 'Order placed',
-          description: 'We received your order.',
+          title: t ? t('orders.tracking.placedTitle') : 'Order placed',
+          description: t
+            ? t('orders.tracking.placedCanceledDescription')
+            : 'We received your order.',
           state: 'complete',
           at: order.createdAt,
         },
         {
           id: 'canceled',
-          title: 'Canceled',
-          description: 'This order was canceled. Contact support if you need help.',
+          title: t ? t('orders.tracking.canceledTitle') : 'Canceled',
+          description: t
+            ? t('orders.tracking.canceledDescription')
+            : 'This order was canceled. Contact support if you need help.',
           state: 'canceled',
           at: order.updatedAt,
         },
@@ -62,38 +72,52 @@ export function buildDemoOrderTracking(order: Pick<
   const steps: OrderTrackingStep[] = [
     {
       id: 'placed',
-      title: 'Order placed',
-      description: 'We received your order details.',
+      title: t ? t('orders.tracking.placedTitle') : 'Order placed',
+      description: t
+        ? t('orders.tracking.placedDescription')
+        : 'We received your order details.',
       state: 'complete',
       at: order.createdAt,
     },
     {
       id: 'payment',
-      title: paid ? 'Payment confirmed' : 'Awaiting payment',
+      title: paid
+        ? t ? t('orders.tracking.paymentConfirmedTitle') : 'Payment confirmed'
+        : t ? t('orders.tracking.awaitingPaymentTitle') : 'Awaiting payment',
       description: paid
-        ? 'Payment cleared securely.'
-        : 'Complete checkout to continue fulfillment.',
+        ? t ? t('orders.tracking.paymentConfirmedDescription') : 'Payment cleared securely.'
+        : t
+          ? t('orders.tracking.awaitingPaymentDescription')
+          : 'Complete checkout to continue fulfillment.',
       state: paid ? 'complete' : 'current',
       at: paid ? order.paidAt || order.updatedAt : undefined,
     },
     {
       id: 'preparing',
-      title: 'Preparing your order',
-      description: 'Packing beauty, fashion, or lifestyle items with care.',
+      title: t ? t('orders.tracking.preparingTitle') : 'Preparing your order',
+      description: t
+        ? t('orders.tracking.preparingDescription')
+        : 'Packing beauty, fashion, or lifestyle items with care.',
       state: 'upcoming',
     },
     {
       id: 'shipped',
-      title: 'Shipped',
+      title: t ? t('orders.tracking.shippedTitle') : 'Shipped',
       description: order.shippingAddress?.city
-        ? `On the way toward ${order.shippingAddress.city}.`
-        : 'Handed to the carrier when delivery is selected.',
+        ? t
+          ? t('orders.tracking.shippedToCityDescription', { city: order.shippingAddress.city })
+          : `On the way toward ${order.shippingAddress.city}.`
+        : t
+          ? t('orders.tracking.shippedDescription')
+          : 'Handed to the carrier when delivery is selected.',
       state: 'upcoming',
     },
     {
       id: 'delivered',
-      title: 'Delivered',
-      description: 'Marked delivered when the shipment completes.',
+      title: t ? t('orders.tracking.deliveredTitle') : 'Delivered',
+      description: t
+        ? t('orders.tracking.deliveredDescription')
+        : 'Marked delivered when the shipment completes.',
       state: 'upcoming',
     },
   ];
@@ -118,15 +142,18 @@ export function buildDemoOrderTracking(order: Pick<
     mark('delivered', 'complete', order.updatedAt);
   }
 
-  const demoCarrierNote =
-    status === 'shipped' || status === 'delivered'
-      ? `Demo tracking ref TV-${order.createdAt.slice(0, 10).replace(/-/g, '')} — not a live carrier feed`
-      : null;
+  let demoCarrierNote: string | null = null;
+  if (status === 'shipped' || status === 'delivered') {
+    const demoRef = `TV-${order.createdAt.slice(0, 10).replace(/-/g, '')}`;
+    demoCarrierNote = t
+      ? t('orders.tracking.demoCarrierNote', { ref: demoRef })
+      : `Demo tracking ref ${demoRef} — not a live carrier feed`;
+  }
 
   return { steps, demoCarrierNote, isDemo: true };
 }
 
-export function orderStatusLabel(status: OrderStatus): string {
+export function orderStatusLabel(status: OrderStatus, t?: Translate): string {
   const labels: Record<OrderStatus, string> = {
     pending: 'Pending',
     paid: 'Paid',
@@ -134,5 +161,6 @@ export function orderStatusLabel(status: OrderStatus): string {
     delivered: 'Delivered',
     canceled: 'Canceled',
   };
-  return labels[status] || status;
+  if (!labels[status]) return status;
+  return t ? t(`orders.status.${status}`) : labels[status];
 }

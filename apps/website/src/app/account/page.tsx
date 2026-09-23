@@ -18,25 +18,27 @@ import { useToast } from '@/components/ui/Toast';
 import { authApi } from '@/lib/api';
 import { clearAuthCookies, getAuthToken } from '@/lib/authCookies';
 import { useProfile } from '@/hooks/profile/useProfile';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 type Tab = 'orders' | 'addresses' | 'security';
 
+/** `label` is a message key, resolved with t() at render. */
 const TABS: { id: Tab; label: string; icon: React.ReactNode; href: string }[] = [
   {
     id: 'orders',
-    label: 'My Orders',
+    label: 'common.orders',
     icon: <Package className='h-4 w-4' />,
     href: '/account/orders',
   },
   {
     id: 'addresses',
-    label: 'Addresses',
+    label: 'common.addresses',
     icon: <MapPin className='h-4 w-4' />,
     href: '/account/addresses',
   },
   {
     id: 'security',
-    label: 'Security',
+    label: 'common.security',
     icon: <Shield className='h-4 w-4' />,
     href: '/account/security',
   },
@@ -47,6 +49,7 @@ export default function AccountPage() {
   const pathname = usePathname();
   const { toast } = useToast();
   const { data: profile } = useProfile();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<Tab>('orders');
 
   const currentTab = TABS.find((t) => pathname.startsWith(t.href)) || TABS[0];
@@ -79,18 +82,20 @@ export default function AccountPage() {
           <div>
             <div className='inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/40 px-3 py-1 text-xs font-extrabold text-indigo-950'>
               <User className='h-4 w-4 text-fuchsia-700' />
-              My Account
+              {t('common.account')}
             </div>
             <h1 className='mt-4 text-3xl font-extrabold tracking-tight text-indigo-950 sm:text-4xl'>
-              Welcome back, {profile?.user?.username || 'Customer'}
+              {t('account.welcomeBack', {
+                name: profile?.user?.username || t('account.customerFallback'),
+              })}
             </h1>
             <p className='mt-2 text-sm font-semibold text-indigo-950/80'>
-              Manage your orders, addresses, and account settings.
+              {t('account.subtitle')}
             </p>
           </div>
           <Button variant='outline' size='sm' onClick={handleLogout}>
             <LogOut className='me-2 h-4 w-4' />
-            Sign out
+            {t('account.signOut')}
           </Button>
         </div>
       </motion.div>
@@ -112,7 +117,7 @@ export default function AccountPage() {
             }`}
           >
             {tab.icon}
-            {tab.label}
+            {t(tab.label)}
           </button>
         ))}
       </nav>
@@ -126,16 +131,16 @@ export default function AccountPage() {
         {activeTab === 'orders' && (
           <div className='text-center py-12'>
             <Package className='mx-auto h-12 w-12 text-indigo-950/30' />
-            <h2 className='mt-4 text-xl font-bold text-indigo-950'>My Orders</h2>
+            <h2 className='mt-4 text-xl font-bold text-indigo-950'>{t('common.orders')}</h2>
             <p className='mt-2 text-sm text-indigo-950/70'>
-              View your order history and track shipments.
+              {t('orders.subtitle')}
             </p>
             <Link
               href='/account/orders'
               className='mt-6 inline-block'
             >
               <Button size='lg'>
-                View Orders
+                {t('account.overview.viewOrders')}
                 <ChevronRight className='ms-2 h-4 w-4 rtl:-scale-x-100' />
               </Button>
             </Link>
@@ -145,16 +150,16 @@ export default function AccountPage() {
         {activeTab === 'addresses' && (
           <div className='text-center py-12'>
             <MapPin className='mx-auto h-12 w-12 text-indigo-950/30' />
-            <h2 className='mt-4 text-xl font-bold text-indigo-950'>Saved Addresses</h2>
+            <h2 className='mt-4 text-xl font-bold text-indigo-950'>{t('account.overview.savedAddresses')}</h2>
             <p className='mt-2 text-sm text-indigo-950/70'>
-              Manage your shipping addresses for faster checkout.
+              {t('account.overview.addressesDescription')}
             </p>
             <Link
               href='/account/addresses'
               className='mt-6 inline-block'
             >
               <Button size='lg'>
-                Manage Addresses
+                {t('account.overview.manageAddresses')}
                 <ChevronRight className='ms-2 h-4 w-4 rtl:-scale-x-100' />
               </Button>
             </Link>
@@ -164,16 +169,16 @@ export default function AccountPage() {
         {activeTab === 'security' && (
           <div className='text-center py-12'>
             <Shield className='mx-auto h-12 w-12 text-indigo-950/30' />
-            <h2 className='mt-4 text-xl font-bold text-indigo-950'>Security</h2>
+            <h2 className='mt-4 text-xl font-bold text-indigo-950'>{t('common.security')}</h2>
             <p className='mt-2 text-sm text-indigo-950/70'>
-              Update your password and manage account security.
+              {t('account.overview.securityDescription')}
             </p>
             <Link
               href='/account/security'
               className='mt-6 inline-block'
             >
               <Button size='lg'>
-                Security Settings
+                {t('account.overview.securitySettings')}
                 <ChevronRight className='ms-2 h-4 w-4 rtl:-scale-x-100' />
               </Button>
             </Link>

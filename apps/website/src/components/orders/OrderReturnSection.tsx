@@ -6,39 +6,40 @@ import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { useRequestReturnMutation } from '@/hooks/orders/ordersQuery';
 import { getUserFacingErrorMessage } from '@/lib/userFacingError';
-import { formatCurrency } from '@/lib/utils';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { intlLocale } from '@/lib/locale';
 import type { Order, ReturnStatus } from '@/types';
 
-function formatDay(value?: string) {
+function formatDay(value: string | undefined, localeTag: string) {
   if (!value) return '';
-  return new Date(value).toLocaleDateString('en-US', {
+  return new Date(value).toLocaleDateString(localeTag, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
 }
 
-/** What each step means for the customer, in their words. */
+/** What each step means for the customer, in their words (message keys). */
 const STEP_COPY: Record<Exclude<ReturnStatus, 'none'>, { title: string; body: string }> = {
   requested: {
-    title: 'Return requested',
-    body: "We've received your request. Once it's approved, the instructions for sending your items back will appear here.",
+    title: 'returns.steps.requested.title',
+    body: 'returns.steps.requested.body',
   },
   approved: {
-    title: 'Return approved',
-    body: 'Follow the instructions below to send your items back.',
+    title: 'returns.steps.approved.title',
+    body: 'returns.steps.approved.body',
   },
   received: {
-    title: 'Parcel received',
-    body: "Your items have arrived. We're checking them and will issue your refund shortly.",
+    title: 'returns.steps.received.title',
+    body: 'returns.steps.received.body',
   },
   refunded: {
-    title: 'Refund issued',
-    body: 'Refunds usually appear on your statement within 5–10 business days.',
+    title: 'returns.steps.refunded.title',
+    body: 'returns.steps.refunded.body',
   },
   rejected: {
-    title: 'Return not accepted',
-    body: 'Unfortunately we could not accept this return.',
+    title: 'returns.steps.rejected.title',
+    body: 'returns.steps.rejected.body',
   },
 };
 
@@ -49,11 +50,12 @@ const STEPS: Exclude<ReturnStatus, 'none' | 'rejected'>[] = [
   'refunded',
 ];
 
+/** Message keys for the progress labels. */
 const STEP_LABELS: Record<(typeof STEPS)[number], string> = {
-  requested: 'Requested',
-  approved: 'Approved',
-  received: 'Received',
-  refunded: 'Refunded',
+  requested: 'returns.stepLabels.requested',
+  approved: 'returns.stepLabels.approved',
+  received: 'returns.stepLabels.received',
+  refunded: 'returns.stepLabels.refunded',
 };
 
 /**
@@ -68,10 +70,12 @@ export function OrderReturnSection({ order }: { order: Order }) {
 }
 
 function ReturnStatusCard({ order }: { order: Order }) {
+  const { t, formatPrice, locale } = useTranslation();
   const rr = order.returnRequest!;
   const status = rr.status as Exclude<ReturnStatus, 'none'>;
   const copy = STEP_COPY[status];
   const reached = STEPS.indexOf(status as (typeof STEPS)[number]);
+  const returnedItems = rr.items.map((item) => `${item.title} × ${item.qty}`).join(', ');
 
   return (
     <section
@@ -83,16 +87,16 @@ function ReturnStatusCard({ order }: { order: Order }) {
         className='mb-1 flex items-center gap-2 text-lg font-bold text-indigo-950'
       >
         <RotateCcw className='h-5 w-5' aria-hidden />
-        {copy.title}
+        {t(copy.title)}
       </h2>
       <p className='text-sm text-indigo-950/70'>
         {status === 'refunded' && rr.refundAmount
-          ? `We refunded ${formatCurrency(rr.refundAmount)}. ${copy.body}`
-          : copy.body}
+          ? t('returns.steps.refunded.bodyWithAmount', { amount: formatPrice(rr.refundAmount) })
+          : t(copy.body)}
       </p>
 
       {status !== 'rejected' && (
-        <ol className='mt-4 grid grid-cols-4 gap-2' aria-label='Return progress'>
+        <ol className='mt-4 grid grid-cols-4 gap-2' aria-label={t('returns.progressLabel')}>
           {STEPS.map((step, i) => (
             <li key={step} className='text-center'>
               <span
@@ -107,7 +111,7 @@ function ReturnStatusCard({ order }: { order: Order }) {
                 }`}
                 aria-current={i === reached ? 'step' : undefined}
               >
-                {STEP_LABELS[step]}
+                {t(STEP_LABELS[step])}
               </span>
             </li>
           ))}
@@ -116,7 +120,7 @@ function ReturnStatusCard({ order }: { order: Order }) {
 
       {rr.instructions && status === 'approved' && (
         <div className='mt-4 rounded-xl border border-indigo-200 bg-indigo-50/70 p-4'>
-          <p className='text-sm font-semibold text-indigo-950'>How to send it back</p>
+          <p className='text-sm font-semibold text-indigo-950'>{t('returns.howToSendBack')}</p>
           <p className='mt-1 whitespace-pre-line text-sm text-indigo-950/80'>
             {rr.instructions}
           </p>
@@ -125,15 +129,18 @@ function ReturnStatusCard({ order }: { order: Order }) {
 
       {rr.notes && (
         <div className='mt-4'>
-          <p className='text-sm font-semibold text-indigo-950'>Message from our team</p>
+          <p className='text-sm font-semibold text-indigo-950'>{t('returns.teamMessage')}</p>
           <p className='mt-1 whitespace-pre-line text-sm text-indigo-950/80'>{rr.notes}</p>
         </div>
       )}
 
       <div className='mt-4 text-xs text-indigo-950/60'>
-        Items:{' '}
-        {rr.items.map((item) => `${item.title} × ${item.qty}`).join(', ')}
-        {rr.requestedAt ? ` · requested ${formatDay(rr.requestedAt)}` : ''}
+        {rr.requestedAt
+          ? t('returns.itemsSummaryRequested', {
+              items: returnedItems,
+              date: formatDay(rr.requestedAt, intlLocale(locale)),
+            })
+          : t('returns.itemsSummary', { items: returnedItems })}
       </div>
     </section>
   );
@@ -141,6 +148,7 @@ function ReturnStatusCard({ order }: { order: Order }) {
 
 function ReturnRequestForm({ order }: { order: Order }) {
   const { toast } = useToast();
+  const { t, locale } = useTranslation();
   const requestReturn = useRequestReturnMutation();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState('');
@@ -164,11 +172,11 @@ function ReturnRequestForm({ order }: { order: Order }) {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selected.length === 0) {
-      toast('Choose at least one item to return', { variant: 'error' });
+      toast(t('returns.toast.chooseItem'), { variant: 'error' });
       return;
     }
     if (!reason.trim()) {
-      toast('Tell us why you are returning the items', { variant: 'error' });
+      toast(t('returns.toast.reasonRequired'), { variant: 'error' });
       return;
     }
     try {
@@ -179,9 +187,9 @@ function ReturnRequestForm({ order }: { order: Order }) {
           items: selected.map((p) => ({ productId: p.productId, qty: qty[p.productId] })),
         },
       });
-      toast('Return requested — check this page for the next steps', { variant: 'success' });
+      toast(t('returns.toast.requested'), { variant: 'success' });
     } catch (err) {
-      toast(getUserFacingErrorMessage(err, 'Could not request a return'), {
+      toast(getUserFacingErrorMessage(err, t('returns.toast.requestFailed')), {
         variant: 'error',
       });
     }
@@ -195,17 +203,19 @@ function ReturnRequestForm({ order }: { order: Order }) {
       <div className='flex flex-wrap items-center justify-between gap-3'>
         <div>
           <h2 id='return-form-title' className='text-lg font-bold text-indigo-950'>
-            Need to return something?
+            {t('returns.formTitle')}
           </h2>
           {order.returnWindowEndsAt && (
             <p className='text-sm text-indigo-950/70'>
-              Returns are open until {formatDay(order.returnWindowEndsAt)}.
+              {t('returns.windowOpenUntil', {
+                date: formatDay(order.returnWindowEndsAt, intlLocale(locale)),
+              })}
             </p>
           )}
         </div>
         {!open && (
           <Button type='button' variant='outline' size='sm' onClick={() => setOpen(true)}>
-            Request a return
+            {t('returns.requestReturn')}
           </Button>
         )}
       </div>
@@ -214,7 +224,7 @@ function ReturnRequestForm({ order }: { order: Order }) {
         <form onSubmit={submit} className='mt-4 space-y-4'>
           <fieldset>
             <legend className='mb-2 text-sm font-semibold text-indigo-950'>
-              Which items?
+              {t('returns.whichItems')}
             </legend>
             <ul className='space-y-2'>
               {products.map((p) => {
@@ -241,12 +251,12 @@ function ReturnRequestForm({ order }: { order: Order }) {
                         onChange={(e) =>
                           setQty((q) => ({ ...q, [p.productId]: Number(e.target.value) }))
                         }
-                        aria-label={`Quantity of ${p.title} to return`}
+                        aria-label={t('returns.qtyAriaLabel', { title: p.title })}
                         className='rounded-lg border border-indigo-200 bg-white px-2 py-1 text-sm'
                       >
                         {Array.from({ length: p.max }, (_, i) => i + 1).map((n) => (
                           <option key={n} value={n}>
-                            {n} of {p.max}
+                            {t('returns.qtyOfMax', { n, max: p.max })}
                           </option>
                         ))}
                       </select>
@@ -258,26 +268,25 @@ function ReturnRequestForm({ order }: { order: Order }) {
           </fieldset>
 
           <label className='block text-sm'>
-            <span className='mb-1 block font-semibold text-indigo-950'>Why are you returning them?</span>
+            <span className='mb-1 block font-semibold text-indigo-950'>{t('returns.reasonLabel')}</span>
             <textarea
               required
               rows={3}
               maxLength={500}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder='e.g. wrong size, arrived damaged, not as described'
+              placeholder={t('returns.reasonPlaceholder')}
               className='w-full rounded-xl border border-indigo-200 bg-white/80 px-3 py-2 text-sm text-indigo-950'
             />
           </label>
 
           <p className='text-xs text-indigo-950/60'>
-            We&apos;ll review your request and send return instructions. Your
-            refund is issued once the items arrive back with us.
+            {t('returns.reviewNote')}
           </p>
 
           <div className='flex flex-wrap gap-2'>
             <Button type='submit' size='sm' disabled={requestReturn.isPending}>
-              {requestReturn.isPending ? 'Sending…' : 'Send return request'}
+              {requestReturn.isPending ? t('returns.sending') : t('returns.sendRequest')}
             </Button>
             <Button
               type='button'
@@ -286,7 +295,7 @@ function ReturnRequestForm({ order }: { order: Order }) {
               disabled={requestReturn.isPending}
               onClick={() => setOpen(false)}
             >
-              Not now
+              {t('returns.notNow')}
             </Button>
           </div>
         </form>

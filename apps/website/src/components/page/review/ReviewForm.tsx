@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Star } from 'lucide-react';
 import { Review, ReviewPayload, ReviewUpdatePayload } from '@/types';
 import { Button } from '../../ui/Button';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface ReviewFormProps {
   productId: string;
@@ -40,6 +41,7 @@ export function ReviewForm({
   onCancel,
   isSubmitting,
 }: ReviewFormProps) {
+  const { t } = useTranslation();
   const [rating, setRating] = useState(existingReview?.rating || 0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState(existingReview?.comment || '');
@@ -63,9 +65,7 @@ export function ReviewForm({
       // A purchase-gated review gets a friendly inline message instead of
       // the parent's generic error toast; anything else still bubbles up.
       if (isPurchaseRequiredError(err)) {
-        setPurchaseRequiredMessage(
-          'Only customers who bought this item can review it',
-        );
+        setPurchaseRequiredMessage(t('reviews.form.purchaseRequired'));
         return;
       }
       throw err;
@@ -79,7 +79,7 @@ export function ReviewForm({
     >
       <div>
         <label className='block text-sm font-semibold text-gray-700 mb-2'>
-          Rating
+          {t('reviews.form.ratingLabel')}
         </label>
         <div className='flex gap-1'>
           {[1, 2, 3, 4, 5].map((star) => (
@@ -109,13 +109,13 @@ export function ReviewForm({
           htmlFor='comment'
           className='block text-sm font-semibold text-gray-700 mb-2'
         >
-          Your Review
+          {t('reviews.form.commentLabel')}
         </label>
         <textarea
           id='comment'
           value={comment}
           onChange={(e) => setComment(e.target.value)}
-          placeholder='Share your experience with this product...'
+          placeholder={t('reviews.form.commentPlaceholder')}
           rows={4}
           className='w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none'
           required
@@ -123,7 +123,7 @@ export function ReviewForm({
           maxLength={1000}
         />
         <p className='text-xs text-gray-500 mt-1'>
-          {comment.length}/1000 characters
+          {t('reviews.form.charCount', { count: comment.length, max: 1000 })}
         </p>
       </div>
 
@@ -143,10 +143,10 @@ export function ReviewForm({
           className='flex-1'
         >
           {isSubmitting
-            ? 'Submitting...'
+            ? t('reviews.form.submitting')
             : existingReview
-              ? 'Update Review'
-              : 'Submit Review'}
+              ? t('reviews.form.update')
+              : t('reviews.form.submit')}
         </Button>
         {onCancel && (
           <Button
@@ -155,7 +155,7 @@ export function ReviewForm({
             onClick={onCancel}
             disabled={isSubmitting}
           >
-            Cancel
+            {t('confirmDialog.cancel')}
           </Button>
         )}
       </div>

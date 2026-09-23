@@ -9,24 +9,33 @@ import { useToast } from '@/components/ui/Toast';
 import { useMyOrders } from '@/hooks/orders/ordersQuery';
 import type { Order } from '@/types';
 import { getAuthToken } from '@/lib/authCookies';
-import { formatCurrency } from '@/lib/utils';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { intlLocale } from '@/lib/locale';
 
+/** Message keys, resolved with t() at render. */
 const STATUS_LABELS: Record<string, string> = {
-  pending: 'Pending',
-  paid: 'Paid',
-  shipped: 'Shipped',
-  delivered: 'Delivered',
-  canceled: 'Canceled',
-  needs_attention: 'Needs Attention',
-  refunded: 'Refunded',
+  pending: 'orders.status.pending',
+  paid: 'orders.status.paid',
+  shipped: 'orders.status.shipped',
+  delivered: 'orders.status.delivered',
+  canceled: 'orders.status.canceled',
+  needs_attention: 'orders.status.needs_attention',
+  refunded: 'orders.status.refunded',
 };
 
 const PAYMENT_STATUS_LABELS: Record<string, string> = {
-  unpaid: 'Unpaid',
-  pending: 'Pending',
-  paid: 'Paid',
-  failed: 'Failed',
-  refunded: 'Refunded',
+  unpaid: 'orders.paymentStatus.unpaid',
+  pending: 'orders.paymentStatus.pending',
+  paid: 'orders.paymentStatus.paid',
+  failed: 'orders.paymentStatus.failed',
+  refunded: 'orders.paymentStatus.refunded',
+};
+
+const ATTENTION_REASON_LABELS: Record<string, string> = {
+  insufficient_stock: 'orders.attentionReason.insufficient_stock',
+  paid_after_cancel: 'orders.attentionReason.paid_after_cancel',
+  refund_failed: 'orders.attentionReason.refund_failed',
+  manual_refund_required: 'orders.attentionReason.manual_refund_required',
 };
 
 function statusBadgeClass(status: string) {
@@ -49,9 +58,9 @@ function statusBadgeClass(status: string) {
   }
 }
 
-function formatDate(dateString: string | undefined) {
+function formatDate(dateString: string | undefined, locale: string) {
   if (!dateString) return '—';
-  return new Date(dateString).toLocaleDateString('en-US', {
+  return new Date(dateString).toLocaleDateString(locale, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -62,6 +71,7 @@ export default function OrdersPage() {
   const router = useRouter();
   const { toast } = useToast();
   const ordersQuery = useMyOrders();
+  const { t, formatPrice, locale } = useTranslation();
 
   if (!getAuthToken()) {
     router.push('/auth/login');
@@ -80,13 +90,13 @@ export default function OrdersPage() {
           <div>
             <div className='inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/40 px-3 py-1 text-xs font-extrabold text-indigo-950'>
               <Package className='h-4 w-4 text-fuchsia-700' />
-              Orders
+              {t('orders.badge')}
             </div>
             <h1 className='mt-4 text-3xl font-extrabold tracking-tight text-indigo-950 sm:text-4xl'>
-              My Orders
+              {t('common.orders')}
             </h1>
             <p className='mt-2 text-sm font-semibold text-indigo-950/80'>
-              View your order history and track shipments.
+              {t('orders.subtitle')}
             </p>
           </div>
           <Button
@@ -96,7 +106,7 @@ export default function OrdersPage() {
             disabled={ordersQuery.isFetching}
           >
             <RefreshCw className={`me-2 h-4 w-4 ${ordersQuery.isFetching ? 'animate-spin' : ''}`} />
-            Refresh
+            {t('orders.refresh')}
           </Button>
         </div>
       </motion.div>
@@ -116,9 +126,9 @@ export default function OrdersPage() {
           <div className='flex items-center gap-3'>
             <AlertCircle className='h-6 w-6 text-rose-600 dark:text-rose-400' />
             <div>
-              <p className='font-bold text-rose-800 dark:text-rose-200'>Failed to load orders</p>
+              <p className='font-bold text-rose-800 dark:text-rose-200'>{t('orders.loadError')}</p>
               <p className='text-sm text-rose-700 dark:text-rose-300'>
-                Please try again or contact support if the problem persists.
+                {t('orders.loadErrorHint')}
               </p>
             </div>
           </div>
@@ -128,7 +138,7 @@ export default function OrdersPage() {
             onClick={() => ordersQuery.refetch()}
           >
             <RefreshCw className='me-2 h-4 w-4' />
-            Retry
+            {t('orders.retry')}
           </Button>
         </motion.div>
       )}
@@ -140,14 +150,14 @@ export default function OrdersPage() {
           className='rounded-3xl border border-white/30 bg-white/35 p-12 text-center shadow-sm backdrop-blur-xl'
         >
           <Package className='mx-auto h-12 w-12 text-indigo-950/30' />
-          <h2 className='mt-4 text-xl font-bold text-indigo-950'>No orders yet</h2>
+          <h2 className='mt-4 text-xl font-bold text-indigo-950'>{t('orders.emptyTitle')}</h2>
           <p className='mt-2 text-sm text-indigo-950/70'>
-            When you place an order, it will appear here.
+            {t('orders.emptyDescription')}
           </p>
           <Link href='/products' className='mt-6 inline-block'>
             <Button size='lg'>
               <Package className='me-2 h-4 w-4' />
-              Start Shopping
+              {t('orders.startShopping')}
             </Button>
           </Link>
         </motion.div>
@@ -165,22 +175,22 @@ export default function OrdersPage() {
               <thead className='bg-indigo-950/5'>
                 <tr className='border-b border-white/30'>
                   <th className='px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-indigo-950/70'>
-                    Order
+                    {t('orders.table.order')}
                   </th>
                   <th className='px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-indigo-950/70'>
-                    Date
+                    {t('orders.table.date')}
                   </th>
                   <th className='px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-indigo-950/70'>
-                    Status
+                    {t('orders.table.status')}
                   </th>
                   <th className='px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-indigo-950/70'>
-                    Payment
+                    {t('orders.table.payment')}
                   </th>
                   <th className='px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-indigo-950/70'>
-                    Total
+                    {t('checkout.total')}
                   </th>
                   <th className='px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-indigo-950/70'>
-                    Action
+                    {t('orders.table.action')}
                   </th>
                 </tr>
               </thead>
@@ -195,41 +205,51 @@ export default function OrdersPage() {
                         #{order._id.slice(-8).toUpperCase()}
                       </Link>
                       <p className='mt-1 text-xs text-indigo-950/50'>
-                        {order.items.length} item{order.items.length > 1 ? 's' : ''}
+                        {t('orders.itemCount', { count: order.items.length })}
                       </p>
                     </td>
                     <td className='px-4 py-4 text-sm text-indigo-950/70'>
-                      {formatDate(order.createdAt)}
+                      {formatDate(order.createdAt, intlLocale(locale))}
                     </td>
                     <td className='px-4 py-4'>
                       <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusBadgeClass(order.status)}`}>
-                        {STATUS_LABELS[order.status] || order.status}
+                        {STATUS_LABELS[order.status]
+                          ? t(STATUS_LABELS[order.status])
+                          : order.status}
                       </span>
                       {order.attentionReason && (
                         <span className='ms-2 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200'>
-                          {order.attentionReason.replace(/_/g, ' ')}
+                          {ATTENTION_REASON_LABELS[order.attentionReason]
+                            ? t(ATTENTION_REASON_LABELS[order.attentionReason])
+                            : order.attentionReason.replace(/_/g, ' ')}
                         </span>
                       )}
                     </td>
                     <td className='px-4 py-4'>
                       <span className='inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-200'>
-                        {order.paymentStatus ? (PAYMENT_STATUS_LABELS[order.paymentStatus] || order.paymentStatus) : '—'}
+                        {order.paymentStatus
+                          ? PAYMENT_STATUS_LABELS[order.paymentStatus]
+                            ? t(PAYMENT_STATUS_LABELS[order.paymentStatus])
+                            : order.paymentStatus
+                          : '—'}
                       </span>
                       {order.paymentStatus === 'refunded' && (order.refundAmount ?? 0) > 0 && (
                         <span className='ms-1 block text-xs text-rose-600 dark:text-rose-400'>
-                          Refunded {formatCurrency(order.refundAmount ?? 0)}
+                          {t('orders.refundedAmount', {
+                            amount: formatPrice(order.refundAmount ?? 0),
+                          })}
                         </span>
                       )}
                     </td>
                     <td className='px-4 py-4 font-semibold text-indigo-950'>
-                      {formatCurrency(order.totalPrice)}
+                      {formatPrice(order.totalPrice)}
                     </td>
                     <td className='px-4 py-4 text-end'>
                       <Link
                         href={`/account/orders/${order._id}`}
                         className='inline-flex items-center gap-1 text-sm font-semibold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300'
                       >
-                        View
+                        {t('orders.view')}
                         <RefreshCw className='h-3.5 w-3.5' />
                       </Link>
                     </td>

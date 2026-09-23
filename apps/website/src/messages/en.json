@@ -278,5 +278,342 @@
     "reviewCart": "Review cart",
     "confirm": "Confirm",
     "close": "Close"
+  },
+  "addresses": {
+    "title": "Saved Addresses",
+    "subtitle": "Manage your shipping addresses for faster checkout. Maximum {max} addresses.",
+    "addAddress": "Add Address",
+    "emptyTitle": "No addresses yet",
+    "emptyBody": "Add your first address to speed up future checkouts.",
+    "labelPlaceholder": "Label",
+    "labelPlaceholderExample": "Label (e.g., Home, Work)",
+    "countryPlaceholder": "Country (ISO 2-letter)",
+    "countryPlaceholderExample": "Country (ISO 2-letter, e.g., US)",
+    "zipPostalPlaceholder": "ZIP / Postal Code",
+    "name": "Name",
+    "cityZipCountry": "City / ZIP / Country",
+    "save": "Save",
+    "update": "Update",
+    "edit": "Edit",
+    "delete": "Delete",
+    "setDefault": "Set Default",
+    "editAddress": "Edit Address",
+    "addNewAddress": "Add New Address",
+    "confirmDelete": "Are you sure you want to delete this address?",
+    "validation": {
+      "countryCode": "Use 2-letter country code",
+      "minChars": "At least {count} characters"
+    },
+    "toast": {
+      "added": "Address added successfully",
+      "addFailed": "Failed to add address",
+      "updated": "Address updated successfully",
+      "updateFailed": "Failed to update address",
+      "deleted": "Address deleted",
+      "deleteFailed": "Failed to delete address",
+      "defaultUpdated": "Default address updated",
+      "defaultFailed": "Failed to set default"
+    }
+  },
+  "security": {
+    "title": "Password & Security",
+    "subtitle": "Update your password to keep your account secure.",
+    "changePassword": "Change Password",
+    "currentPassword": "Current Password",
+    "currentPasswordPlaceholder": "Enter current password",
+    "newPassword": "New Password",
+    "newPasswordPlaceholder": "Enter new password (min 8 characters)",
+    "confirmPassword": "Confirm New Password",
+    "confirmPasswordPlaceholder": "Confirm new password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "charsNeeded": "More characters needed: {count}",
+    "passwordsMatch": "Passwords match",
+    "updating": "Updating…",
+    "updatePassword": "Update Password",
+    "minLengthHint": "Your password must be at least 8 characters long.",
+    "tipsTitle": "Security Tips",
+    "tipUnique": "Use a unique password you don't use elsewhere",
+    "tipMix": "Include uppercase, lowercase, numbers, and symbols",
+    "tipPersonal": "Avoid personal information (name, birthdate, etc.)",
+    "tipManager": "Consider using a password manager",
+    "sessionsTitle": "Active Sessions",
+    "sessionsBody": "Changing your password will sign you out of all other devices for security.",
+    "currentSession": "Current Session",
+    "thisDeviceActiveNow": "This device · Active now",
+    "active": "Active",
+    "validation": {
+      "currentRequired": "Current password is required",
+      "newRequired": "New password is required",
+      "minLength": "Password must be at least 8 characters",
+      "confirmRequired": "Please confirm your new password",
+      "mismatch": "Passwords do not match"
+    },
+    "toast": {
+      "updated": "Password updated successfully",
+      "updateFailed": "Failed to update password"
+    }
+  },
+  "returns": {
+    "steps": {
+      "requested": {
+        "title": "Return requested",
+        "body": "We've received your request. Once it's approved, the instructions for sending your items back will appear here."
+      },
+      "approved": {
+        "title": "Return approved",
+        "body": "Follow the instructions below to send your items back."
+      },
+      "received": {
+        "title": "Parcel received",
+        "body": "Your items have arrived. We're checking them and will issue your refund shortly."
+      },
+      "refunded": {
+        "title": "Refund issued",
+        "body": "Refunds usually appear on your statement within 5–10 business days.",
+        "bodyWithAmount": "We refunded {amount}. Refunds usually appear on your statement within 5–10 business days."
+      },
+      "rejected": {
+        "title": "Return not accepted",
+        "body": "Unfortunately we could not accept this return."
+      }
+    },
+    "stepLabels": {
+      "requested": "Requested",
+      "approved": "Approved",
+      "received": "Received",
+      "refunded": "Refunded"
+    },
+    "progressLabel": "Return progress",
+    "howToSendBack": "How to send it back",
+    "teamMessage": "Message from our team",
+    "itemsSummary": "Items: {items}",
+    "itemsSummaryRequested": "Items: {items} · requested {date}",
+    "formTitle": "Need to return something?",
+    "windowOpenUntil": "Returns are open until {date}.",
+    "requestReturn": "Request a return",
+    "whichItems": "Which items?",
+    "qtyAriaLabel": "Quantity of {title} to return",
+    "qtyOfMax": "{n} of {max}",
+    "reasonLabel": "Why are you returning them?",
+    "reasonPlaceholder": "e.g. wrong size, arrived damaged, not as described",
+    "reviewNote": "We'll review your request and send return instructions. Your refund is issued once the items arrive back with us.",
+    "sending": "Sending…",
+    "sendRequest": "Send return request",
+    "notNow": "Not now",
+    "toast": {
+      "chooseItem": "Choose at least one item to return",
+      "reasonRequired": "Tell us why you are returning the items",
+      "requested": "Return requested — check this page for the next steps",
+      "requestFailed": "Could not request a return"
+    }
+  },
+  "account": {
+    "welcomeBack": "Welcome back, {name}",
+    "customerFallback": "Customer",
+    "subtitle": "Manage your orders, addresses, and account settings.",
+    "signOut": "Sign out",
+    "sectionsLabel": "Account sections",
+    "overview": {
+      "viewOrders": "View Orders",
+      "savedAddresses": "Saved Addresses",
+      "addressesDescription": "Manage your shipping addresses for faster checkout.",
+      "manageAddresses": "Manage Addresses",
+      "securityDescription": "Update your password and manage account security.",
+      "securitySettings": "Security Settings"
+    }
+  },
+  "orders": {
+    "badge": "Orders",
+    "subtitle": "View your order history and track shipments.",
+    "refresh": "Refresh",
+    "loadError": "Failed to load orders",
+    "loadErrorHint": "Please try again or contact support if the problem persists.",
+    "retry": "Retry",
+    "emptyTitle": "No orders yet",
+    "emptyDescription": "When you place an order, it will appear here.",
+    "startShopping": "Start Shopping",
+    "table": {
+      "order": "Order",
+      "date": "Date",
+      "status": "Status",
+      "payment": "Payment",
+      "action": "Action"
+    },
+    "itemCount": "Items: {count}",
+    "refundedAmount": "Refunded {amount}",
+    "view": "View",
+    "status": {
+      "pending": "Pending",
+      "paid": "Paid",
+      "shipped": "Shipped",
+      "delivered": "Delivered",
+      "canceled": "Canceled",
+      "needs_attention": "Needs Attention",
+      "refunded": "Refunded"
+    },
+    "paymentStatus": {
+      "unpaid": "Unpaid",
+      "pending": "Pending",
+      "paid": "Paid",
+      "failed": "Failed",
+      "refunded": "Refunded"
+    },
+    "attentionReason": {
+      "insufficient_stock": "Insufficient stock after payment",
+      "paid_after_cancel": "Paid after cancel",
+      "refund_failed": "Refund failed — manual action",
+      "manual_refund_required": "Manual refund required"
+    },
+    "toast": {
+      "cancelFailed": "Could not cancel this order",
+      "copied": "Copied to clipboard",
+      "copyFailed": "Could not copy"
+    },
+    "cancel": {
+      "prompt": "Changed your mind? This order hasn't shipped yet, so you can still cancel it.",
+      "button": "Cancel order",
+      "title": "Cancel this order?",
+      "refundNotice": "We'll refund {amount} to your original payment method. Refunds usually appear within 5–10 business days. This can't be undone.",
+      "noChargeNotice": "You haven't been charged, so there's nothing to refund. This can't be undone.",
+      "canceling": "Canceling…",
+      "confirm": "Yes, cancel order",
+      "keep": "Keep order",
+      "success": "Order canceled.",
+      "successRefunded": "Order canceled. Your refund has been issued and should appear within 5–10 business days.",
+      "successRefundPending": "Order canceled. Our team will issue your refund shortly — no action is needed from you."
+    },
+    "detail": {
+      "back": "Back to orders",
+      "loading": "Loading order…",
+      "loadError": "Failed to load order",
+      "title": "Order {id}",
+      "copyId": "Copy full order id",
+      "placed": "Placed {date}",
+      "paymentBadge": "Payment: {status}",
+      "items": "Items",
+      "skuValue": "SKU: {value}",
+      "name": "Name",
+      "summaryTitle": "Order Summary",
+      "subtotalItems": "Subtotal ({count} items)",
+      "discountWithCode": "Discount ({code})",
+      "refunded": "Refunded",
+      "paymentReferences": "Payment References",
+      "checkoutSession": "Checkout Session",
+      "paymentIntent": "Payment Intent",
+      "refundId": "Refund ID",
+      "tracking": "Tracking",
+      "trackingNumber": "Tracking Number",
+      "carrier": "Carrier",
+      "trackShipment": "Track Shipment"
+    },
+    "tracking": {
+      "demoLabel": "Demo tracking",
+      "heading": "Order progress",
+      "shippingPolicy": "Shipping policy",
+      "estimatedNote": "Timeline is estimated from order status until live carrier tracking is connected.",
+      "placedTitle": "Order placed",
+      "placedDescription": "We received your order details.",
+      "placedCanceledDescription": "We received your order.",
+      "canceledTitle": "Canceled",
+      "canceledDescription": "This order was canceled. Contact support if you need help.",
+      "paymentConfirmedTitle": "Payment confirmed",
+      "paymentConfirmedDescription": "Payment cleared securely.",
+      "awaitingPaymentTitle": "Awaiting payment",
+      "awaitingPaymentDescription": "Complete checkout to continue fulfillment.",
+      "preparingTitle": "Preparing your order",
+      "preparingDescription": "Packing beauty, fashion, or lifestyle items with care.",
+      "shippedTitle": "Shipped",
+      "shippedToCityDescription": "On the way toward {city}.",
+      "shippedDescription": "Handed to the carrier when delivery is selected.",
+      "deliveredTitle": "Delivered",
+      "deliveredDescription": "Marked delivered when the shipment completes.",
+      "demoCarrierNote": "Demo tracking ref {ref} — not a live carrier feed"
+    }
+  },
+  "bundle": {
+    "loading": "Loading bundle suggestions…",
+    "frequentlyBoughtTogether": "Frequently bought together",
+    "demoFrequentlyBoughtTogether": "Demo · frequently bought together",
+    "title": "Buy it with",
+    "apiDescription": "Suggested companions for this product. Bundle savings are display-only — checkout still uses real product prices.",
+    "demoDescription": "Companion picks from the catalog. Bundle savings are demo-only — checkout still uses real product prices.",
+    "saveAmount": "Save {amount}",
+    "demoSaveAmount": "Demo save {amount}",
+    "thisProductLabel": "{title} (this product)",
+    "selectProduct": "Select {title}",
+    "thisItem": "This item",
+    "selectCompanion": "Select a companion to build a bundle",
+    "itemsDisplayTotal": "for {count} items (display total)",
+    "itemsDemoTotal": "for {count} items (demo total)",
+    "addCountToCart": "Add {count} to cart"
+  },
+  "wishlist": {
+    "signInRequired": "Please sign in to save products to your wishlist",
+    "removed": "Removed from wishlist",
+    "added": "Added to wishlist",
+    "removeFailed": "Failed to remove from wishlist",
+    "addFailed": "Failed to add to wishlist",
+    "removeFromWishlist": "Remove from wishlist",
+    "addToWishlist": "Add to wishlist",
+    "saved": "Saved",
+    "save": "Save"
+  },
+  "reviews": {
+    "updated": "Review updated",
+    "thanks": "Thanks for your review!",
+    "saveError": "Could not save your review",
+    "deleted": "Review deleted",
+    "deleteError": "Could not delete your review",
+    "editYourReview": "Edit your review",
+    "writeReview": "Write a review",
+    "signIn": "Sign in",
+    "signInToReview": "{signIn} to write a review.",
+    "loading": "Loading reviews…",
+    "loadError": "Reviews could not be loaded right now.",
+    "retry": "Retry",
+    "form": {
+      "ratingLabel": "Rating",
+      "commentLabel": "Your Review",
+      "commentPlaceholder": "Share your experience with this product...",
+      "charCount": "{count}/{max} characters",
+      "purchaseRequired": "Only customers who bought this item can review it",
+      "submitting": "Submitting...",
+      "update": "Update Review",
+      "submit": "Submit Review"
+    },
+    "list": {
+      "empty": "No reviews yet.",
+      "beFirst": "Be the first to review this product!",
+      "verifiedPurchase": "Verified purchase",
+      "storeResponse": "Response from {name}",
+      "edit": "Edit review",
+      "delete": "Delete review"
+    }
+  },
+  "productQa": {
+    "submitted": "Question submitted. It will appear once approved.",
+    "submitError": "Could not submit your question",
+    "signInToVote": "Sign in to vote on answers",
+    "voteError": "Could not record your vote",
+    "eyebrow": "Customer Q&A",
+    "title": "Questions & answers",
+    "subtitle": "Answers come from our team. Questions appear after moderation.",
+    "askQuestion": "Ask a question",
+    "signInToAsk": "Sign in to ask",
+    "helpCenter": "Help Center",
+    "questionLabel": "Your question",
+    "questionPlaceholder": "What would you like to know about this product?",
+    "charCount": "{count}/{max} · at least {min} characters",
+    "submitting": "Submitting…",
+    "submitQuestion": "Submit question",
+    "loading": "Loading questions…",
+    "loadError": "Questions could not be loaded right now.",
+    "retry": "Retry",
+    "empty": "No questions yet. Be the first to ask about this product.",
+    "askedBy": "Asked by {name}",
+    "anonymousAsker": "A shopper",
+    "notAnswered": "Our team hasn't answered this yet.",
+    "helpful": "Helpful ({count})"
   }
 }

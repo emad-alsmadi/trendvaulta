@@ -8,6 +8,8 @@ import {
 } from '@/lib/orderTracking';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { intlLocale } from '@/lib/locale';
 
 type Props = {
   order: Pick<
@@ -41,7 +43,8 @@ function StepIcon({ state }: { state: OrderTrackingStep['state'] }) {
  * TODO(api): replace with shipment events from GET /api/orders/:id/tracking
  */
 export function OrderTrackingTimeline({ order, compact = false }: Props) {
-  const { steps, demoCarrierNote } = buildDemoOrderTracking(order);
+  const { t, locale } = useTranslation();
+  const { steps, demoCarrierNote } = buildDemoOrderTracking(order, t);
 
   return (
     <section
@@ -54,7 +57,7 @@ export function OrderTrackingTimeline({ order, compact = false }: Props) {
       <div className='mb-4 flex flex-wrap items-start justify-between gap-2'>
         <div>
           <p className='text-xs font-medium uppercase tracking-wider text-stone-500'>
-            Demo tracking
+            {t('orders.tracking.demoLabel')}
           </p>
           <h2
             id={`tracking-${order._id}`}
@@ -63,14 +66,14 @@ export function OrderTrackingTimeline({ order, compact = false }: Props) {
               compact ? 'text-base' : 'text-lg sm:text-xl',
             )}
           >
-            Order progress
+            {t('orders.tracking.heading')}
           </h2>
         </div>
         <Link
           href='/shipping'
           className='text-xs font-bold text-fuchsia-700 hover:underline'
         >
-          Shipping policy
+          {t('orders.tracking.shippingPolicy')}
         </Link>
       </div>
 
@@ -121,7 +124,7 @@ export function OrderTrackingTimeline({ order, compact = false }: Props) {
                 </p>
                 {step.at ? (
                   <p className='mt-1 text-[11px] font-medium text-stone-400'>
-                    {new Date(step.at).toLocaleString()}
+                    {new Date(step.at).toLocaleString(intlLocale(locale))}
                   </p>
                 ) : null}
               </div>
@@ -136,8 +139,7 @@ export function OrderTrackingTimeline({ order, compact = false }: Props) {
         </p>
       ) : (
         <p className='mt-4 text-[11px] font-semibold text-stone-400'>
-          Timeline is estimated from order status until live carrier tracking is
-          connected.
+          {t('orders.tracking.estimatedNote')}
         </p>
       )}
     </section>

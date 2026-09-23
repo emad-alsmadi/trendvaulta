@@ -18,10 +18,12 @@ import {
 } from '@/hooks/profile/addressesQuery';
 import type { Address, AddressPayload } from '@/types';
 import { getAuthToken } from '@/lib/authCookies';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function AddressesPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
 
@@ -57,40 +59,40 @@ export default function AddressesPage() {
   const onSubmitCreate = async (data: AddressPayload) => {
     try {
       await createAddress.mutateAsync(data);
-      toast('Address added successfully', { variant: 'success' });
+      toast(t('addresses.toast.added'), { variant: 'success' });
       reset();
       setShowCreateForm(false);
     } catch (err) {
-      toast('Failed to add address', { variant: 'error' });
+      toast(t('addresses.toast.addFailed'), { variant: 'error' });
     }
   };
 
   const onSubmitEdit = async (data: AddressPayload, id: string) => {
     try {
       await updateAddress.mutateAsync({ addressId: id, payload: data });
-      toast('Address updated successfully', { variant: 'success' });
+      toast(t('addresses.toast.updated'), { variant: 'success' });
       setEditingId(null);
     } catch (err) {
-      toast('Failed to update address', { variant: 'error' });
+      toast(t('addresses.toast.updateFailed'), { variant: 'error' });
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this address?')) return;
+    if (!confirm(t('addresses.confirmDelete'))) return;
     try {
       await deleteAddress.mutateAsync(id);
-      toast('Address deleted', { variant: 'success' });
+      toast(t('addresses.toast.deleted'), { variant: 'success' });
     } catch (err) {
-      toast('Failed to delete address', { variant: 'error' });
+      toast(t('addresses.toast.deleteFailed'), { variant: 'error' });
     }
   };
 
   const handleSetDefault = async (id: string) => {
     try {
       await setDefaultAddress.mutateAsync(id);
-      toast('Default address updated', { variant: 'success' });
+      toast(t('addresses.toast.defaultUpdated'), { variant: 'success' });
     } catch (err) {
-      toast('Failed to set default', { variant: 'error' });
+      toast(t('addresses.toast.defaultFailed'), { variant: 'error' });
     }
   };
 
@@ -131,14 +133,13 @@ export default function AddressesPage() {
           <div>
             <div className='inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/40 px-3 py-1 text-xs font-extrabold text-indigo-950'>
               <MapPin className='h-4 w-4 text-fuchsia-700' />
-              Addresses
+              {t('common.addresses')}
             </div>
             <h1 className='mt-4 text-3xl font-extrabold tracking-tight text-indigo-950 sm:text-4xl'>
-              Saved Addresses
+              {t('addresses.title')}
             </h1>
             <p className='mt-2 text-sm font-semibold text-indigo-950/80'>
-              Manage your shipping addresses for faster checkout. Maximum{' '}
-              {MAX_ADDRESSES} addresses.
+              {t('addresses.subtitle', { max: MAX_ADDRESSES })}
             </p>
           </div>
           {!isAtLimit && !showCreateForm && !editingId && (
@@ -150,7 +151,7 @@ export default function AddressesPage() {
               }}
             >
               <Plus className='me-2 h-4 w-4' />
-              Add Address
+              {t('addresses.addAddress')}
             </Button>
           )}
         </div>
@@ -169,9 +170,9 @@ export default function AddressesPage() {
           className='rounded-3xl border border-white/30 bg-white/35 p-12 text-center shadow-sm backdrop-blur-xl'
         >
           <MapPin className='mx-auto h-12 w-12 text-indigo-950/30' />
-          <h2 className='mt-4 text-xl font-bold text-indigo-950'>No addresses yet</h2>
+          <h2 className='mt-4 text-xl font-bold text-indigo-950'>{t('addresses.emptyTitle')}</h2>
           <p className='mt-2 text-sm text-indigo-950/70'>
-            Add your first address to speed up future checkouts.
+            {t('addresses.emptyBody')}
           </p>
           {!isAtLimit && (
             <Button
@@ -183,7 +184,7 @@ export default function AddressesPage() {
               }}
             >
               <Plus className='me-2 h-4 w-4' />
-              Add Address
+              {t('addresses.addAddress')}
             </Button>
           )}
         </motion.div>
@@ -201,7 +202,7 @@ export default function AddressesPage() {
             >
               {addr.isDefault && (
                 <span className='absolute -top-2 start-4 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'>
-                  Default
+                  {t('checkoutPage.savedAddresses.default')}
                 </span>
               )}
 
@@ -209,38 +210,38 @@ export default function AddressesPage() {
                 <form onSubmit={handleSubmit((d) => onSubmitEdit(d, addr._id))} className='space-y-3'>
                   <div className='grid gap-2 sm:grid-cols-2'>
                     <Input
-                      placeholder='Label'
+                      placeholder={t('addresses.labelPlaceholder')}
                       {...register('label')}
                       defaultValue={addr.label || 'Home'}
                     />
                     <Input
-                      placeholder='Country (ISO 2-letter)'
+                      placeholder={t('addresses.countryPlaceholder')}
                       {...register('country', {
-                        maxLength: { value: 2, message: 'Use 2-letter country code' },
-                        minLength: { value: 2, message: 'Use 2-letter country code' },
+                        maxLength: { value: 2, message: t('addresses.validation.countryCode') },
+                        minLength: { value: 2, message: t('addresses.validation.countryCode') },
                       })}
                       defaultValue={addr.country || 'US'}
                     />
                   </div>
                   <Input
-                    placeholder='Full name'
-                    {...register('name', { required: 'Name is required' })}
+                    placeholder={t('checkoutPage.form.fullName')}
+                    {...register('name', { required: t('checkoutPage.validation.nameRequired') })}
                     defaultValue={addr.name}
                   />
                   {errors.name && (
                     <p className='text-sm text-rose-600'>{errors.name.message}</p>
                   )}
                   <Input
-                    placeholder='Phone'
-                    {...register('phone', { required: 'Phone is required' })}
+                    placeholder={t('checkout.phone')}
+                    {...register('phone', { required: t('checkoutPage.validation.phoneRequired') })}
                     defaultValue={addr.phone}
                   />
                   {errors.phone && (
                     <p className='text-sm text-rose-600'>{errors.phone.message}</p>
                   )}
                   <Input
-                    placeholder='Street address'
-                    {...register('address', { required: 'Address is required' })}
+                    placeholder={t('checkoutPage.form.streetAddress')}
+                    {...register('address', { required: t('checkoutPage.validation.addressRequired') })}
                     defaultValue={addr.address}
                   />
                   {errors.address && (
@@ -248,13 +249,13 @@ export default function AddressesPage() {
                   )}
                   <div className='grid gap-2 sm:grid-cols-2'>
                     <Input
-                      placeholder='City'
-                      {...register('city', { required: 'City is required' })}
+                      placeholder={t('checkout.city')}
+                      {...register('city', { required: t('checkoutPage.validation.cityRequired') })}
                       defaultValue={addr.city}
                     />
                     <Input
-                      placeholder='ZIP'
-                      {...register('zip', { required: 'ZIP is required' })}
+                      placeholder={t('checkoutPage.form.zipPlaceholder')}
+                      {...register('zip', { required: t('checkoutPage.validation.zipRequired') })}
                       defaultValue={addr.zip}
                     />
                   </div>
@@ -263,10 +264,10 @@ export default function AddressesPage() {
 
                   <div className='flex gap-2'>
                     <Button type='submit' className='flex-1'>
-                      Save
+                      {t('addresses.save')}
                     </Button>
                     <Button type='button' variant='outline' onClick={cancelEdit}>
-                      Cancel
+                      {t('confirmDialog.cancel')}
                     </Button>
                   </div>
                 </form>
@@ -275,22 +276,22 @@ export default function AddressesPage() {
                   <dl className='space-y-2 text-sm'>
                     <div className='flex items-center gap-2 text-indigo-950/80'>
                       <MapPin className='h-4 w-4' />
-                      <span className='font-bold'>{addr.label || 'Home'}</span>
+                      <span className='font-bold'>{addr.label || t('checkoutPage.savedAddresses.home')}</span>
                     </div>
                     <div>
-                      <dt className='text-indigo-950/50'>Name</dt>
+                      <dt className='text-indigo-950/50'>{t('addresses.name')}</dt>
                       <dd className='font-medium text-indigo-950'>{addr.name}</dd>
                     </div>
                     <div>
-                      <dt className='text-indigo-950/50'>Phone</dt>
+                      <dt className='text-indigo-950/50'>{t('checkout.phone')}</dt>
                       <dd className='font-medium text-indigo-950'>{addr.phone}</dd>
                     </div>
                     <div>
-                      <dt className='text-indigo-950/50'>Address</dt>
+                      <dt className='text-indigo-950/50'>{t('checkout.address')}</dt>
                       <dd className='font-medium text-indigo-950'>{addr.address}</dd>
                     </div>
                     <div>
-                      <dt className='text-indigo-950/50'>City / ZIP / Country</dt>
+                      <dt className='text-indigo-950/50'>{t('addresses.cityZipCountry')}</dt>
                       <dd className='font-medium text-indigo-950'>
                         {addr.city}, {addr.zip} {addr.country}
                       </dd>
@@ -307,7 +308,7 @@ export default function AddressesPage() {
                         disabled={setDefaultAddress.isPending}
                       >
                         <Check className='me-1.5 h-3.5 w-3.5' />
-                        Set Default
+                        {t('addresses.setDefault')}
                       </Button>
                     )}
                     <Button
@@ -318,7 +319,7 @@ export default function AddressesPage() {
                       disabled={updateAddress.isPending}
                     >
                       <Edit className='me-1.5 h-3.5 w-3.5' />
-                      Edit
+                      {t('addresses.edit')}
                     </Button>
                     <Button
                       variant='outline'
@@ -328,7 +329,7 @@ export default function AddressesPage() {
                       disabled={deleteAddress.isPending}
                     >
                       <Trash2 className='me-1.5 h-3.5 w-3.5' />
-                      Delete
+                      {t('addresses.delete')}
                     </Button>
                   </div>
                 </>
@@ -346,48 +347,48 @@ export default function AddressesPage() {
         >
           <form onSubmit={handleSubmit(onSubmitCreate)} className='space-y-3'>
             <h3 className='text-lg font-bold text-indigo-950'>
-              {editingId ? 'Edit Address' : 'Add New Address'}
+              {editingId ? t('addresses.editAddress') : t('addresses.addNewAddress')}
             </h3>
 
             <div className='grid gap-2 sm:grid-cols-2'>
               <Input
-                placeholder='Label (e.g., Home, Work)'
+                placeholder={t('addresses.labelPlaceholderExample')}
                 {...register('label')}
               />
               <Input
-                placeholder='Country (ISO 2-letter, e.g., US)'
+                placeholder={t('addresses.countryPlaceholderExample')}
                 {...register('country', {
-                  maxLength: { value: 2, message: 'Use 2-letter country code' },
-                  minLength: { value: 2, message: 'Use 2-letter country code' },
+                  maxLength: { value: 2, message: t('addresses.validation.countryCode') },
+                  minLength: { value: 2, message: t('addresses.validation.countryCode') },
                 })}
               />
             </div>
             <Input
-              placeholder='Full name'
-              {...register('name', { required: 'Name is required', minLength: { value: 2, message: 'At least 2 characters' } })}
+              placeholder={t('checkoutPage.form.fullName')}
+              {...register('name', { required: t('checkoutPage.validation.nameRequired'), minLength: { value: 2, message: t('addresses.validation.minChars', { count: 2 }) } })}
             />
             {errors.name && <p className='text-sm text-rose-600'>{errors.name.message}</p>}
 
             <Input
-              placeholder='Phone'
-              {...register('phone', { required: 'Phone is required', minLength: { value: 6, message: 'At least 6 characters' } })}
+              placeholder={t('checkout.phone')}
+              {...register('phone', { required: t('checkoutPage.validation.phoneRequired'), minLength: { value: 6, message: t('addresses.validation.minChars', { count: 6 }) } })}
             />
             {errors.phone && <p className='text-sm text-rose-600'>{errors.phone.message}</p>}
 
             <Input
-              placeholder='Street, building, apartment'
-              {...register('address', { required: 'Address is required', minLength: { value: 5, message: 'At least 5 characters' } })}
+              placeholder={t('checkoutPage.form.streetPlaceholder')}
+              {...register('address', { required: t('checkoutPage.validation.addressRequired'), minLength: { value: 5, message: t('addresses.validation.minChars', { count: 5 }) } })}
             />
             {errors.address && <p className='text-sm text-rose-600'>{errors.address.message}</p>}
 
             <div className='grid gap-2 sm:grid-cols-2'>
               <Input
-                placeholder='City'
-                {...register('city', { required: 'City is required', minLength: { value: 2, message: 'At least 2 characters' } })}
+                placeholder={t('checkout.city')}
+                {...register('city', { required: t('checkoutPage.validation.cityRequired'), minLength: { value: 2, message: t('addresses.validation.minChars', { count: 2 }) } })}
               />
               <Input
-                placeholder='ZIP / Postal Code'
-                {...register('zip', { required: 'ZIP is required', minLength: { value: 2, message: 'At least 2 characters' } })}
+                placeholder={t('addresses.zipPostalPlaceholder')}
+                {...register('zip', { required: t('checkoutPage.validation.zipRequired'), minLength: { value: 2, message: t('addresses.validation.minChars', { count: 2 }) } })}
               />
             </div>
             {errors.city && <p className='text-sm text-rose-600'>{errors.city.message}</p>}
@@ -395,10 +396,10 @@ export default function AddressesPage() {
 
             <div className='flex gap-2'>
               <Button type='submit' disabled={createAddress.isPending} className='flex-1'>
-                {editingId ? 'Update' : 'Save'}
+                {editingId ? t('addresses.update') : t('addresses.save')}
               </Button>
               <Button type='button' variant='outline' onClick={cancelEdit} className='flex-1'>
-                Cancel
+                {t('confirmDialog.cancel')}
               </Button>
             </div>
           </form>
