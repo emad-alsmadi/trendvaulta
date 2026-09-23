@@ -1,13 +1,23 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { adminBundlesApi, type BundlePayload } from '../lib/api';
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import {
+  adminBundlesApi,
+  type AdminBundlesQuery,
+  type BundlePayload,
+} from '../lib/api';
 
 export const ADMIN_BUNDLES_KEY = ['admin', 'bundles'] as const;
 
-export function useAdminBundles(params?: { page?: number; limit?: number }) {
+export function useAdminBundles(params?: AdminBundlesQuery) {
   return useQuery({
     queryKey: [...ADMIN_BUNDLES_KEY, params ?? {}] as const,
     queryFn: () => adminBundlesApi.getBundles(params),
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
   });
 }
 

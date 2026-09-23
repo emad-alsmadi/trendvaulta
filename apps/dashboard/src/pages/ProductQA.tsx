@@ -14,20 +14,26 @@ import {
 import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
+import { useTableQuery, type SortOrder } from '../hooks/useTableQuery';
+import { TablePagination } from '../components/ui/TablePagination';
 
 export default function ProductQA() {
   const { can } = usePermissions();
   const toast = useToast();
   const confirm = useConfirm();
+  const table = useTableQuery({ limit: 25, sort: 'createdAt', order: 'desc' });
+  const { resetPage } = table;
   const [search, setSearch] = useState('');
+  const [appliedQ, setAppliedQ] = useState('');
   const [filterApproved, setFilterApproved] = useState<string>('');
   const [editing, setEditing] = useState<AdminProductQA | null>(null);
   const [answer, setAnswer] = useState('');
 
-  // approved/pending is a server-side filter (GET /qa/admin?approved=…);
-  // free-text search stays client-side over the fetched page.
+  // Search, approval filter, sort and paging all run server-side
+  // (GET /qa/admin), so they cover every question, not just one page.
   const qaQ = useAdminProductQA({
-    limit: 100,
+    ...table.params,
+    q: appliedQ || undefined,
     approved:
       filterApproved === 'approved'
         ? 'true'
@@ -40,16 +46,8 @@ export default function ProductQA() {
 
   const saving = answerMut.isPending;
 
-  const filtered =
-    qaQ.data?.data?.filter((qa) => {
-      const q = search.trim().toLowerCase();
-      return (
-        !q ||
-        qa.question.toLowerCase().includes(q) ||
-        qa.product.title.toLowerCase().includes(q) ||
-        (qa.answer || '').toLowerCase().includes(q)
-      );
-    }) || [];
+  const items = qaQ.data?.data || [];
+  const meta = qaQ.data?.meta;
 
   function openEdit(qa: AdminProductQA) {
     setEditing(qa);
@@ -116,24 +114,48 @@ export default function ProductQA() {
       </div>
 
       <div className='mb-6 flex flex-col gap-4 sm:flex-row sm:items-center'>
-        <div className='relative flex-1'>
+        <form
+          className='relative flex-1'
+          onSubmit={(e) => {
+            e.preventDefault();
+            setAppliedQ(search.trim());
+            resetPage();
+          }}
+        >
           <Search className='absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400' />
           <input
             type='search'
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder='Search by question, product, or answer…'
+            placeholder='Search questions and answers…'
             className='w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white'
           />
-        </div>
+        </form>
         <select
           value={filterApproved}
-          onChange={(e) => setFilterApproved(e.target.value)}
+          onChange={(e) => {
+            setFilterApproved(e.target.value);
+            resetPage();
+          }}
+          aria-label='Filter by status'
           className='rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white'
         >
           <option value=''>All</option>
           <option value='pending'>Pending</option>
           <option value='approved'>Approved</option>
+        </select>
+        <select
+          value={`${table.sort}:${table.order}`}
+          onChange={(e) => {
+            const [field, order] = e.target.value.split(':');
+            table.setSort(field, order as SortOrder);
+          }}
+          aria-label='Sort questions'
+          className='rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white'
+        >
+          <option value='createdAt:desc'>Newest first</option>
+          <option value='createdAt:asc'>Oldest first</option>
+          <option value='helpful:desc'>Most helpful</option>
         </select>
       </div>
 
@@ -149,12 +171,12 @@ export default function ProductQA() {
 
       {!qaQ.isLoading && !qaQ.isError && (
         <div className='space-y-4'>
-          {filtered.length === 0 ? (
+          {items.length === 0 ? (
             <p className='py-10 text-center text-sm text-gray-500'>
               No Q&A found.
             </p>
           ) : (
-            filtered.map((qa) => (
+            items.map((qa) => (
               <div
                 key={qa._id}
                 className='rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800'
@@ -237,6 +259,12 @@ export default function ProductQA() {
               </div>
             ))
           )}
+          <TablePagination
+            meta={meta}
+            busy={qaQ.isFetching}
+            onPage={table.setPage}
+            onLimit={table.setLimit}
+          />
         </div>
       )}
 

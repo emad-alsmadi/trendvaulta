@@ -1,13 +1,23 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { adminProductQAApi, type ProductQAAnswerPayload } from '../lib/api';
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import {
+  adminProductQAApi,
+  type AdminProductQAQuery,
+  type ProductQAAnswerPayload,
+} from '../lib/api';
 
 export const ADMIN_PRODUCT_QA_KEY = ['admin', 'product-qa'] as const;
 
-export function useAdminProductQA(params?: { page?: number; limit?: number; productId?: string; approved?: string }) {
+export function useAdminProductQA(params?: AdminProductQAQuery) {
   return useQuery({
     queryKey: [...ADMIN_PRODUCT_QA_KEY, params ?? {}] as const,
     queryFn: () => adminProductQAApi.getProductQA(params),
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
   });
 }
 

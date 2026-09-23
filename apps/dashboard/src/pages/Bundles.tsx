@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Pencil, Trash2, Search, X } from 'lucide-react';
 import {
@@ -11,6 +11,9 @@ import { errorMessage, type AdminBundle, type BundlePayload } from '../lib/api';
 import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
+import { useTableQuery } from '../hooks/useTableQuery';
+import { SortableHeader } from '../components/ui/SortableHeader';
+import { TablePagination } from '../components/ui/TablePagination';
 
 const emptyForm: BundlePayload = {
   primaryProduct: '',
@@ -27,28 +30,26 @@ export default function Bundles() {
   const { can } = usePermissions();
   const toast = useToast();
   const confirm = useConfirm();
-  const bundlesQ = useAdminBundles({ limit: 100 });
+  const table = useTableQuery({ limit: 25, sort: 'createdAt', order: 'desc' });
+  const { resetPage } = table;
+  const [search, setSearch] = useState('');
+  const [appliedQ, setAppliedQ] = useState('');
+  const bundlesQ = useAdminBundles({
+    ...table.params,
+    q: appliedQ || undefined,
+  });
   const createMut = useCreateBundleMutation();
   const updateMut = useUpdateBundleMutation();
   const deleteMut = useDeleteBundleMutation();
 
-  const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AdminBundle | null>(null);
   const [form, setForm] = useState<BundlePayload>(emptyForm);
 
   const saving = createMut.isPending || updateMut.isPending;
 
-  const filtered = useMemo(() => {
-    const list = bundlesQ.data?.data || [];
-    const q = search.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter(
-      (b) =>
-        b.primaryProduct.title.toLowerCase().includes(q) ||
-        b.primaryProduct._id.toLowerCase().includes(q),
-    );
-  }, [bundlesQ.data, search]);
+  const bundles = bundlesQ.data?.data || [];
+  const meta = bundlesQ.data?.meta;
 
   function openCreate() {
     setEditing(null);
@@ -173,7 +174,14 @@ export default function Bundles() {
         )}
       </div>
 
-      <div className='relative mb-6'>
+      <form
+        className='relative mb-6'
+        onSubmit={(e) => {
+          e.preventDefault();
+          setAppliedQ(search.trim());
+          resetPage();
+        }}
+      >
         <Search className='absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400' />
         <input
           type='search'
@@ -182,7 +190,7 @@ export default function Bundles() {
           placeholder='Search by primary product…'
           className='w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white'
         />
-      </div>
+      </form>
 
       {bundlesQ.isLoading && (
         <p className='py-10 text-center text-sm text-gray-500'>
@@ -200,27 +208,32 @@ export default function Bundles() {
         <div className='overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800'>
           <div className='overflow-x-auto'>
             <table className='w-full min-w-[800px]'>
-              <thead className='bg-gray-50 dark:bg-gray-700'>
-                <tr>
-                  {[
-                    'Primary Product',
-                    'Items',
-                    'Bundle Price',
-                    'Savings',
-                    'Status',
-                    'Actions',
-                  ].map((h) => (
-                    <th
-                      key={h}
-                      className='px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300'
-                    >
-                      {h}
-                    </th>
-                  ))}
+              <thead className='bg-gray-50 text-xs uppercase tracking-wider dark:bg-gray-700'>
+                <tr className='[&>th]:px-4 [&>th]:py-3 [&>th]:text-left [&>th]:font-medium [&>th]:text-gray-500 dark:[&>th]:text-gray-300'>
+                  <th scope='col'>Primary Product</th>
+                  <th scope='col'>Items</th>
+                  <SortableHeader
+                    field='bundlePrice'
+                    active={table.sort}
+                    order={table.order}
+                    onSort={table.toggleSort}
+                  >
+                    Bundle Price
+                  </SortableHeader>
+                  <SortableHeader
+                    field='savings'
+                    active={table.sort}
+                    order={table.order}
+                    onSort={table.toggleSort}
+                  >
+                    Savings
+                  </SortableHeader>
+                  <th scope='col'>Status</th>
+                  <th scope='col'>Actions</th>
                 </tr>
               </thead>
               <tbody className='divide-y divide-gray-200 dark:divide-gray-700'>
-                {filtered.length === 0 ? (
+                {bundles.length === 0 ? (
                   <tr>
                     <td
                       colSpan={6}
@@ -230,7 +243,7 @@ export default function Bundles() {
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((bundle) => (
+                  bundles.map((bundle) => (
                     <tr
                       key={bundle._id}
                       className='hover:bg-gray-50 dark:hover:bg-gray-700/60'
@@ -289,11 +302,12 @@ export default function Bundles() {
               </tbody>
             </table>
           </div>
-          {bundlesQ.data?.meta && (
-            <p className='border-t border-gray-200 px-4 py-3 text-xs text-gray-500 dark:border-gray-700'>
-              Showing {filtered.length} of {bundlesQ.data.meta.total} bundles
-            </p>
-          )}
+          <TablePagination
+            meta={meta}
+            busy={bundlesQ.isFetching}
+            onPage={table.setPage}
+            onLimit={table.setLimit}
+          />
         </div>
       )}
 

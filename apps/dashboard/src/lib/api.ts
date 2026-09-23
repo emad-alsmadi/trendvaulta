@@ -1164,15 +1164,24 @@ export type BundlePayload = {
   active?: boolean;
 };
 
+export type AdminBundlesQuery = {
+  page?: number;
+  limit?: number;
+  /** Primary product title. */
+  q?: string;
+  sort?: string;
+  order?: 'asc' | 'desc';
+};
+
 export const adminBundlesApi = {
   getBundles: async (
-    params: { page?: number; limit?: number } = {},
+    params: AdminBundlesQuery = {},
   ): Promise<{
     data: AdminBundle[];
     meta: { total: number; page: number; pages: number; limit: number };
   }> => {
     const { data } = await api.get('/bundles/admin', {
-      params: { limit: 100, ...params },
+      params: { limit: 25, ...params },
     });
     return data;
   },
@@ -1301,20 +1310,26 @@ export type ProductQAAnswerPayload = {
   approved?: boolean;
 };
 
+export type AdminProductQAQuery = {
+  page?: number;
+  limit?: number;
+  productId?: string;
+  approved?: string;
+  /** Question or answer text. */
+  q?: string;
+  sort?: string;
+  order?: 'asc' | 'desc';
+};
+
 export const adminProductQAApi = {
   getProductQA: async (
-    params: {
-      page?: number;
-      limit?: number;
-      productId?: string;
-      approved?: string;
-    } = {},
+    params: AdminProductQAQuery = {},
   ): Promise<{
     data: AdminProductQA[];
     meta: { total: number; page: number; pages: number; limit: number };
   }> => {
     const { data } = await api.get('/qa/admin', {
-      params: { limit: 100, ...params },
+      params: { limit: 25, ...params },
     });
     return data;
   },
