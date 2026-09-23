@@ -26,3 +26,24 @@ export function useDeleteAdminReviewMutation() {
     },
   });
 }
+
+export function useReplyToReviewMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, text }: { id: string; text: string }) =>
+      adminReviewsApi.replyToReview(id, text),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ADMIN_REVIEWS_KEY });
+    },
+  });
+}
+
+export function useDeleteReviewReplyMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => adminReviewsApi.deleteReply(id),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ADMIN_REVIEWS_KEY });
+    },
+  });
+}

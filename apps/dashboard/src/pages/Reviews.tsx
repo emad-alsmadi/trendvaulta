@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Trash2 } from 'lucide-react';
+import { MessageSquareReply, Search, Trash2, X } from 'lucide-react';
 import {
   useAdminReviews,
   useDeleteAdminReviewMutation,
+  useDeleteReviewReplyMutation,
+  useReplyToReviewMutation,
 } from '../hooks/useAdminReviews';
 import { errorMessage, type AdminReview } from '../lib/api';
 import { usePermissions } from '../hooks/usePermissions';
@@ -46,6 +48,51 @@ export default function Reviews() {
 
   const reviews = reviewsQ.data?.data || [];
   const meta = reviewsQ.data?.meta;
+
+  const replyMut = useReplyToReviewMutation();
+  const deleteReplyMut = useDeleteReviewReplyMutation();
+  const [replying, setReplying] = useState<AdminReview | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const replyBusy = replyMut.isPending || deleteReplyMut.isPending;
+
+  function openReply(review: AdminReview) {
+    setReplying(review);
+    setReplyText(review.reply?.text || '');
+  }
+
+  async function handleSaveReply(e: React.FormEvent) {
+    e.preventDefault();
+    if (!replying) return;
+    const text = replyText.trim();
+    if (text.length < 2) {
+      toast.error('Write a reply of at least 2 characters.');
+      return;
+    }
+    try {
+      await replyMut.mutateAsync({ id: replying._id, text });
+      toast.success(replying.reply ? 'Reply updated' : 'Reply published');
+      setReplying(null);
+    } catch (err) {
+      toast.error(errorMessage(err, 'Could not save reply'));
+    }
+  }
+
+  async function handleRemoveReply() {
+    if (!replying) return;
+    const ok = await confirm({
+      message: 'Remove the store reply from this review?',
+      danger: true,
+      confirmLabel: 'Remove',
+    });
+    if (!ok) return;
+    try {
+      await deleteReplyMut.mutateAsync(replying._id);
+      toast.success('Reply removed');
+      setReplying(null);
+    } catch (err) {
+      toast.error(errorMessage(err, 'Could not remove reply'));
+    }
+  }
 
   async function handleDelete(review: AdminReview) {
     const ok = await confirm({ message: 'Delete this review permanently?', danger: true, confirmLabel: 'Delete' });
@@ -173,8 +220,16 @@ export default function Reviews() {
                       <td className="px-4 py-3 text-sm text-amber-600 dark:text-amber-400">
                         {review.rating}/5
                       </td>
-                      <td className="max-w-xs truncate px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                        {review.comment || '—'}
+                      <td className="max-w-xs px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                        <p className="truncate">{review.comment || '—'}</p>
+                        {review.reply?.text && (
+                          <p
+                            className="mt-0.5 truncate text-xs text-blue-600 dark:text-blue-400"
+                            title={review.reply.text}
+                          >
+                            ↳ Replied: {review.reply.text}
+                          </p>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-500">
                         {review.createdAt
@@ -182,6 +237,20 @@ export default function Reviews() {
                           : '—'}
                       </td>
                       <td className="px-4 py-3">
+                        <div className="flex items-center gap-1">
+                        {can('reviews:write') && (
+                          <button
+                            type="button"
+                            onClick={() => openReply(review)}
+                            className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            aria-label={review.reply ? 'Edit reply' : 'Reply to review'}
+                            title={review.reply ? 'Edit reply' : 'Reply'}
+                          >
+                            <MessageSquareReply
+                              className={`h-4 w-4 ${review.reply ? 'text-blue-500' : 'text-gray-500'}`}
+                            />
+                          </button>
+                        )}
                         {can('reviews:delete') && (
                           <button
                             type="button"
@@ -193,6 +262,7 @@ export default function Reviews() {
                             <Trash2 className="h-4 w-4 text-red-500" />
                           </button>
                         )}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -206,6 +276,92 @@ export default function Reviews() {
             onPage={table.setPage}
             onLimit={table.setLimit}
           />
+        </div>
+      )}
+
+      {replying && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div
+            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                {replying.reply ? 'Edit reply' : 'Reply to review'}
+              </h2>
+              <button
+                type="button"
+                disabled={replyBusy}
+                onClick={() => setReplying(null)}
+                className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
+                aria-label="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <blockquote className="mb-4 rounded-lg bg-gray-50 p-3 text-sm dark:bg-gray-900">
+              <p className="mb-1 text-xs text-gray-500">
+                {userLabel(replying)} · {productLabel(replying)} ·{' '}
+                <span className="text-amber-600 dark:text-amber-400">
+                  {replying.rating}/5
+                </span>
+              </p>
+              <p className="whitespace-pre-line text-gray-800 dark:text-gray-200">
+                {replying.comment || '—'}
+              </p>
+            </blockquote>
+            <form onSubmit={handleSaveReply} className="space-y-3">
+              <label className="block text-sm">
+                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                  Store reply
+                </span>
+                <textarea
+                  rows={4}
+                  maxLength={1000}
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  aria-describedby="reply-help"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                />
+                <span id="reply-help" className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
+                  Shown publicly under the review, signed as the store.{' '}
+                  {replyText.length}/1000
+                </span>
+              </label>
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+                {replying.reply ? (
+                  <button
+                    type="button"
+                    disabled={replyBusy}
+                    onClick={() => void handleRemoveReply()}
+                    className="rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-60 dark:text-red-400 dark:hover:bg-red-950/40"
+                  >
+                    Remove reply
+                  </button>
+                ) : (
+                  <span />
+                )}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={replyBusy}
+                    onClick={() => setReplying(null)}
+                    className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={replyBusy}
+                    className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
+                  >
+                    {replyMut.isPending ? 'Saving…' : 'Publish reply'}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </motion.div>

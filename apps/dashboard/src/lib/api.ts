@@ -842,6 +842,8 @@ export type AdminReview = {
   product?:
     | string
     | { _id?: string; title?: string; cover?: string; sku?: string };
+  /** The store's public reply, if any. */
+  reply?: { text: string; repliedAt?: string; repliedBy?: string };
 };
 
 export type AdminReviewsQuery = {
@@ -868,6 +870,22 @@ export const adminReviewsApi = {
   deleteReview: async (id: string): Promise<{ message: string }> => {
     const { data } = await api.delete<{ message: string }>(
       `/reviews/admin/${id}`,
+    );
+    return data;
+  },
+
+  /** Publish or replace the store's reply. */
+  replyToReview: async (id: string, text: string): Promise<AdminReview> => {
+    const { data } = await api.put<{ data: AdminReview }>(
+      `/reviews/admin/${id}/reply`,
+      { text },
+    );
+    return data.data;
+  },
+
+  deleteReply: async (id: string): Promise<{ message: string }> => {
+    const { data } = await api.delete<{ message: string }>(
+      `/reviews/admin/${id}/reply`,
     );
     return data;
   },
