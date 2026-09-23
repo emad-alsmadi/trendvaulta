@@ -1,234 +1,2038 @@
-# TrendVaulta — Professional Implementation Plan (Fixes & Improvements)
+# TrendVaulta — Professional Execution Plan
 
-**Date:** 2026-09-21 · **Source audit:** [FULL_SYSTEM_ANALYSIS.md](./FULL_SYSTEM_ANALYSIS.md) · **Branch:** `main` (`c252857`)
-
-## Context
-
-The full system audit (`docs/FULL_SYSTEM_ANALYSIS.md`, 2026-09-21) found that `main` does not boot (missing `middlewares/auth`), CI cannot install (three out-of-sync lockfiles), 8 dashboard screens are 403 for every role (`content:*` permissions undefined), products with variants cannot be purchased (variant never reaches the cart), and there are payment-integrity gaps (no refund on cancel, double stock decrement race, oversell). On top of that: zero SEO, no Arabic/RTL, dead shared packages, and ~90 tests silently skipped in CI.
-
-**Goal of this plan:** turn the codebase from "shipped but not running" into a production-grade retail store in ordered, verifiable phases, each one leaving `main` green and deployable.
-
-**Decisions taken with the user:**
-- Consolidate shared types into `@trendvaulta/types`; delete `@trendvaulta/api-client`.
-- New dependencies allowed: `supertest`, `mongodb-memory-server` (API tests), `dompurify`/`isomorphic-dompurify` (CMS HTML), `next-intl` (i18n phase), `rate-limiter-flexible` or Mongo-backed store (rate limiting).
-- Arabic/RTL is a dedicated phase **after** commerce is solid (Phase 9).
-
+**Document Version:** 1.0  
+**Date:** 2026-09-23  
+**Based on:** FULL_SYSTEM_ANALYSIS.md  
+**Scope:** Complete system stabilization and feature implementation roadmap  
+**Status:** Ready for execution
 
 ---
 
-## Working agreements (apply to every phase)
+## Executive Summary
 
-| Rule | Detail |
-|---|---|
-| Branching | `main` protected; one branch per task ID (`fix/C1-auth-import`, `feat/W1-variant-cart`); squash-merge |
-| PR size | One task ID per PR, ≤ ~400 changed lines, conventional commit title (`fix(api): …`) |
-| Definition of Done | CI green (install + lint + typecheck + **all** tests + build) · acceptance criteria below met · no raw API errors shown to users · no new `any` |
-| Order | Phases are sequential; tasks inside a phase may run in parallel unless marked "after X" |
-| Effort key | S ≤ ½ day · M 1–2 days · L 3–5 days (single senior dev) |
-| Validation commands | `cd apps/api && npm test` · `cd apps/website && npx tsc --noEmit && npm test` · `cd apps/dashboard && npx tsc --noEmit && npm test` · `npm run build` (root) |
+This execution plan addresses critical system failures, security vulnerabilities, and missing functionality identified in the comprehensive system analysis. The TrendVaulta platform has solid architectural foundations (layered architecture, Joi validation, refresh-token rotation, webhook idempotency) but the September 19, 2026 feature release shipped without testing, breaking system startup and critical workflows.
 
----
+**Priority Strategy:**
 
-## Phase 0 — Stabilize `main` (1–2 days) · goal: API boots, CI green, dashboard opens
+1. **Phase 0 (Critical):** Restore system to working state
+2. **Phase 1 (Security):** Close payment/inventory security gaps
+3. **Phase 2 (Stability):** Fix dashboard and store workflows
+4. **Phase 3 (Growth):** Implement revenue-generating features
+5. **Phase 4 (Scale):** SEO, i18n, and advanced features
 
-| ID | Task | Files | Acceptance |
-|---|---|---|---|
-| C1 | Fix missing auth middleware import: replace `require('../middlewares/auth')` with `require('../middlewares/verfiyToken')` (keep existing spelling) | `apps/api/routes/{productQA,bundles,giftFinder,lookbooks,recentlyViewed,storefrontModules,storefrontTestimonials}.js` | `node app.js` starts; `GET /api/ready` → 200 |
-| C2 | Add `content:read/write/delete` to `admin`, `content:read/write` to `moderator`; extend resource list in `rolePermissions.test.js` | `apps/api/middlewares/rolePermissions.js`, `rolePermissions.test.js` | Admin token → `GET /api/help-topics/admin` 200 |
-| C3 | Fix `Product` import (`{ Product }`) in `productQA.controller.js`; delete `recommendations.controller.js`, point `routes/recommendations.js` to the correct orphan `recommendation.controller.js` | `apps/api/controllers/productQA.controller.js`, `routes/recommendations.js`, delete `controllers/recommendations.controller.js` | `GET /api/recommendations` and `GET /api/products/:id/qa` → 200 with data |
-| C4 | Single lockfile: delete `apps/api/package-lock.json` + `apps/website/package-lock.json`; commit regenerated root lock; `ci.yml` uses root `npm ci` + root cache for all three jobs | `.github/workflows/ci.yml`, lockfiles | All three CI jobs pass install |
-| C5 | Dashboard ESLint: add `apps/dashboard/eslint.config.js` (ESLint 9 flat config, `@typescript-eslint` v8, react-hooks, react-refresh); remove `.eslintrc*`, `.prettierrc*`, `.nvmrc`, `.editorconfig`, `.github/` from root and `apps/api/.gitignore`; add tracked `.nvmrc` (20.19) and `engines.node >=20.9` | `apps/dashboard/eslint.config.js`, `.gitignore`, `apps/api/.gitignore`, `package.json` | `npm run lint --workspace=apps/dashboard` exits 0 |
-| C6 | Run all API tests: `"test": "node --test utils middlewares"`; add `apps/api/app.test.js` smoke that `require('./app')` loads without listening (guard `start()` behind `require.main === module`); root `"test"` script runs all workspaces with `--if-present`; add `--if-present` to `build/lint/clean` | `apps/api/package.json`, `apps/api/app.js`, root `package.json` | CI runs ~105 tests; smoke test would have caught C1 |
-| D2 | Dashboard product form: categories = backend enum (`makeup, perfumes, clothing, skincare, accessories, home`); require `subcategory` + `description`; strip empty optional strings before POST/PUT | `apps/dashboard/src/pages/Products.tsx`, `src/lib/api.ts` (`ProductFormPayload`) | Create + edit a product succeeds from UI |
-| D3 | Brand form: strip empty optionals; backend `Brand.js` Joi `.allow('')` for `description/logo/website/country`; `GET /brands?includeInactive=true` for staff (mirror products pattern) | `apps/dashboard/src/pages/Brands.tsx`, `apps/api/models/Brand.js`, `controllers/brand.controller.js` | Create/edit brand with blank fields succeeds; inactive brands visible to admin |
-| D4 | Bundle edit: map populated `items[].product._id` / `primaryProduct._id` in `openEdit`; type `BundleItem.product` as `string \| {_id,…}` | `apps/dashboard/src/pages/Bundles.tsx`, `src/lib/api.ts` | Editing a bundle no longer throws |
-| D7 | Q&A populate `askedBy/answeredBy` with `'username email'` (API) → dashboard reads `username`; fix stale `editing.approved` by syncing state after approve mutation | `apps/api/controllers/productQA.controller.js`, `apps/dashboard/src/pages/ProductQA.tsx` | Asker name shows; approve toggle persists |
+**Success Metrics:**
 
-**Exit criteria:** `main` boots locally, CI fully green, every dashboard page loads for admin, product/brand/bundle CRUD works.
+- System starts without errors across all services
+- All CI/CD pipelines pass consistently
+- No security vulnerabilities in OWASP Top 10 categories
+- Complete end-to-end purchase workflow operational
+- SEO score ≥ 90 (Lighthouse)
+- Full Arabic/RTL support implemented
 
 ---
 
-## Phase 1 — Payment & inventory integrity (3–4 days) · goal: no money lost, no double side-effects
+## Phase 0: Critical System Recovery (Sprint 0 — 1-2 days)
 
-| ID | Task | Files | Acceptance |
-|---|---|---|---|
-| P2 | Atomic mark-paid: claim with `Order.findOneAndUpdate({_id, paymentStatus:{$ne:'paid'}}, {$set:{paymentStatus:'paid', paidAt, paymentIntentId}}, {new:true})`; only the claimer runs side-effects; variant stock via conditional `$inc` (`{ 'variants.$.stock': {$gte: qty} }` filter) instead of read-modify-write | `apps/api/controllers/payment.controller.js` (`markOrderPaidFromSession`), `apps/api/utils/commerce.js` (`decrementStockForPaidOrder`) | Concurrent `verify-payment` + webhook → stock/coupon/salesCount applied exactly once (test with two parallel calls) |
-| P4 | Respect state machine: use existing `utils/orderTransitions.js` before setting `status='paid'`; a canceled order receiving a late webhook becomes `needs_attention`, not `paid` | `payment.controller.js`, `utils/orderTransitions.js` (add `needs_attention`, `refunded`) | Cancel then replay webhook → order stays canceled, flagged |
-| P3 | Never fail the webhook after a successful charge: on stock shortfall mark order `needs_attention` + `paymentStatus:'paid'`, persist reason, return 200; admin sees it in Orders filter | `payment.controller.js`, `models/Order.js` (add `attentionReason`), dashboard Orders filter | Oversell scenario leaves a paid, flagged order; Stripe stops retrying |
-| P1 | Refund on cancel of paid orders: `stripe.refunds.create({payment_intent})` inside `updateOrderStatus` when `paymentStatus==='paid'`; set `paymentStatus:'refunded'`; add `refundId`, `refundedAt` | `apps/api/controllers/order.controller.js`, `services/stripe.service.js`, `models/Order.js` | Cancel paid order → Stripe refund created, order `refunded`, stock restored |
-| P5 | Handle `checkout.session.expired` (cancel pending order, release nothing since stock isn't reserved), `payment_intent.payment_failed` (`paymentStatus:'failed'`), `charge.refunded` (sync `refunded`); set `expires_at` (30 min) on session creation; delete the per-checkout Stripe coupon after session completes/expires | `payment.controller.js` (`stripeWebhook` switch), `services/stripe.service.js` | Each event type updates the order; `StripeWebhookEvent` stores `type`, `orderId`, `status` + TTL index (90 days) |
-| W1 | PDP passes `selectedVariant` (`size`, `color`, `colorCode`, `sku`, variant price) to `cart.addToCart`; require selection when `variants.length > 0`; show per-variant stock/price | `apps/website/src/app/products/[id]/page.tsx`, `src/lib/cartStore.ts` (`CartItem` gains `variant`) | Product with variants reaches checkout and API accepts it |
-| W2 | Cart line identity = `productId + size + color`; `removeFromCart`/`setCartQty` take a `lineKey`; render variant in cart/checkout/order lines; React keys use `lineKey` | `src/lib/cartStore.ts`, `src/app/cart/page.tsx`, `src/app/checkout/page.tsx`, `components/orders/*` | Two variants of the same product are independent lines; `cartStore.test.ts` extended |
-| W6 | Stock-aware quantity (cap at product/variant stock on PDP and cart); pre-checkout revalidation: refetch products in cart, warn on price/stock drift; display server shipping via a new `GET /payments/quote` (or reuse `resolveShippingPrice` through checkout-session preview) instead of hard-coded 5/0 | `src/app/products/[id]/page.tsx`, `src/app/cart/page.tsx`, `src/app/checkout/page.tsx`, `apps/api/routes/payments.js` | Cannot exceed stock; checkout totals equal Stripe totals |
-| W8 | Success page: stable polling (`useRef` interval, deps on `orderId/sessionId` only), exponential backoff, stop after `paid`; move `verify-payment` off `checkoutRateLimit` into its own limiter | `src/app/checkout/success/page.tsx`, `apps/api/routes/payments.js`, `middlewares/rateLimit.js` | No interval churn; slow webhook doesn't exhaust checkout quota |
-| T1 | Integration tests (new dev deps `supertest`, `mongodb-memory-server`): checkout-session creation, webhook idempotency, double mark-paid race, cancel-refund, oversell → `needs_attention` | `apps/api/tests/payments.test.js`, `orders.test.js`, `tests/setup.js` | Tests run in CI under `node --test` |
+**Objective:** Restore system to working state, unblock all development
 
-**Exit criteria:** two shoppers paying for the last unit → one served, one flagged; cancel-paid = refund; no double decrement (proved by tests).
+### Task C1: Fix API Startup Failure
 
----
+**Priority:** CRITICAL  
+**Effort:** Small (1-2 hours)  
+**Files:** `apps/api/routes/{productQA,bundles,giftFinder,lookbooks,recentlyViewed,storefrontModules,storefrontTestimonials}.js`
 
-## Phase 2 — Security hardening (2–3 days)
+**Problem:** 7 route files import non-existent `../middlewares/auth`, causing `MODULE_NOT_FOUND` on startup
 
-| ID | Task | Files | Acceptance |
-|---|---|---|---|
-| S1 | `app.set('trust proxy', 1)`; rate limiter keys on `req.ip`; pluggable store interface with Mongo-backed implementation (TTL collection) so limits survive restarts and multiple instances | `apps/api/app.js`, `middlewares/rateLimit.js`, new `models/RateLimitBucket.js` | Spoofed `X-Forwarded-For` doesn't reset the bucket; limit persists across restart |
-| S2 | Forgot-password: Joi `email: string().email().required()`; always respond 200 with generic message; keep dev-only link return behind `NODE_ENV !== 'production'` **and** explicit `DEV_RETURN_RESET_LINK=true` | `controllers/password.controller.js` | Non-existent email → 200; object payload → 400 |
-| S3 | Public review/Q&A responses select `username` only (never `email`); keep email in admin lists | `controllers/review.controller.js`, `controllers/productQA.controller.js` | `GET /reviews/product/:id` body has no `email` |
-| S6 | Global error handler: map Mongoose `CastError`→400, `ValidationError`→400, `11000`→409, Joi→400; generic message + `requestId` for 5xx in production; remove `userPermissions/userRoles` echo from 403; scrub Stripe `detail` | `apps/api/app.js`, `middlewares/checkRolePermission.js`, `payment.controller.js` | Invalid ObjectId → 400 with safe message |
-| S7 | Escape user input before `$regex` (shared `escapeRegex` util, max 100 chars); add text index (`title`, `description`, `brand` name via denormalized `brandName`) and use `$text` for `q` | `apps/api/utils/search.js` (new), `controllers/product.controller.js`, `controllers/brand.controller.js`, `models/Product.js` | `q=(` doesn't 500; search is index-backed |
-| S8 | Call existing `revokeAllForUser` after password reset and admin password change | `controllers/password.controller.js`, `controllers/user.controller.js` (uses `utils/refreshTokens.js`) | Old refresh token rejected after reset |
-| S9 | Central config module `apps/api/config/env.js`: validates required vars at boot (`MONGO_URL`, `JWT_SECRET_KEY`, `NODE_ENV`, Stripe keys when checkout enabled), exports typed config; replace scattered `process.env` reads | `apps/api/config/env.js` (new), all controllers/utils reading env | Missing `JWT_SECRET_KEY` → process exits with clear message |
-| S4 | Storefront + dashboard cookies: `secure` (prod), `sameSite:'lax'`; stop caching `token/refreshToken` in React Query (`authQuery.ts` seeds `{user}` without tokens); **refresh token → httpOnly cookie** via Next route handlers `/api/auth/{login,refresh,logout}` proxying to the API (dashboard keeps js-cookie but `secure`+`sameSite:'strict'`) | `apps/website/src/lib/authCookies.ts`, `src/hooks/auth/authQuery.ts`, `src/app/api/auth/*/route.ts` (new), `src/lib/api.ts`, `apps/dashboard/src/lib/auth.ts` | `document.cookie` no longer exposes the refresh token on the storefront |
-| S5 | Sanitize CMS HTML with `isomorphic-dompurify` before `dangerouslySetInnerHTML` | `apps/website/src/app/{shipping,returns}/page.tsx`, shared `lib/sanitizeHtml.ts` | `<script>` in content body is stripped |
-| S10 | Indexes: `Order(user, createdAt)`, `Order(stripeSessionId)`, `Order(status, paymentStatus)`, `Product(category, isActive, price)`, `Product(brand)`, `Review(product, createdAt)`; `StripeWebhookEvent` TTL; `User.email` `lowercase:true` + migration script to lowercase existing emails; `username` unique | `apps/api/models/*.js`, `apps/api/scripts/migrate-lowercase-emails.js` | `explain()` shows index use on orders/products lists |
-| S11 | Pagination everywhere: reuse `utils/pagination.js` `parsePagination` in all list controllers (cap 100); paginate `getMyOrders`, `getMyWishlist`, `getMyReviews`, `getAllUsers` | 12 controllers | `?limit=abc` → 200 with default limit |
+**Solution:**
 
-**Exit criteria:** no email leakage on public endpoints, rate limits enforceable behind proxy, boot fails fast on bad config, tokens not readable by JS on the storefront.
+```javascript
+// Change from:
+const auth = require('../middlewares/auth');
+// To:
+const { verfiyToken } = require('../middlewares/verfiyToken');
+```
+
+**Acceptance Criteria:**
+
+- [x] `node apps/api/app.js` starts without errors
+- [x] All 28 routes load successfully
+- [x] No `MODULE_NOT_FOUND` errors in logs
 
 ---
 
-## Phase 3 — Platform, CI, observability (2 days)
+### Task C2: Fix Dashboard 403 Errors for CMS Screens
 
-| ID | Task | Files | Acceptance |
-|---|---|---|---|
-| I1 | `render.yaml`: `healthCheckPath: /api/ready`, `rootDir: apps/api`, drop deprecated `env:`, replace `EMAIL_*` with `SMTP_*`, add `RATE_LIMIT_*`, `SHIPPING_FLAT_USD`, `PUBLIC_FRONTEND_URL`, `CORS` origins; complete both `.env.example` files | `apps/api/render.yaml`, `apps/api/.env.example`, `apps/website/.env.example` | Password-reset email works on Render config |
-| I2 | Structured logging: `pino` + `pino-http` with request id (`X-Request-Id`), status, latency; error handler logs with `requestId`; DB connection event listeners | `apps/api/middlewares/logger.js`, `app.js`, `config/db.js` | Logs are JSON lines with `reqId` |
-| I3 | Graceful shutdown: `SIGTERM/SIGINT` → stop accepting, `server.close()`, `mongoose.disconnect()`; `unhandledRejection`/`uncaughtException` handlers log + exit(1) | `apps/api/app.js` | Render redeploy shows clean shutdown log |
-| I4 | Single safe seeder: delete `apps/api/seeders/seeder.js`; `seeder.js` refuses when `NODE_ENV==='production'` unless `--force`; creates admin user from `SEED_ADMIN_EMAIL/PASSWORD`; seeds bundles, lookbooks, storefront modules, testimonials, gift-finder config, help topics, sample Q&A | `apps/api/seeder.js`, `apps/api/data.js`, `SEEDER_README.md`, `README.md` | Fresh DB → full storefront home renders from CMS |
-| I5 | CI: Dependabot (npm, weekly, grouped), `npm audit --audit-level=high` job, coverage upload; dashboard deploy config (`apps/dashboard/vercel.json`, SPA rewrite) | `.github/dependabot.yml`, `ci.yml`, `apps/dashboard/vercel.json` | PRs get dependency updates; dashboard deployable |
-| I6 | Docs: rewrite `apps/api/README.md` (endpoints, env, run), `apps/website/README.md`; remove `packages/ui` and "Craftify" references in `README.md`, `AGENTS.md`, `MONOREPO_SETUP.md`, `.cursorrules`, `.devin/rules`; mark `docs/PROJECT_STATUS.md`, `docs/REMEDIATION_BACKLOG.md` as historical; root `package.json` description; `apps/dashboard/index.html` title; `StatsBar.tsx` copy; `cartStore` key `trendvaulta_cart_v1` with one-time migration from `craftify_cart_v1`; prune `next.config.ts` image hosts; delete `pnpm-workspace.yaml` | listed files | `grep -ri craftify` (excluding lockfiles/history docs) returns 0 |
+**Priority:** CRITICAL  
+**Effort:** Small (1 hour)  
+**Files:** `apps/api/middlewares/rolePermissions.js`
 
----
+**Problem:** 8 dashboard screens (HelpTopics, Content, StorefrontModules, Lookbooks, Testimonials, Bundles, GiftFinder, ProductQA) return 403 for all roles including admin
 
-## Phase 4 — Storefront purchase path (4–5 days) · goal: search → category → PDP → guest cart → login → pay
+**Solution:**
 
-| ID | Task | Files | Acceptance |
-|---|---|---|---|
-| W3 | Single source of truth for categories: `apps/website/src/lib/categories.ts` exporting the backend enum with labels/images; Navbar mega-menu, Footer, HeroSection, `categoriesQuery.ts`, CategorySidebar consume it; remove `beauty/fashion/wellness/lifestyle` slugs | `components/navigation/Navbar.tsx`, `components/layout/Footer.tsx`, `components/home/HeroSection.tsx`, `hooks/storefront/categoriesQuery.ts` | Every nav link returns products |
-| W5 | Guest cart: remove `/cart` from `proxy.ts` protected paths; add `?redirect=` capture in proxy, `forceLogoutRedirect`, and login/signup pages; 401 from optional/background queries never hard-redirects (only mutations/protected pages) | `src/proxy.ts`, `src/lib/api.ts`, `src/app/auth/{login,signup}/page.tsx` | Returning from Stripe to `/checkout/success` after cookie lapse → login → back to success with `order_id` intact |
-| W4 | Coupon: `useValidateCouponMutation` fired on "Apply"; validate against undiscounted subtotal; applied coupon stored in `cartStore` (already has `coupon` state + `getCartDiscount`) so cart page shows discount | `hooks/coupons/couponsQuery.ts`, `src/app/checkout/page.tsx`, `src/app/cart/page.tsx`, `src/lib/cartStore.ts` | One request per Apply click |
-| W7 | Physical-goods checkout: remove `DIGITAL_SHIPPING` placeholder; address form always required; shipping method selector (`standard`/`express`, API already accepts) | `src/app/checkout/page.tsx`, `src/lib/validation.ts` | Order always carries a real address + method |
-| F1 | Wire existing components: PDP renders `ReviewList` + `ReviewForm` (`useProductReviews`, `useCreateReview`); `ProductQaSection` uses `useProductQA` + `useCreateProductQuestion` (+ helpful vote); Heart buttons on `ProductCard` and PDP use `WishlistButton`; `/offers` uses `useActiveOffers` | `src/app/products/[id]/page.tsx`, `components/products/ProductQaSection.tsx`, `components/products/ProductCard.tsx`, `src/app/offers/page.tsx` | Reviews/Q&A/wishlist/offers are live data |
-| F2 | Server-side facets: API `GET /products` accepts `brand[]`, `size`, `color`, `minRating`, `inStock`, `onSale`, `sort` (price/rating/newest/bestselling) with a `facets` block in `meta` (counts via aggregation); PLP filters drive query params, drop "(demo)" client filtering; use API `badges` | `apps/api/controllers/product.controller.js`, `apps/website/src/app/products/page.tsx`, `hooks/products/*`, `components/products/CategorySidebar.tsx` | Filters work across the whole catalog |
-| F3 | Category landing pages `/c/[category]` (and `/c/[category]/[subcategory]`) with breadcrumbs, hero, PLP embedded; brand page uses `use(params)` | `src/app/c/[category]/page.tsx` (new), `src/app/brands/[id]/page.tsx` | Crawlable category URLs |
-| F4 | Account: `/user/[username]/settings` (profile edit via existing `useUpdateProfile`, password change via new `PUT /auth/password` requiring current password); fix dead `/profile/edit` link; delete dead components (`profile/*Content`, `AccountSidebar`, `LicenseComparison`, `hooks/admin/*`, `deliverRegion`, `/welcome`) | `src/app/user/[username]/settings/page.tsx` (new), `apps/api/routes/profile.js`, `controllers/profile.controller.js`, deletions | Profile edit works; dead code removed |
-| F5 | Gift finder / recommendations / recently viewed use API ids (`buildGiftFinderHref` resolves from API config); "inspired" rail uses fixed `/recommendations` | `components/home/GiftFinderSection.tsx`, `src/data/demoStorefront.ts`, `components/home/InspiredByBrowsingSection.tsx` | No demo fallback when API is up |
-| D5 | Dashboard role guard: `DashboardLayout` redirects users without `admin`/`moderator` role; hide write/delete controls per permission (derive from role map mirrored in `src/lib/permissions.ts`); fix `getProfile` to compute permissions from roles server-side (reuse `rolePermissions.js`) | `apps/dashboard/src/layouts/DashboardLayout.tsx`, `src/lib/permissions.ts` (new), pages, `apps/api/controllers/profile.controller.js` | Plain `user` cannot open the dashboard; moderator sees no delete buttons |
-| D6 | `darkMode: 'class'` in dashboard Tailwind config | `apps/dashboard/tailwind.config.js` | Theme toggle changes colors |
-| D8 | Replace `window.alert/confirm` with a `Toast` provider + Radix `Dialog` confirm (both already installed); zod + react-hook-form schemas for Product, Brand, Coupon, Offer forms; disable delete buttons while pending; map 403/Joi errors to friendly text | `apps/dashboard/src/components/ui/{Toast,ConfirmDialog}.tsx` (new), 15 pages, `src/lib/api.ts` (`errorMessage`) | No native alerts; forms validate client-side |
+```javascript
+// Add to rolePermissions.js admin object:
+content: {
+  read: true,
+  write: true,
+  delete: true
+}
+// Add to moderator object:
+content: {
+  read: true,
+  write: true
+}
+```
 
-**Exit criteria (manual E2E):** search → category → PDP with variant → add to cart as guest → login (redirect preserved) → coupon → Stripe test payment → success page → order visible in account and dashboard.
+**Acceptance Criteria:**
 
----
-
-## Phase 5 — Dashboard operability (3–4 days)
-
-| ID | Task | Files | Acceptance |
-|---|---|---|---|
-| A1 | Full product form: `isActive`, `featured`, `images[]`, `variants[]` editor (size/color/colorCode/stock/price/sku), material/weight/dimensions/shippingInfo | `apps/dashboard/src/pages/Products.tsx`, `src/lib/api.ts` | All `validateUpdateProduct` fields editable |
-| A2 | Image upload: API `POST /uploads` (Multer memory → Cloudinary or S3, admin-only, 5 MB, image mime whitelist), returns URL; dashboard `ImageUploadField` used for product cover/images and brand logo; `next.config.ts` `remotePatterns` for the CDN host; storefront switches `<img>` → `next/image` | `apps/api/routes/uploads.js`, `controllers/upload.controller.js`, `services/storage.service.js`, dashboard component, `apps/website/next.config.ts` + 13 `<img>` sites | Upload from dashboard → image renders on storefront via `next/image` |
-| A3 | Order detail drawer: items (with variant), shipping address, notes, payment ids, timeline; `paymentStatus` + `needs_attention` filters; search by customer email (API extends `q` to match `user.email` via lookup); admin notes field; tracking number + carrier (`Order.tracking {carrier, number, url}`), sent in "shipped" email | `apps/dashboard/src/pages/Orders.tsx`, `components/OrderDrawer.tsx` (new), `apps/api/controllers/order.controller.js`, `models/Order.js`, `utils/mail.js` | Ops can fulfil an order end-to-end from the dashboard |
-| A4 | Server-side pagination + sorting on every list (reuse `{data, meta}`), `placeholderData: keepPreviousData` in hooks; Products list gains low-stock filter (API `lowStock=true` using `LOW_STOCK_THRESHOLD`) and inline stock edit | all `useAdmin*.ts` hooks, pages | Lists page through > 100 items; low-stock view exists |
-| A5 | Analytics: API `GET /admin/stats/timeseries?range=30d` (revenue, orders by day), `top-products`, `top-brands` (aggregations); dashboard charts with `recharts` (already installed) | `apps/api/controllers/adminStats.controller.js`, `apps/dashboard/src/pages/Dashboard.tsx` | Revenue chart renders |
-| A6 | Brands: `isActive/featured` toggles; block delete when products reference the brand (API 409); soft-delete users (`isActive:false`) instead of hard delete; customer drawer with order history (`GET /orders?user=`) | `Brands.tsx`, `Users.tsx`, `apps/api/controllers/{brand,user}.controller.js`, `models/User.js` | No orphaned products; blocked users can't log in |
-| A7 | Storefront modules editor: typed editors for hero `slides`, `trustItems`, `items` (product/brand pickers), instead of pass-through JSON; align `StorefrontModule.type` enum with home rail keys (`featured_products`, `gift_finder`, `recently_viewed`, `inspired`, `cta`) | `apps/dashboard/src/pages/StorefrontModules.tsx`, `apps/api/models/StorefrontModule.js`, `apps/website/src/hooks/storefront/homeQuery.ts` | Home page fully CMS-driven without losing rails |
-| A8 | Responsive layout (sidebar drawer < `lg`), Radix dialogs with focus trap, `htmlFor` labels, favicon + `public/` | `apps/dashboard/src/layouts/DashboardLayout.tsx`, `index.html` | Usable on a phone |
-| A9 | Settings: store settings model (`StoreSettings`: shipping methods/rates, tax rate, store name/contact, currency) with `GET/PUT /admin/settings`; commerce reads shipping/tax from it instead of env | `apps/api/models/StoreSettings.js`, `controllers/settings.controller.js`, `utils/commerce.js`, `apps/dashboard/src/pages/Settings.tsx` | Changing shipping rate in dashboard changes checkout totals |
+- [x] Admin can access all 8 CMS screens
+- [x] Moderator can read/write CMS content
+- [x] Role permission tests pass
+- [x] No 403 errors in dashboard logs
 
 ---
 
-## Phase 6 — SEO & performance (3–4 days)
+### Task C3: Fix 500 Errors in Recommendations and Q&A Endpoints
 
-| ID | Task | Files | Acceptance |
-|---|---|---|---|
-| E1 | Server-rendered PDP/PLP/Brand/Category: `page.tsx` becomes a Server Component that fetches via a server-side API client (`lib/serverApi.ts`, `fetch` with `next.revalidate: 60`) and hydrates React Query (`HydrationBoundary`) for client islands (gallery, variant picker, add-to-cart, reviews) | `src/app/products/[id]/page.tsx`, `src/app/products/page.tsx`, `src/app/brands/[id]/page.tsx`, `src/app/c/**`, `src/lib/serverApi.ts` (new) | `curl` of a PDP contains product title/price in HTML |
-| E2 | `generateMetadata` (title, description, canonical, OG/Twitter with product image) for PDP/PLP/brand/category; `metadataBase`; Product + BreadcrumbList JSON-LD; `app/sitemap.ts` (products, brands, categories, static pages) and `app/robots.ts` | same pages, `src/app/{sitemap,robots}.ts`, `components/seo/JsonLd.tsx` | Rich-results test passes for a product |
-| E3 | Route-level `loading.tsx` / `error.tsx` / `global-error.tsx`; PLP "Retry" calls `refetch()`; Toast gets `role="status" aria-live="polite"`; labels on icon buttons; real `alt` text | `src/app/**/loading.tsx`, `error.tsx`, `components/ui/Toast.tsx`, `components/products/ProductCard.tsx`, PDP gallery | Lighthouse a11y ≥ 90 |
-| E4 | Perf: remove route-level `AnimatePresence` remount in `AppShell`; drop Arial override so Geist applies; hero image via `next/image` `priority`; `next/image` everywhere (after A2) | `components/layout/AppShell.tsx`, `src/app/globals.css`, `components/home/HeroPromoCarousel.tsx` | Lighthouse perf ≥ 85 mobile on PDP |
+**Priority:** CRITICAL  
+**Effort:** Small (1-2 hours)  
+**Files:** `apps/api/controllers/{recommendations,productQA}.controller.js`
 
----
+**Problem:**
 
-## Phase 7 — Commerce completeness (5–7 days)
+- `recommendations.controller.js:2` uses `const Product = require(...)` but model exports `{ Product }`
+- Filters on `active` field instead of `isActive`
+- Selects `imageUrl` instead of `cover`
 
-| ID | Task | Files | Acceptance |
-|---|---|---|---|
-| K1 | Address book: `User.addresses[]` (label, name, phone, line1, city, zip, country, isDefault); `GET/POST/PUT/DELETE /auth/addresses`; account page + checkout "choose saved address" | `apps/api/models/User.js`, `routes/profile.js`, `controllers/profile.controller.js`, storefront settings + checkout | Repeat checkout takes one click for address |
-| K2 | Shipping methods/zones from `StoreSettings` (A9): `standard`/`express` rates per country group; checkout selector shows live quote; Stripe session uses `shipping_options` | `apps/api/utils/commerce.js`, `payment.controller.js`, checkout page | Express costs more than standard end-to-end |
-| K3 | Tax: configurable rate (A9) applied server-side; shown on cart/checkout/order | `utils/commerce.js`, storefront totals | `taxPrice` non-zero when rate set |
-| K4 | Customer cancel (before `shipped`): `POST /orders/:id/cancel` (owner, uses P1 refund path); Return/RMA: `ReturnRequest` model (order, items, reason, status `requested/approved/rejected/received/refunded`), customer creates from order page, admin processes in dashboard (partial refund via Stripe) | `apps/api/models/ReturnRequest.js`, `routes/returns.js`, `controllers/return.controller.js`, storefront order page, dashboard Returns page | Full return lifecycle with refund |
-| K5 | Verified-purchase reviews: `POST /reviews` requires a paid order containing the product; `verifiedPurchase:true` badge | `apps/api/controllers/review.controller.js`, `models/Review.js`, `ReviewList` | Non-buyers get 403 with friendly message |
-| K6 | Transactional emails: HTML templates (order confirmation, shipped with tracking, delivered, canceled, refunded, return status) via `utils/mail.js`; single transport (delete duplicate in `password.controller.js`) | `apps/api/utils/mail.js`, `templates/*.html`, controllers | Each status change sends the right email once |
-| K7 | Invoice: `GET /orders/:id/invoice` (HTML printable, later PDF); link in order page and dashboard | `apps/api/controllers/order.controller.js`, `views/invoice.js` | Printable invoice per order |
-| K8 | Newsletter + contact: `Subscriber` model + `POST /newsletter`, `POST /contact` (rate-limited, emails staff); footer + contact form wired | `apps/api/routes/{newsletter,contact}.js`, storefront footer/contact | Form submissions persist / send |
+**Solution:**
 
----
+```javascript
+// Fix import:
+const { Product } = require('../models/Product');
+// Fix field names:
+.filter({ isActive: true })
+.select('title slug cover price badges')
+```
 
-## Phase 8 — Shared types consolidation (2 days)
+**Acceptance Criteria:**
 
-| ID | Task | Files | Acceptance |
-|---|---|---|---|
-| G1 | `@trendvaulta/types` becomes the single source: add missing domain types (HelpTopic, Content, StorefrontModule, Lookbook, Testimonial, Bundle, GiftFinderConfig, ProductQA, AdminStats, ReturnRequest, StoreSettings, Address), fix `Order`/`Review`/`AuthResponse` drift, remove `Template/Creator/ApiResponse`; proper `build` (tsc → `dist`, `exports`) | `packages/types/src/*.ts`, `packages/types/package.json`, `tsconfig.json` | `npm run build --workspace=packages/types` emits d.ts |
-| G2 | Website and dashboard import from `@trendvaulta/types`; delete `apps/website/src/types/index.ts` duplicates and dashboard inline types; delete `packages/api-client` and its aliases (`vite.config.ts`, `tsconfig.json`, `jest.config.js`) | both apps | Zero duplicated domain types; both `tsc --noEmit` pass |
-| G3 | Dashboard toolchain convergence: Vite 7 + `@vitejs/plugin-react` 5, Tailwind 4, Vitest (replace jest/ts-jest/jsdom 20), ESLint 9 (from C5); prune unused deps (`zustand`, `cva`, `tailwind-merge`, `clsx` if still unused) | `apps/dashboard/package.json`, configs, tests | One test runner, one Tailwind major, one ESLint major across the repo |
+- [x] `GET /recommendations` returns 200 with valid data
+- [x] `GET /products/:id/qa` returns 200 with valid data
+- [x] Product fields match model schema
+- [x] No 500 errors in API logs
 
 ---
 
-## Phase 9 — Arabic / RTL & localisation (5–7 days)
+### Task C4: Fix CI Pipeline Lockfile Issues
 
-| ID | Task | Files | Acceptance |
-|---|---|---|---|
-| L1 | `next-intl` with `[locale]` segment (`ar` default, `en`), middleware-based locale routing merged into `proxy.ts`, `lang`/`dir` on `<html>`, message catalogs `messages/{ar,en}.json` | `apps/website/src/app/[locale]/**` (move pages), `src/i18n/*`, `src/proxy.ts` | `/ar/...` renders RTL Arabic UI |
-| L2 | RTL styling: Tailwind logical properties (`ms-/me-/ps-/pe-`, `start/end`), mirror icons/carousels, Arabic font via `next/font` (e.g. Cairo/Tajawal) | global styles, components | No visual breakage in RTL (screenshot review) |
-| L3 | Localised content: bilingual fields on Product (`title_ar`, `description_ar`), Brand, categories, CMS entities (`{ar,en}` objects); API returns by `Accept-Language`/`?locale=`; dashboard forms show both fields | `apps/api/models/*`, controllers, dashboard forms | Product page shows Arabic title on `/ar` |
-| L4 | Currency/locale formatting (`Intl.NumberFormat` with store currency from `StoreSettings`), Arabic emails, dashboard `lang`/`dir` toggle | storefront utils, mail templates, dashboard layout | Prices formatted per locale |
+**Priority:** CRITICAL  
+**Effort:** Small (2-3 hours)  
+**Files:** `package-lock.json`, `.github/workflows/ci.yml`
 
----
+**Problem:** 3 unsynchronized lockfiles cause `npm ci` failures in all 3 CI jobs
 
-## Phase 10 — Growth & quality (ongoing)
+**Solution:**
 
-- E2E suite (Playwright): guest purchase, login purchase, admin fulfilment, return flow; run nightly in CI.
-- Caching: `Cache-Control`/ETag on public storefront endpoints; Redis for rate limit + hot product cache when moving to >1 instance.
-- OpenAPI spec generated from Joi schemas; served at `/api/docs`.
-- Recommendations v2 (co-purchase from orders), abandoned-cart email, admin audit log (`AuditLog` model written from a mutation middleware), CSV export of orders/products, bulk actions.
-- Error tracking (Sentry) on all three apps; uptime monitoring on `/api/ready`.
+1. Delete nested `apps/*/package-lock.json` files
+2. Commit root `package-lock.json` only
+3. Update `ci.yml` to use `npm ci` from root
+4. Add `--workspaces` flag to install commands
 
----
+**Acceptance Criteria:**
 
-## Risk register
-
-| Risk | Mitigation |
-|---|---|
-| Refund logic touching live Stripe | Implement + test in Stripe test mode with CLI webhook forwarding; feature-flag `AUTO_REFUND_ON_CANCEL` |
-| Server-component migration (E1) breaks client-only assumptions (js-cookie in server code) | Introduce `serverApi.ts` first; migrate one page (PDP) and verify before PLP/brand |
-| httpOnly refresh cookie (S4) changes auth flow on the storefront | Ship behind route handlers with fallback; keep dashboard on current flow until verified |
-| Lockfile consolidation (C4) changes resolved versions | Review `npm ci` diff; run all builds locally before merge |
-| Locale route segment (L1) changes every storefront URL | Add permanent redirects from old paths to `/ar/...`; update sitemap |
-| Seeder rewrite (I4) wipes data | Production guard + `--force`; document in `SEEDER_README.md` |
+- [x] Single lockfile at root
+- [x] CI pipeline passes all 3 jobs
+- [x] `npm ci` succeeds in clean environment
+- [x] No lockfile conflicts
 
 ---
 
-## Verification (per phase)
+### Task C5: Add Missing Dashboard ESLint Configuration
 
-1. **Automated:** root `npm test` (all workspaces), `npm run lint`, typechecks, `npm run build`; CI green on the PR.
-2. **API smoke:** `curl /api/ready`, `curl /api/products?limit=2`, `curl /api/recommendations`, admin token → `curl /api/help-topics/admin`.
-3. **Payments (Phase 1):** `stripe listen --forward-to localhost:3000/api/webhooks/stripe`; run the purchase twice concurrently on a stock-1 product; verify one `paid`, one `needs_attention`; cancel the paid one → refund appears in Stripe dashboard.
-4. **Storefront E2E (Phase 4):** manual script in Phase 4 exit criteria; later Playwright (Phase 10).
-5. **SEO (Phase 6):** `curl -s https://<site>/products/<id> | grep '"@type":"Product"'`; Google Rich Results test; Lighthouse ≥ 90 SEO / ≥ 85 perf mobile.
-6. **RTL (Phase 9):** screenshot review of home, PLP, PDP, cart, checkout in `/ar`.
+**Priority:** CRITICAL  
+**Effort:** Small (1 hour)  
+**Files:** `apps/dashboard/.eslintrc.cjs`, `apps/dashboard/.gitignore`
+
+**Problem:** No ESLint config in dashboard; `.gitignore` ignores all `.eslintrc*` files
+
+**Solution:**
+
+1. Create `.eslintrc.cjs` with React/Vite configuration
+2. Remove `.eslintrc*` from `.gitignore`
+3. Add tooling files to git
+
+**Acceptance Criteria:**
+
+- [ ] ESLint config exists and is committed
+- [ ] `npm run lint` passes in dashboard
+- [ ] CI lint job passes
+- [ ] No tooling files ignored
 
 ---
 
-## Suggested timeline (1 senior full-stack dev; halve with 2)
+### Task C6: Expand Test Coverage in CI
 
-| Week | Phases |
-|---|---|
-| 1 | Phase 0 → Phase 1 |
-| 2 | Phase 2 → Phase 3 |
-| 3–4 | Phase 4 |
-| 5 | Phase 5 |
-| 6 | Phase 6 |
-| 7–8 | Phase 7 |
-| 9 | Phase 8 |
-| 10–11 | Phase 9 |
-| 12+ | Phase 10 |
+**Priority:** CRITICAL  
+**Effort:** Small (1-2 hours)  
+**Files:** `apps/api/package.json`
 
+**Problem:** CI runs only 8 of ~105 unit tests
+
+**Solution:**
+
+```json
+// Update test script:
+"test": "node --test utils middlewares controllers"
+```
+
+**Acceptance Criteria:**
+
+- [ ] All ~105 tests run in CI
+- [ ] Smoke test `require('./app')` added
+- [ ] Test coverage report generated
+- [ ] CI test job passes
+
+---
+
+### Task D2: Fix Product Creation/Update Failures
+
+**Priority:** HIGH  
+**Effort:** Medium (3-4 hours)  
+**Files:** `apps/dashboard/src/pages/Products.tsx`
+
+**Problem:** Dashboard shows `beauty/fashion/wellness` but Joi accepts only `makeup/perfumes/clothing/skincare/accessories/home`, requires `subcategory` and `description`, rejects empty `sku`
+
+**Solution:**
+
+1. Align category dropdown with Joi enum
+2. Add required field validation
+3. Strip empty strings before submission
+4. Add proper error handling
+
+**Acceptance Criteria:**
+
+- [ ] Product creation succeeds with valid data
+- [ ] Category dropdown matches API enum
+- [ ] Required fields validated client-side
+- [ ] Empty strings stripped before API call
+- [ ] User-friendly error messages
+
+---
+
+### Task D3: Fix Brand Creation/Update Failures
+
+**Priority:** HIGH  
+**Effort:** Small (2-3 hours)  
+**Files:** `apps/dashboard/src/pages/Brands.tsx`, `apps/api/controllers/brand.controller.js`
+
+**Problem:** Empty optional fields cause Joi validation failures; `GET /brands` filters `isActive:true` and limits to 50
+
+**Solution:**
+
+1. Strip empty strings or allow `''` in Joi schema
+2. Add `includeInactive` parameter for admin
+3. Implement proper pagination
+4. Add validation for URI fields
+
+**Acceptance Criteria:**
+
+- [ ] Brand creation succeeds with partial data
+- [ ] Inactive brands visible in admin
+- [ ] Pagination works correctly
+- [ ] URI fields validated properly
+
+---
+
+### Task D4: Fix Bundle Edit TypeError
+
+**Priority:** HIGH  
+**Effort:** Small (1-2 hours)  
+**Files:** `apps/dashboard/src/pages/Bundles.tsx`
+
+**Problem:** Controller returns populated `item.product` objects; UI calls `.trim()` on object
+
+**Solution:**
+
+1. Map to `_id` when opening edit form
+2. Use product picker instead of raw ID input
+3. Handle populated objects correctly
+
+**Acceptance Criteria:**
+
+- [ ] Bundle edit opens without errors
+- [ ] Product picker displays correctly
+- [ ] Product selection saves properly
+- [ ] No TypeError in console
+
+---
+
+## Phase 1: Security & Payment Critical Fixes (Sprint 1 — 3-4 days)
+
+**Objective:** Close all security vulnerabilities and payment/inventory race conditions
+
+### Task P1: Implement Refund on Order Cancellation
+
+**Priority:** CRITICAL  
+**Effort:** Medium (4-6 hours)  
+**Files:** `apps/api/controllers/order.controller.js`, `apps/api/utils/orderTransitions.js`
+
+**Problem:** Canceling paid order restores inventory but doesn't refund Stripe payment
+
+**Solution:**
+
+```javascript
+// In cancelOrder function:
+if (order.paymentStatus === 'paid' && order.stripeSessionId) {
+  const refund = await stripe.refunds.create({
+    payment_intent: order.stripePaymentIntentId,
+    reason: 'requested_by_customer',
+  });
+  // Handle charge.refunded webhook
+}
+```
+
+**Acceptance Criteria:**
+
+- [ ] Paid order cancellation triggers Stripe refund
+- [ ] `charge.refunded` webhook handled
+- [ ] Order status transitions to `refunded`
+- [ ] Inventory restored correctly
+- [ ] Refund amount matches order total
+
+---
+
+### Task P2: Fix Race Condition in Mark-Paid
+
+**Priority:** CRITICAL  
+**Effort:** Medium (4-6 hours)  
+**Files:** `apps/api/controllers/payment.controller.js`
+
+**Problem:** Memory-based flag checks allow double inventory/coupon deduction; browser polling and webhook race
+
+**Solution:**
+
+```javascript
+// Atomic update with conditional:
+const order = await Order.findOneAndUpdate(
+  { _id: orderId, paymentStatus: { $ne: 'paid' } },
+  {
+    $set: { paymentStatus: 'paid', status: 'processing' },
+    $inc: { 'items.$[].quantity': -1 }, // Conditional decrement
+  },
+  { new: true },
+);
+```
+
+**Acceptance Criteria:**
+
+- [ ] Only one mark-paid operation succeeds
+- [ ] Inventory decremented atomically
+- [ ] Coupon count decremented once
+- [ ] No double-deduction possible
+- [ ] Race condition tests pass
+
+---
+
+### Task P3: Handle Oversell and Paid Order Stuck State
+
+**Priority:** CRITICAL  
+**Effort:** Medium (4-6 hours)  
+**Files:** `apps/api/controllers/payment.controller.js`
+
+**Problem:** Inventory checked only at session creation; second customer paying last item gets 409 but webhook fails
+
+**Solution:**
+
+```javascript
+// When inventory insufficient after payment:
+if (stockAvailable < quantity) {
+  await Order.findByIdAndUpdate(orderId, {
+    status: 'needs_attention',
+    notes: 'Oversell detected - manual review required',
+  });
+  // Optional: auto-refund
+  await stripe.refunds.create({ payment_intent: paymentIntentId });
+  return; // Don't fail webhook
+}
+```
+
+**Acceptance Criteria:**
+
+- [ ] Webhook never fails on oversell
+- [ ] Order marked `needs_attention`
+- [ ] Optional auto-refund implemented
+- [ ] Admin notification sent
+- [ ] Order remains in recoverable state
+
+---
+
+### Task P4: Enforce Order State Machine
+
+**Priority:** CRITICAL  
+**Effort:** Medium (3-4 hours)  
+**Files:** `apps/api/controllers/payment.controller.js`, `apps/api/utils/orderTransitions.js`
+
+**Problem:** Direct status assignment bypasses state machine; late webhook can convert canceled order to paid
+
+**Solution:**
+
+```javascript
+// Check transition validity before marking paid:
+const canTransition = orderTransitions.canTransitionTo(order.status, 'paid');
+if (!canTransition) {
+  throw new Error(`Invalid transition from ${order.status} to paid`);
+}
+```
+
+**Acceptance Criteria:**
+
+- [ ] All status changes validated
+- [ ] Invalid transitions rejected
+- [ ] State machine enforced everywhere
+- [ ] Late webhook handled safely
+- [ ] Transition logs maintained
+
+---
+
+### Task P5: Implement Missing Stripe Webhook Events
+
+**Priority:** HIGH  
+**Effort:** Medium (4-6 hours)  
+**Files:** `apps/api/app.js`, `apps/api/controllers/payment.controller.js`
+
+**Problem:** Only `checkout.session.completed` handled; missing `session.expired`, `payment_failed`, `charge.refunded`
+
+**Solution:**
+
+1. Add handlers for all payment events
+2. Set `expires_at: 30min` on checkout sessions
+3. Clean up unused Stripe coupons
+4. Implement idempotency for all events
+
+**Acceptance Criteria:**
+
+- [ ] `session.expired` handled
+- [ ] `payment_failed` handled
+- [ ] `charge.refunded` handled
+- [ ] Sessions expire after 30 minutes
+- [ ] Unused coupons cleaned up
+- [ ] All events idempotent
+
+---
+
+### Task S1: Fix Rate Limiter Bypass
+
+**Priority:** CRITICAL  
+**Effort:** Small (2-3 hours)  
+**Files:** `apps/api/middlewares/rateLimit.js`, `apps/api/app.js`
+
+**Problem:** Rate limiter uses first `X-Forwarded-For` value without `trust proxy`; attacker can spoof IP
+
+**Solution:**
+
+```javascript
+// In app.js:
+app.set('trust proxy', 1);
+
+// In rateLimit.js:
+const key = req.ip || req.connection.remoteAddress;
+```
+
+**Acceptance Criteria:**
+
+- [ ] `trust proxy` enabled
+- [ ] Rate limiter uses `req.ip`
+- [ ] IP spoofing prevented
+- [ ] Brute-force attacks mitigated
+- [ ] Rate limit tests pass
+
+---
+
+### Task S2: Fix NoSQL Injection and Email Enumeration
+
+**Priority:** CRITICAL  
+**Effort:** Small (2-3 hours)  
+**Files:** `apps/api/controllers/password.controller.js`
+
+**Problem:** `User.findOne({ email })` without Joi validation; explicit 404 response enables email enumeration
+
+**Solution:**
+
+```javascript
+// Add Joi validation:
+const schema = Joi.object({
+  email: Joi.string().email().required(),
+}).validate(req.body);
+
+// Always return 200:
+return res.status(200).json({
+  message: 'If email exists, reset link sent',
+});
+```
+
+**Acceptance Criteria:**
+
+- [ ] Email validated with Joi
+- [ ] Always returns 200 status
+- [ ] Email enumeration prevented
+- [ ] NoSQL injection prevented
+- [ ] Security tests pass
+
+---
+
+### Task S3: Fix Email Exposure in Public Endpoints
+
+**Priority:** HIGH  
+**Effort:** Small (1-2 hours)  
+**Files:** `apps/api/controllers/{review,productQA}.controller.js`
+
+**Problem:** Public endpoints populate `user` with `username email`, exposing emails
+
+**Solution:**
+
+```javascript
+// Change from:
+.populate('user', 'username email')
+// To:
+.populate('user', 'username')
+```
+
+**Acceptance Criteria:**
+
+- [ ] Emails not exposed in public endpoints
+- [ ] Only username returned
+- [ ] Admin endpoints still show email
+- [ ] No data leakage
+
+---
+
+### Task S4: Secure Authentication Cookies
+
+**Priority:** HIGH  
+**Effort:** Medium (4-6 hours)  
+**Files:** `apps/website/src/lib/authCookies.ts`, `apps/api/controllers/auth.controller.js`
+
+**Problem:** Cookies lack `secure`, `sameSite`, `httpOnly`; tokens stored in React Query cache
+
+**Solution:**
+
+```typescript
+// Add security flags:
+document.cookie = `token=${token}; path=/; secure; sameSite=strict; httpOnly`;
+
+// Move refresh to httpOnly cookie via API route
+// Remove tokens from React Query cache
+```
+
+**Acceptance Criteria:**
+
+- [ ] Cookies have `secure` flag
+- [ ] Cookies have `sameSite=strict`
+- [ ] Refresh token in httpOnly cookie
+- [ ] Tokens not in React Query cache
+- [ ] XSS token theft prevented
+
+---
+
+### Task S5: Sanitize CMS Content (XSS Prevention)
+
+**Priority:** HIGH  
+**Effort:** Small (2-3 hours)  
+**Files:** `apps/website/src/app/{shipping,returns}/page.tsx`
+
+**Problem:** `dangerouslySetInnerHTML` used without sanitization
+
+**Solution:**
+
+```typescript
+import DOMPurify from 'dompurify';
+
+// Replace:
+<div dangerouslySetInnerHTML={{ __html: content }} />
+// With:
+<div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }} />
+```
+
+**Acceptance Criteria:**
+
+- [ ] DOMPurify installed
+- [ ] All CMS content sanitized
+- [ ] XSS attacks prevented
+- [ ] HTML preserved safely
+
+---
+
+### Task S6: Prevent Internal Error Leakage
+
+**Priority:** HIGH  
+**Effort:** Small (2-3 hours)  
+**Files:** `apps/api/app.js`, `apps/api/middlewares/checkRolePermission.js`
+
+**Problem:** Error responses leak internal details (CastError, E11000, permissions)
+
+**Solution:**
+
+```javascript
+// Add error mapping:
+const errorMap = {
+  CastError: { status: 400, message: 'Invalid ID format' },
+  MongoError: {
+    11000: { status: 409, message: 'Resource already exists' },
+  },
+};
+
+// In production, return generic message
+if (process.env.NODE_ENV === 'production') {
+  return res.status(500).json({ message: 'Internal server error' });
+}
+```
+
+**Acceptance Criteria:**
+
+- [ ] CastError returns 400
+- [ ] E11000 returns 409
+- [ ] Production errors generic
+- [ ] Development errors detailed
+- [ ] No internal data leaked
+
+---
+
+### Task S7: Fix Regex Injection / ReDoS
+
+**Priority:** HIGH  
+**Effort:** Small (2-3 hours)  
+**Files:** `apps/api/controllers/{product,brand}.controller.js`
+
+**Problem:** Search queries passed directly to `$regex` without escaping
+
+**Solution:**
+
+```javascript
+// Escape regex special characters:
+const escapeRegex = (string) => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
+const searchRegex = new RegExp(escapeRegex(req.query.q), 'i');
+```
+
+**Acceptance Criteria:**
+
+- [ ] Regex special characters escaped
+- [ ] Query length limited
+- [ ] ReDoS attacks prevented
+- [ ] Consider text index migration
+
+---
+
+### Task S8: Revoke Sessions on Password Change
+
+**Priority:** HIGH  
+**Effort:** Small (1-2 hours)  
+**Files:** `apps/api/controllers/{password,user}.controller.js`
+
+**Problem:** Password changes don't revoke existing sessions
+
+**Solution:**
+
+```javascript
+// After password reset/change:
+await revokeAllForUser(user._id);
+```
+
+**Acceptance Criteria:**
+
+- [ ] All sessions revoked on reset
+- [ ] All sessions revoked on change
+- [ ] User must re-login
+- [ ] Session invalidation tested
+
+---
+
+### Task S9: Implement Environment Validation
+
+**Priority:** HIGH  
+**Effort:** Medium (3-4 hours)  
+**Files:** `apps/api/config/index.js` (new)
+
+**Problem:** `NODE_ENV` not validated; dev settings leak to production
+
+**Solution:**
+
+```javascript
+// Create config validation:
+const requiredEnvVars = [
+  'NODE_ENV',
+  'MONGODB_URI',
+  'JWT_SECRET',
+  'STRIPE_SECRET_KEY',
+  'SMTP_HOST',
+  'SMTP_PORT',
+  'SMTP_USER',
+  'SMTP_PASS',
+];
+
+requiredEnvVars.forEach((varName) => {
+  if (!process.env[varName]) {
+    throw new Error(`Missing required env var: ${varName}`);
+  }
+});
+
+if (process.env.NODE_ENV === 'production') {
+  // Validate production-specific settings
+}
+```
+
+**Acceptance Criteria:**
+
+- [ ] All required env vars validated
+- [ ] App fails fast on missing vars
+- [ ] Production settings enforced
+- [ ] Dev/production separation clear
+
+---
+
+## Phase 2: Store & Dashboard Workflow Fixes (Sprint 2 — 3-4 days)
+
+**Objective:** Fix complete purchase workflow and dashboard usability
+
+### Task W1: Pass Selected Variant to Cart
+
+**Priority:** CRITICAL  
+**Effort:** Small (2-3 hours)  
+**Files:** `apps/website/src/app/products/[id]/page.tsx`
+
+**Problem:** `addToCart` doesn't pass size/color; API rejects orders for products with variants
+
+**Solution:**
+
+```typescript
+// Pass selected variant:
+const addToCart = () => {
+  if (selectedSize && selectedColor) {
+    addToCartMutation({
+      productId,
+      variant: { size: selectedSize, color: selectedColor },
+    });
+  }
+};
+```
+
+**Acceptance Criteria:**
+
+- [ ] Variant passed to cart
+- [ ] API accepts variant data
+- [ ] Size selection required for variant products
+- [ ] Color selection required for variant products
+- [ ] Validation errors clear
+
+---
+
+### Task W2: Fix Cart Variant Handling
+
+**Priority:** HIGH  
+**Effort:** Medium (3-4 hours)  
+**Files:** `apps/website/src/lib/cartStore.ts`
+
+**Problem:** Cart operations use `productId` only; doesn't distinguish variants
+
+**Solution:**
+
+```typescript
+// Change cart item key:
+const itemKey = `${productId}_${size}_${color}`;
+
+// Update all operations to use composite key
+```
+
+**Acceptance Criteria:**
+
+- [ ] Cart distinguishes variants
+- [ ] Remove uses composite key
+- [ ] Set quantity uses composite key
+- [ ] Cart displays correctly
+- [ ] No duplicate variants
+
+---
+
+### Task W3: Fix Category Links
+
+**Priority:** HIGH  
+**Effort:** Small (2-3 hours)  
+**Files:** `apps/website/src/components/navigation/Navbar.tsx`, `apps/website/src/layout/Footer.tsx`
+
+**Problem:** Links use `beauty/fashion/wellness/lifestyle` but enum is `makeup/perfumes/clothing/skincare/accessories/home`
+
+**Solution:**
+
+1. Update all category links to match enum
+2. Or add Category model with hierarchy
+3. Ensure consistency across Navbar, Footer, Hero
+
+**Acceptance Criteria:**
+
+- [ ] Category links match API enum
+- [ ] All category pages return products
+- [ ] No "No products" errors
+- [ ] Links consistent across site
+
+---
+
+### Task W4: Fix Coupon Validation Rate Limiting
+
+**Priority:** HIGH  
+**Effort:** Small (2-3 hours)  
+**Files:** `apps/website/src/hooks/coupons/couponsQuery.ts`
+
+**Problem:** Coupon validated on every keystroke via `useQuery` POST; hits rate limit
+
+**Solution:**
+
+```typescript
+// Change to useMutation:
+const validateCoupon = useMutation({
+  mutationFn: (code) => api.post('/coupons/validate', { code }),
+  // Debounce or trigger on blur
+});
+```
+
+**Acceptance Criteria:**
+
+- [ ] Coupon validation uses mutation
+- [ ] Validation triggered on blur/submit
+- [ ] No rate limit issues
+- [ ] User feedback appropriate
+
+---
+
+### Task W5: Implement Guest Cart and Redirect
+
+**Priority:** HIGH  
+**Effort:** Medium (4-6 hours)  
+**Files:** `apps/website/src/proxy.ts`, `apps/website/src/lib/api.ts`
+
+**Problem:** Cart requires login; no `?redirect=` after login; loses `order_id` returning from Stripe
+
+**Solution:**
+
+1. Remove `/cart` auth requirement
+2. Implement guest cart in localStorage
+3. Add `?redirect=` to login flow
+4. Preserve `order_id` through Stripe redirect
+
+**Acceptance Criteria:**
+
+- [ ] Guest cart functional
+- [ ] Login redirect preserves destination
+- [ ] Order ID preserved through Stripe
+- [ ] Cart merges on login
+- [ ] No data loss
+
+---
+
+### Task W6: Implement Stock Limits and Dynamic Pricing
+
+**Priority:** HIGH  
+**Effort:** Medium (4-6 hours)  
+**Files:** `apps/website/src/app/products/[id]/page.tsx`, `apps/website/src/app/checkout/page.tsx`
+
+**Problem:** No quantity limits based on stock; cart prices not updated; shipping/tax hardcoded
+
+**Solution:**
+
+1. Add max quantity validation
+2. Update cart prices dynamically
+3. Fetch shipping/tax from API
+4. Remove "Digital delivery" placeholder
+
+**Acceptance Criteria:**
+
+- [ ] Quantity limited by stock
+- [ ] Cart prices update from API
+- [ ] Shipping fetched from API
+- [ ] Tax calculated from API
+- [ ] No hardcoded values
+
+---
+
+### Task W7: Remove Digital Delivery Placeholder
+
+**Priority:** MEDIUM  
+**Effort:** Small (1-2 hours)  
+**Files:** `apps/website/src/app/checkout/page.tsx`
+
+**Problem:** "Digital delivery" address sent when delivery not selected
+
+**Solution:**
+
+1. Remove placeholder address
+2. Require delivery selection
+3. Validate shipping address
+4. Add proper address form
+
+**Acceptance Criteria:**
+
+- [ ] No placeholder addresses
+- [ ] Delivery required
+- [ ] Address validated
+- [ ] Proper address form
+
+---
+
+### Task W8: Fix Success Page Polling
+
+**Priority:** MEDIUM  
+**Effort:** Small (2-3 hours)  
+**Files:** `apps/website/src/app/checkout/success/page.tsx`
+
+**Problem:** `useEffect` depends on entire `q` object; recreates interval on every render
+
+**Solution:**
+
+```typescript
+// Fix dependency array:
+useEffect(() => {
+  // polling logic
+}, [orderId, sessionId]); // Only depend on IDs
+```
+
+**Acceptance Criteria:**
+
+- [ ] Interval not recreated unnecessarily
+- [ ] Only IDs in dependency array
+- [ ] Efficient polling
+- [ ] No API rate limit issues
+
+---
+
+### Task D5: Implement Dashboard Role Guarding
+
+**Priority:** HIGH  
+**Effort:** Medium (4-6 hours)  
+**Files:** `apps/dashboard/src/layouts/DashboardLayout.tsx`
+
+**Problem:** Any logged-in user can access dashboard; moderator sees write buttons but gets 403
+
+**Solution:**
+
+1. Redirect non-staff users
+2. Hide write buttons based on permissions
+3. Add role-based UI rendering
+4. Secure cookies
+
+**Acceptance Criteria:**
+
+- [ ] Non-staff users redirected
+- [ ] Write buttons hidden for moderators
+- [ ] Permissions checked in UI
+- [ ] Cookies secured
+- [ ] No 403 errors in UI
+
+---
+
+### Task D6: Fix Dark Mode
+
+**Priority:** MEDIUM  
+**Effort:** Small (1 hour)  
+**Files:** `apps/dashboard/tailwind.config.js`
+
+**Problem:** Missing `darkMode: 'class'` configuration
+
+**Solution:**
+
+```javascript
+module.exports = {
+  darkMode: 'class',
+  // rest of config
+};
+```
+
+**Acceptance Criteria:**
+
+- [ ] Dark mode works
+- [ ] Theme switches correctly
+- [ ] Tailwind respects class
+- [ ] Icon updates
+
+---
+
+### Task D7: Fix Q&A Display
+
+**Priority:** MEDIUM  
+**Effort:** Small (2-3 hours)  
+**Files:** `apps/dashboard/src/pages/ProductQA.tsx`, `apps/api/controllers/productQA.controller.js`
+
+**Problem:** Q&A shows "Anonymous"; uses wrong field name
+
+**Solution:**
+
+1. Populate `username` instead of `name`
+2. Update UI to use correct field
+3. Fix `approved` state handling
+
+**Acceptance Criteria:**
+
+- [ ] Username displayed correctly
+- [ ] Not "Anonymous"
+- [ ] Approved state updated
+- [ ] Edit form works
+
+---
+
+### Task D8: Replace Native Alerts with Toast/Dialog
+
+**Priority:** MEDIUM  
+**Effort:** Medium (6-8 hours)  
+**Files:** Multiple dashboard pages
+
+**Problem:** 15 pages use `window.alert/confirm`; raw Joi/403 errors; delete buttons not disabled
+
+**Solution:**
+
+1. Implement toast notifications
+2. Use Radix Dialog for confirmations
+3. Add zod schemas for validation
+4. Disable buttons during mutations
+
+**Acceptance Criteria:**
+
+- [ ] No native alerts
+- [ ] Toast notifications used
+- [ ] Radix Dialog for confirmations
+- [ ] Zod validation
+- [ ] Buttons disabled during operations
+
+---
+
+### Task D9: Implement Mobile Responsive Dashboard
+
+**Priority:** MEDIUM  
+**Effort:** Medium (6-8 hours)  
+**Files:** `apps/dashboard/src/layouts/DashboardLayout.tsx`
+
+**Problem:** Fixed 256px sidebar with no breakpoints; unusable on mobile
+
+**Solution:**
+
+1. Implement drawer on small screens
+2. Add responsive breakpoints
+3. Hamburger menu for mobile
+4. Collapsible sidebar
+
+**Acceptance Criteria:**
+
+- [ ] Drawer on mobile
+- [ ] Responsive breakpoints
+- [ ] Hamburger menu
+- [ ] Collapsible sidebar
+- [ ] Usable on all screen sizes
+
+---
+
+### Task D10: Clean Dashboard Misc Issues
+
+**Priority:** LOW  
+**Effort:** Small (2-3 hours)  
+**Files:** Multiple dashboard files
+
+**Problem:** Various small issues: env import, missing field, state ignored, missing favicon, wrong title
+
+**Solution:**
+
+1. Fix `import.meta.env` usage
+2. Remove non-existent fields
+3. Fix login redirect state
+4. Add favicon
+5. Update title
+
+**Acceptance Criteria:**
+
+- [ ] No direct env imports
+- [ ] Non-existent fields removed
+- [ ] Login redirect works
+- [ ] Favicon present
+- [ ] Title correct
+
+---
+
+## Phase 3: Revenue-Generating Features (Sprint 3-4 — 2-3 weeks)
+
+**Objective:** Implement features that directly impact revenue
+
+### Feature 1: Enable Product Reviews, Q&A, and Wishlist
+
+**Priority:** HIGH  
+**Effort:** Medium (1-2 days)  
+**Files:** `apps/website/src/app/products/[id]/page.tsx`
+
+**Current State:** API, hooks, and components exist but not wired up
+
+**Implementation:**
+
+1. Import and wire `useProductReviews`, `ReviewForm`, `ReviewList`
+2. Import and wire `useProductQA`
+3. Add `WishlistButton` handlers
+4. Remove demo placeholders
+
+**Acceptance Criteria:**
+
+- [ ] Reviews display on product page
+- [ ] Review form functional
+- [ ] Q&A displays real data
+- [ ] Wishlist buttons work
+- [ ] No demo content
+
+---
+
+### Feature 2: Implement Server-Side Filtering and Sorting
+
+**Priority:** HIGH  
+**Effort:** Medium (2-3 days)  
+**Files:** `apps/api/controllers/product.controller.js`, `apps/website/src/app/products/page.tsx`
+
+**Current State:** Client-side filtering on 12 demo products only
+
+**Implementation:**
+
+1. Add server-side filters: brand, size, color, rating, inStock, onSale
+2. Implement text index on `title/description/brand`
+3. Replace regex search with text search
+4. Add sorting options
+5. Update UI to use server endpoints
+
+**Acceptance Criteria:**
+
+- [ ] Server-side filtering works
+- [ ] Text index implemented
+- [ ] Regex replaced
+- [ ] Sorting functional
+- [ ] UI uses API filters
+
+---
+
+### Feature 3: Create Real Category Pages
+
+**Priority:** HIGH  
+**Effort:** Medium (2-3 days)  
+**Files:** `apps/website/src/app/c/[category]/page.tsx` (new)
+
+**Current State:** Category links don't match enum; no real category pages
+
+**Implementation:**
+
+1. Create `/c/[category]` route
+2. Add breadcrumbs
+3. Unify categories between UI and enum
+4. Or implement Category model with hierarchy
+5. Filter products by category
+
+**Acceptance Criteria:**
+
+- [ ] Category pages exist
+- [ ] Breadcrumbs implemented
+- [ ] Categories unified
+- [ ] Products filtered correctly
+- [ ] SEO metadata
+
+---
+
+### Feature 4: Implement SEO Foundation
+
+**Priority:** HIGH  
+**Effort:** Large (3-5 days)  
+**Files:** Multiple Next.js files
+
+**Current State:** All pages client components; zero SEO
+
+**Implementation:**
+
+1. Convert PDP/PLP/Brand to Server Components
+2. Implement `generateMetadata`
+3. Add Open Graph tags
+4. Add Product JSON-LD
+5. Create `sitemap.ts`
+6. Create `robots.ts`
+7. Add canonical URLs
+
+**Acceptance Criteria:**
+
+- [ ] Key pages server-rendered
+- [ ] Dynamic metadata
+- [ ] OG tags present
+- [ ] JSON-LD structured data
+- [ ] Sitemap generated
+- [ ] Robots.txt
+- [ ] Lighthouse SEO ≥ 90
+
+---
+
+### Feature 5: Implement Guest Checkout Flow
+
+**Priority:** MEDIUM  
+**Effort:** Small (1-2 days)  
+**Files:** `apps/website/src/app/checkout/page.tsx`
+
+**Current State:** Cart requires login
+
+**Implementation:**
+
+1. Allow guest checkout
+2. Collect guest email at checkout
+3. Implement `?redirect=` after login
+4. Merge guest cart on login
+
+**Acceptance Criteria:**
+
+- [ ] Guest checkout works
+- [ ] Email collected
+- [ ] Login redirect functional
+- [ ] Cart merge successful
+
+---
+
+### Feature 6: Implement Real Shipping
+
+**Priority:** HIGH  
+**Effort:** Medium (2-3 days)  
+**Files:** API controllers, website checkout
+
+**Current State:** $5 flat rate hardcoded
+
+**Implementation:**
+
+1. Add shipping methods (standard/express)
+2. Add shipping regions/zones
+3. Calculate shipping from API
+4. Display in cart/checkout
+5. Remove "Digital delivery"
+
+**Acceptance Criteria:**
+
+- [ ] Multiple shipping methods
+- [ ] Regional pricing
+- [ ] API-calculated rates
+- [ ] Displayed in UI
+- [ ] No placeholders
+
+---
+
+### Feature 7: Implement Address Book
+
+**Priority:** MEDIUM  
+**Effort:** Medium (2-3 days)  
+**Files:** User profile, checkout
+
+**Current State:** No address management
+
+**Implementation:**
+
+1. Add address CRUD to profile
+2. Store multiple addresses
+3. Select address in checkout
+4. Set default address
+
+**Acceptance Criteria:**
+
+- [ ] Address CRUD functional
+- [ ] Multiple addresses
+- [ ] Checkout selection
+- [ ] Default address
+
+---
+
+### Feature 8: Implement Order Cancellation and Returns
+
+**Priority:** MEDIUM  
+**Effort:** Medium (2-3 days)  
+**Files:** Order controllers, user account
+
+**Current State:** No customer cancellation
+
+**Implementation:**
+
+1. Add cancel button for customer (pre-ship)
+2. Implement RMA request flow
+3. Add `refunded` status
+4. Link to Stripe refunds
+5. Add return instructions
+
+**Acceptance Criteria:**
+
+- [ ] Customer can cancel
+- [ ] RMA request flow
+- [ ] Refunded status
+- [ ] Stripe refund linked
+- [ ] Return instructions
+
+---
+
+### Feature 9: Implement Image Upload
+
+**Priority:** HIGH  
+**Effort:** Medium (2-3 days)  
+**Files:** Dashboard product/brand forms, API
+
+**Current State:** No image upload capability
+
+**Implementation:**
+
+1. Add Multer for uploads
+2. Integrate Cloudinary or S3
+3. Add upload UI in dashboard
+4. Update `remotePatterns` for CDN
+5. Use `next/image` everywhere
+
+**Acceptance Criteria:**
+
+- [ ] Multer configured
+- [ ] Cloudinary/S3 integrated
+- [ ] Upload UI functional
+- [ ] CDN configured
+- [ ] next/image used
+
+---
+
+### Feature 10: Implement Tax Calculation
+
+**Priority:** MEDIUM  
+**Effort:** Small (1 day)  
+**Files:** Checkout, API
+
+**Current State:** Tax hardcoded to 0
+
+**Implementation:**
+
+1. Add configurable tax rate
+2. Calculate from API
+3. Display in checkout
+4. Add to order total
+
+**Acceptance Criteria:**
+
+- [ ] Tax rate configurable
+- [ ] API calculation
+- [ ] Displayed in UI
+- [ ] Added to total
+
+---
+
+### Feature 11: Implement Verified Buyer Reviews
+
+**Priority:** LOW  
+**Effort:** Small (1 day)  
+**Files:** Review controller, UI
+
+**Current State:** No purchase verification
+
+**Implementation:**
+
+1. Check for paid order containing product
+2. Add "verified purchase" badge
+3. Only allow verified buyers to review
+
+**Acceptance Criteria:**
+
+- [ ] Purchase verified
+- [ ] Badge displayed
+- [ ] Verified-only reviews optional
+
+---
+
+## Phase 4: Arabic, Growth, and Advanced Features (Sprint 5-6 — 3-4 weeks)
+
+**Objective:** Implement Arabic/RTL support and growth features
+
+### Feature 12: Implement i18n and RTL
+
+**Priority:** HIGH  
+**Effort:** Large (1-2 weeks)  
+**Files:** Entire application
+
+**Current State:** No Arabic/RTL support
+
+**Implementation:**
+
+1. Install `next-intl` or similar
+2. Add dynamic `lang` and `dir`
+3. Implement Tailwind logical properties
+4. Add currency/locale switching
+5. Translate all user-facing text
+6. Test RTL layouts
+
+**Acceptance Criteria:**
+
+- [ ] i18n configured
+- [ ] RTL layout functional
+- [ ] Currency switchable
+- [ ] All text translated
+- [ ] Arabic tested
+
+---
+
+### Feature 13: Implement Profile Editing and Password Change
+
+**Priority:** MEDIUM  
+**Effort:** Small (1-2 days)  
+**Files:** User profile pages
+
+**Current State:** Links exist but pages don't
+
+**Implementation:**
+
+1. Create profile edit page
+2. Create password change page
+3. Wire existing hooks
+4. Add validation
+
+**Acceptance Criteria:**
+
+- [ ] Profile edit works
+- [ ] Password change works
+- [ ] Hooks wired
+- [ ] Validation present
+
+---
+
+### Feature 14: Implement Real Order Tracking
+
+**Priority:** MEDIUM  
+**Effort:** Medium (2-3 days)  
+**Files:** Dashboard, order pages
+
+**Current State:** Timeline derived from status only
+
+**Implementation:**
+
+1. Add tracking number field
+2. Add carrier field
+3. Add tracking events
+4. Input from dashboard
+5. Display to customer
+
+**Acceptance Criteria:**
+
+- [ ] Tracking number field
+- [ ] Carrier field
+- [ ] Tracking events
+- [ ] Dashboard input
+- [ ] Customer display
+
+---
+
+### Feature 15: Implement Email Notifications
+
+**Priority:** MEDIUM  
+**Effort:** Medium (2-3 days)  
+**Files:** Email templates, controllers
+
+**Current State:** Only order confirmation email
+
+**Implementation:**
+
+1. Add shipped notification
+2. Add delivered notification
+3. Add canceled notification
+4. Add refunded notification
+5. Use HTML templates
+
+**Acceptance Criteria:**
+
+- [ ] Shipped email
+- [ ] Delivered email
+- [ ] Canceled email
+- [ ] Refunded email
+- [ ] HTML templates
+
+---
+
+### Feature 16: Implement Newsletter and Contact Form
+
+**Priority:** LOW  
+**Effort:** Small (1-2 days)  
+**Files:** Landing page, API
+
+**Current State:** Placeholder links
+
+**Implementation:**
+
+1. Create newsletter signup
+2. Create contact form
+3. Add API endpoints
+4. Add email sending
+
+**Acceptance Criteria:**
+
+- [ ] Newsletter signup
+- [ ] Contact form
+- [ ] API endpoints
+- [ ] Email sending
+
+---
+
+### Feature 17: Implement Recently Viewed and Recommendations
+
+**Priority:** LOW  
+**Effort:** Medium (2-3 days)  
+**Files:** API, storefront
+
+**Current State:** Demo data only
+
+**Implementation:**
+
+1. Fix API endpoints (C3)
+2. Implement co-purchase algorithm
+3. Implement same-category recommendations
+4. Wire to UI
+5. Track recently viewed
+
+**Acceptance Criteria:**
+
+- [ ] API fixed
+- [ ] Co-purchase working
+- [ ] Category recommendations
+- [ ] UI wired
+- [ ] Recently viewed tracked
+
+---
+
+### Feature 18: Implement Bundles, Lookbooks, Gift Finder
+
+**Priority:** LOW  
+**Effort:** Medium (2-3 days)  
+**Files:** API, storefront, dashboard
+
+**Current State:** Structure exists but no seeds
+
+**Implementation:**
+
+1. Add seeds for bundles
+2. Add seeds for lookbooks
+3. Add seeds for gift finder
+4. Wire links to API IDs
+5. Update dashboard forms
+
+**Acceptance Criteria:**
+
+- [ ] Bundles seeded
+- [ ] Lookbooks seeded
+- [ ] Gift finder seeded
+- [ ] Links use API IDs
+- [ ] Dashboard forms work
+
+---
+
+## Phase 5: Dashboard Enhancements (Parallel to Phase 4)
+
+### Feature 19: Complete Product Form
+
+**Priority:** HIGH  
+**Effort:** Medium (2-3 days)  
+**Files:** Dashboard product form
+
+**Current State:** Missing many fields from API
+
+**Implementation:**
+
+1. Add variants (size/color/stock/price/SKU)
+2. Add multiple images
+3. Add `isActive/featured` toggles
+4. Add material/weight/dimensions
+5. Add shipping info
+6. Integrate image upload
+
+**Acceptance Criteria:**
+
+- [ ] Variants functional
+- [ ] Multiple images
+- [ ] Active/featured toggles
+- [ ] Physical attributes
+- [ ] Shipping info
+- [ ] Image upload integrated
+
+---
+
+### Feature 20: Order Detail Page
+
+**Priority:** HIGH  
+**Effort:** Medium (2-3 days)  
+**Files:** Dashboard
+
+**Current State:** No detail page
+
+**Implementation:**
+
+1. Create order detail page
+2. Display items, address, notes
+3. Show payment IDs
+4. Add tracking input
+5. Add refund button
+6. Add payment status filter
+7. Add email search
+
+**Acceptance Criteria:**
+
+- [ ] Detail page created
+- [ ] All details shown
+- [ ] Tracking input
+- [ ] Refund button
+- [ ] Payment status filter
+- [ ] Email search
+
+---
+
+### Feature 21: Low Stock Dashboard
+
+**Priority:** MEDIUM  
+**Effort:** Small (1-2 days)  
+**Files:** Dashboard
+
+**Current State:** API calculates `lowStock` but UI ignores it
+
+**Implementation:**
+
+1. Display low stock products
+2. Add sorting by stock level
+3. Add quick quantity edit
+4. Add stock alerts
+
+**Acceptance Criteria:**
+
+- [ ] Low stock displayed
+- [ ] Stock sorting
+- [ ] Quick edit
+- [ ] Stock alerts
+
+---
+
+### Feature 22: Server-Side Sorting and Pagination
+
+**Priority:** HIGH  
+**Effort:** Medium (2-3 days)  
+**Files:** All dashboard tables
+
+**Current State:** Client-side only; fetches 50-100 at once
+
+**Implementation:**
+
+1. Add server-side sorting
+2. Add server-side pagination
+3. Add `placeholderData` to prevent flicker
+4. Implement for all tables
+
+**Acceptance Criteria:**
+
+- [ ] Server-side sorting
+- [ ] Server-side pagination
+- [ ] No loading flicker
+- [ ] All tables updated
+
+---
+
+### Feature 23: Analytics Dashboard
+
+**Priority:** MEDIUM  
+**Effort:** Medium (2-3 days)  
+**Files:** Dashboard
+
+**Current State:** `recharts` installed but unused
+
+**Implementation:**
+
+1. Add revenue over time chart
+2. Add orders over time chart
+3. Add top products chart
+4. Add top brands chart
+5. Add key metrics cards
+
+**Acceptance Criteria:**
+
+- [ ] Revenue chart
+- [ ] Orders chart
+- [ ] Top products
+- [ ] Top brands
+- [ ] Metrics cards
+
+---
+
+### Feature 24: Category Management
+
+**Priority:** MEDIUM  
+**Effort:** Large (3-4 days)  
+**Files:** API, dashboard
+
+**Current State:** No category model
+
+**Implementation:**
+
+1. Create Category model
+2. Add hierarchy support
+3. Add CRUD in dashboard
+4. Add home module editor
+5. Add review reply
+6. Add store settings (shipping/tax)
+
+**Acceptance Criteria:**
+
+- [ ] Category model
+- [ ] Hierarchy
+- [ ] CRUD interface
+- [ ] Home editor
+- [ ] Review replies
+- [ ] Store settings
+
+---
+
+### Feature 25: Customer Management
+
+**Priority:** LOW  
+**Effort:** Medium (2-3 days)  
+**Files:** Dashboard
+
+**Current State:** No customer management
+
+**Implementation:**
+
+1. Show order history per user
+2. Add account disable (not delete)
+3. Add customer notes
+4. Add customer search
+
+**Acceptance Criteria:**
+
+- [ ] Order history
+- [ ] Account disable
+- [ ] Customer notes
+- [ ] Customer search
+
+---
+
+## Phase 6: Infrastructure and DevOps (Ongoing)
+
+### Task I1: Complete CI/CD Pipeline
+
+**Priority:** HIGH  
+**Effort:** Medium (2-3 days)  
+**Files:** `.github/workflows/ci.yml`
+
+**Current State:** Only basic CI; no deploy, no Dependabot
+
+**Implementation:**
+
+1. Add deploy job for API (Render)
+2. Add deploy job for website (Vercel)
+3. Add deploy job for dashboard (Vercel)
+4. Add Dependabot configuration
+5. Add security audit
+6. Add e2e tests (Playwright)
+
+**Acceptance Criteria:**
+
+- [ ] API deploy automated
+- [ ] Website deploy automated
+- [ ] Dashboard deploy automated
+- [ ] Dependabot configured
+- [ ] Security audit
+- [ ] E2E tests
+
+---
+
+### Task I2: Complete Monitoring and Logging
+
+**Priority:** MEDIUM  
+**Effort:** Medium (2-3 days)  
+**Files:** API middleware
+
+**Current State:** Basic console logging only
+
+**Implementation:**
+
+1. Implement pino structured logging
+2. Add request IDs
+3. Add Sentry integration
+4. Add graceful shutdown
+5. Add health check endpoint
+
+**Acceptance Criteria:**
+
+- [ ] Pino logging
+- [ ] Request IDs
+- [ ] Sentry integrated
+- [ ] Graceful shutdown
+- [ ] Health check
+
+---
+
+### Task I3: Complete Seeders
+
+**Priority:** MEDIUM  
+**Effort:** Small (1-2 days)  
+**Files:** Seeders
+
+**Current State:** Two versions; no admin; no CMS/bundles/lookbooks/QA
+
+**Implementation:**
+
+1. Merge into single seeder
+2. Add NODE_ENV guard
+3. Create admin user
+4. Seed CMS content
+5. Seed bundles
+6. Seed lookbooks
+7. Seed Q&A
+
+**Acceptance Criteria:**
+
+- [ ] Single seeder
+- [ ] NODE_ENV guard
+- [ ] Admin created
+- [ ] CMS seeded
+- [ ] Bundles seeded
+- [ ] Lookbooks seeded
+- [ ] Q&A seeded
+
+---
+
+### Task I4: Complete Documentation
+
+**Priority:** LOW  
+**Effort:** Medium (2-3 days)  
+**Files:** README files, docs
+
+**Current State:** Outdated documentation
+
+**Implementation:**
+
+1. Update API README
+2. Update website README
+3. Update dashboard README
+4. Archive old docs
+5. Add setup guide
+6. Add deployment guide
+
+**Acceptance Criteria:**
+
+- [ ] API README updated
+- [ ] Website README updated
+- [ ] Dashboard README updated
+- [ ] Old docs archived
+- [ ] Setup guide
+- [ ] Deployment guide
+
+---
+
+### Task I5: Clean Shared Packages
+
+**Priority:** MEDIUM  
+**Effort:** Small (1 day)  
+**Files:** `packages/types`, `packages/api-client`
+
+**Current State:** Unused packages; types duplicated 3 times
+
+**Implementation:**
+
+1. Decide: unify or remove
+2. If unify: import from apps, remove api-client
+3. If remove: delete packages, update aliases
+4. Update all imports
+
+**Acceptance Criteria:**
+
+- [ ] Decision made
+- [ ] Imports updated
+- [ ] Dead code removed
+- [ ] No duplication
+
+---
+
+## Phase 7: Optional Technical Debt (Post-Launch)
+
+### Task T1: Remove Express Async Handler Wrappers
+
+**Priority:** LOW  
+**Effort:** Small (1 day)  
+**Files:** API controllers
+
+**Current State:** 115 unnecessary wraps (harmless but clutter)
+
+**Implementation:**
+
+1. Remove `express-async-handler` wraps
+2. Express 5 handles async errors natively
+
+**Acceptance Criteria:**
+
+- [ ] Wrappers removed
+- [ ] Error handling maintained
+- [ ] Code cleaner
+
+---
+
+### Task T2: Standardize Response Contracts
+
+**Priority:** LOW  
+**Effort:** Medium (2-3 days)  
+**Files:** All API controllers
+
+**Current State:** Conflicting response shapes
+
+**Implementation:**
+
+1. Choose standard contract
+2. Update all controllers
+3. Update frontend clients
+4. Add validation
+
+**Acceptance Criteria:**
+
+- [ ] Standard contract
+- [ ] All controllers updated
+- [ ] Clients updated
+- [ ] Validation added
+
+---
+
+### Task T3: Add Database Indexes
+
+**Priority:** MEDIUM  
+**Effort:** Small (1 day)  
+**Files:** Model files
+
+**Current State:** Missing critical indexes
+
+**Implementation:**
+
+1. Add indexes to Order (user, createdAt, stripeSessionId, status)
+2. Add indexes to Product (category, brand, price, isActive)
+3. Add TTL to StripeWebhookEvent
+
+**Acceptance Criteria:**
+
+- [ ] Order indexes
+- [ ] Product indexes
+- [ ] TTL on webhooks
+- [ ] Performance improved
+
+---
+
+## Execution Guidelines
+
+### Sprint Planning
+
+- Each sprint = 1-2 weeks
+- Assign tasks based on team capacity
+- Prioritize critical path items
+- Leave buffer for unexpected issues
+
+### Code Review Standards
+
+- All changes require review
+- Security changes require 2 approvals
+- Payment changes require thorough testing
+- Database changes require migration scripts
+
+### Testing Requirements
+
+- Unit tests for business logic
+- Integration tests for API endpoints
+- E2E tests for critical workflows
+- Security tests for all auth/payment flows
+- Performance tests for high-traffic endpoints
+
+### Deployment Strategy
+
+- Phase 0-1: Immediate deployment to fix critical issues
+- Phase 2-3: Feature flags for gradual rollout
+- Phase 4-5: A/B testing for UX changes
+- Phase 6-7: Maintenance windows for infrastructure
+
+### Risk Mitigation
+
+- Backup database before schema changes
+- Test payment flows in Stripe sandbox
+- Monitor error rates post-deployment
+- Have rollback plan for each deployment
+- Schedule changes during low-traffic periods
+
+---
+
+## Success Metrics by Phase
+
+### Phase 0 (Critical Recovery)
+
+- [ ] All services start without errors
+- [ ] CI/CD passes consistently
+- [ ] Dashboard fully accessible
+- [ ] No 500 errors in production
+
+### Phase 1 (Security)
+
+- [ ] No OWASP Top 10 vulnerabilities
+- [ ] Payment flows secure
+- [ ] Rate limiting effective
+- [ ] Security audit passes
+
+### Phase 2 (Stability)
+
+- [ ] Complete purchase workflow works
+- [ ] Dashboard fully functional
+- [ ] No data loss scenarios
+- [ ] Error rates < 0.1%
+
+### Phase 3 (Revenue)
+
+- [ ] Conversion rate increases
+- [ ] Cart abandonment decreases
+- [ ] Average order value increases
+- [ ] Customer satisfaction improves
+
+### Phase 4 (Growth)
+
+- [ ] Arabic users can use site
+- [ ] SEO traffic increases
+- [ ] Organic search improves
+- [ ] International expansion possible
+
+### Phase 5 (Dashboard)
+
+- [ ] Admin efficiency improves
+- [ ] Time to task decreases
+- [ ] Data accuracy increases
+- [ ] User satisfaction high
+
+### Phase 6 (Infrastructure)
+
+- [ ] Uptime > 99.9%
+- [ ] Deployment time < 5 minutes
+- [ ] Error detection < 1 minute
+- [ ] Documentation complete
+
+---
+
+## Conclusion
+
+This execution plan provides a comprehensive roadmap for transforming TrendVaulta from its current unstable state into a production-ready, secure, and scalable e-commerce platform. The phased approach ensures critical issues are addressed first, followed by security hardening, workflow stabilization, and finally feature expansion.
+
+**Key Success Factors:**
+
+1. Execute Phase 0 immediately to unblock development
+2. Prioritize security fixes in Phase 1 before processing real payments
+3. Implement comprehensive testing before each deployment
+4. Monitor metrics continuously and adjust course as needed
+5. Maintain code quality through rigorous review
+
+**Estimated Timeline:**
+
+- Phase 0: 1-2 weeks (critical)
+- Phase 1: 3-4 weeks (security)
+- Phase 2: 3-4 weeks (stability)
+- Phase 3: 4-6 weeks (revenue features)
+- Phase 4: 4-6 weeks (growth features)
+- Phase 5: 4-6 weeks (dashboard)
+- Phase 6: Ongoing (infrastructure)
+
+**Total Estimated Time:** 4-6 months to full production readiness
+
+---
+
+_This document should be reviewed and updated regularly as the project progresses and new requirements emerge._

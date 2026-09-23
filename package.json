@@ -4,7 +4,8 @@
   "private": true,
   "description": "TrendVaulta — retail e-commerce monorepo (Next.js storefront, React admin dashboard, Express API)",
   "workspaces": [
-    "apps/*"
+    "apps/*",
+    "packages/*"
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev:website\" \"npm run dev:dashboard\" \"npm run dev:api\"",
@@ -14,6 +15,7 @@
     "build": "npm run build --workspaces --if-present",
     "build:website": "npm run build --workspace=apps/website",
     "build:dashboard": "npm run build --workspace=apps/dashboard",
+    "build:types": "npm run build --workspace=@trendvaulta/types",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "test:api": "npm run test --workspace=apps/api",

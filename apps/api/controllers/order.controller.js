@@ -437,6 +437,230 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * Customer: cancel their own order (before shipped)
+ * @route POST /api/orders/:id/cancel
+ * @access Private (order owner)
+ */
+const cancelOrder = asyncHandler(async (req, res) => {
+  const order = await Order.findById(req.params.id);
+  if (!order) {
+    return res.status(404).json({ message: 'Order not found' });
+  }
+
+  // Check ownership
+  if (order.user.toString() !== req.user._id.toString()) {
+    return res
+      .status(403)
+      .json({ message: 'Not authorized to cancel this order' });
+  }
+
+  // Check if order can be canceled (only pending or paid, not shipped/delivered)
+  if (order.status === 'shipped' || order.status === 'delivered') {
+    return res.status(400).json({
+      message: 'Cannot cancel an order that has been shipped or delivered',
+    });
+  }
+
+  if (order.status === 'canceled' || order.status === 'refunded') {
+    return res.status(400).json({
+      message: 'Order is already canceled or refunded',
+    });
+  }
+
+  // Check transition
+  const transition = canTransitionOrderStatus(order.status, 'canceled');
+  if (!transition.ok) {
+    return res.status(400).json({ message: transition.message });
+  }
+
+  // If paid, initiate refund
+  let refundedNow = false;
+  if (order.paymentStatus === 'paid') {
+    try {
+      const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+      if (order.paymentIntentId) {
+        const refund = await stripe.refunds.create({
+          payment_intent: order.paymentIntentId,
+        });
+        order.refundId = refund.id;
+        order.refundAmount = refund.amount / 100;
+        order.refundedAt = new Date();
+        order.paymentStatus = 'refunded';
+        refundedNow = true;
+      }
+    } catch (refundErr) {
+      console.error(
+        `Stripe refund failed for order ${order._id}:`,
+        refundErr?.message || refundErr,
+      );
+      order.status = 'needs_attention';
+      order.attentionReason = 'refund_failed';
+      await order.save();
+      return res.status(502).json({
+        message:
+          'The Stripe refund could not be created. The order was flagged for manual review; please retry or refund it from the Stripe dashboard.',
+      });
+    }
+  }
+
+  // Restore stock
+  const stockRestoredNow = await restoreStockOnce(Order, Product, order);
+  if (stockRestoredNow) order.stockRestored = true;
+
+  order.status = 'canceled';
+  await order.save();
+
+  // Send cancellation email
+  const user = await order.populate('user');
+  const userEmail = user?.email;
+  if (userEmail) {
+    await sendOrderCanceledEmail({
+      to: userEmail,
+      orderId: order._id,
+    }).catch(() => {});
+  }
+
+  const serialized = serializeOrder(order);
+  res.status(200).json({
+    ...serialized,
+    stockRestored: stockRestoredNow || Boolean(order.stockRestored),
+    refunded: refundedNow || order.paymentStatus === 'refunded',
+    message: refundedNow
+      ? 'Order canceled and refunded'
+      : 'Order canceled and inventory restored',
+  });
+});
+
+/**
+ * Generate invoice for an order
+ * @route GET /api/orders/:id/invoice
+ * @access Private (order owner or admin)
+ */
+const getOrderInvoice = asyncHandler(async (req, res) => {
+  const order = await Order.findById(req.params.id).populate('user');
+  if (!order) {
+    return res.status(404).json({ message: 'Order not found' });
+  }
+
+  // Check ownership or admin
+  const isAdmin = req.user.roles?.includes('admin');
+  if (order.user._id.toString() !== req.user._id.toString() && !isAdmin) {
+    return res.status(403).json({ message: 'Not authorized' });
+  }
+
+  // Generate HTML invoice
+  const frontend = process.env.FRONTEND_URL || 'http://localhost:3001';
+  const invoiceHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Invoice - Order ${order._id.slice(-8).toUpperCase()}</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+    .header { display: flex; justify-content: space-between; margin-bottom: 40px; }
+    .logo { font-size: 24px; font-weight: bold; color: #6366f1; }
+    .invoice-number { text-align: right; }
+    .section { margin-bottom: 30px; }
+    .section h3 { border-bottom: 2px solid #6366f1; padding-bottom: 10px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+    th { background: #f9fafb; }
+    .total { font-weight: bold; font-size: 18px; }
+    .footer { margin-top: 40px; text-align: center; color: #6b7280; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">TrendVaulta</div>
+    <div class="invoice-number">
+      <h2>INVOICE</h2>
+      <p>Order #${order._id.slice(-8).toUpperCase()}</p>
+      <p>Date: ${new Date(order.createdAt).toLocaleDateString()}</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Bill To</h3>
+    <p><strong>${order.shippingAddress.name}</strong></p>
+    <p>${order.shippingAddress.address}</p>
+    <p>${order.shippingAddress.city}, ${order.shippingAddress.zip}</p>
+    <p>${order.shippingAddress.phone}</p>
+  </div>
+
+  <div class="section">
+    <h3>Order Items</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Qty</th>
+          <th>Price</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${order.items
+          .map(
+            (item) => `
+          <tr>
+            <td>${item.title}</td>
+            <td>${item.qty}</td>
+            <td>$${item.price.toFixed(2)}</td>
+            <td>$${(item.price * item.qty).toFixed(2)}</td>
+          </tr>
+        `,
+          )
+          .join('')}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h3>Order Summary</h3>
+    <table>
+      <tr>
+        <td>Subtotal</td>
+        <td>$${order.itemsPrice.toFixed(2)}</td>
+      </tr>
+      ${
+        order.discountAmount > 0
+          ? `
+      <tr>
+        <td>Discount</td>
+        <td>-$${order.discountAmount.toFixed(2)}</td>
+      </tr>
+      `
+          : ''
+      }
+      <tr>
+        <td>Shipping</td>
+        <td>$${order.shippingPrice.toFixed(2)}</td>
+      </tr>
+      <tr>
+        <td>Tax</td>
+        <td>$${order.taxPrice.toFixed(2)}</td>
+      </tr>
+      <tr class="total">
+        <td>Total</td>
+        <td>$${order.totalPrice.toFixed(2)}</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="footer">
+    <p>Thank you for your order!</p>
+    <p>${frontend}</p>
+  </div>
+</body>
+</html>
+  `;
+
+  res.setHeader('Content-Type', 'text/html');
+  res.send(invoiceHtml);
+});
+
 module.exports = {
   createOrder,
   getMyOrders,
@@ -444,4 +668,6 @@ module.exports = {
   getAllOrders,
   updateOrderStatus,
   updateOrderTracking,
+  cancelOrder,
+  getOrderInvoice,
 };

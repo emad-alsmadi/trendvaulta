@@ -266,6 +266,67 @@ const OrderSchema = new mongoose.Schema(
       ],
       default: [],
     },
+    returnRequest: {
+      type: {
+        status: {
+          type: String,
+          enum: [
+            'none',
+            'requested',
+            'approved',
+            'rejected',
+            'received',
+            'refunded',
+          ],
+          default: 'none',
+        },
+        reason: {
+          type: String,
+          trim: true,
+          default: '',
+        },
+        items: [
+          {
+            productId: {
+              type: mongoose.Schema.Types.ObjectId,
+              ref: 'Product',
+            },
+            title: {
+              type: String,
+              trim: true,
+            },
+            qty: {
+              type: Number,
+              min: 1,
+            },
+            reason: {
+              type: String,
+              trim: true,
+            },
+          },
+        ],
+        requestedAt: {
+          type: Date,
+        },
+        approvedAt: {
+          type: Date,
+        },
+        receivedAt: {
+          type: Date,
+        },
+        refundAmount: {
+          type: Number,
+          min: 0,
+          default: 0,
+        },
+        notes: {
+          type: String,
+          trim: true,
+          default: '',
+        },
+      },
+      default: null,
+    },
   },
   { timestamps: true },
 );
