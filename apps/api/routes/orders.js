@@ -10,6 +10,7 @@ const {
   getOrderById,
   getAllOrders,
   updateOrderStatus,
+  updateOrderTracking,
 } = require('../controllers/order.controller');
 
 router.post('/orders', verfiyToken, createOrder);
@@ -27,6 +28,13 @@ router.patch(
   verfiyToken,
   checkRolePermission('orders:write'),
   updateOrderStatus,
+);
+
+router.patch(
+  '/orders/:id/tracking',
+  verfiyToken,
+  checkRolePermission('orders:write'),
+  updateOrderTracking,
 );
 
 router.get('/orders/:id', verfiyToken, getOrderById);

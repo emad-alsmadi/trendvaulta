@@ -40,10 +40,10 @@ const ADMIN_DASHBOARD_URL =
   process.env.NEXT_PUBLIC_DASHBOARD_URL || 'http://localhost:3002';
 
 export const navItems = [
-  { href: '/products', label: 'Shop', icon: LayoutGrid },
-  { href: '/brands', label: 'Brands', icon: Users },
-  { href: '/offers', label: 'Offers', icon: Sparkles },
-  { href: '/cart', label: 'Cart', icon: ShoppingCart },
+  { href: '/products', label: 'common.products', icon: LayoutGrid },
+  { href: '/brands', label: 'common.brands', icon: Users },
+  { href: '/offers', label: 'nav.deals', icon: Sparkles },
+  { href: '/cart', label: 'common.cart', icon: ShoppingCart },
 ];
 
 /** Department shortcuts — hrefs use the API's product category enum */
@@ -271,14 +271,14 @@ export function Navbar() {
                 type='search'
                 value={navSearch}
                 onChange={(e) => setNavSearch(e.target.value)}
-                placeholder='Search beauty, fashion, lifestyle…'
+                placeholder={t('common.search')}
                 className='w-full rounded-lg border border-stone-200 bg-stone-50 py-2 pl-9 pr-20 text-sm text-stone-900 placeholder:text-stone-400 focus:border-fuchsia-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20'
               />
               <button
                 type='submit'
                 className='absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-500 px-3 py-1 text-xs font-semibold text-white'
               >
-                Search
+                {t('common.search')}
               </button>
             </form>
 
@@ -287,7 +287,7 @@ export function Navbar() {
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger asChild>
                   <button className='flex relative gap-1 items-center font-medium text-gray-700 transition-colors hover:text-gray-900 group'>
-                    Categories
+                    {t('common.categories')}
                     <ChevronDown className='w-4 h-4' />
                     <span className='absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 transition-all duration-300 group-hover:w-full'></span>
                   </button>
@@ -325,7 +325,7 @@ export function Navbar() {
                         href='/products'
                         className='flex gap-2 justify-center items-center text-sm font-semibold text-indigo-600 transition-colors hover:text-indigo-700'
                       >
-                        View All Categories
+                        View All {t('common.categories')}
                         <ChevronDown className='h-4 w-4 rotate-[-90deg]' />
                       </Link>
                     </div>
@@ -337,7 +337,7 @@ export function Navbar() {
                 href='/products'
                 className='relative font-medium text-gray-700 transition-colors hover:text-gray-900 group'
               >
-                Shop
+                {t('nav.shop')}
                 <span className='absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 transition-all duration-300 group-hover:w-full'></span>
               </Link>
 
@@ -345,7 +345,7 @@ export function Navbar() {
                 href='/brands'
                 className='relative font-medium text-gray-700 transition-colors hover:text-gray-900 group'
               >
-                Brands
+                {t('common.brands')}
                 <span className='absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 transition-all duration-300 group-hover:w-full'></span>
               </Link>
 
@@ -353,7 +353,7 @@ export function Navbar() {
                 href='/offers'
                 className='relative font-medium text-gray-700 transition-colors hover:text-gray-900 group'
               >
-                Offers
+                {t('nav.deals')}
                 <span className='absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 transition-all duration-300 group-hover:w-full'></span>
               </Link>
 
@@ -607,17 +607,17 @@ export function Navbar() {
             { href: '/c/clothing', label: 'Clothing' },
             { href: '/c/skincare', label: 'Skincare' },
             { href: '/c/accessories', label: 'Accessories' },
-            { href: '/c/home', label: 'Home' },
-            { href: '/brands', label: 'Brands' },
+            { href: '/c/home', label: 'common.home' },
+            { href: '/brands', label: 'common.brands' },
             { href: '/#gift-finder', label: 'Gift finder' },
-            { href: '/help', label: 'Customer service' },
+            { href: '/help', label: 'common.contact' },
           ].map((item) => (
             <Link
               key={item.href}
               href={item.href}
               className='shrink-0 rounded-full px-3 py-1 font-semibold text-stone-700 transition hover:bg-stone-100 hover:text-stone-900'
             >
-              {item.label}
+              {t(item.label)}
             </Link>
           ))}
         </div>
@@ -716,7 +716,7 @@ export function Navbar() {
                 </Link>
               </div>
               <div className='px-4 py-2 font-semibold text-gray-900 text-medium'>
-                Categories
+                {t('common.categories')}
               </div>
               <div className='pl-8 space-y-2'>
                 {categories.map((category) => (

@@ -220,6 +220,21 @@ const OrderSchema = new mongoose.Schema(
       min: 0,
       default: 0,
     },
+    trackingNumber: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    trackingCarrier: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    trackingUrl: {
+      type: String,
+      trim: true,
+      default: '',
+    },
   },
   { timestamps: true },
 );

@@ -149,13 +149,7 @@ const getOrderById = asyncHandler(async (req, res) => {
  * @access Private (orders:read)
  */
 const getAllOrders = asyncHandler(async (req, res) => {
-  const {
-    page = 1,
-    limit = 20,
-    status,
-    paymentStatus,
-    q,
-  } = req.query;
+  const { page = 1, limit = 20, status, paymentStatus, q } = req.query;
 
   const query = {};
   if (status && ORDER_STATUSES.includes(String(status))) {
@@ -203,6 +197,37 @@ const getAllOrders = asyncHandler(async (req, res) => {
       pages: Math.ceil(total / limitNum) || 1,
       limit: limitNum,
     },
+  });
+});
+
+/**
+ * Admin: update tracking information for an order.
+ * @route PATCH /api/orders/:id/tracking
+ * @access Private (orders:write)
+ */
+const updateOrderTracking = asyncHandler(async (req, res) => {
+  const schema = Joi.object({
+    trackingNumber: Joi.string().trim().allow('').optional(),
+    trackingCarrier: Joi.string().trim().allow('').optional(),
+    trackingUrl: Joi.string().trim().allow('').optional(),
+  });
+  const { error, value } = schema.validate(req.body || {});
+  if (error) {
+    return res.status(400).json({ message: error.details[0].message });
+  }
+
+  const order = await Order.findById(req.params.id);
+  if (!order) {
+    return res.status(404).json({ message: 'Order not found' });
+  }
+
+  Object.assign(order, value);
+  await order.save();
+
+  const serialized = serializeOrder(order);
+  res.status(200).json({
+    message: 'Tracking information updated',
+    data: serialized,
   });
 });
 
@@ -353,4 +378,5 @@ module.exports = {
   getOrderById,
   getAllOrders,
   updateOrderStatus,
+  updateOrderTracking,
 };

@@ -16,6 +16,7 @@ import {
   getUserFacingErrorMessage,
   logErrorForDev,
 } from '@/lib/userFacingError';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 function NewsletterForm() {
   const [email, setEmail] = useState('');
@@ -44,14 +45,20 @@ function NewsletterForm() {
   if (subscribe.isSuccess) {
     return (
       <div className='flex items-center gap-2 text-sm font-semibold text-emerald-400'>
-        <CheckCircle2 className='h-4 w-4 shrink-0' aria-hidden />
+        <CheckCircle2
+          className='h-4 w-4 shrink-0'
+          aria-hidden
+        />
         You&apos;re subscribed! Watch your inbox for deals.
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className='max-w-sm'>
+    <form
+      onSubmit={handleSubmit}
+      className='max-w-sm'
+    >
       <label
         htmlFor='footer-newsletter-email'
         className='mb-2 block text-sm font-semibold text-white'
@@ -75,7 +82,10 @@ function NewsletterForm() {
           className='inline-flex shrink-0 items-center gap-2 rounded-lg bg-fuchsia-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-fuchsia-700 disabled:cursor-not-allowed disabled:opacity-60'
         >
           {subscribe.isPending && (
-            <Loader2 className='h-4 w-4 animate-spin' aria-hidden />
+            <Loader2
+              className='h-4 w-4 animate-spin'
+              aria-hidden
+            />
           )}
           Subscribe
         </button>

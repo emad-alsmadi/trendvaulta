@@ -17,7 +17,8 @@
     "security": "الأمان",
     "loading": "جاري التحميل...",
     "error": "خطأ",
-    "success": "نجح"
+    "success": "نجح",
+    "categories": "الفئات"
   },
   "nav": {
     "shop": "تسوق",
