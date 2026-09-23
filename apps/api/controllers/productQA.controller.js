@@ -1,5 +1,10 @@
 const asyncHandler = require('express-async-handler');
 const { parsePagination } = require('../utils/pagination');
+const { normalizeSearchTerm } = require('../utils/search');
+const { buildSort } = require('../utils/sort');
+
+/** Columns the admin Q&A list may sort on. */
+const QA_SORT_FIELDS = ['createdAt', 'helpful'];
 const ProductQA = require('../models/ProductQA');
 const { Product } = require('../models/Product');
 
@@ -35,7 +40,10 @@ const getProductQA = asyncHandler(async (req, res) => {
 
 /**
  * Get all Q&A (admin)
- * Admin endpoint with pagination
+ * Admin endpoint with pagination.
+ *
+ * Supports `page`, `limit`, `productId`, `approved`, `q` (question or
+ * answer text), `sort`/`order`.
  */
 const getAllProductQA = asyncHandler(async (req, res) => {
   const { page = 1, limit = 50, productId, approved } = req.query;
@@ -50,12 +58,21 @@ const getAllProductQA = asyncHandler(async (req, res) => {
   if (productId) query.product = productId;
   if (approved !== undefined) query.approved = approved === 'true';
 
+  const term = normalizeSearchTerm(req.query.q);
+  if (term) {
+    query.$or = [
+      { question: { $regex: term, $options: 'i' } },
+      { answer: { $regex: term, $options: 'i' } },
+    ];
+  }
+  const sort = buildSort(req.query.sort, req.query.order, QA_SORT_FIELDS);
+
   const [qa, total] = await Promise.all([
     ProductQA.find(query)
       .populate('product', 'title')
       .populate('askedBy', 'username email')
       .populate('answeredBy', 'username email')
-      .sort({ createdAt: -1 })
+      .sort(sort)
       .skip(skip)
       .limit(limitNum)
       .lean(),
@@ -68,7 +85,7 @@ const getAllProductQA = asyncHandler(async (req, res) => {
     meta: {
       total,
       page: pageNum,
-      pages: Math.ceil(total / limitNum),
+      pages: Math.ceil(total / limitNum) || 1,
       limit: limitNum,
     },
   });

@@ -103,6 +103,23 @@ const UserSchema = new mongoose.Schema(
       type: [AddressSchema],
       default: [],
     },
+    // Admin-disabled accounts keep their data and order history but cannot
+    // sign in or refresh a session. Preferred over deleting a customer.
+    disabled: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    // Internal staff notes. select:false so no customer-facing endpoint
+    // (profile, login, reviews…) can ever return them by accident — admin
+    // endpoints opt in with .select('+adminNotes').
+    adminNotes: {
+      type: String,
+      trim: true,
+      maxlength: 2000,
+      default: '',
+      select: false,
+    },
   },
   { timestamps: true },
 );
@@ -148,6 +165,8 @@ const validateUpdateUser = (obj) => {
     username: Joi.string().trim().min(2).max(200),
     password: Joi.string().trim().min(8).max(100),
     roles: Joi.array().items(Joi.string().valid('user', 'admin', 'moderator')),
+    disabled: Joi.boolean(),
+    adminNotes: Joi.string().trim().max(2000).allow(''),
   }).min(1);
   return schema.validate(obj);
 };

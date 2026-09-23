@@ -34,7 +34,7 @@ const createReturnRequest = asyncHandler(async (req, res) => {
   }
 
   // Check ownership
-  if (order.user.toString() !== req.user._id.toString()) {
+  if (String(order.user) !== String(req.user?.id)) {
     return res.status(403).json({ message: 'Not authorized to return this order' });
   }
 
@@ -92,7 +92,7 @@ const getReturnRequest = asyncHandler(async (req, res) => {
 
   // Check ownership or admin
   const isAdmin = req.user.roles?.includes('admin');
-  if (order.user.toString() !== req.user._id.toString() && !isAdmin) {
+  if (String(order.user) !== String(req.user?.id) && !isAdmin) {
     return res.status(403).json({ message: 'Not authorized' });
   }
 

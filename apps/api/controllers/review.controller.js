@@ -3,10 +3,12 @@ const {
   Review,
   validateCreateReview,
   validateUpdateReview,
+  validateReviewReply,
 } = require('../models/Review');
 const { Product } = require('../models/Product');
 const { Order } = require('../models/Order');
 const { buildSort } = require('../utils/sort');
+const { normalizeSearchTerm } = require('../utils/search');
 
 /** Columns the admin review table may sort on. */
 const REVIEW_SORT_FIELDS = ['createdAt', 'rating'];
@@ -216,6 +218,9 @@ const getProductReviews = asyncHandler(async (req, res) => {
   const { productId } = req.params;
 
   const reviews = await Review.find({ product: productId })
+    // The reply's author is a staff account; the public sees the store's
+    // voice, not which employee wrote it.
+    .select('-reply.repliedBy')
     .populate('user', 'username')
     .sort({ createdAt: -1 })
     .lean();
@@ -240,6 +245,7 @@ const getMyReview = asyncHandler(async (req, res) => {
     user: userId,
     product: productId,
   })
+    .select('-reply.repliedBy')
     .populate('user', 'username email')
     .lean();
 
@@ -259,6 +265,7 @@ const getMyReviews = asyncHandler(async (req, res) => {
   const userId = req.user.id;
 
   const reviews = await Review.find({ user: userId })
+    .select('-reply.repliedBy')
     .populate('product')
     .sort({ createdAt: -1 })
     .lean();
@@ -268,6 +275,8 @@ const getMyReviews = asyncHandler(async (req, res) => {
 
 /**
  * Admin: list all reviews (paginated).
+ *
+ * Supports `page`, `limit`, `q` (comment text), `rating` (1-5), `sort`/`order`.
  * @route GET /api/reviews/admin
  * @access Private (reviews:read)
  */
@@ -277,15 +286,27 @@ const getAdminReviews = asyncHandler(async (req, res) => {
   const skip = (page - 1) * limit;
   const sort = buildSort(req.query.sort, req.query.order, REVIEW_SORT_FIELDS);
 
+  // Filters run in the query, not on the page the client happens to hold —
+  // otherwise a search would only ever see the current page of results.
+  const query = {};
+  const term = normalizeSearchTerm(req.query.q);
+  if (term) {
+    query.comment = { $regex: term, $options: 'i' };
+  }
+  const rating = parseInt(req.query.rating, 10);
+  if (rating >= 1 && rating <= 5) {
+    query.rating = rating;
+  }
+
   const [data, total] = await Promise.all([
-    Review.find()
+    Review.find(query)
       .populate('user', 'username email')
       .populate('product', 'title cover sku')
       .sort(sort)
       .skip(skip)
       .limit(limit)
       .lean(),
-    Review.countDocuments(),
+    Review.countDocuments(query),
   ]);
 
   res.status(200).json({
@@ -297,6 +318,55 @@ const getAdminReviews = asyncHandler(async (req, res) => {
       limit,
     },
   });
+});
+
+/**
+ * Admin: publish or replace the store's reply to a review.
+ * @route PUT /api/reviews/admin/:reviewId/reply
+ * @access Private (reviews:write)
+ */
+const replyToReview = asyncHandler(async (req, res) => {
+  const error = validateReviewReply(req.body);
+  if (error) {
+    return res.status(400).json({ message: error.details[0].message });
+  }
+  const review = await Review.findByIdAndUpdate(
+    req.params.reviewId,
+    {
+      $set: {
+        reply: {
+          text: req.body.text.trim(),
+          repliedBy: req.user.id,
+          repliedAt: new Date(),
+        },
+      },
+    },
+    { new: true, runValidators: true },
+  )
+    .populate('user', 'username email')
+    .populate('product', 'title cover sku')
+    .lean();
+  if (!review) {
+    return res.status(404).json({ message: 'Review not found' });
+  }
+  res.status(200).json({ message: 'Reply saved', data: review });
+});
+
+/**
+ * Admin: remove the store's reply from a review.
+ * @route DELETE /api/reviews/admin/:reviewId/reply
+ * @access Private (reviews:write)
+ */
+const deleteReviewReply = asyncHandler(async (req, res) => {
+  const review = await Review.findByIdAndUpdate(
+    req.params.reviewId,
+    { $unset: { reply: 1 } },
+    { new: true },
+  ).lean();
+  if (!review) {
+    return res.status(404).json({ message: 'Review not found' });
+  }
+  res.status(200).json({ message: 'Reply removed' });
 });
 
 /**
@@ -327,5 +397,7 @@ module.exports = {
   getMyReviews,
   getAdminReviews,
   adminDeleteReview,
+  replyToReview,
+  deleteReviewReply,
   hasVerifiedPurchase,
 };

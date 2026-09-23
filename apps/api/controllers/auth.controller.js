@@ -100,6 +100,14 @@ const loginUser = asyncHandler(async (req, res) => {
   if (!isPasswordMatch) {
     return res.status(400).json({ message: 'invalid email or password' });
   }
+  // Checked only after the password matches, so this response can't be used
+  // to learn which emails belong to disabled accounts.
+  if (user.disabled) {
+    return res.status(403).json({
+      message: 'This account has been disabled. Please contact support.',
+      code: 'ACCOUNT_DISABLED',
+    });
+  }
   const token = user.generateToken();
   const { plaintext: refreshToken } = await issueRefreshToken(
     RefreshToken,
@@ -143,7 +151,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 
   const user = await User.findById(result.userId).select('-password');
-  if (!user) {
+  if (!user || user.disabled) {
     return res.status(401).json({ message: 'Refresh token is not valid' });
   }
 

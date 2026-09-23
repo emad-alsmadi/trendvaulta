@@ -1,9 +1,10 @@
 const asyncHandler = require('express-async-handler');
 const { parsePagination } = require('../utils/pagination');
 const { buildSort } = require('../utils/sort');
+const { normalizeSearchTerm } = require('../utils/search');
 
 /** Columns the coupon table may sort on. */
-const COUPON_SORT_FIELDS = ['createdAt', 'code', 'expiresAt', 'discountValue'];
+const COUPON_SORT_FIELDS = ['createdAt', 'code', 'expirationDate', 'discountValue'];
 const {
   Coupon,
   validateCreateCoupon,
@@ -13,6 +14,8 @@ const {
 
 /**
  * Get all coupons with pagination.
+ *
+ * Supports `page`, `limit`, `q` (code or description), `sort`/`order`.
  *
  * @route GET /api/coupons
  * @access Private (admin only)
@@ -30,16 +33,25 @@ const getAllCoupons = asyncHandler(async (req, res) => {
   const skip = (pageNum - 1) * limitNum;
   const sort = buildSort(req.query.sort, req.query.order, COUPON_SORT_FIELDS);
 
+  const query = {};
+  const term = normalizeSearchTerm(req.query.q);
+  if (term) {
+    query.$or = [
+      { code: { $regex: term, $options: 'i' } },
+      { description: { $regex: term, $options: 'i' } },
+    ];
+  }
+
   const [coupons, total] = await Promise.all([
-    Coupon.find()
+    Coupon.find(query)
       .sort(sort)
       .skip(skip)
       .limit(limitNum)
       .lean(),
-    Coupon.countDocuments(),
+    Coupon.countDocuments(query),
   ]);
 
-  const pages = Math.ceil(total / limitNum);
+  const pages = Math.ceil(total / limitNum) || 1;
 
   res.status(200).json({
     data: coupons,

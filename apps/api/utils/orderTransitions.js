@@ -48,7 +48,40 @@ function canTransitionOrderStatus(fromStatus, toStatus) {
   return { ok: true, from: fromStatus, to: toStatus };
 }
 
+/**
+ * Whether the customer may cancel this order themselves.
+ *
+ * Only before it ships, and only from a clean state: `pending` and unpaid, or
+ * `paid`. Anything flagged `needs_attention` (or a pending order that is
+ * somehow already paid) is left to staff, who can see why it was flagged.
+ *
+ * @param {{ status: string, paymentStatus?: string }} order
+ * @returns {{ ok: true } | { ok: false, message: string }}
+ */
+function canCustomerCancel(order) {
+  if (order.status === 'pending' && order.paymentStatus !== 'paid') {
+    return { ok: true };
+  }
+  if (order.status === 'paid' && order.paymentStatus === 'paid') {
+    return { ok: true };
+  }
+  if (order.status === 'shipped' || order.status === 'delivered') {
+    return {
+      ok: false,
+      message: 'This order has already shipped. You can request a return once it is delivered.',
+    };
+  }
+  if (order.status === 'canceled' || order.status === 'refunded') {
+    return { ok: false, message: 'This order is already canceled.' };
+  }
+  return {
+    ok: false,
+    message: 'This order can no longer be canceled online. Please contact support.',
+  };
+}
+
 module.exports = {
+  canCustomerCancel,
   ORDER_STATUSES,
   ALLOWED_TRANSITIONS,
   getAllowedNextStatuses,

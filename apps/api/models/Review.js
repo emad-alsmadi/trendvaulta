@@ -30,6 +30,13 @@ const ReviewSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    // One public reply from the store. `repliedBy` is kept for the audit
+    // trail only — the public product feed strips it (review.controller.js).
+    reply: {
+      text: { type: String, trim: true, maxlength: 1000 },
+      repliedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      repliedAt: { type: Date },
+    },
   },
   {
     timestamps: true,
@@ -51,6 +58,14 @@ const validateCreateReview = (obj) => {
   return error;
 };
 
+const validateReviewReply = (obj) => {
+  const schema = Joi.object({
+    text: Joi.string().trim().min(2).max(1000).required(),
+  });
+  const { error } = schema.validate(obj);
+  return error;
+};
+
 const validateUpdateReview = (obj) => {
   const schema = Joi.object({
     rating: Joi.number().min(1).max(5),
@@ -60,4 +75,9 @@ const validateUpdateReview = (obj) => {
   return error;
 };
 
-module.exports = { Review, validateCreateReview, validateUpdateReview };
+module.exports = {
+  Review,
+  validateCreateReview,
+  validateUpdateReview,
+  validateReviewReply,
+};

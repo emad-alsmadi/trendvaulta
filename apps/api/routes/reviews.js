@@ -12,6 +12,8 @@ const {
   getMyReviews,
   getAdminReviews,
   adminDeleteReview,
+  replyToReview,
+  deleteReviewReply,
 } = require('../controllers/review.controller');
 
 // Public
@@ -23,6 +25,18 @@ router.get(
   verfiyToken,
   checkRolePermission('reviews:read'),
   getAdminReviews,
+);
+router.put(
+  '/reviews/admin/:reviewId/reply',
+  verfiyToken,
+  checkRolePermission('reviews:write'),
+  replyToReview,
+);
+router.delete(
+  '/reviews/admin/:reviewId/reply',
+  verfiyToken,
+  checkRolePermission('reviews:write'),
+  deleteReviewReply,
 );
 router.delete(
   '/reviews/admin/:reviewId',

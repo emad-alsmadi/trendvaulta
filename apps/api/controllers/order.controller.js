@@ -24,6 +24,7 @@ const {
 } = require('../services/stripe.service');
 const {
   ORDER_STATUSES,
+  canCustomerCancel,
   canTransitionOrderStatus,
   getAllowedNextStatuses,
 } = require('../utils/orderTransitions');
@@ -157,6 +158,9 @@ const getOrderById = asyncHandler(async (req, res) => {
     allowedNextStatuses: isStaff
       ? getAllowedNextStatuses(serialized.status)
       : undefined,
+    // The storefront shows a Cancel button from this, so the rule lives in
+    // one place (canCustomerCancel) rather than being re-derived client-side.
+    canCancel: canCustomerCancel(order).ok,
   });
 });
 
@@ -200,6 +204,17 @@ const getAllOrders = asyncHandler(async (req, res) => {
         .lean();
       query.user = { $in: customers.map((u) => u._id) };
     }
+  }
+
+  // One customer's history (the Users screen links here). Combined with an
+  // email search it must narrow, not replace: both filters have to hold.
+  const customerId = typeof req.query.user === 'string' ? req.query.user : '';
+  if (/^[a-f\d]{24}$/i.test(customerId)) {
+    const matched = query.user?.$in;
+    query.user =
+      !matched || matched.some((id) => String(id) === customerId)
+        ? customerId
+        : { $in: [] };
   }
 
   const pageNum = Math.max(1, parseInt(page, 10) || 1);
@@ -412,9 +427,10 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   order.status = value.status;
   await order.save();
 
-  // Send email notifications based on status change
-  const user = await order.populate('user');
-  const userEmail = user?.email;
+  // Send email notifications based on status change. (populate() resolves
+  // to the order itself — the address is on order.user.)
+  await order.populate('user', 'email');
+  const userEmail = order.user?.email;
   if (userEmail) {
     if (value.status === 'shipped' && order.trackingNumber) {
       await sendOrderShippedEmail({
@@ -464,97 +480,119 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
 });
 
 /**
- * Customer: cancel their own order (before shipped)
+ * Customer: cancel their own order before it ships.
+ *
+ * Order of operations matters here:
+ * 1. The cancel is *claimed* with a conditional update on the status we read,
+ *    so a double click, a second tab, or staff shipping the order at the same
+ *    moment cannot both win — the loser gets 409 instead of a refund on a
+ *    shipped parcel.
+ * 2. Only then is money moved. The refund goes through refundPaymentIntent,
+ *    whose idempotency key makes a retried refund a no-op at Stripe.
+ * 3. A refund that cannot be issued automatically never un-cancels the
+ *    order: it is flagged for staff, and the customer is told a person will
+ *    finish it.
+ *
  * @route POST /api/orders/:id/cancel
  * @access Private (order owner)
  */
 const cancelOrder = asyncHandler(async (req, res) => {
-  const order = await Order.findById(req.params.id);
+  const userId = req.user?.id;
+  // Scoped to the owner: someone else's order is "not found", not
+  // "forbidden", so the endpoint does not confirm which ids exist.
+  const order = await Order.findOne({ _id: req.params.id, user: userId });
   if (!order) {
     return res.status(404).json({ message: 'Order not found' });
   }
 
-  // Check ownership
-  if (order.user.toString() !== req.user._id.toString()) {
-    return res
-      .status(403)
-      .json({ message: 'Not authorized to cancel this order' });
+  const allowed = canCustomerCancel(order);
+  if (!allowed.ok) {
+    return res.status(400).json({ message: allowed.message });
   }
 
-  // Check if order can be canceled (only pending or paid, not shipped/delivered)
-  if (order.status === 'shipped' || order.status === 'delivered') {
-    return res.status(400).json({
-      message: 'Cannot cancel an order that has been shipped or delivered',
+  const claimed = await Order.findOneAndUpdate(
+    {
+      _id: order._id,
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+    },
+    { $set: { status: 'canceled' } },
+    { new: true },
+  );
+  if (!claimed) {
+    return res.status(409).json({
+      message: 'This order was just updated. Please refresh and try again.',
     });
   }
 
-  if (order.status === 'canceled' || order.status === 'refunded') {
-    return res.status(400).json({
-      message: 'Order is already canceled or refunded',
-    });
-  }
-
-  // Check transition
-  const transition = canTransitionOrderStatus(order.status, 'canceled');
-  if (!transition.ok) {
-    return res.status(400).json({ message: transition.message });
-  }
-
-  // If paid, initiate refund
-  let refundedNow = false;
-  if (order.paymentStatus === 'paid') {
+  // Unpaid: close the open Checkout session so the customer cannot pay for
+  // an order they just canceled. Best effort — if it already completed, the
+  // webhook flags the order as paid_after_cancel for staff.
+  if (claimed.paymentStatus !== 'paid' && claimed.stripeSessionId) {
     try {
-      const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-      if (order.paymentIntentId) {
-        const refund = await stripe.refunds.create({
-          payment_intent: order.paymentIntentId,
-        });
-        order.refundId = refund.id;
-        order.refundAmount = refund.amount / 100;
-        order.refundedAt = new Date();
-        order.paymentStatus = 'refunded';
-        refundedNow = true;
-      }
-    } catch (refundErr) {
-      console.error(
-        `Stripe refund failed for order ${order._id}:`,
-        refundErr?.message || refundErr,
-      );
-      order.status = 'needs_attention';
-      order.attentionReason = 'refund_failed';
-      await order.save();
-      return res.status(502).json({
-        message:
-          'The Stripe refund could not be created. The order was flagged for manual review; please retry or refund it from the Stripe dashboard.',
-      });
+      await getStripeOrThrow().checkout.sessions.expire(claimed.stripeSessionId);
+    } catch {
+      // already expired/completed, or Stripe not configured
     }
   }
 
-  // Restore stock
-  const stockRestoredNow = await restoreStockOnce(Order, Product, order);
-  if (stockRestoredNow) order.stockRestored = true;
+  let refundedNow = false;
+  let refundPending = false;
+  if (claimed.paymentStatus === 'paid') {
+    const autoRefund = process.env.AUTO_REFUND_ON_CANCEL !== 'false';
+    if (!claimed.paymentIntentId || !autoRefund) {
+      // Same outcome as a staff cancel without auto-refund (updateOrderStatus).
+      claimed.attentionReason = 'manual_refund_required';
+      refundPending = true;
+    } else {
+      try {
+        const refund = await refundPaymentIntent(
+          getStripeOrThrow(),
+          claimed.paymentIntentId,
+        );
+        claimed.paymentStatus = 'refunded';
+        claimed.refundId = refund?.id || '';
+        claimed.refundedAt = new Date();
+        claimed.refundAmount = Number(refund?.amount || 0) / 100;
+        refundedNow = true;
+      } catch (refundErr) {
+        console.error(
+          `Stripe refund failed for order ${claimed._id}:`,
+          refundErr?.message || refundErr,
+        );
+        claimed.status = 'needs_attention';
+        claimed.attentionReason = 'refund_failed';
+        refundPending = true;
+      }
+    }
+    // Persist the refund trail (or the flag) before anything else can fail.
+    await claimed.save();
+  }
 
-  order.status = 'canceled';
-  await order.save();
+  const stockRestoredNow = await restoreStockOnce(Order, Product, claimed);
+  if (stockRestoredNow) claimed.stockRestored = true;
 
-  // Send cancellation email
-  const user = await order.populate('user');
-  const userEmail = user?.email;
-  if (userEmail) {
+  const owner = await User.findById(userId).select('email').lean();
+  if (owner?.email) {
     await sendOrderCanceledEmail({
-      to: userEmail,
-      orderId: order._id,
+      to: owner.email,
+      orderId: claimed._id,
     }).catch(() => {});
   }
 
-  const serialized = serializeOrder(order);
-  res.status(200).json({
-    ...serialized,
-    stockRestored: stockRestoredNow || Boolean(order.stockRestored),
-    refunded: refundedNow || order.paymentStatus === 'refunded',
-    message: refundedNow
-      ? 'Order canceled and refunded'
-      : 'Order canceled and inventory restored',
+  let message = 'Order canceled.';
+  if (refundedNow) {
+    message = 'Order canceled. Your refund has been issued and should appear in 5–10 business days.';
+  } else if (refundPending) {
+    message = 'Order canceled. Our team will issue your refund shortly — no action is needed from you.';
+  }
+
+  res.status(refundPending ? 202 : 200).json({
+    ...serializeOrder(claimed),
+    canCancel: false,
+    refunded: refundedNow || claimed.paymentStatus === 'refunded',
+    refundPending,
+    message,
   });
 });
 
@@ -571,7 +609,7 @@ const getOrderInvoice = asyncHandler(async (req, res) => {
 
   // Check ownership or admin
   const isAdmin = req.user.roles?.includes('admin');
-  if (order.user._id.toString() !== req.user._id.toString() && !isAdmin) {
+  if (String(order.user?._id) !== String(req.user?.id) && !isAdmin) {
     return res.status(403).json({ message: 'Not authorized' });
   }
 
@@ -582,7 +620,7 @@ const getOrderInvoice = asyncHandler(async (req, res) => {
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Invoice - Order ${order._id.slice(-8).toUpperCase()}</title>
+  <title>Invoice - Order ${String(order._id).slice(-8).toUpperCase()}</title>
   <style>
     body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
     .header { display: flex; justify-content: space-between; margin-bottom: 40px; }
@@ -602,7 +640,7 @@ const getOrderInvoice = asyncHandler(async (req, res) => {
     <div class="logo">TrendVaulta</div>
     <div class="invoice-number">
       <h2>INVOICE</h2>
-      <p>Order #${order._id.slice(-8).toUpperCase()}</p>
+      <p>Order #${String(order._id).slice(-8).toUpperCase()}</p>
       <p>Date: ${new Date(order.createdAt).toLocaleDateString()}</p>
     </div>
   </div>

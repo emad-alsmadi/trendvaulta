@@ -1,5 +1,10 @@
 const asyncHandler = require('express-async-handler');
 const { parsePagination } = require('../utils/pagination');
+const { normalizeSearchTerm } = require('../utils/search');
+const { buildSort } = require('../utils/sort');
+
+/** Columns the admin bundle table may sort on. */
+const BUNDLE_SORT_FIELDS = ['createdAt', 'bundlePrice', 'savings'];
 const { Product } = require('../models/Product');
 const Bundle = require('../models/Bundle');
 const { NotFoundError, ValidationError } = require('../utils/errors');
@@ -83,7 +88,9 @@ const getProductBundles = asyncHandler(async (req, res) => {
 
 /**
  * Get all bundles (admin)
- * Admin endpoint with pagination
+ * Admin endpoint with pagination.
+ *
+ * Supports `page`, `limit`, `q` (primary product title), `sort`/`order`.
  */
 const getAllBundles = asyncHandler(async (req, res) => {
   const { page = 1, limit = 50 } = req.query;
@@ -93,19 +100,32 @@ const getAllBundles = asyncHandler(async (req, res) => {
     { defaultLimit: 50, maxLimit: 100 },
   );
   const skip = (pageNum - 1) * limitNum;
+  const sort = buildSort(req.query.sort, req.query.order, BUNDLE_SORT_FIELDS);
+
+  // A bundle has no name of its own — it is known by its primary product — so
+  // search resolves matching product titles first, then filters on those ids.
+  const query = {};
+  const term = normalizeSearchTerm(req.query.q);
+  if (term) {
+    const products = await Product.find({ title: { $regex: term, $options: 'i' } })
+      .select('_id')
+      .limit(500)
+      .lean();
+    query.primaryProduct = { $in: products.map((p) => p._id) };
+  }
 
   const [bundles, total] = await Promise.all([
-    Bundle.find()
+    Bundle.find(query)
       .populate('primaryProduct', 'title price cover')
       .populate({
         path: 'items.product',
         select: 'title price cover',
       })
-      .sort({ createdAt: -1 })
+      .sort(sort)
       .skip(skip)
       .limit(limitNum)
       .lean(),
-    Bundle.countDocuments(),
+    Bundle.countDocuments(query),
   ]);
 
   res.status(200).json({
@@ -114,7 +134,7 @@ const getAllBundles = asyncHandler(async (req, res) => {
     meta: {
       total,
       page: pageNum,
-      pages: Math.ceil(total / limitNum),
+      pages: Math.ceil(total / limitNum) || 1,
       limit: limitNum,
     },
   });
