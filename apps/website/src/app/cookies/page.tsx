@@ -2,9 +2,12 @@
 
 import { motion } from 'framer-motion';
 import { Sparkles, Cookie } from 'lucide-react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 /** Simple cookie policy page — footer link target */
 export default function CookiesPage() {
+  const { t } = useTranslation();
+
   return (
     <div className='min-h-screen bg-stone-50 py-12'>
       <div className='mx-auto max-w-4xl px-4 sm:px-6 lg:px-8'>
@@ -15,13 +18,13 @@ export default function CookiesPage() {
         >
           <div className='mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-extrabold text-indigo-700'>
             <Sparkles className='h-4 w-4' aria-hidden />
-            Legal
+            {t('legal.badge')}
           </div>
           <h1 className='text-3xl font-extrabold text-stone-900 sm:text-4xl'>
-            Cookie Policy
+            {t('cookiesPage.title')}
           </h1>
           <p className='mt-2 text-sm font-semibold text-stone-500'>
-            Last updated: August 8, 2026
+            {t('legal.lastUpdated')}
           </p>
         </motion.div>
 
@@ -33,34 +36,30 @@ export default function CookiesPage() {
           <section>
             <h2 className='mb-3 flex items-center gap-2 text-xl font-bold text-stone-900'>
               <Cookie className='h-5 w-5 text-fuchsia-700' aria-hidden />
-              What we use cookies for
+              {t('cookiesPage.sections.usage.heading')}
             </h2>
             <p className='text-sm font-semibold leading-relaxed text-stone-600'>
-              TrendVaulta uses cookies and similar technologies to keep you
-              signed in, remember cart and browsing preferences, measure
-              storefront performance, and improve shopping experience.
+              {t('cookiesPage.sections.usage.body')}
             </p>
           </section>
 
           <section>
             <h2 className='mb-3 text-xl font-bold text-stone-900'>
-              Types of cookies
+              {t('cookiesPage.sections.types.heading')}
             </h2>
             <ul className='list-disc space-y-2 ps-5 text-sm font-semibold text-stone-600'>
-              <li>Essential — auth session, cart, security</li>
-              <li>Preferences — language/UI choices when available</li>
-              <li>Analytics — anonymized traffic to improve pages</li>
+              <li>{t('cookiesPage.sections.types.essential')}</li>
+              <li>{t('cookiesPage.sections.types.preferences')}</li>
+              <li>{t('cookiesPage.sections.types.analytics')}</li>
             </ul>
           </section>
 
           <section>
             <h2 className='mb-3 text-xl font-bold text-stone-900'>
-              Managing cookies
+              {t('cookiesPage.sections.managing.heading')}
             </h2>
             <p className='text-sm font-semibold leading-relaxed text-stone-600'>
-              You can control cookies through your browser settings. Blocking
-              essential cookies may prevent sign-in, checkout, or cart from
-              working correctly.
+              {t('cookiesPage.sections.managing.body')}
             </p>
           </section>
         </motion.article>

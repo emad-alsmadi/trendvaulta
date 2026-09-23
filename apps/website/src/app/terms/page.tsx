@@ -2,8 +2,11 @@
 
 import { motion } from 'framer-motion';
 import { Sparkles, FileText } from 'lucide-react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function TermsPage() {
+  const { t } = useTranslation();
+
   return (
     <div className='min-h-screen bg-gray-50 py-12'>
       <div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8'>
@@ -14,12 +17,12 @@ export default function TermsPage() {
         >
           <div className='inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-extrabold text-indigo-700 mb-4'>
             <Sparkles className='h-4 w-4' />
-            Legal
+            {t('legal.badge')}
           </div>
           <h1 className='text-4xl font-extrabold text-gray-900 mb-4'>
-            Terms of Service
+            {t('termsPage.title')}
           </h1>
-          <p className='text-lg text-gray-600'>Last updated: August 8, 2026</p>
+          <p className='text-lg text-gray-600'>{t('legal.lastUpdated')}</p>
         </motion.div>
 
         <motion.div
@@ -30,144 +33,109 @@ export default function TermsPage() {
           <section>
             <h2 className='text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2'>
               <FileText className='h-6 w-6 text-fuchsia-600' />
-              1. Acceptance of Terms
+              {t('termsPage.sections.s1.heading')}
             </h2>
             <p className='text-gray-600 leading-relaxed'>
-              By accessing and using TrendVaulta, you accept and agree to be
-              bound by these Terms of Service. If you do not agree, please do
-              not use the store.
+              {t('termsPage.sections.s1.p1')}
             </p>
           </section>
 
           <section>
             <h2 className='text-2xl font-bold text-gray-900 mb-4'>
-              2. User Accounts
+              {t('termsPage.sections.s2.heading')}
             </h2>
             <p className='text-gray-600 leading-relaxed mb-4'>
-              You are responsible for maintaining the confidentiality of your
-              account and password. You agree to accept responsibility for all
-              activities that occur under your account.
+              {t('termsPage.sections.s2.p1')}
             </p>
             <p className='text-gray-600 leading-relaxed'>
-              TrendVaulta reserves the right to refuse or suspend access to the
-              website for any user when necessary to protect the store or other
-              customers.
+              {t('termsPage.sections.s2.p2')}
             </p>
           </section>
 
           <section>
             <h2 className='text-2xl font-bold text-gray-900 mb-4'>
-              3. Products &amp; Orders
+              {t('termsPage.sections.s3.heading')}
             </h2>
             <p className='text-gray-600 leading-relaxed mb-4'>
-              TrendVaulta sells physical beauty, fashion, and lifestyle products.
-              Product descriptions, images, and pricing are provided for
-              shopping clarity; minor variations in color or packaging may
-              occur.
+              {t('termsPage.sections.s3.p1')}
             </p>
             <p className='text-gray-600 leading-relaxed'>
-              Placing an order constitutes an offer to purchase. We may cancel
-              or refuse an order if an item is unavailable, mispriced, or
-              suspected of fraud.
+              {t('termsPage.sections.s3.p2')}
             </p>
           </section>
 
           <section>
             <h2 className='text-2xl font-bold text-gray-900 mb-4'>
-              4. Payment Terms
+              {t('termsPage.sections.s4.heading')}
             </h2>
             <p className='text-gray-600 leading-relaxed mb-4'>
-              Payments are processed securely (including Stripe when
-              configured). You authorize us to charge the payment method you
-              provide for the order total, including applicable shipping and
-              taxes.
+              {t('termsPage.sections.s4.p1')}
             </p>
             <p className='text-gray-600 leading-relaxed'>
-              Prices may change without notice for future orders. Coupons and
-              promotions are subject to their stated conditions and may be
-              withdrawn at any time.
+              {t('termsPage.sections.s4.p2')}
             </p>
           </section>
 
           <section>
             <h2 className='text-2xl font-bold text-gray-900 mb-4'>
-              5. Shipping, Returns &amp; Refunds
+              {t('termsPage.sections.s5.heading')}
             </h2>
             <p className='text-gray-600 leading-relaxed mb-4'>
-              Delivery timelines and costs depend on destination and the method
-              selected at checkout. Risk of loss passes according to the carrier
-              once the order has shipped.
+              {t('termsPage.sections.s5.p1')}
             </p>
             <p className='text-gray-600 leading-relaxed'>
-              Eligible returns follow our store return policy (typically within
-              the stated window, unused and in original condition). Refunds are
-              processed to the original payment method after we receive and
-              inspect the return, except where local law requires otherwise.
+              {t('termsPage.sections.s5.p2')}
             </p>
           </section>
 
           <section>
             <h2 className='text-2xl font-bold text-gray-900 mb-4'>
-              6. Intellectual Property
+              {t('termsPage.sections.s6.heading')}
             </h2>
             <p className='text-gray-600 leading-relaxed mb-4'>
-              All content on TrendVaulta — including text, graphics, logos,
-              images, and software — is the property of TrendVaulta or its
-              licensors and is protected by applicable intellectual property
-              laws.
+              {t('termsPage.sections.s6.p1')}
             </p>
             <p className='text-gray-600 leading-relaxed'>
-              Brand names and product imagery belonging to third parties remain
-              the property of those brands. You may not copy or reuse store
-              content for commercial purposes without permission.
+              {t('termsPage.sections.s6.p2')}
             </p>
           </section>
 
           <section>
             <h2 className='text-2xl font-bold text-gray-900 mb-4'>
-              7. User Conduct
+              {t('termsPage.sections.s7.heading')}
             </h2>
             <p className='text-gray-600 leading-relaxed mb-4'>
-              You agree not to use the service for any unlawful purpose, or to
-              solicit others to perform or participate in any unlawful acts.
+              {t('termsPage.sections.s7.p1')}
             </p>
             <p className='text-gray-600 leading-relaxed'>
-              You may not upload, post, or otherwise transmit any content that
-              is infringing, libelous, defamatory, obscene, or otherwise
-              objectionable — including abusive reviews or fraudulent claims.
+              {t('termsPage.sections.s7.p2')}
             </p>
           </section>
 
           <section>
             <h2 className='text-2xl font-bold text-gray-900 mb-4'>
-              8. Limitation of Liability
+              {t('termsPage.sections.s8.heading')}
             </h2>
             <p className='text-gray-600 leading-relaxed'>
-              To the fullest extent permitted by law, TrendVaulta shall not be
-              liable for any indirect, incidental, special, consequential, or
-              punitive damages arising out of or related to your use of the
-              service.
+              {t('termsPage.sections.s8.p1')}
             </p>
           </section>
 
           <section>
             <h2 className='text-2xl font-bold text-gray-900 mb-4'>
-              9. Changes to Terms
+              {t('termsPage.sections.s9.heading')}
             </h2>
             <p className='text-gray-600 leading-relaxed'>
-              TrendVaulta reserves the right to modify these terms at any time.
-              Continued use of the service after changes are posted constitutes
-              acceptance of the updated terms.
+              {t('termsPage.sections.s9.p1')}
             </p>
           </section>
 
           <section>
             <h2 className='text-2xl font-bold text-gray-900 mb-4'>
-              10. Contact Information
+              {t('termsPage.sections.s10.heading')}
             </h2>
             <p className='text-gray-600 leading-relaxed'>
-              If you have any questions about these Terms of Service, please
-              contact us at support@trendvaulta.com
+              {t('termsPage.sections.s10.p1')}
             </p>
           </section>
         </motion.div>
