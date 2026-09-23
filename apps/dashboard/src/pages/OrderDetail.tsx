@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Copy, Package, Plus } from 'lucide-react';
 import {
   useAdminOrderById,
+  useUpdateOrderStatusMutation,
   useUpdateOrderTrackingMutation,
 } from '../hooks/useAdminOrders';
 import {
@@ -11,6 +12,8 @@ import {
   type OrderTrackingPayload,
 } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
+import { useConfirm } from '../components/ui/ConfirmDialog';
+import { usePermissions } from '../hooks/usePermissions';
 import { useState } from 'react';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -75,9 +78,36 @@ function variantLabel(variant?: {
 export default function OrderDetail() {
   const { id } = useParams<{ id: string }>();
   const toast = useToast();
+  const confirm = useConfirm();
+  const { can } = usePermissions();
   const orderQ = useAdminOrderById(id);
   const order = orderQ.data;
   const updateTracking = useUpdateOrderTrackingMutation();
+  const updateStatus = useUpdateOrderStatusMutation();
+
+  // Same rules as the Orders list: the server decides which transitions are
+  // legal, and moving a paid order to canceled/refunded issues a Stripe refund,
+  // so that consequence is spelled out before the admin confirms.
+  async function onChangeStatus(next: string) {
+    if (!order || !next || next === order.status) return;
+    const refunds =
+      order.paymentStatus === 'paid' &&
+      (next === 'canceled' || next === 'refunded');
+    const ok = await confirm({
+      message: `Change this order from "${statusLabel(order.status)}" to "${statusLabel(next)}"?${
+        refunds ? ' This order is paid — a Stripe refund will be issued.' : ''
+      }`,
+      confirmLabel: refunds ? 'Change and refund' : 'Change status',
+      danger: refunds,
+    });
+    if (!ok) return;
+    try {
+      await updateStatus.mutateAsync({ id: order._id, status: next });
+      toast.success(refunds ? 'Status updated — refund issued' : 'Status updated');
+    } catch (err) {
+      toast.error(errorMessage(err, 'Failed to update order'));
+    }
+  }
   const [showTrackingForm, setShowTrackingForm] = useState(false);
   const [trackingForm, setTrackingForm] = useState({
     trackingNumber: '',
@@ -195,6 +225,25 @@ export default function OrderDetail() {
                     order.attentionReason}
                 </span>
               )}
+              {can('orders:write') &&
+                (order.allowedNextStatuses?.length ?? 0) > 0 && (
+                  <select
+                    value=''
+                    disabled={updateStatus.isPending}
+                    aria-label='Change order status'
+                    onChange={(e) => void onChangeStatus(e.target.value)}
+                    className='rounded-md border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+                  >
+                    <option value=''>
+                      {updateStatus.isPending ? 'Updating…' : 'Change status…'}
+                    </option>
+                    {order.allowedNextStatuses?.map((s) => (
+                      <option key={s} value={s}>
+                        {statusLabel(s)}
+                      </option>
+                    ))}
+                  </select>
+                )}
             </div>
           </div>
 

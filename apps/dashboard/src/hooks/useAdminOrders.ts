@@ -39,6 +39,9 @@ export function useUpdateOrderStatusMutation() {
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       adminOrdersApi.updateOrderStatus(id, status),
     onSuccess: async () => {
+      // The detail page reads its own key; without this it keeps showing the
+      // old status (and old allowed transitions) after a change.
+      await qc.invalidateQueries({ queryKey: ADMIN_ORDER_DETAIL_KEY });
       await qc.invalidateQueries({ queryKey: ADMIN_ORDERS_KEY });
     },
   });
