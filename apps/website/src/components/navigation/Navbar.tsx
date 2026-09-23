@@ -137,7 +137,7 @@ export function Navbar() {
   const logout = useLogout();
   const cart = useCart();
   const confirm = useConfirm();
-  const { locale, setLocale, t } = useTranslation();
+  const { locale, setLocale, currency, setCurrency, t } = useTranslation();
   const user = meQuery.data?.user || null;
   const hydrated = true;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -185,6 +185,13 @@ export function Navbar() {
                 aria-hidden
               />
               {locale === 'en' ? 'العربية' : 'English'}
+            </button>
+            <button
+              onClick={() => setCurrency(currency === 'USD' ? 'SAR' : 'USD')}
+              className='inline-flex items-center gap-1.5 hover:text-stone-900'
+              title={currency === 'USD' ? 'Switch to SAR' : 'Switch to USD'}
+            >
+              {currency}
             </button>
             <Link
               href='/offers'

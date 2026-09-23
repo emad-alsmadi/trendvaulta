@@ -19,6 +19,7 @@ import {
 import { useTranslation } from '@/contexts/TranslationContext';
 
 function NewsletterForm() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const subscribe = useSubscribeNewsletter();
@@ -29,7 +30,7 @@ function NewsletterForm() {
 
     const trimmed = email.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      setError('Enter a valid email address');
+      setError(t('footer.newsletterError'));
       return;
     }
 
@@ -49,7 +50,7 @@ function NewsletterForm() {
           className='h-4 w-4 shrink-0'
           aria-hidden
         />
-        You&apos;re subscribed! Watch your inbox for deals.
+        {t('footer.subscribed')}
       </div>
     );
   }
@@ -63,7 +64,7 @@ function NewsletterForm() {
         htmlFor='footer-newsletter-email'
         className='mb-2 block text-sm font-semibold text-white'
       >
-        Get deals in your inbox
+        {t('footer.newsletter')}
       </label>
       <div className='flex gap-2'>
         <input
@@ -87,7 +88,7 @@ function NewsletterForm() {
               aria-hidden
             />
           )}
-          Subscribe
+          {t('footer.subscribe')}
         </button>
       </div>
       {error && <p className='mt-2 text-sm text-rose-400'>{error}</p>}
@@ -96,6 +97,7 @@ function NewsletterForm() {
 }
 
 export function Footer() {
+  const { t } = useTranslation();
   return (
     <footer className='bg-gray-900 text-white'>
       <div className='max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-16'>

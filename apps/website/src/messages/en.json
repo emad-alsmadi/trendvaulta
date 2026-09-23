@@ -18,13 +18,20 @@
     "loading": "Loading...",
     "error": "Error",
     "success": "Success",
-    "categories": "Categories"
+    "categories": "Categories",
+    "currency": "Currency"
   },
   "nav": {
     "shop": "Shop",
     "categories": "Categories",
     "deals": "Deals",
     "account": "Account"
+  },
+  "footer": {
+    "newsletter": "Get deals in your inbox",
+    "subscribe": "Subscribe",
+    "subscribed": "You're subscribed! Watch your inbox for deals.",
+    "newsletterError": "Enter a valid email address"
   },
   "product": {
     "addToCart": "Add to Cart",

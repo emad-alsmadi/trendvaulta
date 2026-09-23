@@ -18,13 +18,20 @@
     "loading": "جاري التحميل...",
     "error": "خطأ",
     "success": "نجح",
-    "categories": "الفئات"
+    "categories": "الفئات",
+    "currency": "العملة"
   },
   "nav": {
     "shop": "تسوق",
     "categories": "الفئات",
     "deals": "العروض",
     "account": "الحساب"
+  },
+  "footer": {
+    "newsletter": "احصل على العروض في بريدك",
+    "subscribe": "اشترك",
+    "subscribed": "أنت مشترك الآن! راقب بريدك للحصول على العروض.",
+    "newsletterError": "أدخل عنوان بريد إلكتروني صحيح"
   },
   "product": {
     "addToCart": "أضف إلى السلة",
