@@ -212,6 +212,8 @@ export type AdminOrdersQuery = {
   paymentStatus?: string;
   /** Order id or customer email. */
   q?: string;
+  /** One customer's orders (user id). */
+  user?: string;
   sort?: string;
   order?: 'asc' | 'desc';
 };
@@ -570,6 +572,9 @@ export type AdminUser = {
   email: string;
   username: string;
   roles?: AppRole[];
+  disabled?: boolean;
+  /** Internal staff notes; only ever returned by the admin endpoints. */
+  adminNotes?: string;
   createdAt?: string;
 };
 
@@ -578,6 +583,8 @@ export type UserUpdatePayload = {
   username?: string;
   password?: string;
   roles?: AppRole[];
+  disabled?: boolean;
+  adminNotes?: string;
 };
 
 export const adminUsersApi = {

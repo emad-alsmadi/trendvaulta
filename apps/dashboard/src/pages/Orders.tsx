@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, RefreshCw } from 'lucide-react';
+import { Search, RefreshCw, X } from 'lucide-react';
 import {
   useAdminOrders,
   useUpdateOrderStatusMutation,
@@ -112,6 +112,10 @@ export default function Orders() {
   const [appliedQ, setAppliedQ] = useState('');
   const table = useTableQuery({ limit: 25, sort: 'createdAt', order: 'desc' });
   const { resetPage } = table;
+  // Set by the "Order history" link on the Users screen; kept in the URL so
+  // the filtered view survives a reload and can be shared.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const customerId = searchParams.get('user') || '';
 
   const query = useMemo(
     () => ({
@@ -119,11 +123,21 @@ export default function Orders() {
       status: statusFilter || undefined,
       paymentStatus: paymentFilter || undefined,
       q: appliedQ || undefined,
+      user: customerId || undefined,
     }),
-    [table.params, statusFilter, paymentFilter, appliedQ],
+    [table.params, statusFilter, paymentFilter, appliedQ, customerId],
   );
 
   const ordersQ = useAdminOrders(query);
+
+  function clearCustomer() {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('user');
+      return next;
+    });
+    resetPage();
+  }
   const updateMut = useUpdateOrderStatusMutation();
   const orders = ordersQ.data?.data || [];
   const meta = ordersQ.data?.meta;
@@ -209,6 +223,26 @@ export default function Orders() {
           </button>
         </div>
       </div>
+
+      {customerId && (
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-sm text-blue-800 dark:bg-blue-900/40 dark:text-blue-200">
+          <span>
+            Orders for{' '}
+            <strong>
+              {orders[0] ? customerLabel(orders[0]) : 'selected customer'}
+            </strong>
+            {meta ? ` · ${meta.total}` : ''}
+          </span>
+          <button
+            type="button"
+            onClick={clearCustomer}
+            aria-label="Show all customers"
+            className="rounded-full p-0.5 hover:bg-blue-100 dark:hover:bg-blue-800"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
 
       <form onSubmit={onSearchSubmit} className="mb-6">
         <div className="relative">

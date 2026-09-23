@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Pencil, Trash2, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Search, Pencil, Trash2, X, Ban, CircleCheck, Receipt } from 'lucide-react';
 import {
   useAdminUsers,
   useDeleteUserMutation,
@@ -26,6 +27,7 @@ type UserForm = {
   username: string;
   roles: AppRole[];
   password: string;
+  adminNotes: string;
 };
 
 function primaryRole(roles?: AppRole[]) {
@@ -60,6 +62,7 @@ export default function Users() {
     username: '',
     roles: ['user'],
     password: '',
+    adminNotes: '',
   });
 
   const users = usersQ.data?.data || [];
@@ -73,6 +76,7 @@ export default function Users() {
       username: user.username,
       roles: (user.roles?.length ? user.roles : ['user']) as AppRole[],
       password: '',
+      adminNotes: user.adminNotes || '',
     });
     setOpen(true);
   }
@@ -99,6 +103,7 @@ export default function Users() {
       email: form.email.trim(),
       username: form.username.trim(),
       roles: form.roles,
+      adminNotes: form.adminNotes.trim(),
     };
     if (form.password.trim()) {
       payload.password = form.password.trim();
@@ -110,6 +115,29 @@ export default function Users() {
       setEditing(null);
     } catch (err) {
       toast.error(errorMessage(err, 'Could not update user'));
+    }
+  }
+
+  // Disabling rather than deleting keeps the customer's orders and reviews
+  // intact; the API also revokes their sessions and refuses new sign-ins.
+  async function handleToggleDisabled(user: AdminUser) {
+    const disabling = !user.disabled;
+    const ok = await confirm({
+      message: disabling
+        ? `Disable "${user.email}"? They will be signed out and unable to sign in until re-enabled. Their orders are kept.`
+        : `Re-enable "${user.email}"? They will be able to sign in again.`,
+      danger: disabling,
+      confirmLabel: disabling ? 'Disable' : 'Enable',
+    });
+    if (!ok) return;
+    try {
+      await updateMut.mutateAsync({
+        id: user._id,
+        payload: { disabled: disabling },
+      });
+      toast.success(disabling ? 'Account disabled' : 'Account enabled');
+    } catch (err) {
+      toast.error(errorMessage(err, 'Could not update account'));
     }
   }
 
@@ -236,7 +264,22 @@ export default function Users() {
                       className="hover:bg-gray-50 dark:hover:bg-gray-700/60"
                     >
                       <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
-                        {user.username}
+                        <span className="inline-flex items-center gap-2">
+                          {user.username}
+                          {user.disabled && (
+                            <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/50 dark:text-red-200">
+                              Disabled
+                            </span>
+                          )}
+                        </span>
+                        {user.adminNotes && (
+                          <p
+                            className="mt-0.5 max-w-xs truncate text-xs font-normal text-gray-500 dark:text-gray-400"
+                            title={user.adminNotes}
+                          >
+                            {user.adminNotes}
+                          </p>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
                         {user.email}
@@ -263,6 +306,32 @@ export default function Users() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
+                          {can('orders:read') && (
+                            <Link
+                              to={`/orders?user=${user._id}`}
+                              className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600"
+                              aria-label={`Orders of ${user.username}`}
+                              title="Order history"
+                            >
+                              <Receipt className="h-4 w-4 text-gray-500" />
+                            </Link>
+                          )}
+                          {can('users:write') && (
+                            <button
+                              type="button"
+                              onClick={() => void handleToggleDisabled(user)}
+                              disabled={updateMut.isPending}
+                              className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600"
+                              aria-label={`${user.disabled ? 'Enable' : 'Disable'} ${user.username}`}
+                              title={user.disabled ? 'Enable account' : 'Disable account'}
+                            >
+                              {user.disabled ? (
+                                <CircleCheck className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <Ban className="h-4 w-4 text-amber-600" />
+                              )}
+                            </button>
+                          )}
                           {can('users:write') && (
                             <button
                               type="button"
@@ -385,6 +454,21 @@ export default function Users() {
                     setForm((f) => ({ ...f, password: e.target.value }))
                   }
                   placeholder="Leave blank to keep current"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                  Staff notes
+                </span>
+                <textarea
+                  rows={3}
+                  maxLength={2000}
+                  value={form.adminNotes}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, adminNotes: e.target.value }))
+                  }
+                  placeholder="Internal only — never shown to the customer"
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                 />
               </label>
