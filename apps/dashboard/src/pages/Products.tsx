@@ -11,12 +11,19 @@ import {
 import {
   errorMessage,
   type AdminProduct,
+  type ProductDimensions,
   type ProductFormPayload,
+  type ProductVariant,
 } from '../lib/api';
 import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { ImageUploadField } from '../components/ui/ImageUploadField';
+import { GalleryField } from '../components/products/GalleryField';
+import {
+  VariantsEditor,
+  validateVariants,
+} from '../components/products/VariantsEditor';
 import { useTableQuery } from '../hooks/useTableQuery';
 import { TablePagination } from '../components/ui/TablePagination';
 
@@ -32,6 +39,11 @@ const emptyForm: ProductFormPayload = {
   sku: '',
   isActive: true,
   featured: false,
+  images: [],
+  variants: [],
+  material: '',
+  dimensions: {},
+  shippingInfo: { dimensions: {}, requiresSpecialHandling: false },
 };
 
 // Must match the Product model enum (apps/api/models/Product.js).
@@ -53,19 +65,90 @@ const CATEGORIES = [
   { value: 'home', label: 'Home' },
 ];
 
+/** Empty numeric input → undefined, so "not set" is distinct from 0. */
+function numberOrUndefined(raw: string): number | undefined {
+  if (raw.trim() === '') return undefined;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? n : undefined;
+}
+
+/** Keep only the measured sides. An empty object is sent on purpose: it is
+ *  how a cleared dimension set is saved (the field is replaced wholesale). */
+function cleanDimensions(d?: ProductDimensions): ProductDimensions {
+  const out: ProductDimensions = {};
+  for (const key of ['length', 'width', 'height'] as const) {
+    const v = d?.[key];
+    if (typeof v === 'number' && Number.isFinite(v) && v >= 0) out[key] = v;
+  }
+  return out;
+}
+
+/** Only the keys the API's variant schema accepts, with blanks dropped
+ *  (Joi.string() rejects ''), and never the stored subdocument `_id`. */
+function cleanVariant(v: ProductVariant): ProductVariant {
+  const out: ProductVariant = { stock: Math.max(0, Math.floor(Number(v.stock) || 0)) };
+  const size = v.size?.trim();
+  const color = v.color?.trim();
+  const sku = v.sku?.trim();
+  if (size) out.size = size;
+  if (color) out.color = color;
+  if (color && v.colorCode) out.colorCode = v.colorCode;
+  if (sku) out.sku = sku;
+  if (typeof v.price === 'number' && Number.isFinite(v.price)) out.price = v.price;
+  return out;
+}
+
+/** Whether a product already has physical/shipping data worth showing. */
+function hasPhysicalDetails(form: ProductFormPayload) {
+  return Boolean(
+    form.material ||
+      form.weight !== undefined ||
+      Object.keys(form.dimensions || {}).length ||
+      form.shippingInfo?.weight !== undefined ||
+      Object.keys(form.shippingInfo?.dimensions || {}).length ||
+      form.shippingInfo?.requiresSpecialHandling,
+  );
+}
+
+/** Total units across variants — what checkout keeps `product.stock` equal to. */
+function variantStockTotal(variants?: ProductVariant[]) {
+  return (variants || []).reduce((sum, v) => sum + (Number(v.stock) || 0), 0);
+}
+
 /** Drop empty optional strings so backend Joi (`Joi.string()`) doesn't reject ''. */
 function toProductPayload(form: ProductFormPayload): ProductFormPayload {
+  const variants = (form.variants || []).map(cleanVariant);
   const payload: ProductFormPayload = {
-    ...form,
     title: form.title.trim(),
+    brand: form.brand,
     description: form.description.trim(),
+    price: form.price,
     cover: form.cover.trim(),
+    category: form.category,
     subcategory: form.subcategory.trim(),
-    sku: (form.sku ?? '').trim(),
+    // With variants, checkout sells from variant stock and keeps this in sync
+    // as their sum (utils/commerce.js) — so save it that way from the start.
+    stock: variants.length ? variantStockTotal(variants) : form.stock,
+    isActive: form.isActive ?? true,
+    featured: form.featured ?? false,
+    images: Array.from(
+      new Set((form.images || []).map((u) => u.trim()).filter(Boolean)),
+    ),
+    variants,
+    dimensions: cleanDimensions(form.dimensions),
+    shippingInfo: {
+      dimensions: cleanDimensions(form.shippingInfo?.dimensions),
+      requiresSpecialHandling: Boolean(form.shippingInfo?.requiresSpecialHandling),
+      ...(form.shippingInfo?.weight !== undefined
+        ? { weight: form.shippingInfo.weight }
+        : {}),
+    },
   };
-  if (!payload.sku) delete (payload as Partial<ProductFormPayload>).sku;
-  payload.isActive = form.isActive ?? true;
-  payload.featured = form.featured ?? false;
+  const sku = (form.sku ?? '').trim();
+  if (sku) payload.sku = sku;
+  const material = (form.material ?? '').trim();
+  if (material) payload.material = material;
+  if (form.weight !== undefined) payload.weight = form.weight;
   return payload;
 }
 
@@ -91,6 +174,10 @@ export default function Products() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AdminProduct | null>(null);
   const [form, setForm] = useState<ProductFormPayload>(emptyForm);
+  // Decided once when the dialog opens (open if saved values exist), then
+  // left to the admin — tying it to live values would snap it shut when the
+  // last field in it is cleared.
+  const [physicalOpen, setPhysicalOpen] = useState(false);
 
   const table = useTableQuery({ limit: 24 });
   const { resetPage } = table;
@@ -116,15 +203,18 @@ export default function Products() {
   const products = productsQ.data?.data || [];
   const meta = productsQ.data?.meta;
 
+  const hasVariants = (form.variants?.length ?? 0) > 0;
+
   function openCreate() {
     setEditing(null);
     setForm({ ...emptyForm, brand: defaultBrand });
+    setPhysicalOpen(false);
     setOpen(true);
   }
 
   function openEdit(product: AdminProduct) {
     setEditing(product);
-    setForm({
+    const next: ProductFormPayload = {
       title: product.title,
       brand: brandId(product),
       description: product.description || '',
@@ -136,7 +226,21 @@ export default function Products() {
       sku: product.sku || '',
       isActive: product.isActive ?? true,
       featured: product.featured ?? false,
-    });
+      images: product.images || [],
+      variants: (product.variants || []).map(cleanVariant),
+      material: product.material || '',
+      weight: product.weight,
+      dimensions: cleanDimensions(product.dimensions),
+      shippingInfo: {
+        weight: product.shippingInfo?.weight,
+        dimensions: cleanDimensions(product.shippingInfo?.dimensions),
+        requiresSpecialHandling: Boolean(
+          product.shippingInfo?.requiresSpecialHandling,
+        ),
+      },
+    };
+    setForm(next);
+    setPhysicalOpen(hasPhysicalDetails(next));
     setOpen(true);
   }
 
@@ -148,6 +252,11 @@ export default function Products() {
     }
     if (!form.subcategory.trim() || form.description.trim().length < 3) {
       toast.error('Subcategory and a description (3+ characters) are required.');
+      return;
+    }
+    const variantProblem = validateVariants(form.variants || []);
+    if (variantProblem) {
+      toast.error(variantProblem);
       return;
     }
     const payload = toProductPayload(form);
@@ -362,7 +471,7 @@ export default function Products() {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800" role="dialog" aria-modal="true">
+          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800" role="dialog" aria-modal="true">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                 {editing ? 'Edit product' : 'Create product'}
@@ -434,18 +543,36 @@ export default function Products() {
                   <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
                     Stock
                   </span>
-                  <input
-                    type="number"
-                    min={0}
-                    value={form.stock}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        stock: Number(e.target.value),
-                      }))
-                    }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                  />
+                  {hasVariants ? (
+                    <>
+                      <input
+                        type="number"
+                        readOnly
+                        value={variantStockTotal(form.variants)}
+                        aria-describedby="stock-from-variants"
+                        className="w-full cursor-not-allowed rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                      />
+                      <span
+                        id="stock-from-variants"
+                        className="mt-1 block text-xs text-gray-500 dark:text-gray-400"
+                      >
+                        Sum of variant stock
+                      </span>
+                    </>
+                  ) : (
+                    <input
+                      type="number"
+                      min={0}
+                      value={form.stock}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          stock: Number(e.target.value),
+                        }))
+                      }
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                    />
+                  )}
                 </label>
               </div>
               <label className="block text-sm">
@@ -484,6 +611,10 @@ export default function Products() {
                 value={form.cover}
                 onChange={(url) => setForm((f) => ({ ...f, cover: url }))}
               />
+              <GalleryField
+                value={form.images || []}
+                onChange={(images) => setForm((f) => ({ ...f, images }))}
+              />
               <label className="block text-sm">
                 <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
                   SKU
@@ -509,6 +640,187 @@ export default function Products() {
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                 />
               </label>
+              <VariantsEditor
+                value={form.variants || []}
+                onChange={(variants) => setForm((f) => ({ ...f, variants }))}
+              />
+              <details
+                className="rounded-lg border border-gray-200 p-3 text-sm dark:border-gray-700"
+                open={physicalOpen}
+                onToggle={(e) => setPhysicalOpen(e.currentTarget.open)}
+              >
+                <summary className="cursor-pointer font-medium text-gray-700 dark:text-gray-300">
+                  Physical attributes &amp; shipping
+                </summary>
+                <div className="mt-3 space-y-3">
+                  <label className="block text-xs">
+                    <span className="mb-1 block text-gray-600 dark:text-gray-400">
+                      Material
+                    </span>
+                    <input
+                      value={form.material ?? ''}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, material: e.target.value }))
+                      }
+                      className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                    />
+                  </label>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <label className="block text-xs">
+                    <span className="mb-1 block text-gray-600 dark:text-gray-400">
+                      Weight (kg)
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={form.weight ?? ''}
+                      onChange={(e) => {
+                        const v = numberOrUndefined(e.target.value);
+                        setForm((f) => ({ ...f, weight: v }));
+                      }}
+                      className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                    />
+                  </label>
+                  <label className="block text-xs">
+                    <span className="mb-1 block text-gray-600 dark:text-gray-400">
+                      Length (cm)
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={form.dimensions?.length ?? ''}
+                      onChange={(e) => {
+                        const v = numberOrUndefined(e.target.value);
+                        setForm((f) => ({ ...f, dimensions: { ...f.dimensions, length: v } }));
+                      }}
+                      className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                    />
+                  </label>
+                  <label className="block text-xs">
+                    <span className="mb-1 block text-gray-600 dark:text-gray-400">
+                      Width (cm)
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={form.dimensions?.width ?? ''}
+                      onChange={(e) => {
+                        const v = numberOrUndefined(e.target.value);
+                        setForm((f) => ({ ...f, dimensions: { ...f.dimensions, width: v } }));
+                      }}
+                      className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                    />
+                  </label>
+                  <label className="block text-xs">
+                    <span className="mb-1 block text-gray-600 dark:text-gray-400">
+                      Height (cm)
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={form.dimensions?.height ?? ''}
+                      onChange={(e) => {
+                        const v = numberOrUndefined(e.target.value);
+                        setForm((f) => ({ ...f, dimensions: { ...f.dimensions, height: v } }));
+                      }}
+                      className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                    />
+                  </label>
+                  </div>
+                  <p className="pt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Packed for shipping
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <label className="block text-xs">
+                    <span className="mb-1 block text-gray-600 dark:text-gray-400">
+                      Weight (kg)
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={form.shippingInfo?.weight ?? ''}
+                      onChange={(e) => {
+                        const v = numberOrUndefined(e.target.value);
+                        setForm((f) => ({ ...f, shippingInfo: { ...f.shippingInfo, weight: v } }));
+                      }}
+                      className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                    />
+                  </label>
+                  <label className="block text-xs">
+                    <span className="mb-1 block text-gray-600 dark:text-gray-400">
+                      Length (cm)
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={form.shippingInfo?.dimensions?.length ?? ''}
+                      onChange={(e) => {
+                        const v = numberOrUndefined(e.target.value);
+                        setForm((f) => ({ ...f, shippingInfo: { ...f.shippingInfo, dimensions: { ...f.shippingInfo?.dimensions, length: v } } }));
+                      }}
+                      className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                    />
+                  </label>
+                  <label className="block text-xs">
+                    <span className="mb-1 block text-gray-600 dark:text-gray-400">
+                      Width (cm)
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={form.shippingInfo?.dimensions?.width ?? ''}
+                      onChange={(e) => {
+                        const v = numberOrUndefined(e.target.value);
+                        setForm((f) => ({ ...f, shippingInfo: { ...f.shippingInfo, dimensions: { ...f.shippingInfo?.dimensions, width: v } } }));
+                      }}
+                      className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                    />
+                  </label>
+                  <label className="block text-xs">
+                    <span className="mb-1 block text-gray-600 dark:text-gray-400">
+                      Height (cm)
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={form.shippingInfo?.dimensions?.height ?? ''}
+                      onChange={(e) => {
+                        const v = numberOrUndefined(e.target.value);
+                        setForm((f) => ({ ...f, shippingInfo: { ...f.shippingInfo, dimensions: { ...f.shippingInfo?.dimensions, height: v } } }));
+                      }}
+                      className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                    />
+                  </label>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(form.shippingInfo?.requiresSpecialHandling)}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          shippingInfo: {
+                            ...f.shippingInfo,
+                            requiresSpecialHandling: e.target.checked,
+                          },
+                        }))
+                      }
+                      className="h-4 w-4 rounded border-gray-300"
+                    />
+                    <span className="text-gray-700 dark:text-gray-300">
+                      Requires special handling (fragile, liquid, oversized…)
+                    </span>
+                  </label>
+                </div>
+              </details>
               <div className="flex flex-wrap gap-4">
                 <label className="flex items-center gap-2 text-sm">
                   <input

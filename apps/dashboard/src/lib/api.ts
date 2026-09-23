@@ -429,7 +429,41 @@ export type BrandFormPayload = {
   featured?: boolean;
 };
 
-export type AdminProduct = {
+/** One sellable size/color combination (apps/api/models/Product.js). */
+export type ProductVariant = {
+  size?: string;
+  color?: string;
+  /** Hex swatch, e.g. `#1a1a1a`. */
+  colorCode?: string;
+  stock: number;
+  /** Overrides the product price when set. */
+  price?: number;
+  sku?: string;
+};
+
+export type ProductDimensions = {
+  length?: number;
+  width?: number;
+  height?: number;
+};
+
+export type ProductShippingInfo = {
+  weight?: number;
+  dimensions?: ProductDimensions;
+  requiresSpecialHandling?: boolean;
+};
+
+/** Fields shared by the stored product and the create/update payload. */
+type ProductDetailFields = {
+  images?: string[];
+  variants?: ProductVariant[];
+  material?: string;
+  weight?: number;
+  dimensions?: ProductDimensions;
+  shippingInfo?: ProductShippingInfo;
+};
+
+export type AdminProduct = ProductDetailFields & {
   _id: string;
   title: string;
   description?: string;
@@ -445,7 +479,7 @@ export type AdminProduct = {
   brand?: string | { _id?: string; name?: string; slug?: string };
 };
 
-export type ProductFormPayload = {
+export type ProductFormPayload = ProductDetailFields & {
   title: string;
   brand: string;
   description: string;
