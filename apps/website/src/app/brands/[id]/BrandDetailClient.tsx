@@ -67,7 +67,7 @@ export function BrandDetailClient({ id }: { id: string }) {
                 />
               </div>
             )}
-            <div className='flex-1 text-center md:text-left'>
+            <div className='flex-1 text-center md:text-start'>
               <h1 className='text-4xl md:text-5xl font-bold mb-4'>
                 {brand.name}
               </h1>

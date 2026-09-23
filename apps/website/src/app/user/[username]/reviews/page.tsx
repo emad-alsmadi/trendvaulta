@@ -127,19 +127,19 @@ export default function UserReviewsPage() {
         <table className='w-full'>
           <thead className='bg-gray-50 border-b border-gray-200'>
             <tr>
-              <th className='px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider'>
+              <th className='px-6 py-4 text-start text-xs font-bold text-gray-600 uppercase tracking-wider'>
                 Product
               </th>
-              <th className='px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider'>
+              <th className='px-6 py-4 text-start text-xs font-bold text-gray-600 uppercase tracking-wider'>
                 Rating
               </th>
-              <th className='px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider'>
+              <th className='px-6 py-4 text-start text-xs font-bold text-gray-600 uppercase tracking-wider'>
                 Comment
               </th>
-              <th className='px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider'>
+              <th className='px-6 py-4 text-start text-xs font-bold text-gray-600 uppercase tracking-wider'>
                 Date
               </th>
-              <th className='px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider'>
+              <th className='px-6 py-4 text-start text-xs font-bold text-gray-600 uppercase tracking-wider'>
                 Actions
               </th>
             </tr>

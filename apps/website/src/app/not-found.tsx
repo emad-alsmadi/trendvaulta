@@ -25,7 +25,7 @@ export default function NotFound() {
           >
             <Home className='h-4 w-4' />
             Homepage
-            <ArrowRight className='h-4 w-4' />
+            <ArrowRight className='h-4 w-4 rtl:-scale-x-100' />
           </Link>
           <Link
             href='/products'

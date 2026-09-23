@@ -34,7 +34,7 @@ export function WishlistCard({ item }: WishlistCardProps) {
               sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
             />
           </Link>
-          <div className='absolute top-3 right-3'>
+          <div className='absolute top-3 end-3'>
             <WishlistButton
               productId={product._id}
               variant='icon'

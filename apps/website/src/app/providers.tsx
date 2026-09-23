@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/Toast';
 import { ConfirmProvider } from '@/components/confirm/ConfirmProvider';
 import { TranslationProvider } from '@/contexts/TranslationContext';
+import type { Locale } from '@/lib/locale';
 
 function AuthErrorHandler() {
   const { toast } = useToast();
@@ -29,12 +30,18 @@ function AuthErrorHandler() {
   return null;
 }
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({
+  locale,
+  children,
+}: {
+  locale: Locale;
+  children: React.ReactNode;
+}) {
   const [queryClient] = useState(() => new QueryClient());
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TranslationProvider>
+      <TranslationProvider initialLocale={locale}>
         <ToastProvider>
           <ConfirmProvider>
             <AuthErrorHandler />

@@ -305,14 +305,14 @@ export function FrequentlyBoughtTogether({ primary }: Props) {
           ) : (
             <>
               {pricing.savings > 0 && (
-                <span className='text-stone-500 line-through mr-2'>
+                <span className='text-stone-500 line-through me-2'>
                   ${pricing.subtotal.toFixed(2)}
                 </span>
               )}
               <span className='font-semibold text-stone-900'>
                 ${pricing.bundleTotal.toFixed(2)}
               </span>
-              <span className='ml-1 text-xs text-stone-500'>
+              <span className='ms-1 text-xs text-stone-500'>
                 for {selectedItems.length} items
                 {useApi ? ' (display total)' : ' (demo total)'}
               </span>

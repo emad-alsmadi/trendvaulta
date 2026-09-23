@@ -46,7 +46,7 @@ export default function CookiesPage() {
             <h2 className='mb-3 text-xl font-bold text-stone-900'>
               Types of cookies
             </h2>
-            <ul className='list-disc space-y-2 pl-5 text-sm font-semibold text-stone-600'>
+            <ul className='list-disc space-y-2 ps-5 text-sm font-semibold text-stone-600'>
               <li>Essential — auth session, cart, security</li>
               <li>Preferences — language/UI choices when available</li>
               <li>Analytics — anonymized traffic to improve pages</li>

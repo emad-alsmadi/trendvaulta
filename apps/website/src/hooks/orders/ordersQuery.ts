@@ -5,7 +5,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { ordersApi, type OrderCheckoutPayload } from '@/lib/api';
-import type { Order } from '@/types';
+import type { Order, ReturnRequestPayload } from '@/types';
 import { getAuthToken } from '@/lib/authCookies';
 
 export const ORDERS_MY_KEY = ['orders', 'my'] as const;
@@ -52,5 +52,33 @@ export function useOrderById(id?: string) {
     enabled: Boolean(id),
     staleTime: 30_000,
     retry: 1,
+  });
+}
+
+export function useCancelOrderMutation() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => ordersApi.cancelOrder(id),
+    onSuccess: async (result, id) => {
+      // The response is the updated order — show it at once, then refetch
+      // the list so its badge changes too.
+      qc.setQueryData(orderByIdKey(id), result);
+      await qc.invalidateQueries({ queryKey: ORDERS_MY_KEY });
+    },
+  });
+}
+
+export function useRequestReturnMutation() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: ReturnRequestPayload }) =>
+      ordersApi.requestReturn(id, payload),
+    onSuccess: async (_returnRequest, { id }) => {
+      // Refetch rather than patch: canReturn flips server-side too.
+      await qc.invalidateQueries({ queryKey: orderByIdKey(id) });
+      await qc.invalidateQueries({ queryKey: ORDERS_MY_KEY });
+    },
   });
 }

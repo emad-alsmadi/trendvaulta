@@ -81,7 +81,7 @@ export function ProductCard({ product, badges = [] }: ProductCardProps) {
             className='object-cover group-hover:scale-105 transition-transform duration-300'
             sizes='(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw'
           />
-          <div className='absolute top-2 left-2 flex flex-col gap-1 items-start'>
+          <div className='absolute top-2 start-2 flex flex-col gap-1 items-start'>
             {discount > 0 && (
               <span className='bg-rose-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-sm'>
                 -{discount}%
@@ -99,12 +99,12 @@ export function ProductCard({ product, badges = [] }: ProductCardProps) {
             )}
           </div>
           {!inStock && (
-            <div className='absolute top-2 right-2 bg-gray-800 text-white text-xs font-bold px-2 py-1 rounded-full shadow-sm'>
+            <div className='absolute top-2 end-2 bg-gray-800 text-white text-xs font-bold px-2 py-1 rounded-full shadow-sm'>
               Out of Stock
             </div>
           )}
           {inStock && lowStock && (
-            <div className='absolute top-2 right-2 bg-orange-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-sm'>
+            <div className='absolute top-2 end-2 bg-orange-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-sm'>
               Low stock
             </div>
           )}
@@ -119,7 +119,7 @@ export function ProductCard({ product, badges = [] }: ProductCardProps) {
               disabled={!inStock}
               className='bg-white text-gray-900 hover:bg-gray-100 shadow-lg'
             >
-              <ShoppingCart className='h-4 w-4 mr-1' />
+              <ShoppingCart className='h-4 w-4 me-1' />
               Add to Cart
             </Button>
             <Button

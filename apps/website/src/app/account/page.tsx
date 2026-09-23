@@ -89,7 +89,7 @@ export default function AccountPage() {
             </p>
           </div>
           <Button variant='outline' size='sm' onClick={handleLogout}>
-            <LogOut className='mr-2 h-4 w-4' />
+            <LogOut className='me-2 h-4 w-4' />
             Sign out
           </Button>
         </div>
@@ -136,7 +136,7 @@ export default function AccountPage() {
             >
               <Button size='lg'>
                 View Orders
-                <ChevronRight className='ml-2 h-4 w-4' />
+                <ChevronRight className='ms-2 h-4 w-4 rtl:-scale-x-100' />
               </Button>
             </Link>
           </div>
@@ -155,7 +155,7 @@ export default function AccountPage() {
             >
               <Button size='lg'>
                 Manage Addresses
-                <ChevronRight className='ml-2 h-4 w-4' />
+                <ChevronRight className='ms-2 h-4 w-4 rtl:-scale-x-100' />
               </Button>
             </Link>
           </div>
@@ -174,7 +174,7 @@ export default function AccountPage() {
             >
               <Button size='lg'>
                 Security Settings
-                <ChevronRight className='ml-2 h-4 w-4' />
+                <ChevronRight className='ms-2 h-4 w-4 rtl:-scale-x-100' />
               </Button>
             </Link>
           </div>

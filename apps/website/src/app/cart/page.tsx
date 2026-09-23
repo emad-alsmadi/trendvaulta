@@ -88,7 +88,7 @@ export default function CartPage() {
               onClick={() => router.push('/')}
             >
               <span className='inline-flex items-center gap-2'>
-                <ArrowLeft className='h-4 w-4' />
+                <ArrowLeft className='h-4 w-4 rtl:-scale-x-100' />
                 Continue shopping
               </span>
             </Button>
@@ -284,7 +284,7 @@ export default function CartPage() {
                           )}
                         </div>
 
-                        <div className='text-right text-sm font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-700 via-indigo-700 to-cyan-700 sm:text-left'>
+                        <div className='text-end text-sm font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-700 via-indigo-700 to-cyan-700 sm:text-start'>
                           ${(item.price * item.qty).toFixed(2)}
                         </div>
                       </div>

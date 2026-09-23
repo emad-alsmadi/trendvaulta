@@ -34,7 +34,7 @@ export function DeliverToControl({ className }: { className?: string }) {
         <DropdownMenu.Trigger asChild>
           <button
             type='button'
-            className='group inline-flex max-w-[220px] items-center gap-1.5 rounded-lg px-1.5 py-1 text-left transition hover:bg-stone-200/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500'
+            className='group inline-flex max-w-[220px] items-center gap-1.5 rounded-lg px-1.5 py-1 text-start transition hover:bg-stone-200/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500'
             aria-label={`Deliver to ${label}. Change delivery region.`}
           >
             <MapPin
@@ -123,7 +123,7 @@ export function DeliverToControl({ className }: { className?: string }) {
       {tipOpen ? (
         <div
           role='status'
-          className='absolute left-0 top-full z-[55] mt-2 w-[min(320px,calc(100vw-2rem))] rounded-xl border border-stone-200 bg-white p-3 text-xs shadow-lg'
+          className='absolute start-0 top-full z-[55] mt-2 w-[min(320px,calc(100vw-2rem))] rounded-xl border border-stone-200 bg-white p-3 text-xs shadow-lg'
         >
           <p className='font-semibold text-stone-700'>
             Showing shopping with delivery notes for{' '}

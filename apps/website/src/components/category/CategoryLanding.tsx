@@ -70,7 +70,7 @@ export function CategoryLanding({ def, subcategories, subcategory }: Props) {
               return (
                 <li key={crumb.href} className='flex items-center gap-1'>
                   {index > 0 ? (
-                    <ChevronRight className='h-3.5 w-3.5' aria-hidden />
+                    <ChevronRight className='h-3.5 w-3.5 rtl:-scale-x-100' aria-hidden />
                   ) : null}
                   {isLast ? (
                     <span aria-current='page' className='font-semibold text-stone-900'>
@@ -104,7 +104,7 @@ export function CategoryLanding({ def, subcategories, subcategory }: Props) {
               </p>
             </div>
             {def.image ? (
-              <div className='relative min-h-[160px] border-t border-stone-200/80 md:border-l md:border-t-0'>
+              <div className='relative min-h-[160px] border-t border-stone-200/80 md:border-s md:border-t-0'>
                 <Image
                   src={def.image}
                   alt={def.label}

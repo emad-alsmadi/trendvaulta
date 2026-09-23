@@ -25,7 +25,7 @@ function CheckoutCancelInner() {
             href='/checkout'
             className='inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-indigo-600 via-fuchsia-600 to-cyan-500 px-5 py-3 text-sm font-extrabold text-white shadow-md transition hover:brightness-110'
           >
-            <ArrowLeft className='h-4 w-4' />
+            <ArrowLeft className='h-4 w-4 rtl:-scale-x-100' />
             Return to checkout
           </Link>
           <Link

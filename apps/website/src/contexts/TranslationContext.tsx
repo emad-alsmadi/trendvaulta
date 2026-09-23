@@ -2,24 +2,32 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
-  useSyncExternalStore,
+  useMemo,
+  useTransition,
   ReactNode,
 } from 'react';
+import { useRouter } from 'next/navigation';
 import enMessages from '../messages/en.json';
 import arMessages from '../messages/ar.json';
-
-type Locale = 'en' | 'ar';
-type Currency = 'USD' | 'SAR' | 'EUR';
+import {
+  LOCALE_COOKIE,
+  dirFor,
+  intlLocale,
+  isLocale,
+  type Locale,
+} from '@/lib/locale';
+import { formatCurrency } from '@/lib/utils';
 
 interface TranslationContextType {
   locale: Locale;
   setLocale: (locale: Locale) => void;
-  currency: Currency;
-  setCurrency: (currency: Currency) => void;
   t: (key: string) => string;
   dir: 'ltr' | 'rtl';
+  /** USD, formatted for the reader's language. Checkout charges USD, so no
+   *  other currency is ever displayed. */
   formatPrice: (amount: number) => string;
 }
 
@@ -32,116 +40,101 @@ const messages = {
   ar: arMessages,
 };
 
-const currencySymbols: Record<Currency, string> = {
-  USD: '$',
-  SAR: 'ر.س',
-  EUR: '€',
-};
+const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 
-const currencyLocales: Record<Currency, Locale> = {
-  USD: 'en',
-  SAR: 'ar',
-  EUR: 'en',
-};
-
-const isLocale = (value: string | null): value is Locale =>
-  value === 'en' || value === 'ar';
-
-const isCurrency = (value: string | null): value is Currency =>
-  value !== null && value in currencySymbols;
-
-const LOCALE_KEY = 'tv_locale';
-const CURRENCY_KEY = 'tv_currency';
-
-// The reader's locale and currency live in localStorage, which React does not
-// own, so they are read through useSyncExternalStore: the server snapshot is
-// the default, the client snapshot is the stored value, and a write notifies
-// every subscriber (including other tabs, via the native `storage` event).
-const listeners = new Set<() => void>();
-
-function subscribe(onChange: () => void) {
-  listeners.add(onChange);
-  window.addEventListener('storage', onChange);
-  return () => {
-    listeners.delete(onChange);
-    window.removeEventListener('storage', onChange);
-  };
+function writeLocaleCookie(locale: Locale) {
+  document.cookie = `${LOCALE_COOKIE}=${locale}; path=/; max-age=${ONE_YEAR_SECONDS}; samesite=lax`;
 }
 
-function writePreference(key: string, value: string) {
-  localStorage.setItem(key, value);
-  for (const notify of listeners) notify();
-}
+/** The pre-cookie build kept the choice in localStorage. */
+const LEGACY_LOCALE_KEY = 'tv_locale';
+const LEGACY_CURRENCY_KEY = 'tv_currency';
 
-const readLocale = (): Locale => {
-  const saved = localStorage.getItem(LOCALE_KEY);
-  return isLocale(saved) ? saved : 'en';
-};
+/**
+ * The locale is not client state: it is the cookie value the root layout
+ * read for this request, passed in as `initialLocale`. Switching writes the
+ * cookie and refreshes, and the layout hands down the new value — so server
+ * and client can never disagree, and `<html lang dir>` is right in the HTML.
+ * (router.refresh() keeps client state such as the React Query cache.)
+ */
+export function TranslationProvider({
+  initialLocale,
+  children,
+}: {
+  initialLocale: Locale;
+  children: ReactNode;
+}) {
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+  const locale = initialLocale;
+  const dir = dirFor(locale);
 
-const readCurrency = (): Currency => {
-  const saved = localStorage.getItem(CURRENCY_KEY);
-  return isCurrency(saved) ? saved : 'USD';
-};
-
-export function TranslationProvider({ children }: { children: ReactNode }) {
-  const locale = useSyncExternalStore<Locale>(
-    subscribe,
-    readLocale,
-    () => 'en',
+  const setLocale = useCallback(
+    (next: Locale) => {
+      writeLocaleCookie(next);
+      startTransition(() => router.refresh());
+    },
+    [router],
   );
-  const currency = useSyncExternalStore<Currency>(
-    subscribe,
-    readCurrency,
-    () => 'USD',
-  );
 
-  const dir: 'ltr' | 'rtl' = locale === 'ar' ? 'rtl' : 'ltr';
-
-  // The <html> element is the one piece of state React does not own here, so
-  // it is synchronised in one place rather than at each call site. Server
-  // render emits lang="en"/dir="ltr"; this corrects it after hydration.
+  // A client-side switch only re-renders <body>'s tree; <html> itself is
+  // not re-created, so its attributes are kept in step here.
   useEffect(() => {
     document.documentElement.lang = locale;
     document.documentElement.dir = dir;
   }, [locale, dir]);
 
-  const setLocale = (newLocale: Locale) => {
-    writePreference(LOCALE_KEY, newLocale);
-
-    // Arabic browsing defaults to SAR pricing, English back to USD. A currency
-    // the reader picked explicitly for the other locale is left alone.
-    if (newLocale === 'ar' && currency === 'USD') {
-      writePreference(CURRENCY_KEY, 'SAR');
-    } else if (newLocale === 'en' && currency === 'SAR') {
-      writePreference(CURRENCY_KEY, 'USD');
+  // One-time migration for readers who chose Arabic before the cookie
+  // existed (the old build kept it in localStorage).
+  useEffect(() => {
+    try {
+      const legacy = localStorage.getItem(LEGACY_LOCALE_KEY);
+      localStorage.removeItem(LEGACY_LOCALE_KEY);
+      localStorage.removeItem(LEGACY_CURRENCY_KEY);
+      const hasCookie = document.cookie
+        .split('; ')
+        .some((c) => c.startsWith(`${LOCALE_COOKIE}=`));
+      if (!hasCookie && isLocale(legacy) && legacy !== locale) {
+        setLocale(legacy);
+      }
+    } catch {
+      // storage unavailable (private mode) — nothing to migrate
     }
-  };
+    // Mount-only by design: it migrates once, not on every locale change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const setCurrency = (newCurrency: Currency) => {
-    writePreference(CURRENCY_KEY, newCurrency);
-
-    const targetLocale = currencyLocales[newCurrency];
-    if (targetLocale !== locale) writePreference(LOCALE_KEY, targetLocale);
-  };
-
-  const t = (key: string): string => {
-    let value: unknown = messages[locale];
-    for (const k of key.split('.')) {
-      if (typeof value !== 'object' || value === null) return key;
-      value = (value as Record<string, unknown>)[k];
-    }
-    return typeof value === 'string' ? value : key;
-  };
-
-  const formatPrice = (amount: number): string => {
-    const symbol = currencySymbols[currency];
-    return `${symbol}${amount.toFixed(2)}`;
-  };
+  const value = useMemo<TranslationContextType>(() => {
+    const t = (key: string): string => {
+      let node: unknown = messages[locale];
+      for (const k of key.split('.')) {
+        if (typeof node !== 'object' || node === null) return key;
+        node = (node as Record<string, unknown>)[k];
+      }
+      if (typeof node === 'string') return node;
+      // Missing in Arabic: fall back to English rather than show a raw key.
+      if (locale !== 'en') {
+        let fallback: unknown = messages.en;
+        for (const k of key.split('.')) {
+          if (typeof fallback !== 'object' || fallback === null) return key;
+          fallback = (fallback as Record<string, unknown>)[k];
+        }
+        if (typeof fallback === 'string') return fallback;
+      }
+      return key;
+    };
+    return {
+      locale,
+      setLocale,
+      t,
+      dir,
+      formatPrice: (amount: number) =>
+        formatCurrency(amount, 'USD', intlLocale(locale)),
+    };
+  }, [locale, dir, setLocale]);
 
   return (
-    <TranslationContext.Provider
-      value={{ locale, setLocale, currency, setCurrency, t, dir, formatPrice }}
-    >
+    <TranslationContext.Provider value={value}>
       {children}
     </TranslationContext.Provider>
   );

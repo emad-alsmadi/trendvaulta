@@ -43,7 +43,7 @@ export function FeaturedCategories() {
                 style={{ backgroundImage: `url("${category.image}")` }}
               />
               <div className='absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent' />
-              <div className='absolute bottom-0 left-0 right-0 p-6'>
+              <div className='absolute bottom-0 start-0 end-0 p-6'>
                 <h3 className='text-xl font-bold text-white mb-1 group-hover:text-indigo-300 transition-colors'>
                   {category.name}
                 </h3>

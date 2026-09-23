@@ -26,7 +26,30 @@ import { ProductQaSection } from '@/components/products/ProductQaSection';
 import { ProductReviewsSection } from '@/components/products/ProductReviewsSection';
 import { WishlistButton } from '@/components/page/wishlist/WishlistButton';
 import { trackRecentlyViewed } from '@/lib/recentlyViewed';
-import type { ProductVariant } from '@/types';
+import type { Product, ProductVariant } from '@/types';
+
+type Dimensions = Product['dimensions'];
+
+/** "30 × 20 × 10 cm" from whichever sides are set, or null when none are. */
+function formatDimensions(d: Dimensions): string | null {
+  const sides = [d?.length, d?.width, d?.height].filter(
+    (v): v is number => typeof v === 'number' && v > 0,
+  );
+  return sides.length ? `${sides.join(' × ')} cm` : null;
+}
+
+/** One readable line from the shipping object, or null when it says nothing. */
+function shippingSummary(info: Product['shippingInfo']): string | null {
+  if (!info) return null;
+  const parts: string[] = [];
+  if (info.weight) parts.push(`Packed weight ${info.weight} kg`);
+  const dims = formatDimensions(info.dimensions);
+  if (dims) parts.push(`package ${dims}`);
+  if (info.requiresSpecialHandling) parts.push('requires special handling');
+  if (!parts.length) return null;
+  const line = parts.join(' · ');
+  return line.charAt(0).toUpperCase() + line.slice(1);
+}
 
 export function ProductDetailClient({ id }: { id: string }) {
   const { data: product, isLoading, error } = useProductById(id);
@@ -190,20 +213,20 @@ export function ProductDetailClient({ id }: { id: string }) {
                 <>
                   <button
                     onClick={prevImage}
-                    className='absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-full shadow-md transition-colors'
+                    className='absolute start-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-full shadow-md transition-colors'
                   >
-                    <ChevronLeft className='h-5 w-5' />
+                    <ChevronLeft className='h-5 w-5 rtl:-scale-x-100' />
                   </button>
                   <button
                     onClick={nextImage}
-                    className='absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-full shadow-md transition-colors'
+                    className='absolute end-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-full shadow-md transition-colors'
                   >
-                    <ChevronRight className='h-5 w-5' />
+                    <ChevronRight className='h-5 w-5 rtl:-scale-x-100' />
                   </button>
                 </>
               )}
               {discount > 0 && (
-                <div className='absolute top-4 left-4 bg-red-500 text-white text-sm font-bold px-3 py-1 rounded-full'>
+                <div className='absolute top-4 start-4 bg-red-500 text-white text-sm font-bold px-3 py-1 rounded-full'>
                   -{discount}% OFF
                 </div>
               )}
@@ -333,7 +356,7 @@ export function ProductDetailClient({ id }: { id: string }) {
                         onClick={() => handleSelectVariant(variant)}
                         disabled={soldOut}
                         aria-pressed={selectedVariant === variant}
-                        className={`px-4 py-2 border rounded-lg text-left transition-all ${
+                        className={`px-4 py-2 border rounded-lg text-start transition-all ${
                           selectedVariant === variant
                             ? 'border-fuchsia-600 bg-fuchsia-50 text-fuchsia-700'
                             : 'border-gray-300 hover:border-gray-400'
@@ -494,21 +517,17 @@ export function ProductDetailClient({ id }: { id: string }) {
                 <p className='text-gray-700'>{product.material}</p>
               </div>
             )}
-            {product.weight && (
+            {product.weight != null && product.weight > 0 && (
               <div>
                 <h3 className='font-semibold text-gray-900 mb-2'>Weight</h3>
-                <p className='text-gray-700'>{product.weight}</p>
+                <p className='text-gray-700'>{product.weight} kg</p>
               </div>
             )}
-            {product.dimensions && (
+            {formatDimensions(product.dimensions) && (
               <div>
                 <h3 className='font-semibold text-gray-900 mb-2'>Dimensions</h3>
                 <p className='text-gray-700'>
-                  {product.dimensions.length && `${product.dimensions.length}L`}
-                  {product.dimensions.width &&
-                    ` x ${product.dimensions.width}W`}
-                  {product.dimensions.height &&
-                    ` x ${product.dimensions.height}H`}
+                  {formatDimensions(product.dimensions)}
                 </p>
               </div>
             )}
@@ -518,12 +537,14 @@ export function ProductDetailClient({ id }: { id: string }) {
                 <p className='text-gray-700'>{product.sku}</p>
               </div>
             )}
-            {product.shippingInfo && (
+            {shippingSummary(product.shippingInfo) && (
               <div className='md:col-span-2'>
                 <h3 className='font-semibold text-gray-900 mb-2'>
                   Shipping Information
                 </h3>
-                <p className='text-gray-700'>{product.shippingInfo}</p>
+                <p className='text-gray-700'>
+                  {shippingSummary(product.shippingInfo)}
+                </p>
               </div>
             )}
           </div>

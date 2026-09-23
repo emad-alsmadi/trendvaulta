@@ -95,7 +95,7 @@ export default function OrdersPage() {
             onClick={() => ordersQuery.refetch()}
             disabled={ordersQuery.isFetching}
           >
-            <RefreshCw className={`mr-2 h-4 w-4 ${ordersQuery.isFetching ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`me-2 h-4 w-4 ${ordersQuery.isFetching ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
         </div>
@@ -127,7 +127,7 @@ export default function OrdersPage() {
             variant='outline'
             onClick={() => ordersQuery.refetch()}
           >
-            <RefreshCw className='mr-2 h-4 w-4' />
+            <RefreshCw className='me-2 h-4 w-4' />
             Retry
           </Button>
         </motion.div>
@@ -146,7 +146,7 @@ export default function OrdersPage() {
           </p>
           <Link href='/products' className='mt-6 inline-block'>
             <Button size='lg'>
-              <Package className='mr-2 h-4 w-4' />
+              <Package className='me-2 h-4 w-4' />
               Start Shopping
             </Button>
           </Link>
@@ -164,22 +164,22 @@ export default function OrdersPage() {
             <table className='w-full'>
               <thead className='bg-indigo-950/5'>
                 <tr className='border-b border-white/30'>
-                  <th className='px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-indigo-950/70'>
+                  <th className='px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-indigo-950/70'>
                     Order
                   </th>
-                  <th className='px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-indigo-950/70'>
+                  <th className='px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-indigo-950/70'>
                     Date
                   </th>
-                  <th className='px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-indigo-950/70'>
+                  <th className='px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-indigo-950/70'>
                     Status
                   </th>
-                  <th className='px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-indigo-950/70'>
+                  <th className='px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-indigo-950/70'>
                     Payment
                   </th>
-                  <th className='px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-indigo-950/70'>
+                  <th className='px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-indigo-950/70'>
                     Total
                   </th>
-                  <th className='px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-indigo-950/70'>
+                  <th className='px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-indigo-950/70'>
                     Action
                   </th>
                 </tr>
@@ -206,7 +206,7 @@ export default function OrdersPage() {
                         {STATUS_LABELS[order.status] || order.status}
                       </span>
                       {order.attentionReason && (
-                        <span className='ml-2 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200'>
+                        <span className='ms-2 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200'>
                           {order.attentionReason.replace(/_/g, ' ')}
                         </span>
                       )}
@@ -216,7 +216,7 @@ export default function OrdersPage() {
                         {order.paymentStatus ? (PAYMENT_STATUS_LABELS[order.paymentStatus] || order.paymentStatus) : '—'}
                       </span>
                       {order.paymentStatus === 'refunded' && (order.refundAmount ?? 0) > 0 && (
-                        <span className='ml-1 block text-xs text-rose-600 dark:text-rose-400'>
+                        <span className='ms-1 block text-xs text-rose-600 dark:text-rose-400'>
                           Refunded {formatCurrency(order.refundAmount ?? 0)}
                         </span>
                       )}
@@ -224,7 +224,7 @@ export default function OrdersPage() {
                     <td className='px-4 py-4 font-semibold text-indigo-950'>
                       {formatCurrency(order.totalPrice)}
                     </td>
-                    <td className='px-4 py-4 text-right'>
+                    <td className='px-4 py-4 text-end'>
                       <Link
                         href={`/account/orders/${order._id}`}
                         className='inline-flex items-center gap-1 text-sm font-semibold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300'

@@ -385,14 +385,14 @@ export default function ProductsPage() {
                 <label htmlFor='plp-search' className='sr-only'>
                   Search products
                 </label>
-                <Search className='pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-stone-400' />
+                <Search className='pointer-events-none absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-stone-400' />
                 <Input
                   id='plp-search'
                   type='search'
                   placeholder='Search products…'
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  className='pl-10'
+                  className='ps-10'
                 />
               </form>
 

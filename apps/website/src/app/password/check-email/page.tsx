@@ -28,7 +28,7 @@ function CheckYourEmailContent() {
           href='/password/forgot-password'
           className='inline-flex items-center gap-2 text-sm font-extrabold text-indigo-700'
         >
-          <ArrowLeft className='h-4 w-4' />
+          <ArrowLeft className='h-4 w-4 rtl:-scale-x-100' />
           Back
         </Link>
 

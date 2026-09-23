@@ -122,7 +122,7 @@ export default function SecurityPage() {
                   <button
                     type='button'
                     onClick={() => setShowCurrent(!showCurrent)}
-                    className='absolute right-3 top-1/2 -translate-y-1/2 text-indigo-950/50 hover:text-indigo-950'
+                    className='absolute end-3 top-1/2 -translate-y-1/2 text-indigo-950/50 hover:text-indigo-950'
                     aria-label={showCurrent ? 'Hide password' : 'Show password'}
                   >
                     {showCurrent ? <EyeOff className='h-5 w-5' /> : <Eye className='h-5 w-5' />}
@@ -153,7 +153,7 @@ export default function SecurityPage() {
                   <button
                     type='button'
                     onClick={() => setShowNew(!showNew)}
-                    className='absolute right-3 top-1/2 -translate-y-1/2 text-indigo-950/50 hover:text-indigo-950'
+                    className='absolute end-3 top-1/2 -translate-y-1/2 text-indigo-950/50 hover:text-indigo-950'
                     aria-label={showNew ? 'Hide password' : 'Show password'}
                   >
                     {showNew ? <EyeOff className='h-5 w-5' /> : <Eye className='h-5 w-5' />}
@@ -212,7 +212,7 @@ export default function SecurityPage() {
                   <button
                     type='button'
                     onClick={() => setShowConfirm(!showConfirm)}
-                    className='absolute right-3 top-1/2 -translate-y-1/2 text-indigo-950/50 hover:text-indigo-950'
+                    className='absolute end-3 top-1/2 -translate-y-1/2 text-indigo-950/50 hover:text-indigo-950'
                     aria-label={showConfirm ? 'Hide password' : 'Show password'}
                   >
                     {showConfirm ? <EyeOff className='h-5 w-5' /> : <Eye className='h-5 w-5' />}
@@ -237,7 +237,7 @@ export default function SecurityPage() {
                 </span>
               ) : (
                 <>
-                  <CheckCircle className='mr-2 h-4 w-4' />
+                  <CheckCircle className='me-2 h-4 w-4' />
                   Update Password
                 </>
               )}

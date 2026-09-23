@@ -167,7 +167,7 @@ export function AddressBook() {
           disabled={addressesQuery.isFetching}
         >
           {addressesQuery.isFetching && (
-            <Loader2 className='mr-2 h-4 w-4 animate-spin' aria-hidden />
+            <Loader2 className='me-2 h-4 w-4 animate-spin' aria-hidden />
           )}
           Try again
         </Button>

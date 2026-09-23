@@ -2,6 +2,7 @@ import { Review } from '@/types';
 import { StarRating } from '../rating/StarRating';
 import { Trash2, Edit2, BadgeCheck } from 'lucide-react';
 import { Button } from '../../ui/Button';
+import { SITE_NAME } from '@/lib/site';
 
 interface ReviewListProps {
   reviews: Review[];
@@ -103,6 +104,26 @@ export function ReviewList({
             <p className='text-gray-700 leading-relaxed mt-3'>
               {review.comment}
             </p>
+
+            {review.reply?.text && (
+              <div className='mt-4 rounded-xl border-s-4 border-blue-500 bg-blue-50/60 px-4 py-3'>
+                <p className='text-xs font-semibold uppercase tracking-wide text-blue-700'>
+                  Response from {SITE_NAME}
+                  {review.reply.repliedAt && (
+                    <span className='ms-2 font-normal normal-case tracking-normal text-gray-500'>
+                      {new Date(review.reply.repliedAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })}
+                    </span>
+                  )}
+                </p>
+                <p className='mt-1 whitespace-pre-line text-sm leading-relaxed text-gray-700'>
+                  {review.reply.text}
+                </p>
+              </div>
+            )}
           </div>
         );
       })}

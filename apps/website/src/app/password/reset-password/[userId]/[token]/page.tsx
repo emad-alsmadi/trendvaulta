@@ -107,9 +107,9 @@ export default function ResetPasswordPage() {
                   New Password
                 </label>
                 <div className='relative'>
-                  <Lock className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' />
+                  <Lock className='pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' />
                   <Input
-                    className='pl-10'
+                    className='ps-10'
                     type='password'
                     {...register('password')}
                   />
@@ -181,7 +181,7 @@ export default function ResetPasswordPage() {
                 href='/auth/login'
                 className='inline-flex items-center gap-2 text-sm font-semibold text-fuchsia-600 hover:text-fuchsia-700 transition'
               >
-                <ArrowLeft className='w-4 h-4' />
+                <ArrowLeft className='w-4 h-4 rtl:-scale-x-100' />
                 Back to login
               </Link>
             </div>

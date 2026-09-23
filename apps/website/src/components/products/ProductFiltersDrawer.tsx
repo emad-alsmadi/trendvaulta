@@ -54,7 +54,7 @@ export function ProductFiltersDrawer({
         aria-label='Close filters'
         onClick={onClose}
       />
-      <div className='absolute inset-y-0 left-0 flex w-[min(100%,22rem)] flex-col bg-white shadow-2xl'>
+      <div className='absolute inset-y-0 start-0 flex w-[min(100%,22rem)] flex-col bg-white shadow-2xl'>
         <div className='flex items-center justify-between border-b border-stone-200 px-4 py-3'>
           <div>
             <p

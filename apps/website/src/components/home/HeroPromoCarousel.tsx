@@ -120,18 +120,18 @@ export function HeroPromoCarousel({
             <button
               type='button'
               onClick={() => go(-1)}
-              className='absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/90 p-2 text-stone-800 shadow-sm transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500'
+              className='absolute start-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/90 p-2 text-stone-800 shadow-sm transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500'
               aria-label='Previous promo'
             >
-              <ChevronLeft className='h-4 w-4' aria-hidden />
+              <ChevronLeft className='h-4 w-4 rtl:-scale-x-100' aria-hidden />
             </button>
             <button
               type='button'
               onClick={() => go(1)}
-              className='absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/90 p-2 text-stone-800 shadow-sm transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500'
+              className='absolute end-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/90 p-2 text-stone-800 shadow-sm transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500'
               aria-label='Next promo'
             >
-              <ChevronRight className='h-4 w-4' aria-hidden />
+              <ChevronRight className='h-4 w-4 rtl:-scale-x-100' aria-hidden />
             </button>
           </>
         )}

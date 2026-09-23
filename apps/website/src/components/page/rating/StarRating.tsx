@@ -48,7 +48,7 @@ export function StarRating({
         ))}
       </div>
       {showValue && safeRating > 0 && (
-        <span className='text-sm font-semibold text-gray-700 ml-1'>
+        <span className='text-sm font-semibold text-gray-700 ms-1'>
           {safeRating.toFixed(1)}
         </span>
       )}

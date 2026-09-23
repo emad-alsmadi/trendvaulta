@@ -151,7 +151,7 @@ function toggleValue(list: string[], value: string): string[] {
 function Count({ value }: { value?: number }) {
   if (value === undefined) return null;
   return (
-    <span className='ml-1 text-xs tabular-nums text-stone-400'>({value})</span>
+    <span className='ms-1 text-xs tabular-nums text-stone-400'>({value})</span>
   );
 }
 
@@ -400,11 +400,11 @@ export function CategorySidebar({
                       {category.name}
                       <Count value={categoryCount(category.slug)} />
                     </span>
-                    <ChevronRight className='h-4 w-4' />
+                    <ChevronRight className='h-4 w-4 rtl:-scale-x-100' />
                   </Link>
 
                   {currentCategory === category.slug && (
-                    <div className='ml-4 mt-1 space-y-1'>
+                    <div className='ms-4 mt-1 space-y-1'>
                       {category.subcategories.map((sub) => (
                         <Link
                           key={sub}

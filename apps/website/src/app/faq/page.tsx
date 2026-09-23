@@ -128,7 +128,7 @@ export default function FAQPage() {
                   <button
                     key={faq.category}
                     onClick={() => toggleCategory(faq.category)}
-                    className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
+                    className={`w-full text-start px-4 py-2 rounded-lg transition-colors ${
                       openCategory === faq.category
                         ? 'bg-fuchsia-50 text-fuchsia-700 font-semibold'
                         : 'text-gray-600 hover:bg-gray-50'
@@ -186,9 +186,9 @@ export default function FAQPage() {
                         >
                           <button
                             onClick={() => toggleQuestion(index)}
-                            className='w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors'
+                            className='w-full px-6 py-4 flex items-center justify-between text-start hover:bg-gray-50 transition-colors'
                           >
-                            <span className='font-semibold text-gray-900 pr-4'>
+                            <span className='font-semibold text-gray-900 pe-4'>
                               {item.q}
                             </span>
                             <ChevronDown

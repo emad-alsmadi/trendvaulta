@@ -91,7 +91,51 @@ export interface Order {
   trackingNumber?: string;
   trackingCarrier?: string;
   trackingUrl?: string;
+  /** Set by GET /orders/:id — whether the customer may cancel it now. */
+  canCancel?: boolean;
+  /** Set by GET /orders/:id — whether a return can be requested now. */
+  canReturn?: boolean;
+  /** When the return window closes (delivered orders only). */
+  returnWindowEndsAt?: string;
+  returnRequest?: OrderReturnRequest | null;
 }
+
+export type ReturnStatus =
+  | 'none'
+  | 'requested'
+  | 'approved'
+  | 'rejected'
+  | 'received'
+  | 'refunded';
+
+export type OrderReturnRequest = {
+  status: ReturnStatus;
+  reason: string;
+  items: { productId: string; title: string; qty: number; reason?: string }[];
+  requestedAt?: string;
+  approvedAt?: string;
+  rejectedAt?: string;
+  receivedAt?: string;
+  refundedAt?: string;
+  refundAmount?: number;
+  /** How and where to send the items — written by staff on approval. */
+  instructions?: string;
+  /** Message from staff (e.g. why a return was rejected). */
+  notes?: string;
+};
+
+export type ReturnRequestPayload = {
+  reason: string;
+  items: { productId: string; qty: number }[];
+};
+
+/** POST /orders/:id/cancel — the updated order plus what happened to the money. */
+export type OrderCancelResult = Order & {
+  refunded: boolean;
+  /** Paid, but the refund is left to staff (no auto refund, or it failed). */
+  refundPending: boolean;
+  message: string;
+};
 
 /**
  * Sort presets accepted by GET /api/products. Legacy field strings
@@ -203,6 +247,8 @@ export interface Review {
   rating: number;
   comment: string;
   verifiedPurchase?: boolean;
+  /** The store's public reply (author is never exposed). */
+  reply?: { text: string; repliedAt?: string };
   createdAt: string;
   updatedAt: string;
 }
@@ -292,7 +338,13 @@ export interface Product {
     height?: number;
   };
   weight?: number;
-  shippingInfo?: string;
+  // An object on the API (models/Product.js), never a string: rendering it
+  // directly as a React child throws.
+  shippingInfo?: {
+    weight?: number;
+    dimensions?: { length?: number; width?: number; height?: number };
+    requiresSpecialHandling?: boolean;
+  };
   stock: number;
   sku?: string;
   averageRating: number;

@@ -82,7 +82,7 @@ export function OrderTrackingTimeline({ order, compact = false }: Props) {
               {!isLast && (
                 <span
                   className={cn(
-                    'absolute left-[15px] top-8 h-[calc(100%-1.25rem)] w-0.5',
+                    'absolute start-[15px] top-8 h-[calc(100%-1.25rem)] w-0.5',
                     step.state === 'complete'
                       ? 'bg-fuchsia-300'
                       : 'bg-stone-200',

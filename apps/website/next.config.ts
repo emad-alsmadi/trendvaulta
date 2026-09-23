@@ -13,12 +13,15 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'images.pexels.com',
       },
-      // Allow images from Cloudinary
-      ...(process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+      // Uploaded images when STORAGE_DRIVER=cloudinary. Scoped to this
+      // store's own cloud: allowing all of res.cloudinary.com would let the
+      // image optimizer be used to fetch any Cloudinary account's files.
+      ...(process.env.CLOUDINARY_CLOUD_NAME
         ? [
             {
-              protocol: 'https',
-              hostname: `${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}.cloudinary.com`,
+              protocol: 'https' as const,
+              hostname: 'res.cloudinary.com',
+              pathname: `/${process.env.CLOUDINARY_CLOUD_NAME}/**`,
             },
           ]
         : []),

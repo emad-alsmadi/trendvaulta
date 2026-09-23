@@ -5,6 +5,9 @@ import {
   Product,
   Brand,
   Order,
+  OrderCancelResult,
+  OrderReturnRequest,
+  ReturnRequestPayload,
   WishlistItem,
   Review,
   ReviewPayload,
@@ -381,6 +384,26 @@ export const ordersApi = {
    */
   getOrderById: async (id: string): Promise<Order> => {
     const { data } = await api.get(endpoints.orders.details(id));
+    return data;
+  },
+
+  /** Ask to return items from a delivered order. */
+  requestReturn: async (
+    id: string,
+    payload: ReturnRequestPayload,
+  ): Promise<OrderReturnRequest> => {
+    const { data } = await api.post<{ data: OrderReturnRequest }>(
+      endpoints.orders.returnRequest(id),
+      payload,
+    );
+    return data.data;
+  },
+
+  /** Cancel an unshipped order; paid orders are refunded server-side. */
+  cancelOrder: async (id: string): Promise<OrderCancelResult> => {
+    const { data } = await api.post<OrderCancelResult>(
+      endpoints.orders.cancel(id),
+    );
     return data;
   },
 };

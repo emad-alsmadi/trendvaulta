@@ -113,7 +113,7 @@ export default function HelpPage() {
                     <span className='mt-4 inline-flex items-center gap-1 text-sm font-bold text-fuchsia-700'>
                       Open
                       <ArrowRight
-                        className='h-4 w-4'
+                        className='h-4 w-4 rtl:-scale-x-100'
                         aria-hidden
                       />
                     </span>
@@ -176,7 +176,7 @@ export default function HelpPage() {
             >
               Contact support
               <ArrowRight
-                className='h-4 w-4'
+                className='h-4 w-4 rtl:-scale-x-100'
                 aria-hidden
               />
             </Link>

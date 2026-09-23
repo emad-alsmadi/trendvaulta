@@ -125,7 +125,7 @@ export default function AccountLayout({ children }: { children: ReactNode }) {
             </p>
           </div>
           <Button variant='outline' size='sm' onClick={handleLogout}>
-            <LogOut className='mr-2 h-4 w-4' />
+            <LogOut className='me-2 h-4 w-4' />
             Sign out
           </Button>
         </div>

@@ -153,25 +153,25 @@ export default function UserOrdersPage() {
             <table className='w-full'>
               <thead className='bg-gray-50 border-b border-gray-200'>
                 <tr>
-                  <th className='px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider'>
+                  <th className='px-6 py-4 text-start text-xs font-bold text-gray-600 uppercase tracking-wider'>
                     Order
                   </th>
-                  <th className='px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider'>
+                  <th className='px-6 py-4 text-start text-xs font-bold text-gray-600 uppercase tracking-wider'>
                     Date
                   </th>
-                  <th className='px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider'>
+                  <th className='px-6 py-4 text-start text-xs font-bold text-gray-600 uppercase tracking-wider'>
                     Status
                   </th>
-                  <th className='px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider'>
+                  <th className='px-6 py-4 text-start text-xs font-bold text-gray-600 uppercase tracking-wider'>
                     Payment
                   </th>
-                  <th className='px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider'>
+                  <th className='px-6 py-4 text-start text-xs font-bold text-gray-600 uppercase tracking-wider'>
                     Shipping
                   </th>
-                  <th className='px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider'>
+                  <th className='px-6 py-4 text-start text-xs font-bold text-gray-600 uppercase tracking-wider'>
                     Total
                   </th>
-                  <th className='px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider'>
+                  <th className='px-6 py-4 text-start text-xs font-bold text-gray-600 uppercase tracking-wider'>
                     Actions
                   </th>
                 </tr>
@@ -231,7 +231,7 @@ export default function UserOrdersPage() {
                         className='inline-flex items-center gap-1 text-sm font-semibold text-fuchsia-600 hover:text-fuchsia-700 transition'
                       >
                         View
-                        <ArrowRight className='w-4 h-4' />
+                        <ArrowRight className='w-4 h-4 rtl:-scale-x-100' />
                       </Link>
                     </td>
                   </tr>

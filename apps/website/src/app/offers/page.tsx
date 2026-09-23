@@ -72,7 +72,7 @@ function OfferCard({ offer }: { offer: StorefrontOffer }) {
           >
             Shop offer
             <ArrowRight
-              className='h-4 w-4'
+              className='h-4 w-4 rtl:-scale-x-100'
               aria-hidden
             />
           </Link>
@@ -133,7 +133,7 @@ export default function OffersPage() {
               >
                 Browse products
                 <ArrowRight
-                  className='h-4 w-4'
+                  className='h-4 w-4 rtl:-scale-x-100'
                   aria-hidden
                 />
               </Link>

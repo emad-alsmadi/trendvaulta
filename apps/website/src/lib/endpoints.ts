@@ -33,6 +33,8 @@ export const endpoints = {
     my: '/orders/my',
     list: '/orders',
     details: (id: string) => `/orders/${id}`,
+    cancel: (id: string) => `/orders/${id}/cancel`,
+    returnRequest: (id: string) => `/orders/${id}/return`,
     updateStatus: (id: string) => `/orders/${id}/status`,
   },
   payments: {

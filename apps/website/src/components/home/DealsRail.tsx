@@ -77,7 +77,7 @@ export function DealsRail({ deals: dealsProp }: Props) {
                       sizes='(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw'
                     />
                     {deal.badge ? (
-                      <span className='absolute left-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-stone-900 shadow-sm'>
+                      <span className='absolute start-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-stone-900 shadow-sm'>
                         {deal.badge}
                       </span>
                     ) : null}

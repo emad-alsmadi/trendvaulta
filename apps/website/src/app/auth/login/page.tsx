@@ -161,12 +161,12 @@ export default function LoginPage() {
                   type={`${showPassword ? 'text' : 'password'}`}
                   placeholder='••••••••'
                   {...register('password')}
-                  className='pr-12'
+                  className='pe-12'
                 />
                 <button
                   type='button'
                   onClick={() => setShowPassword(!showPassword)}
-                  className='absolute right-3 top-1/2 -translate-y-1/2 text-indigo-950/60 hover:text-indigo-950 transition-colors duration-200'
+                  className='absolute end-3 top-1/2 -translate-y-1/2 text-indigo-950/60 hover:text-indigo-950 transition-colors duration-200'
                 >
                   {showPassword ? (
                     <Eye className='h-5 w-5' />

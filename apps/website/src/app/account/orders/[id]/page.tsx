@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft,
@@ -14,9 +15,15 @@ import {
   Copy,
 } from 'lucide-react';
 import { useParams } from 'next/navigation';
+import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
-import { useOrderById } from '@/hooks/orders/ordersQuery';
+import {
+  useCancelOrderMutation,
+  useOrderById,
+} from '@/hooks/orders/ordersQuery';
+import { getUserFacingErrorMessage } from '@/lib/userFacingError';
+import { OrderReturnSection } from '@/components/orders/OrderReturnSection';
 import type { Order } from '@/types';
 import { getAuthToken } from '@/lib/authCookies';
 import { formatCurrency } from '@/lib/utils';
@@ -98,6 +105,24 @@ export default function OrderDetailPage() {
   const orderId = params.id;
   const orderQuery = useOrderById(orderId);
   const order = orderQuery.data;
+  const cancelMutation = useCancelOrderMutation();
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+
+  const handleCancel = async () => {
+    if (!order) return;
+    try {
+      const result = await cancelMutation.mutateAsync(order._id);
+      setConfirmingCancel(false);
+      toast(result.message, { variant: 'success' });
+    } catch (err) {
+      toast(getUserFacingErrorMessage(err, 'Could not cancel this order'), {
+        variant: 'error',
+      });
+      // A 409 means the order changed under us (e.g. it just shipped):
+      // refetch so the page stops offering an action that no longer applies.
+      void orderQuery.refetch();
+    }
+  };
 
   const copyId = async (value: string) => {
     try {
@@ -124,7 +149,7 @@ export default function OrderDetailPage() {
           href='/account/orders'
           className='mb-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400'
         >
-          <ArrowLeft className='h-4 w-4' />
+          <ArrowLeft className='h-4 w-4 rtl:-scale-x-100' />
           Back to orders
         </Link>
 
@@ -185,6 +210,61 @@ export default function OrderDetailPage() {
               </div>
             </div>
 
+            {order.canCancel && (
+              <div className='rounded-2xl border border-rose-200/70 bg-rose-50/60 p-4'>
+                {!confirmingCancel ? (
+                  <div className='flex flex-wrap items-center justify-between gap-3'>
+                    <p className='text-sm text-indigo-950/80'>
+                      Changed your mind? This order hasn&apos;t shipped yet, so
+                      you can still cancel it.
+                    </p>
+                    <Button
+                      type='button'
+                      variant='outline'
+                      size='sm'
+                      onClick={() => setConfirmingCancel(true)}
+                    >
+                      Cancel order
+                    </Button>
+                  </div>
+                ) : (
+                  <div role='alertdialog' aria-labelledby='cancel-title' className='space-y-3'>
+                    <p id='cancel-title' className='font-semibold text-indigo-950'>
+                      Cancel this order?
+                    </p>
+                    <p className='text-sm text-indigo-950/80'>
+                      {order.paymentStatus === 'paid'
+                        ? `We'll refund ${formatCurrency(order.totalPrice)} to your original payment method. Refunds usually appear within 5–10 business days.`
+                        : "You haven't been charged, so there's nothing to refund."}{' '}
+                      This can&apos;t be undone.
+                    </p>
+                    <div className='flex flex-wrap gap-2'>
+                      <Button
+                        type='button'
+                        variant='destructive'
+                        size='sm'
+                        disabled={cancelMutation.isPending}
+                        onClick={() => void handleCancel()}
+                      >
+                        {cancelMutation.isPending ? 'Canceling…' : 'Yes, cancel order'}
+                      </Button>
+                      <Button
+                        type='button'
+                        variant='ghost'
+                        size='sm'
+                        disabled={cancelMutation.isPending}
+                        onClick={() => setConfirmingCancel(false)}
+                      >
+                        Keep order
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <OrderReturnSection order={order} />
+
             <div className='grid gap-6 lg:grid-cols-3'>
               <div className='lg:col-span-2 space-y-6'>
                 <section className='rounded-2xl border border-white/30 bg-white/35 p-5 shadow-sm backdrop-blur-xl'>
@@ -198,9 +278,11 @@ export default function OrderDetailPage() {
                         className='flex items-center gap-3 py-3 first:pt-0 last:pb-0'
                       >
                         {item.cover ? (
-                          <img
+                          <Image
                             src={item.cover}
                             alt={item.title}
+                            width={56}
+                            height={56}
                             className='h-14 w-14 shrink-0 rounded-lg bg-white/30 object-cover'
                           />
                         ) : (
@@ -395,7 +477,7 @@ export default function OrderDetailPage() {
                             className='inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300'
                           >
                             Track Shipment
-                            <ArrowLeft className='h-3.5 w-3.5 rotate-180' />
+                            <ArrowLeft className='h-3.5 w-3.5 rotate-180 rtl:-scale-x-100' />
                           </a>
                         </div>
                       )}

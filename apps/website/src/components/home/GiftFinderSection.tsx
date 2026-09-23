@@ -166,7 +166,7 @@ export function GiftFinderSection({ config: configProp }: Props) {
               </div>
             </div>
 
-            <div className='relative min-h-[220px] border-t border-stone-200/80 lg:border-l lg:border-t-0'>
+            <div className='relative min-h-[220px] border-t border-stone-200/80 lg:border-s lg:border-t-0'>
               <Image
                 src='/images/4.webp'
                 alt='Gift finder illustration'

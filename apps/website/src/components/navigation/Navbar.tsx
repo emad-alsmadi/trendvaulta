@@ -137,7 +137,7 @@ export function Navbar() {
   const logout = useLogout();
   const cart = useCart();
   const confirm = useConfirm();
-  const { locale, setLocale, currency, setCurrency, t } = useTranslation();
+  const { locale, setLocale, t } = useTranslation();
   const user = meQuery.data?.user || null;
   const hydrated = true;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -176,22 +176,17 @@ export function Navbar() {
           <DeliverToControl />
           <div className='hidden items-center gap-4 sm:flex'>
             <button
+              type='button'
               onClick={() => setLocale(locale === 'en' ? 'ar' : 'en')}
               className='inline-flex items-center gap-1.5 hover:text-stone-900'
               title={locale === 'en' ? 'Switch to Arabic' : 'Switch to English'}
+              lang={locale === 'en' ? 'ar' : 'en'}
             >
               <Globe
                 className='h-3.5 w-3.5'
                 aria-hidden
               />
               {locale === 'en' ? 'العربية' : 'English'}
-            </button>
-            <button
-              onClick={() => setCurrency(currency === 'USD' ? 'SAR' : 'USD')}
-              className='inline-flex items-center gap-1.5 hover:text-stone-900'
-              title={currency === 'USD' ? 'Switch to SAR' : 'Switch to USD'}
-            >
-              {currency}
             </button>
             <Link
               href='/offers'
@@ -272,18 +267,18 @@ export function Navbar() {
               >
                 Search products
               </label>
-              <Search className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400' />
+              <Search className='pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400' />
               <input
                 id='nav-search'
                 type='search'
                 value={navSearch}
                 onChange={(e) => setNavSearch(e.target.value)}
                 placeholder={t('common.search')}
-                className='w-full rounded-lg border border-stone-200 bg-stone-50 py-2 pl-9 pr-20 text-sm text-stone-900 placeholder:text-stone-400 focus:border-fuchsia-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20'
+                className='w-full rounded-lg border border-stone-200 bg-stone-50 py-2 ps-9 pe-20 text-sm text-stone-900 placeholder:text-stone-400 focus:border-fuchsia-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20'
               />
               <button
                 type='submit'
-                className='absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-500 px-3 py-1 text-xs font-semibold text-white'
+                className='absolute end-1.5 top-1/2 -translate-y-1/2 rounded-md bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-500 px-3 py-1 text-xs font-semibold text-white'
               >
                 {t('common.search')}
               </button>
@@ -296,7 +291,7 @@ export function Navbar() {
                   <button className='flex relative gap-1 items-center font-medium text-gray-700 transition-colors hover:text-gray-900 group'>
                     {t('common.categories')}
                     <ChevronDown className='w-4 h-4' />
-                    <span className='absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 transition-all duration-300 group-hover:w-full'></span>
+                    <span className='absolute bottom-0 start-0 w-0 h-0.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 transition-all duration-300 group-hover:w-full'></span>
                   </button>
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Portal>
@@ -345,7 +340,7 @@ export function Navbar() {
                 className='relative font-medium text-gray-700 transition-colors hover:text-gray-900 group'
               >
                 {t('nav.shop')}
-                <span className='absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 transition-all duration-300 group-hover:w-full'></span>
+                <span className='absolute bottom-0 start-0 w-0 h-0.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 transition-all duration-300 group-hover:w-full'></span>
               </Link>
 
               <Link
@@ -353,7 +348,7 @@ export function Navbar() {
                 className='relative font-medium text-gray-700 transition-colors hover:text-gray-900 group'
               >
                 {t('common.brands')}
-                <span className='absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 transition-all duration-300 group-hover:w-full'></span>
+                <span className='absolute bottom-0 start-0 w-0 h-0.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 transition-all duration-300 group-hover:w-full'></span>
               </Link>
 
               <Link
@@ -361,7 +356,7 @@ export function Navbar() {
                 className='relative font-medium text-gray-700 transition-colors hover:text-gray-900 group'
               >
                 {t('nav.deals')}
-                <span className='absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 transition-all duration-300 group-hover:w-full'></span>
+                <span className='absolute bottom-0 start-0 w-0 h-0.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 transition-all duration-300 group-hover:w-full'></span>
               </Link>
 
               <DropdownMenu.Root>
@@ -369,7 +364,7 @@ export function Navbar() {
                   <button className='flex relative gap-1 items-center font-medium text-gray-700 transition-colors hover:text-gray-900 group'>
                     More
                     <ChevronDown className='w-4 h-4' />
-                    <span className='absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 transition-all duration-300 group-hover:w-full'></span>
+                    <span className='absolute bottom-0 start-0 w-0 h-0.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 transition-all duration-300 group-hover:w-full'></span>
                   </button>
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Portal>
@@ -431,7 +426,7 @@ export function Navbar() {
               >
                 <ShoppingCart className='w-5 h-5' />
                 {cart.count > 0 && (
-                  <span className='flex absolute -top-1 -right-1 justify-center items-center w-5 h-5 text-xs font-bold text-white bg-indigo-600 rounded-full'>
+                  <span className='flex absolute -top-1 -end-1 justify-center items-center w-5 h-5 text-xs font-bold text-white bg-indigo-600 rounded-full'>
                     {cart.count}
                   </span>
                 )}
@@ -648,19 +643,33 @@ export function Navbar() {
               >
                 Search products
               </label>
-              <Search className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400' />
+              <Search className='pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400' />
               <input
                 id='nav-search-mobile'
                 type='search'
                 value={navSearch}
                 onChange={(e) => setNavSearch(e.target.value)}
                 placeholder='Search products…'
-                className='w-full rounded-lg border border-stone-200 bg-stone-50 py-2.5 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20'
+                className='w-full rounded-lg border border-stone-200 bg-stone-50 py-2.5 ps-9 pe-4 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20'
               />
             </form>
 
             {/* Mobile nav */}
             <nav className='space-y-2'>
+              {/* The utility strip holding the desktop switch is hidden on
+                  small screens, so the language choice lives here too. */}
+              <button
+                type='button'
+                onClick={() => {
+                  setLocale(locale === 'en' ? 'ar' : 'en');
+                  setMobileMenuOpen(false);
+                }}
+                lang={locale === 'en' ? 'ar' : 'en'}
+                className='flex w-full items-center gap-2 rounded-lg px-4 py-2 text-start text-gray-700 hover:bg-gray-100'
+              >
+                <Globe className='h-4 w-4' aria-hidden />
+                {locale === 'en' ? 'العربية' : 'English'}
+              </button>
               <Link
                 href='/products'
                 onClick={() => setMobileMenuOpen(false)}
@@ -685,7 +694,7 @@ export function Navbar() {
               <div className='px-4 py-2 font-semibold text-gray-900 text-medium'>
                 Help &amp; info
               </div>
-              <div className='pl-8 space-y-2'>
+              <div className='ps-8 space-y-2'>
                 <Link
                   href='/about'
                   onClick={() => setMobileMenuOpen(false)}
@@ -725,7 +734,7 @@ export function Navbar() {
               <div className='px-4 py-2 font-semibold text-gray-900 text-medium'>
                 {t('common.categories')}
               </div>
-              <div className='pl-8 space-y-2'>
+              <div className='ps-8 space-y-2'>
                 {categories.map((category) => (
                   <Link
                     key={category.href}
@@ -801,7 +810,7 @@ export function Navbar() {
                       },
                     });
                   }}
-                  className='block px-4 py-2 w-full text-left text-red-600 rounded-lg text-medium hover:bg-red-50'
+                  className='block px-4 py-2 w-full text-start text-red-600 rounded-lg text-medium hover:bg-red-50'
                 >
                   Logout
                 </button>

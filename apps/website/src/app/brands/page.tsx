@@ -115,7 +115,7 @@ export default function BrandsPage() {
                       {/* View Products Button */}
                       <div className='flex items-center justify-center gap-2 text-fuchsia-600 font-medium text-sm group-hover:gap-3 transition-all'>
                         <span>View Products</span>
-                        <ArrowRight className='h-4 w-4' />
+                        <ArrowRight className='h-4 w-4 rtl:-scale-x-100' />
                       </div>
                     </div>
                   </Link>

@@ -149,7 +149,7 @@ export default function AddressesPage() {
                 setShowCreateForm(true);
               }}
             >
-              <Plus className='mr-2 h-4 w-4' />
+              <Plus className='me-2 h-4 w-4' />
               Add Address
             </Button>
           )}
@@ -182,7 +182,7 @@ export default function AddressesPage() {
                 setShowCreateForm(true);
               }}
             >
-              <Plus className='mr-2 h-4 w-4' />
+              <Plus className='me-2 h-4 w-4' />
               Add Address
             </Button>
           )}
@@ -200,7 +200,7 @@ export default function AddressesPage() {
               className='relative rounded-3xl border border-white/30 bg-white/35 p-5 shadow-sm backdrop-blur-xl'
             >
               {addr.isDefault && (
-                <span className='absolute -top-2 left-4 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'>
+                <span className='absolute -top-2 start-4 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'>
                   Default
                 </span>
               )}
@@ -306,7 +306,7 @@ export default function AddressesPage() {
                         onClick={() => handleSetDefault(addr._id)}
                         disabled={setDefaultAddress.isPending}
                       >
-                        <Check className='mr-1.5 h-3.5 w-3.5' />
+                        <Check className='me-1.5 h-3.5 w-3.5' />
                         Set Default
                       </Button>
                     )}
@@ -317,7 +317,7 @@ export default function AddressesPage() {
                       onClick={() => startEdit(addr)}
                       disabled={updateAddress.isPending}
                     >
-                      <Edit className='mr-1.5 h-3.5 w-3.5' />
+                      <Edit className='me-1.5 h-3.5 w-3.5' />
                       Edit
                     </Button>
                     <Button
@@ -327,7 +327,7 @@ export default function AddressesPage() {
                       onClick={() => handleDelete(addr._id)}
                       disabled={deleteAddress.isPending}
                     >
-                      <Trash2 className='mr-1.5 h-3.5 w-3.5' />
+                      <Trash2 className='me-1.5 h-3.5 w-3.5' />
                       Delete
                     </Button>
                   </div>

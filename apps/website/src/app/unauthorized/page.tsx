@@ -14,8 +14,8 @@ export default function UnauthorizedPage() {
         transition={{ duration: 0.6, ease: 'easeOut' }}
         className='relative overflow-hidden rounded-3xl border border-white/30 bg-white/25 p-8 shadow-sm backdrop-blur-xl sm:p-10'
       >
-        <div className='pointer-events-none absolute -left-24 -top-24 h-64 w-64 rounded-full bg-fuchsia-500/20 blur-3xl' />
-        <div className='pointer-events-none absolute -bottom-28 -right-28 h-72 w-72 rounded-full bg-cyan-500/20 blur-3xl' />
+        <div className='pointer-events-none absolute -start-24 -top-24 h-64 w-64 rounded-full bg-fuchsia-500/20 blur-3xl' />
+        <div className='pointer-events-none absolute -bottom-28 -end-28 h-72 w-72 rounded-full bg-cyan-500/20 blur-3xl' />
 
         <div className='inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/35 px-3 py-1 text-xs font-extrabold text-indigo-950'>
           Authorization

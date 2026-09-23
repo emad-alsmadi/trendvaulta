@@ -67,7 +67,7 @@ export default function OrderDetailPage() {
           className='inline-flex items-center gap-2 text-sm font-bold text-stone-700 hover:text-stone-900'
         >
           <ArrowLeft
-            className='h-4 w-4'
+            className='h-4 w-4 rtl:-scale-x-100'
             aria-hidden
           />
           All orders
