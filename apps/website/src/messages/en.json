@@ -476,11 +476,20 @@
       "date": "Date",
       "status": "Status",
       "payment": "Payment",
+      "shipping": "Shipping",
+      "total": "Total",
+      "actions": "Actions",
       "action": "Action"
     },
     "itemCount": "Items: {count}",
     "refundedAmount": "Refunded {amount}",
     "view": "View",
+    "standardShipping": "Standard",
+    "browseProducts": "Browse products",
+    "helpTitle": "Need help with your orders?",
+    "helpDescription": "If you have questions about your order status or payment, please check our FAQ or contact support.",
+    "viewFaq": "View FAQ",
+    "contactSupport": "Contact Support",
     "status": {
       "pending": "Pending",
       "paid": "Paid",
@@ -732,6 +741,66 @@
       "eyebrow": "Category",
       "subcategoriesAria": "{category} subcategories",
       "all": "All {category}"
+    },
+    "drawer": {
+      "closeFilters": "Close filters",
+      "close": "Close",
+      "activeCount": "Active filters: {count}",
+      "hint": "Refine by category, price, and more",
+      "showResults": "Show results"
+    },
+    "sidebar": {
+      "popularIdeas": "Popular ideas",
+      "ideas": {
+        "beauty": "Beauty",
+        "skincare": "Skincare",
+        "fashion": "Fashion",
+        "home": "Home",
+        "gifts": "Gifts",
+        "offers": "Offers"
+      },
+      "allProducts": "All Products",
+      "availability": "Availability",
+      "inStockOnly": "In stock only",
+      "loadingBrands": "Loading brands…",
+      "noBrands": "No brands yet",
+      "price": "Price",
+      "pricePresets": {
+        "under25": "Under $25",
+        "25to50": "$25–$50",
+        "50to100": "$50–$100",
+        "over100": "$100+"
+      },
+      "minPrice": "Min price",
+      "maxPrice": "Max price",
+      "min": "Min",
+      "max": "Max",
+      "applyPrice": "Apply price",
+      "size": "Size",
+      "noSizes": "No sizes here",
+      "color": "Color",
+      "noColors": "No colors here",
+      "colors": {
+        "black": "Black",
+        "white": "White",
+        "red": "Red",
+        "blue": "Blue",
+        "green": "Green",
+        "yellow": "Yellow",
+        "pink": "Pink",
+        "purple": "Purple",
+        "gray": "Gray",
+        "grey": "Grey",
+        "brown": "Brown",
+        "beige": "Beige",
+        "navy": "Navy",
+        "orange": "Orange",
+        "gold": "Gold",
+        "silver": "Silver"
+      },
+      "filterBy": "Filter by {name}",
+      "rating": "Customer rating",
+      "andUp": "& Up"
     }
   },
   "brandsPage": {
@@ -1123,6 +1192,86 @@
       "subtitle": "Explore TrendVaulta’s beauty, fashion, and lifestyle catalog — then checkout with secure payment when you’re ready.",
       "browseProducts": "Browse products",
       "contactSupport": "Talk to support"
+    }
+  },
+  "pagination": {
+    "label": "Pagination",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page {page}"
+  },
+  "categories": {
+    "makeup": {
+      "label": "Makeup",
+      "description": "Foundations, lipsticks, eyeshadows and everyday essentials from world-renowned beauty brands."
+    },
+    "perfumes": {
+      "label": "Perfumes",
+      "description": "Signature fragrances, body mists and gift sets — find a scent that feels like you."
+    },
+    "clothing": {
+      "label": "Clothing",
+      "description": "Dresses, tops, jackets and activewear — wardrobe staples and seasonal edits."
+    },
+    "skincare": {
+      "label": "Skincare",
+      "description": "Cleansers, serums, moisturizers and SPF for every skin type and ritual."
+    },
+    "accessories": {
+      "label": "Accessories",
+      "description": "Jewelry, bags, watches and sunglasses to finish every look."
+    },
+    "home": {
+      "label": "Home & Living",
+      "description": "Decor, bedding, lighting and kitchen pieces that make a house feel like home."
+    },
+    "sub": {
+      "foundation": "Foundation",
+      "lipstick": "Lipstick",
+      "eyeshadow": "Eyeshadow",
+      "mascara": "Mascara",
+      "blush": "Blush",
+      "concealer": "Concealer",
+      "primer": "Primer",
+      "setting-spray": "Setting spray",
+      "eau-de-parfum": "Eau de parfum",
+      "eau-de-toilette": "Eau de toilette",
+      "body-mist": "Body mist",
+      "gift-sets": "Gift sets",
+      "cologne": "Cologne",
+      "roll-on": "Roll-on",
+      "dresses": "Dresses",
+      "tops": "Tops",
+      "pants": "Pants",
+      "jackets": "Jackets",
+      "accessories": "Accessories",
+      "sweaters": "Sweaters",
+      "skirts": "Skirts",
+      "activewear": "Activewear",
+      "cleanser": "Cleanser",
+      "moisturizer": "Moisturizer",
+      "serum": "Serum",
+      "sunscreen": "Sunscreen",
+      "masks": "Masks",
+      "toner": "Toner",
+      "exfoliator": "Exfoliator",
+      "eye-cream": "Eye cream",
+      "jewelry": "Jewelry",
+      "bags": "Bags",
+      "scarves": "Scarves",
+      "belts": "Belts",
+      "watches": "Watches",
+      "sunglasses": "Sunglasses",
+      "hats": "Hats",
+      "wallets": "Wallets",
+      "decor": "Decor",
+      "kitchen": "Kitchen",
+      "bedding": "Bedding",
+      "lighting": "Lighting",
+      "furniture": "Furniture",
+      "rugs": "Rugs",
+      "curtains": "Curtains",
+      "organization": "Organization"
     }
   }
 }

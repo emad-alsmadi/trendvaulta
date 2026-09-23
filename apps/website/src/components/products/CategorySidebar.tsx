@@ -5,108 +5,30 @@ import { ChevronRight, X, ChevronDown, ChevronUp, Star } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useBrands } from '@/hooks/brands/brandsQuery';
+import { useTranslation } from '@/contexts/TranslationContext';
+import {
+  CATEGORIES,
+  categoryLabel,
+  subcategoryLabel,
+} from '@/lib/categories';
+import type { Translate } from '@/lib/i18n';
 import type { ProductFacets } from '@/types';
-
-const categories = [
-  {
-    name: 'Makeup',
-    slug: 'makeup',
-    subcategories: [
-      'foundation',
-      'lipstick',
-      'eyeshadow',
-      'mascara',
-      'blush',
-      'concealer',
-      'primer',
-      'setting-spray',
-    ],
-  },
-  {
-    name: 'Perfumes',
-    slug: 'perfumes',
-    subcategories: [
-      'eau-de-parfum',
-      'eau-de-toilette',
-      'body-mist',
-      'gift-sets',
-      'cologne',
-      'roll-on',
-    ],
-  },
-  {
-    name: 'Clothing',
-    slug: 'clothing',
-    subcategories: [
-      'dresses',
-      'tops',
-      'pants',
-      'jackets',
-      'accessories',
-      'sweaters',
-      'skirts',
-      'activewear',
-    ],
-  },
-  {
-    name: 'Skincare',
-    slug: 'skincare',
-    subcategories: [
-      'cleanser',
-      'moisturizer',
-      'serum',
-      'sunscreen',
-      'masks',
-      'toner',
-      'exfoliator',
-      'eye-cream',
-    ],
-  },
-  {
-    name: 'Accessories',
-    slug: 'accessories',
-    subcategories: [
-      'jewelry',
-      'bags',
-      'scarves',
-      'belts',
-      'watches',
-      'sunglasses',
-      'hats',
-      'wallets',
-    ],
-  },
-  {
-    name: 'Home and Living',
-    slug: 'home',
-    subcategories: [
-      'decor',
-      'kitchen',
-      'bedding',
-      'lighting',
-      'furniture',
-      'rugs',
-      'curtains',
-      'organization',
-    ],
-  },
-];
 
 /** DEMO — “shopping ideas” shortcuts (href-only, original TrendVaulta copy) */
 const shoppingIdeas = [
-  { label: 'Beauty', href: '/products?category=makeup' },
-  { label: 'Skincare', href: '/products?category=skincare' },
-  { label: 'Fashion', href: '/products?category=clothing' },
-  { label: 'Home', href: '/products?category=home' },
-  { label: 'Gifts', href: '/products?q=gift' },
-  { label: 'Offers', href: '/offers' },
+  { id: 'beauty', href: '/products?category=makeup' },
+  { id: 'skincare', href: '/products?category=skincare' },
+  { id: 'fashion', href: '/products?category=clothing' },
+  { id: 'home', href: '/products?category=home' },
+  { id: 'gifts', href: '/products?q=gift' },
+  { id: 'offers', href: '/offers' },
 ];
 
 const pricePresets = [
-  { label: 'Under $25', min: '0', max: '25' },
-  { label: '$25–$50', min: '25', max: '50' },
-  { label: '$50–$100', min: '50', max: '100' },
-  { label: '$100+', min: '100', max: '' },
+  { id: 'under25', min: '0', max: '25' },
+  { id: '25to50', min: '25', max: '50' },
+  { id: '50to100', min: '50', max: '100' },
+  { id: 'over100', min: '100', max: '' },
 ];
 
 /** Fallbacks shown until `meta.facets` arrives from GET /api/products?facets=true */
@@ -122,12 +44,14 @@ const defaultColors = [
   { name: 'Purple', code: '#8B5CF6' },
 ];
 
-const ratings = [
-  { value: 4, label: '4★ & Up' },
-  { value: 3, label: '3★ & Up' },
-  { value: 2, label: '2★ & Up' },
-  { value: 1, label: '1★ & Up' },
-];
+const ratings = [4, 3, 2, 1];
+
+/** Known color names are translated; other values show as the API sends them. */
+function colorLabel(name: string, t: Translate) {
+  const key = `catalog.sidebar.colors.${name.toLowerCase()}`;
+  const value = t(key);
+  return value === key ? name : value;
+}
 
 type Props = {
   /** Close mobile drawer after category navigation / apply */
@@ -160,6 +84,7 @@ export function CategorySidebar({
   variant = 'sidebar',
   facets,
 }: Props) {
+  const { t } = useTranslation();
   const searchParams = useSearchParams();
   const router = useRouter();
   const currentCategory = searchParams.get('category');
@@ -321,7 +246,7 @@ export function CategorySidebar({
       >
         {variant === 'sidebar' && (
           <div className='mb-4 flex items-center justify-between'>
-            <h3 className='text-lg font-semibold text-stone-900'>Filters</h3>
+            <h3 className='text-lg font-semibold text-stone-900'>{t('catalog.filters')}</h3>
             {hasActiveFilters && (
               <button
                 type='button'
@@ -329,7 +254,7 @@ export function CategorySidebar({
                 className='flex items-center gap-1 text-xs font-medium text-fuchsia-600 hover:text-fuchsia-700'
               >
                 <X className='h-3 w-3' />
-                Clear All
+                {t('catalog.clearAll')}
               </button>
             )}
           </div>
@@ -343,7 +268,7 @@ export function CategorySidebar({
             className='mb-3 flex w-full items-center justify-between'
           >
             <h4 className='text-sm font-semibold text-stone-900'>
-              Popular ideas
+              {t('catalog.sidebar.popularIdeas')}
             </h4>
             {expandedSections.ideas ? (
               <ChevronUp className='h-4 w-4 text-stone-500' />
@@ -354,13 +279,13 @@ export function CategorySidebar({
           {expandedSections.ideas && (
             <ul className='flex flex-wrap gap-2'>
               {shoppingIdeas.map((idea) => (
-                <li key={idea.label}>
+                <li key={idea.id}>
                   <Link
                     href={idea.href}
                     onClick={() => onAfterNavigate?.()}
                     className='inline-block rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-medium text-stone-700 hover:border-fuchsia-300 hover:text-fuchsia-700'
                   >
-                    {idea.label}
+                    {t(`catalog.sidebar.ideas.${idea.id}`)}
                   </Link>
                 </li>
               ))}
@@ -375,7 +300,7 @@ export function CategorySidebar({
             onClick={() => toggleSection('categories')}
             className='mb-3 flex w-full items-center justify-between'
           >
-            <h4 className='text-sm font-semibold text-stone-900'>Categories</h4>
+            <h4 className='text-sm font-semibold text-stone-900'>{t('common.categories')}</h4>
             {expandedSections.categories ? (
               <ChevronUp className='h-4 w-4 text-stone-500' />
             ) : (
@@ -385,7 +310,7 @@ export function CategorySidebar({
 
           {expandedSections.categories && (
             <nav className='space-y-1'>
-              {categories.map((category) => (
+              {CATEGORIES.map((category) => (
                 <div key={category.slug}>
                   <Link
                     href={`/products?category=${category.slug}`}
@@ -397,7 +322,7 @@ export function CategorySidebar({
                     }`}
                   >
                     <span>
-                      {category.name}
+                      {categoryLabel(category, t)}
                       <Count value={categoryCount(category.slug)} />
                     </span>
                     <ChevronRight className='h-4 w-4 rtl:-scale-x-100' />
@@ -410,13 +335,13 @@ export function CategorySidebar({
                           key={sub}
                           href={`/products?category=${category.slug}&subcategory=${sub}`}
                           onClick={() => onAfterNavigate?.()}
-                          className={`block px-3 py-1.5 text-xs capitalize transition-colors ${
+                          className={`block px-3 py-1.5 text-xs transition-colors ${
                             currentSubcategory === sub
                               ? 'font-semibold text-fuchsia-700'
                               : 'text-stone-600 hover:text-fuchsia-600'
                           }`}
                         >
-                          {sub.replace(/-/g, ' ')}
+                          {subcategoryLabel(sub, t)}
                           <Count value={subcategoryCount(sub)} />
                         </Link>
                       ))}
@@ -435,7 +360,7 @@ export function CategorySidebar({
                       : 'text-stone-700 hover:bg-stone-50'
                   }`}
                 >
-                  All Products
+                  {t('catalog.sidebar.allProducts')}
                 </Link>
               </div>
             </nav>
@@ -449,7 +374,7 @@ export function CategorySidebar({
             onClick={() => toggleSection('availability')}
             className='mb-3 flex w-full items-center justify-between'
           >
-            <h4 className='text-sm font-semibold text-stone-900'>Availability</h4>
+            <h4 className='text-sm font-semibold text-stone-900'>{t('catalog.sidebar.availability')}</h4>
             {expandedSections.availability ? (
               <ChevronUp className='h-4 w-4 text-stone-500' />
             ) : (
@@ -467,7 +392,7 @@ export function CategorySidebar({
                   onChange={(e) => toggleFlag('inStock', e.target.checked)}
                 />
                 <span>
-                  In stock only
+                  {t('catalog.sidebar.inStockOnly')}
                   <Count value={facets?.inStock} />
                 </span>
               </label>
@@ -480,7 +405,7 @@ export function CategorySidebar({
                   onChange={(e) => toggleFlag('onSale', e.target.checked)}
                 />
                 <span>
-                  On sale
+                  {t('catalog.chips.onSale')}
                   <Count value={facets?.onSale} />
                 </span>
               </label>
@@ -496,7 +421,7 @@ export function CategorySidebar({
             className='mb-3 flex w-full items-center justify-between'
           >
             <h4 className='text-sm font-semibold text-stone-900'>
-              Brands
+              {t('common.brands')}
             </h4>
             {expandedSections.brands ? (
               <ChevronUp className='h-4 w-4 text-stone-500' />
@@ -508,12 +433,12 @@ export function CategorySidebar({
             <ul className='max-h-64 space-y-1 overflow-y-auto'>
               {!facets && brandsLoading && brandOptions.length === 0 && (
                 <li className='px-3 py-2 text-sm text-stone-400'>
-                  Loading brands…
+                  {t('catalog.sidebar.loadingBrands')}
                 </li>
               )}
               {(facets || !brandsLoading) && brandOptions.length === 0 && (
                 <li className='px-3 py-2 text-sm text-stone-400'>
-                  No brands yet
+                  {t('catalog.sidebar.noBrands')}
                 </li>
               )}
               {brandOptions.map((brand) => {
@@ -551,7 +476,7 @@ export function CategorySidebar({
             onClick={() => toggleSection('price')}
             className='mb-3 flex w-full items-center justify-between'
           >
-            <h4 className='text-sm font-semibold text-stone-900'>Price</h4>
+            <h4 className='text-sm font-semibold text-stone-900'>{t('catalog.sidebar.price')}</h4>
             {expandedSections.price ? (
               <ChevronUp className='h-4 w-4 text-stone-500' />
             ) : (
@@ -568,7 +493,7 @@ export function CategorySidebar({
                     (urlMax || '') === (preset.max || '');
                   return (
                     <button
-                      key={preset.label}
+                      key={preset.id}
                       type='button'
                       onClick={() => applyPricePreset(preset.min, preset.max)}
                       className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition ${
@@ -577,21 +502,21 @@ export function CategorySidebar({
                           : 'border-stone-200 bg-stone-50 text-stone-700 hover:border-stone-300'
                       }`}
                     >
-                      {preset.label}
+                      {t(`catalog.sidebar.pricePresets.${preset.id}`)}
                     </button>
                   );
                 })}
               </div>
               <div className='flex items-center gap-2'>
                 <label className='sr-only' htmlFor='filter-min-price'>
-                  Min price
+                  {t('catalog.sidebar.minPrice')}
                 </label>
                 <span className='text-xs font-medium text-stone-500'>$</span>
                 <input
                   id='filter-min-price'
                   type='number'
                   min={0}
-                  placeholder='Min'
+                  placeholder={t('catalog.sidebar.min')}
                   value={priceMin}
                   onChange={(e) => setPriceMin(e.target.value)}
                   className='w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-fuchsia-500'
@@ -599,14 +524,14 @@ export function CategorySidebar({
               </div>
               <div className='flex items-center gap-2'>
                 <label className='sr-only' htmlFor='filter-max-price'>
-                  Max price
+                  {t('catalog.sidebar.maxPrice')}
                 </label>
                 <span className='text-xs font-medium text-stone-500'>$</span>
                 <input
                   id='filter-max-price'
                   type='number'
                   min={0}
-                  placeholder='Max'
+                  placeholder={t('catalog.sidebar.max')}
                   value={priceMax}
                   onChange={(e) => setPriceMax(e.target.value)}
                   className='w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-fuchsia-500'
@@ -617,7 +542,7 @@ export function CategorySidebar({
                 onClick={applyPrice}
                 className='w-full rounded-lg bg-stone-900 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-800'
               >
-                Apply price
+                {t('catalog.sidebar.applyPrice')}
               </button>
             </div>
           )}
@@ -630,7 +555,7 @@ export function CategorySidebar({
             onClick={() => toggleSection('size')}
             className='mb-3 flex w-full items-center justify-between'
           >
-            <h4 className='text-sm font-semibold text-stone-900'>Size</h4>
+            <h4 className='text-sm font-semibold text-stone-900'>{t('catalog.sidebar.size')}</h4>
             {expandedSections.size ? (
               <ChevronUp className='h-4 w-4 text-stone-500' />
             ) : (
@@ -641,7 +566,7 @@ export function CategorySidebar({
           {expandedSections.size && (
             <div className='flex flex-wrap gap-2'>
               {sizeOptions.length === 0 && (
-                <p className='px-1 text-sm text-stone-400'>No sizes here</p>
+                <p className='px-1 text-sm text-stone-400'>{t('catalog.sidebar.noSizes')}</p>
               )}
               {sizeOptions.map((size) => {
                 const selected = urlSizes.includes(size.value);
@@ -674,7 +599,7 @@ export function CategorySidebar({
             onClick={() => toggleSection('color')}
             className='mb-3 flex w-full items-center justify-between'
           >
-            <h4 className='text-sm font-semibold text-stone-900'>Color</h4>
+            <h4 className='text-sm font-semibold text-stone-900'>{t('catalog.sidebar.color')}</h4>
             {expandedSections.color ? (
               <ChevronUp className='h-4 w-4 text-stone-500' />
             ) : (
@@ -685,16 +610,15 @@ export function CategorySidebar({
           {expandedSections.color && (
             <div className='flex flex-wrap gap-3'>
               {colorOptions.length === 0 && (
-                <p className='px-1 text-sm text-stone-400'>No colors here</p>
+                <p className='px-1 text-sm text-stone-400'>{t('catalog.sidebar.noColors')}</p>
               )}
               {colorOptions.map((color) => {
                 const selected = urlColors.some(
                   (c) => c.toLowerCase() === color.name.toLowerCase(),
                 );
+                const name = colorLabel(color.name, t);
                 const title =
-                  color.count === undefined
-                    ? color.name
-                    : `${color.name} (${color.count})`;
+                  color.count === undefined ? name : `${name} (${color.count})`;
                 return (
                   <button
                     key={color.name}
@@ -711,7 +635,7 @@ export function CategorySidebar({
                       backgroundColor: color.code || '#d6d3d1',
                     }}
                     title={title}
-                    aria-label={`Filter by ${title}`}
+                    aria-label={t('catalog.sidebar.filterBy', { name: title })}
                   />
                 );
               })}
@@ -727,7 +651,7 @@ export function CategorySidebar({
             className='mb-3 flex w-full items-center justify-between'
           >
             <h4 className='text-sm font-semibold text-stone-900'>
-              Customer rating
+              {t('catalog.sidebar.rating')}
             </h4>
             {expandedSections.rating ? (
               <ChevronUp className='h-4 w-4 text-stone-500' />
@@ -737,17 +661,18 @@ export function CategorySidebar({
           </button>
 
           {expandedSections.rating && (
-            <div className='space-y-2' role='radiogroup' aria-label='Customer rating'>
+            <div className='space-y-2' role='radiogroup' aria-label={t('catalog.sidebar.rating')}>
               {ratings.map((rating) => {
-                const selected = urlRating === String(rating.value);
-                const count = ratingCount(rating.value);
+                const selected = urlRating === String(rating);
+                const count = ratingCount(rating);
                 return (
                 <button
-                  key={rating.value}
+                  key={rating}
                   type='button'
                   role='radio'
                   aria-checked={selected}
-                  onClick={() => setRating(rating.value)}
+                  onClick={() => setRating(rating)}
+                  aria-label={t('catalog.chips.rating', { rating })}
                   disabled={isDisabled(count, selected)}
                   className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
                     selected
@@ -760,14 +685,14 @@ export function CategorySidebar({
                       <Star
                         key={i}
                         className={`h-4 w-4 ${
-                          i < rating.value
+                          i < rating
                             ? 'fill-yellow-400 text-yellow-400'
                             : 'text-stone-300'
                         }`}
                       />
                     ))}
                   </div>
-                  <span>& Up</span>
+                  <span aria-hidden>{t('catalog.sidebar.andUp')}</span>
                   <Count value={count} />
                 </button>
                 );

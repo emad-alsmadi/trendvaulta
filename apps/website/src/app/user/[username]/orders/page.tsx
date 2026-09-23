@@ -16,33 +16,37 @@ import {
 import { getAuthToken } from '@/lib/authCookies';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { intlLocale } from '@/lib/locale';
 
-function formatDate(value: string) {
+/** Message keys, resolved with t() at render. */
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'orders.status.pending',
+  paid: 'orders.status.paid',
+  shipped: 'orders.status.shipped',
+  delivered: 'orders.status.delivered',
+  canceled: 'orders.status.canceled',
+  needs_attention: 'orders.status.needs_attention',
+  refunded: 'orders.status.refunded',
+};
+
+const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  unpaid: 'orders.paymentStatus.unpaid',
+  pending: 'orders.paymentStatus.pending',
+  paid: 'orders.paymentStatus.paid',
+  failed: 'orders.paymentStatus.failed',
+  refunded: 'orders.paymentStatus.refunded',
+};
+
+function formatDate(value: string, locale: string) {
   try {
-    return new Date(value).toLocaleDateString('en-US', {
+    return new Date(value).toLocaleDateString(locale, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
     });
   } catch {
     return value;
-  }
-}
-
-function statusLabel(status: string) {
-  switch (status) {
-    case 'pending':
-      return 'Pending';
-    case 'paid':
-      return 'Paid';
-    case 'shipped':
-      return 'Shipped';
-    case 'delivered':
-      return 'Delivered';
-    case 'canceled':
-      return 'Canceled';
-    default:
-      return status;
   }
 }
 
@@ -56,23 +60,6 @@ function paymentBadgeClass(paymentStatus?: string) {
       return 'bg-rose-100 text-rose-700';
     default:
       return 'bg-amber-100 text-amber-700';
-  }
-}
-
-function paymentBadgeLabel(paymentStatus?: string) {
-  const p = paymentStatus ?? 'pending';
-  switch (p) {
-    case 'paid':
-      return 'Paid';
-    case 'pending':
-    case 'unpaid':
-      return 'Awaiting payment';
-    case 'failed':
-      return 'Payment failed';
-    case 'refunded':
-      return 'Refunded';
-    default:
-      return p;
   }
 }
 
@@ -95,6 +82,7 @@ export default function UserOrdersPage() {
   const isAuthenticated = !!getAuthToken();
   const q = useMyOrders();
   const orders = q.data || [];
+  const { t, formatPrice, locale } = useTranslation();
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -117,7 +105,7 @@ export default function UserOrdersPage() {
 
   if (q.error) {
     logErrorForDev(q.error);
-    const msg = getUserFacingErrorMessage(q.error, 'Failed to load orders');
+    const msg = getUserFacingErrorMessage(q.error, t('orders.loadError'));
     return (
       <div className='bg-red-50 border border-red-200 rounded-lg p-4 text-red-800'>
         {msg}
@@ -127,7 +115,7 @@ export default function UserOrdersPage() {
 
   return (
     <>
-      <h1 className='text-2xl font-bold text-gray-900 mb-6'>My Orders</h1>
+      <h1 className='text-2xl font-bold text-gray-900 mb-6'>{t('common.orders')}</h1>
 
       {orders.length === 0 ? (
         <div className='bg-white rounded-lg border border-gray-200 p-12 text-center'>
@@ -135,16 +123,16 @@ export default function UserOrdersPage() {
             <Receipt className='h-6 w-6' />
           </div>
           <h2 className='text-xl font-semibold text-gray-900 mb-2'>
-            No orders yet
+            {t('orders.emptyTitle')}
           </h2>
           <p className='text-gray-600 mb-6'>
-            Start browsing products and place your first order.
+            {t('orders.emptyDescription')}
           </p>
           <Link
             href='/products'
             className='inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 text-white font-semibold rounded-lg hover:brightness-110 transition'
           >
-            Browse products
+            {t('orders.browseProducts')}
           </Link>
         </div>
       ) : (
@@ -154,25 +142,25 @@ export default function UserOrdersPage() {
               <thead className='bg-gray-50 border-b border-gray-200'>
                 <tr>
                   <th className='px-6 py-4 text-start text-xs font-bold text-gray-600 uppercase tracking-wider'>
-                    Order
+                    {t('orders.table.order')}
                   </th>
                   <th className='px-6 py-4 text-start text-xs font-bold text-gray-600 uppercase tracking-wider'>
-                    Date
+                    {t('orders.table.date')}
                   </th>
                   <th className='px-6 py-4 text-start text-xs font-bold text-gray-600 uppercase tracking-wider'>
-                    Status
+                    {t('orders.table.status')}
                   </th>
                   <th className='px-6 py-4 text-start text-xs font-bold text-gray-600 uppercase tracking-wider'>
-                    Payment
+                    {t('orders.table.payment')}
                   </th>
                   <th className='px-6 py-4 text-start text-xs font-bold text-gray-600 uppercase tracking-wider'>
-                    Shipping
+                    {t('orders.table.shipping')}
                   </th>
                   <th className='px-6 py-4 text-start text-xs font-bold text-gray-600 uppercase tracking-wider'>
-                    Total
+                    {t('orders.table.total')}
                   </th>
                   <th className='px-6 py-4 text-start text-xs font-bold text-gray-600 uppercase tracking-wider'>
-                    Actions
+                    {t('orders.table.actions')}
                   </th>
                 </tr>
               </thead>
@@ -189,7 +177,7 @@ export default function UserOrdersPage() {
                     </td>
                     <td className='px-6 py-4'>
                       <div className='text-sm text-gray-600'>
-                        {formatDate(o.createdAt)}
+                        {formatDate(o.createdAt, intlLocale(locale))}
                       </div>
                     </td>
                     <td className='px-6 py-4'>
@@ -198,7 +186,7 @@ export default function UserOrdersPage() {
                           o.status,
                         )}`}
                       >
-                        {statusLabel(o.status)}
+                        {STATUS_LABELS[o.status] ? t(STATUS_LABELS[o.status]) : o.status}
                       </span>
                     </td>
                     <td className='px-6 py-4'>
@@ -207,14 +195,18 @@ export default function UserOrdersPage() {
                           o.paymentStatus,
                         )}`}
                       >
-                        {paymentBadgeLabel(o.paymentStatus)}
+                        {o.paymentStatus
+                          ? PAYMENT_STATUS_LABELS[o.paymentStatus]
+                            ? t(PAYMENT_STATUS_LABELS[o.paymentStatus])
+                            : o.paymentStatus
+                          : t('orders.paymentStatus.pending')}
                       </span>
                     </td>
                     <td className='px-6 py-4'>
                       {o.status === 'shipped' || o.status === 'delivered' ? (
                         <div className='flex items-center gap-1 text-sm text-gray-600'>
                           <Truck className='h-4 w-4' />
-                          <span>{o.shippingMethod || 'Standard'}</span>
+                          <span>{o.shippingMethod || t('orders.standardShipping')}</span>
                         </div>
                       ) : (
                         <span className='text-sm text-gray-400'>-</span>
@@ -222,7 +214,7 @@ export default function UserOrdersPage() {
                     </td>
                     <td className='px-6 py-4'>
                       <div className='font-semibold text-gray-900'>
-                        ${o.totalPrice.toFixed(2)}
+                        {formatPrice(o.totalPrice)}
                       </div>
                     </td>
                     <td className='px-6 py-4'>
@@ -230,7 +222,7 @@ export default function UserOrdersPage() {
                         href={`/account/orders/${o._id}`}
                         className='inline-flex items-center gap-1 text-sm font-semibold text-fuchsia-600 hover:text-fuchsia-700 transition'
                       >
-                        View
+                        {t('orders.view')}
                         <ArrowRight className='w-4 h-4 rtl:-scale-x-100' />
                       </Link>
                     </td>
@@ -242,10 +234,9 @@ export default function UserOrdersPage() {
 
           {/* Help Section */}
           <div className='mt-8 bg-gradient-to-br from-fuchsia-600 via-purple-600 to-cyan-500 rounded-lg p-6 text-white'>
-            <h3 className='font-bold mb-2'>Need help with your orders?</h3>
+            <h3 className='font-bold mb-2'>{t('orders.helpTitle')}</h3>
             <p className='text-white/90 text-sm mb-4'>
-              If you have questions about your order status or payment, please
-              check our FAQ or contact support.
+              {t('orders.helpDescription')}
             </p>
             <div className='flex gap-3'>
               <Link
@@ -253,14 +244,14 @@ export default function UserOrdersPage() {
                 className='inline-flex items-center gap-2 bg-white text-fuchsia-600 px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition text-sm'
               >
                 <FolderOpen className='w-4 h-4' />
-                View FAQ
+                {t('orders.viewFaq')}
               </Link>
               <Link
                 href='/contact'
                 className='inline-flex items-center gap-2 bg-white/20 text-white px-4 py-2 rounded-lg font-semibold hover:bg-white/30 transition text-sm'
               >
                 <ExternalLink className='w-4 h-4' />
-                Contact Support
+                {t('orders.contactSupport')}
               </Link>
             </div>
           </div>

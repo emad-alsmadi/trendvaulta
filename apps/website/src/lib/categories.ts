@@ -2,6 +2,7 @@
  * Single source of truth for storefront categories.
  * Slugs mirror the API `Product.category` enum (apps/api/models/Product.js).
  */
+import type { Translate } from '@/lib/i18n';
 
 export type CategorySlug =
   | 'makeup'
@@ -157,8 +158,30 @@ export function getCategory(slug: string): CategoryDef | undefined {
   return normalized ? CATEGORIES.find((c) => c.slug === normalized) : undefined;
 }
 
-/** Human label for a subcategory slug ("eau-de-parfum" → "Eau de parfum"). */
-export function subcategoryLabel(slug: string): string {
+/** A translated message, or undefined when the key has no entry. */
+function optionalMessage(t: Translate | undefined, key: string) {
+  if (!t) return undefined;
+  const value = t(key);
+  return value === key ? undefined : value;
+}
+
+/** Category name in the reader's language (English `label` without `t`). */
+export function categoryLabel(def: CategoryDef, t?: Translate): string {
+  return optionalMessage(t, `categories.${def.slug}.label`) ?? def.label;
+}
+
+export function categoryDescription(def: CategoryDef, t?: Translate): string {
+  return optionalMessage(t, `categories.${def.slug}.description`) ?? def.description;
+}
+
+/**
+ * Human label for a subcategory slug ("eau-de-parfum" → "Eau de parfum").
+ * With `t`, known slugs are translated; slugs added in the dashboard fall
+ * back to the humanized slug.
+ */
+export function subcategoryLabel(slug: string, t?: Translate): string {
+  const translated = optionalMessage(t, `categories.sub.${slug}`);
+  if (translated) return translated;
   const words = slug.replace(/[-_]+/g, ' ').trim();
   return words ? words.charAt(0).toUpperCase() + words.slice(1) : slug;
 }

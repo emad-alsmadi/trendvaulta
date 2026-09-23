@@ -5,7 +5,9 @@ import { ChevronRight } from 'lucide-react';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { CategoryProductGrid } from '@/components/category/CategoryProductGrid';
 import {
+  categoryDescription,
   categoryHref,
+  categoryLabel,
   subcategoryLabel,
   type CategoryDef,
 } from '@/lib/categories';
@@ -39,11 +41,12 @@ export async function CategoryLanding({
 }: Props) {
   const { t } = await getTranslation();
   const site = getSiteUrl();
-  const subLabel = subcategory ? subcategoryLabel(subcategory) : undefined;
+  const label = categoryLabel(def, t);
+  const subLabel = subcategory ? subcategoryLabel(subcategory, t) : undefined;
 
   const crumbs = [
-    { name: 'Home', href: '/' },
-    { name: def.label, href: categoryHref(def.slug) },
+    { name: t('common.home'), href: '/' },
+    { name: label, href: categoryHref(def.slug) },
     ...(subcategory && subLabel
       ? [{ name: subLabel, href: categoryHref(def.slug, subcategory) }]
       : []),
@@ -100,20 +103,20 @@ export async function CategoryLanding({
           <div className='grid grid-cols-1 md:grid-cols-[1.4fr_1fr]'>
             <div className='p-6 sm:p-8'>
               <p className='text-xs font-medium uppercase tracking-wider text-fuchsia-700'>
-                {subLabel ? def.label : t('catalog.category.eyebrow')}
+                {subLabel ? label : t('catalog.category.eyebrow')}
               </p>
               <h1 className='mt-2 text-3xl font-extrabold text-stone-900 sm:text-4xl'>
-                {subLabel ?? def.label}
+                {subLabel ?? label}
               </h1>
               <p className='mt-3 max-w-xl text-sm text-stone-600 sm:text-base'>
-                {def.description}
+                {categoryDescription(def, t)}
               </p>
             </div>
             {def.image ? (
               <div className='relative min-h-[160px] border-t border-stone-200/80 md:border-s md:border-t-0'>
                 <Image
                   src={def.image}
-                  alt={def.label}
+                  alt={label}
                   fill
                   className='object-cover'
                   priority
@@ -126,7 +129,7 @@ export async function CategoryLanding({
 
         {chips.length > 0 ? (
           <nav aria-label={t('catalog.category.subcategoriesAria', {
-            category: def.label,
+            category: label,
           })} className='mb-6'>
             <ul className='flex flex-wrap gap-2'>
               <li>
@@ -139,7 +142,7 @@ export async function CategoryLanding({
                       : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300'
                   }`}
                 >
-                  {t('catalog.category.all', { category: def.label })}
+                  {t('catalog.category.all', { category: label })}
                 </Link>
               </li>
               {chips.map((sub) => {
@@ -155,7 +158,7 @@ export async function CategoryLanding({
                           : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300'
                       }`}
                     >
-                      {subcategoryLabel(sub)}
+                      {subcategoryLabel(sub, t)}
                     </Link>
                   </li>
                 );

@@ -14,6 +14,11 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useBrands } from '@/hooks/brands/brandsQuery';
 import type { ProductSort } from '@/types';
 import { useTranslation } from '@/contexts/TranslationContext';
+import {
+  categoryLabel,
+  getCategory,
+  subcategoryLabel,
+} from '@/lib/categories';
 
 /**
  * API Product.category enum: makeup, perfumes, clothing, skincare,
@@ -205,11 +210,17 @@ export default function ProductsPage() {
       });
     }
     if (category) {
+      const categoryDef = getCategory(category);
       chips.push({
         key: 'category',
-        label: subcategory
-          ? `${category} / ${subcategory}`
-          : t('catalog.chips.category', { category }),
+        label: t('catalog.chips.category', {
+          category: [
+            categoryDef ? categoryLabel(categoryDef, t) : category,
+            subcategory ? subcategoryLabel(subcategory, t) : '',
+          ]
+            .filter(Boolean)
+            .join(' / '),
+        }),
         clear: () =>
           replaceParams((p) => {
             p.delete('category');
