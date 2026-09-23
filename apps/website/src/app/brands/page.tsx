@@ -5,16 +5,18 @@ import { useBrands } from '@/hooks/brands/brandsQuery';
 import { motion } from 'framer-motion';
 import { Loader2, Globe, MapPin, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function BrandsPage() {
   const { data: brands, isLoading, error } = useBrands();
+  const { t } = useTranslation();
 
   if (isLoading) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
         <div className='text-center'>
           <Loader2 className='h-12 w-12 animate-spin text-fuchsia-600 mx-auto' />
-          <p className='mt-4 text-gray-600'>Loading brands...</p>
+          <p className='mt-4 text-gray-600'>{t('brandsPage.loading')}</p>
         </div>
       </div>
     );
@@ -23,7 +25,9 @@ export default function BrandsPage() {
   if (error) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
-        <div className='text-center text-red-600'>Failed to load brands</div>
+        <div className='text-center text-red-600'>
+          {t('brandsPage.loadFailed')}
+        </div>
       </div>
     );
   }
@@ -39,11 +43,10 @@ export default function BrandsPage() {
             className='max-w-3xl'
           >
             <h1 className='text-4xl md:text-5xl font-bold mb-4'>
-              Shop by Brand
+              {t('brandsPage.title')}
             </h1>
             <p className='text-lg text-white/90'>
-              Discover premium products from world-renowned brands. Quality you
-              can trust.
+              {t('brandsPage.subtitle')}
             </p>
           </motion.div>
         </div>
@@ -57,7 +60,7 @@ export default function BrandsPage() {
         >
           <div className='flex items-center justify-between mb-8'>
             <h2 className='text-2xl font-bold text-gray-900'>
-              All Brands ({brands?.length || 0})
+              {t('brandsPage.allBrands', { count: brands?.length || 0 })}
             </h2>
           </div>
 
@@ -114,7 +117,7 @@ export default function BrandsPage() {
 
                       {/* View Products Button */}
                       <div className='flex items-center justify-center gap-2 text-fuchsia-600 font-medium text-sm group-hover:gap-3 transition-all'>
-                        <span>View Products</span>
+                        <span>{t('brandsPage.viewProducts')}</span>
                         <ArrowRight className='h-4 w-4 rtl:-scale-x-100' />
                       </div>
                     </div>
@@ -131,7 +134,7 @@ export default function BrandsPage() {
                         className='flex items-center justify-center gap-2 text-xs text-gray-500 hover:text-fuchsia-600 transition-colors'
                       >
                         <Globe className='h-3 w-3' />
-                        Visit Official Website
+                        {t('brandsPage.visitWebsite')}
                       </a>
                     </div>
                   )}
@@ -144,10 +147,10 @@ export default function BrandsPage() {
                 <Globe className='h-8 w-8 text-gray-400' />
               </div>
               <h3 className='text-xl font-semibold text-gray-900 mb-2'>
-                No Brands Available
+                {t('brandsPage.emptyTitle')}
               </h3>
               <p className='text-gray-600'>
-                Check back later as we add new brands to our collection.
+                {t('brandsPage.emptyDescription')}
               </p>
             </div>
           )}

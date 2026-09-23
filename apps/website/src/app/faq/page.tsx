@@ -3,80 +3,51 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Sparkles, HelpCircle } from 'lucide-react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
+/** Message keys, resolved with t() at render. `id` is the stable category id. */
 const faqs = [
   {
-    category: 'General',
+    id: 'general',
+    categoryKey: 'faq.categories.general',
     questions: [
-      {
-        q: 'What is TrendVaulta?',
-        a: 'TrendVaulta is a premium retail store for beauty, fashion, and lifestyle products from curated brands — with secure checkout and tracked delivery.',
-      },
-      {
-        q: 'How do I purchase a product?',
-        a: 'Simply browse our products, select your preferred size and color, and click the "Add to Cart" button. You can then proceed to checkout and complete your purchase securely.',
-      },
-      {
-        q: 'Can I return products?',
-        a: 'Yes! We offer a 30-day return policy for most products. Items must be unworn, unwashed, and in original packaging with tags attached.',
-      },
+      { q: 'faq.items.whatIs.q', a: 'faq.items.whatIs.a' },
+      { q: 'faq.items.howToPurchase.q', a: 'faq.items.howToPurchase.a' },
+      { q: 'faq.items.canReturn.q', a: 'faq.items.canReturn.a' },
     ],
   },
   {
-    category: 'Shipping & Delivery',
+    id: 'shipping',
+    categoryKey: 'faq.categories.shipping',
     questions: [
-      {
-        q: 'What shipping methods do you offer?',
-        a: 'We offer standard shipping (5-7 business days) and express shipping (2-3 business days). Shipping costs are calculated based on weight and destination.',
-      },
-      {
-        q: 'Do you ship internationally?',
-        a: 'Yes, we ship to most countries worldwide. International shipping times and costs vary by destination.',
-      },
-      {
-        q: 'How can I track my order?',
-        a: 'Once your order ships, you will receive a tracking number via email. You can track your order status in your account dashboard.',
-      },
+      { q: 'faq.items.shippingMethods.q', a: 'faq.items.shippingMethods.a' },
+      { q: 'faq.items.international.q', a: 'faq.items.international.a' },
+      { q: 'faq.items.trackOrder.q', a: 'faq.items.trackOrder.a' },
     ],
   },
   {
-    category: 'Payments & Refunds',
+    id: 'payments',
+    categoryKey: 'faq.categories.payments',
     questions: [
-      {
-        q: 'What payment methods do you accept?',
-        a: 'We accept all major credit cards (Visa, MasterCard, American Express), PayPal, and bank transfers for enterprise purchases.',
-      },
-      {
-        q: 'What is your refund policy?',
-        a: 'We offer a 30-day refund policy for most products. Refunds are processed within 5-7 business days of receiving the returned item.',
-      },
-      {
-        q: 'Are my payments secure?',
-        a: 'Yes, all payments are processed through Stripe, which is PCI DSS compliant and uses industry-standard encryption.',
-      },
+      { q: 'faq.items.paymentMethods.q', a: 'faq.items.paymentMethods.a' },
+      { q: 'faq.items.refundPolicy.q', a: 'faq.items.refundPolicy.a' },
+      { q: 'faq.items.securePayments.q', a: 'faq.items.securePayments.a' },
     ],
   },
   {
-    category: 'Support',
+    id: 'support',
+    categoryKey: 'faq.categories.support',
     questions: [
-      {
-        q: 'How do I get support for my order?',
-        a: 'You can contact our support team through the contact page or by emailing support@trendvaulta.com. We typically respond within 24 hours.',
-      },
-      {
-        q: 'Do you offer custom orders?',
-        a: "We don't offer custom orders directly, but we regularly update our inventory with new products and limited editions.",
-      },
-      {
-        q: 'How do I report a damaged or incorrect item?',
-        a: "If you receive a damaged or incorrect item, please contact our support team immediately with photos of the item and packaging. We'll arrange a replacement or refund.",
-      },
+      { q: 'faq.items.orderSupport.q', a: 'faq.items.orderSupport.a' },
+      { q: 'faq.items.customOrders.q', a: 'faq.items.customOrders.a' },
+      { q: 'faq.items.damagedItem.q', a: 'faq.items.damagedItem.a' },
     ],
   },
 ];
 
 export default function FAQPage() {
-  const [openCategory, setOpenCategory] = useState<string | null>('General');
+  const { t } = useTranslation();
+  const [openCategory, setOpenCategory] = useState<string | null>('general');
   const [openQuestion, setOpenQuestion] = useState<number | null>(null);
 
   const toggleCategory = (category: string) => {
@@ -99,14 +70,13 @@ export default function FAQPage() {
         >
           <div className='inline-flex items-center gap-2 rounded-full border border-fuchsia-200 bg-fuchsia-50 px-3 py-1 text-xs font-extrabold text-fuchsia-700 mb-4'>
             <Sparkles className='h-4 w-4' />
-            Help Center
+            {t('productQa.helpCenter')}
           </div>
           <h1 className='text-4xl font-extrabold text-gray-900 mb-4'>
-            Frequently Asked Questions
+            {t('faq.title')}
           </h1>
           <p className='text-lg text-gray-600 max-w-2xl mx-auto'>
-            Find answers to common questions about TrendVaulta, shipping,
-            payments, and support
+            {t('faq.subtitle')}
           </p>
         </motion.div>
 
@@ -121,20 +91,20 @@ export default function FAQPage() {
             <div className='bg-white rounded-2xl border border-gray-200 p-4 sticky top-24'>
               <h3 className='font-bold text-gray-900 mb-4 flex items-center gap-2'>
                 <HelpCircle className='h-5 w-5 text-fuchsia-600' />
-                Categories
+                {t('common.categories')}
               </h3>
               <nav className='space-y-1'>
                 {faqs.map((faq) => (
                   <button
-                    key={faq.category}
-                    onClick={() => toggleCategory(faq.category)}
+                    key={faq.id}
+                    onClick={() => toggleCategory(faq.id)}
                     className={`w-full text-start px-4 py-2 rounded-lg transition-colors ${
-                      openCategory === faq.category
+                      openCategory === faq.id
                         ? 'bg-fuchsia-50 text-fuchsia-700 font-semibold'
                         : 'text-gray-600 hover:bg-gray-50'
                     }`}
                   >
-                    {faq.category}
+                    {t(faq.categoryKey)}
                   </button>
                 ))}
               </nav>
@@ -145,34 +115,36 @@ export default function FAQPage() {
           <div className='space-y-6'>
             {faqs.map((faq) => (
               <motion.div
-                key={faq.category}
+                key={faq.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className='bg-white rounded-2xl border border-gray-200 overflow-hidden'
               >
                 {/* Mobile Category Header */}
                 <button
-                  onClick={() => toggleCategory(faq.category)}
+                  onClick={() => toggleCategory(faq.id)}
                   className='lg:hidden w-full px-6 py-4 flex items-center justify-between border-b border-gray-200'
                 >
                   <span className='font-bold text-gray-900'>
-                    {faq.category}
+                    {t(faq.categoryKey)}
                   </span>
                   <ChevronDown
                     className={`h-5 w-5 text-gray-500 transition-transform ${
-                      openCategory === faq.category ? 'rotate-180' : ''
+                      openCategory === faq.id ? 'rotate-180' : ''
                     }`}
                   />
                 </button>
 
                 {/* Desktop Category Header */}
                 <div className='hidden lg:block px-6 py-4 border-b border-gray-200 bg-gray-50'>
-                  <h3 className='font-bold text-gray-900'>{faq.category}</h3>
+                  <h3 className='font-bold text-gray-900'>
+                    {t(faq.categoryKey)}
+                  </h3>
                 </div>
 
                 {/* Questions */}
                 <AnimatePresence>
-                  {(openCategory === faq.category || !openCategory) && (
+                  {(openCategory === faq.id || !openCategory) && (
                     <motion.div
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
@@ -189,7 +161,7 @@ export default function FAQPage() {
                             className='w-full px-6 py-4 flex items-center justify-between text-start hover:bg-gray-50 transition-colors'
                           >
                             <span className='font-semibold text-gray-900 pe-4'>
-                              {item.q}
+                              {t(item.q)}
                             </span>
                             <ChevronDown
                               className={`h-5 w-5 text-gray-500 transition-transform shrink-0 ${
@@ -206,7 +178,7 @@ export default function FAQPage() {
                                 className='overflow-hidden'
                               >
                                 <div className='px-6 pb-4 pt-2 text-gray-600'>
-                                  {item.a}
+                                  {t(item.a)}
                                 </div>
                               </motion.div>
                             )}
@@ -229,13 +201,13 @@ export default function FAQPage() {
           className='mt-12 bg-gradient-to-br from-indigo-600 via-purple-600 to-cyan-500 rounded-2xl p-8 text-center text-white'
         >
           <h2 className='text-2xl font-extrabold mb-2'>
-            Still have questions?
+            {t('faq.cta.title')}
           </h2>
           <p className='text-white/90 mb-6'>
-            Our support team is here to help you
+            {t('faq.cta.text')}
           </p>
           <button className='inline-flex items-center gap-2 bg-white text-fuchsia-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors'>
-            Contact Support
+            {t('faq.cta.button')}
           </button>
         </motion.div>
       </div>

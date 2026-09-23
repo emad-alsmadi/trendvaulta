@@ -13,6 +13,7 @@ import { Pagination } from '@/components/ui/Pagination';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useBrands } from '@/hooks/brands/brandsQuery';
 import type { ProductSort } from '@/types';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 /**
  * API Product.category enum: makeup, perfumes, clothing, skincare,
@@ -35,13 +36,13 @@ function normalizeCategoryParam(value: string | null): string | undefined {
 
 const DEFAULT_SORT: ProductSort = 'featured';
 
-const sortOptions: { value: ProductSort; label: string }[] = [
-  { value: 'featured', label: 'Featured' },
-  { value: 'bestselling', label: 'Best Sellers' },
-  { value: 'price_asc', label: 'Price: Low to High' },
-  { value: 'price_desc', label: 'Price: High to Low' },
-  { value: 'rating', label: 'Avg. Customer Review' },
-  { value: 'newest', label: 'Newest Arrivals' },
+const sortOptions: { value: ProductSort; labelKey: string }[] = [
+  { value: 'featured', labelKey: 'catalog.sort.featured' },
+  { value: 'bestselling', labelKey: 'catalog.sort.bestselling' },
+  { value: 'price_asc', labelKey: 'catalog.sort.priceAsc' },
+  { value: 'price_desc', labelKey: 'catalog.sort.priceDesc' },
+  { value: 'rating', labelKey: 'catalog.sort.rating' },
+  { value: 'newest', labelKey: 'catalog.sort.newest' },
 ];
 
 /** Older links used raw field sorts — map them onto the API presets. */
@@ -76,6 +77,7 @@ export default function ProductsPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { t, formatPrice } = useTranslation();
 
   const category = normalizeCategoryParam(searchParams.get('category'));
   const subcategory = searchParams.get('subcategory') || undefined;
@@ -185,8 +187,8 @@ export default function ProductsPage() {
     (id: string) =>
       facets?.brands.find((b) => b._id === id)?.name ||
       brands.find((b) => b._id === id)?.name ||
-      'Brand',
-    [facets, brands],
+      t('catalog.chips.brandFallback'),
+    [facets, brands, t],
   );
 
   const activeChips = useMemo(() => {
@@ -194,7 +196,7 @@ export default function ProductsPage() {
     if (qParam) {
       chips.push({
         key: 'q',
-        label: `Search: “${qParam}”`,
+        label: t('catalog.chips.search', { query: qParam }),
         clear: () =>
           replaceParams((p) => {
             p.delete('q');
@@ -207,7 +209,7 @@ export default function ProductsPage() {
         key: 'category',
         label: subcategory
           ? `${category} / ${subcategory}`
-          : `Category: ${category}`,
+          : t('catalog.chips.category', { category }),
         clear: () =>
           replaceParams((p) => {
             p.delete('category');
@@ -219,7 +221,10 @@ export default function ProductsPage() {
     if (minPrice || maxPrice) {
       chips.push({
         key: 'price',
-        label: `Price: $${minPrice || '0'}–$${maxPrice || '∞'}`,
+        label: t('catalog.chips.price', {
+          min: formatPrice(Number(minPrice || 0)),
+          max: maxPrice ? formatPrice(Number(maxPrice)) : '∞',
+        }),
         clear: () =>
           replaceParams((p) => {
             p.delete('minPrice');
@@ -231,7 +236,7 @@ export default function ProductsPage() {
     if (minRating != null && !Number.isNaN(minRating)) {
       chips.push({
         key: 'rating',
-        label: `${minRating}★ & up`,
+        label: t('catalog.chips.rating', { rating: minRating }),
         clear: () =>
           replaceParams((p) => {
             p.delete('minRating');
@@ -242,7 +247,7 @@ export default function ProductsPage() {
     if (inStockOnly) {
       chips.push({
         key: 'inStock',
-        label: 'In stock',
+        label: t('catalog.chips.inStock'),
         clear: () =>
           replaceParams((p) => {
             p.delete('inStock');
@@ -253,7 +258,7 @@ export default function ProductsPage() {
     if (onSaleOnly) {
       chips.push({
         key: 'onSale',
-        label: 'On sale',
+        label: t('catalog.chips.onSale'),
         clear: () =>
           replaceParams((p) => {
             p.delete('onSale');
@@ -264,7 +269,7 @@ export default function ProductsPage() {
     selectedBrands.forEach((id) => {
       chips.push({
         key: `brand-${id}`,
-        label: `Brand: ${brandLabel(id)}`,
+        label: t('catalog.chips.brand', { name: brandLabel(id) }),
         clear: () =>
           replaceParams((p) => {
             const next = selectedBrands.filter((b) => b !== id);
@@ -277,7 +282,7 @@ export default function ProductsPage() {
     selectedSizes.forEach((size) => {
       chips.push({
         key: `size-${size}`,
-        label: `Size: ${size}`,
+        label: t('product.sizeValue', { value: size }),
         clear: () =>
           replaceParams((p) => {
             const next = selectedSizes.filter((s) => s !== size);
@@ -290,7 +295,7 @@ export default function ProductsPage() {
     selectedColors.forEach((color) => {
       chips.push({
         key: `color-${color}`,
-        label: `Color: ${color}`,
+        label: t('product.colorValue', { value: color }),
         clear: () =>
           replaceParams((p) => {
             const next = selectedColors.filter((c) => c !== color);
@@ -315,6 +320,8 @@ export default function ProductsPage() {
     selectedSizes,
     selectedColors,
     replaceParams,
+    t,
+    formatPrice,
   ]);
 
   const handlePageChange = (page: number) => {
@@ -339,6 +346,17 @@ export default function ProductsPage() {
 
   const headingCategory = subcategory || category;
 
+  // Keep the query highlighted: split the translated sentence at {query}.
+  const resultsText =
+    meta.total === 0
+      ? t(qParam ? 'catalog.noResultsForQuery' : 'catalog.noResults')
+      : t(qParam ? 'catalog.resultsRangeForQuery' : 'catalog.resultsRange', {
+          start: rangeStart,
+          end: rangeEnd,
+          total: meta.total,
+        });
+  const [resultsBefore, resultsAfter = ''] = resultsText.split('{query}');
+
   return (
     <div className='min-h-screen bg-stone-50'>
       <div className='mx-auto max-w-[1400px] px-4 py-8 sm:px-6 lg:px-8'>
@@ -361,10 +379,10 @@ export default function ProductsPage() {
               className='mb-6'
             >
               <h1 className='text-3xl font-extrabold capitalize text-stone-900'>
-                {headingCategory ? headingCategory.replace(/-/g, ' ') : 'Products'}
+                {headingCategory ? headingCategory.replace(/-/g, ' ') : t('common.products')}
               </h1>
               <p className='mt-1 text-stone-600'>
-                Beauty, fashion & lifestyle — find your next essential.
+                {t('catalog.subtitle')}
               </p>
             </motion.div>
 
@@ -383,13 +401,13 @@ export default function ProductsPage() {
                 }}
               >
                 <label htmlFor='plp-search' className='sr-only'>
-                  Search products
+                  {t('catalog.searchLabel')}
                 </label>
                 <Search className='pointer-events-none absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-stone-400' />
                 <Input
                   id='plp-search'
                   type='search'
-                  placeholder='Search products…'
+                  placeholder={t('catalog.searchPlaceholder')}
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   className='ps-10'
@@ -398,7 +416,7 @@ export default function ProductsPage() {
 
               <div className='flex w-full gap-3 sm:w-auto'>
                 <label className='sr-only' htmlFor='plp-sort'>
-                  Sort products
+                  {t('catalog.sortLabel')}
                 </label>
                 <select
                   id='plp-sort'
@@ -408,7 +426,7 @@ export default function ProductsPage() {
                 >
                   {sortOptions.map((option) => (
                     <option key={option.value} value={option.value}>
-                      {option.label}
+                      {t(option.labelKey)}
                     </option>
                   ))}
                 </select>
@@ -420,7 +438,7 @@ export default function ProductsPage() {
                   onClick={() => setFiltersOpen(true)}
                 >
                   <Filter className='h-4 w-4' />
-                  Filters
+                  {t('catalog.filters')}
                   {activeChips.length > 0 ? (
                     <span className='rounded-full bg-fuchsia-100 px-1.5 text-xs font-semibold text-fuchsia-800'>
                       {activeChips.length}
@@ -450,7 +468,7 @@ export default function ProductsPage() {
                     onClick={() => router.replace('/products')}
                     className='text-xs font-semibold text-fuchsia-700 hover:text-fuchsia-800'
                   >
-                    Clear all
+                    {t('catalog.clearAll')}
                   </button>
                 </li>
               </ul>
@@ -458,24 +476,22 @@ export default function ProductsPage() {
 
             <div className='mb-6 flex flex-wrap items-center gap-2 text-sm text-stone-600'>
               {isLoading && !response ? (
-                <span>Loading products…</span>
+                <span>{t('catalog.loading')}</span>
               ) : error ? (
-                <span className='text-rose-600'>Failed to load products</span>
+                <span className='text-rose-600'>{t('catalog.loadFailed')}</span>
               ) : (
                 <span>
-                  {meta.total === 0
-                    ? 'No results'
-                    : `${rangeStart}–${rangeEnd} of ${meta.total} results`}
+                  {resultsBefore}
                   {qParam ? (
                     <>
-                      {' '}
-                      for <span className='font-semibold text-fuchsia-700'>“{qParam}”</span>
+                      <span className='font-semibold text-fuchsia-700'>“{qParam}”</span>
+                      {resultsAfter}
                     </>
                   ) : null}
                 </span>
               )}
               {isFetching && response ? (
-                <span className='text-xs text-stone-400'>Updating…</span>
+                <span className='text-xs text-stone-400'>{t('catalog.updating')}</span>
               ) : null}
             </div>
 
@@ -490,13 +506,13 @@ export default function ProductsPage() {
               </div>
             ) : error && !response ? (
               <div className='rounded-xl border border-rose-100 bg-white py-12 text-center'>
-                <p className='text-rose-600'>Couldn’t load the catalog.</p>
+                <p className='text-rose-600'>{t('catalog.catalogLoadFailed')}</p>
                 <Button
                   type='button'
                   className='mt-4'
                   onClick={() => refetch()}
                 >
-                  Retry
+                  {t('catalog.retry')}
                 </Button>
               </div>
             ) : products.length > 0 ? (
@@ -525,8 +541,8 @@ export default function ProductsPage() {
               <div className='rounded-xl border border-stone-100 bg-white py-12 text-center'>
                 <p className='text-lg text-stone-500'>
                   {qParam || activeChips.length
-                    ? 'No products match these filters.'
-                    : 'No products available.'}
+                    ? t('catalog.noMatches')
+                    : t('catalog.noProducts')}
                 </p>
                 {activeChips.length > 0 && (
                   <Button
@@ -535,7 +551,7 @@ export default function ProductsPage() {
                     className='mt-4'
                     onClick={() => router.replace('/products')}
                   >
-                    Clear filters
+                    {t('catalog.clearFilters')}
                   </Button>
                 )}
               </div>

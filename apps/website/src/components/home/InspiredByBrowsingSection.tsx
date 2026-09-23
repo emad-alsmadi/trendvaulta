@@ -6,6 +6,7 @@ import { ProductCard } from '@/components/products/ProductCard';
 import { pickInspiredProducts } from '@/data/demoStorefront';
 import { useHomeRecommendations } from '@/hooks/storefront/recommendationsQuery';
 import { getRecentlyViewed } from '@/lib/recentlyViewed';
+import { useTranslation } from '@/contexts/TranslationContext';
 import type { Product } from '@/types';
 
 type Props = {
@@ -36,6 +37,7 @@ export function InspiredByBrowsingSection({
   products = [],
   loading: parentLoading = false,
 }: Props) {
+  const { t } = useTranslation();
   // getRecentlyViewed() reads localStorage (SSR-safe, returns [] on the
   // server) — a lazy initializer reads it exactly once on mount with no
   // extra render, instead of committing an empty state then correcting it
@@ -77,15 +79,15 @@ export function InspiredByBrowsingSection({
 
   const hasBrowsingSignal = viewedIds.length > 0;
   const title = hasBrowsingSignal
-    ? 'Inspired by your browsing'
-    : 'You may also like';
+    ? t('home.inspired.titleBrowsing')
+    : t('home.inspired.titleDefault');
   const subtitle = fromApi
     ? hasBrowsingSignal
-      ? 'Picks based on what is popular and items you have opened.'
-      : 'Suggestions from our catalog for you.'
+      ? t('home.inspired.subtitleBrowsing')
+      : t('home.inspired.subtitleDefault')
     : hasBrowsingSignal
-      ? 'Demo picks based on items you opened on this device.'
-      : 'Demo suggestions until you browse a few products.';
+      ? t('home.inspired.demoSubtitleBrowsing')
+      : t('home.inspired.demoSubtitleDefault');
 
   const awaitingFallbackCatalog =
     !fromApi && parentLoading && products.length === 0;
@@ -100,7 +102,7 @@ export function InspiredByBrowsingSection({
       >
         <div className='mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8'>
           <p className='py-8 text-center text-sm text-stone-500'>
-            Loading suggestions…
+            {t('home.inspired.loading')}
           </p>
         </div>
       </section>
@@ -118,7 +120,9 @@ export function InspiredByBrowsingSection({
         <div className='mb-6 flex items-end justify-between gap-4'>
           <div>
             <p className='text-xs font-medium uppercase tracking-wider text-stone-500'>
-              {fromApi ? 'Recommended for you' : 'Demo recommendations'}
+              {fromApi
+                ? t('home.inspired.eyebrow')
+                : t('home.inspired.demoEyebrow')}
             </p>
             <h2
               id='inspired-heading'
@@ -132,7 +136,7 @@ export function InspiredByBrowsingSection({
             href='/products'
             className='text-sm font-semibold text-fuchsia-700 hover:text-fuchsia-800'
           >
-            Explore more
+            {t('home.inspired.exploreMore')}
           </Link>
         </div>
 

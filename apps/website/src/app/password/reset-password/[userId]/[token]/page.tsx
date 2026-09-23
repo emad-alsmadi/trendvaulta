@@ -18,10 +18,12 @@ import {
   getUserFacingErrorMessage,
   logErrorForDev,
 } from '@/lib/userFacingError';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const params = useParams();
   const userId = params.userId as string;
   const token = params.token as string;
@@ -51,12 +53,12 @@ export default function ResetPasswordPage() {
         token,
         password: values.password,
       });
-      const msg = res?.message || 'Password updated successfully';
+      const msg = res?.message || t('security.toast.updated');
       setSuccess(msg);
       reset();
-      toast(msg, { title: 'Success', variant: 'success' });
-      toast('Redirecting you to login...', {
-        title: 'Next step',
+      toast(msg, { title: t('common.success'), variant: 'success' });
+      toast(t('password.redirecting'), {
+        title: t('password.nextStep'),
         variant: 'info',
         durationMs: 2400,
       });
@@ -65,8 +67,8 @@ export default function ResetPasswordPage() {
       }, 2200);
     } catch (err) {
       logErrorForDev(err);
-      const msg = getUserFacingErrorMessage(err, 'Reset failed');
-      toast(msg, { title: 'Reset failed', variant: 'error' });
+      const msg = getUserFacingErrorMessage(err, t('password.resetFailed'));
+      toast(msg, { title: t('password.resetFailed'), variant: 'error' });
     }
   });
 
@@ -79,10 +81,10 @@ export default function ResetPasswordPage() {
             href='/'
             className='hover:text-fuchsia-600'
           >
-            Home
+            {t('common.home')}
           </Link>
           <span>/</span>
-          <span className='text-gray-900'>Reset Password</span>
+          <span className='text-gray-900'>{t('password.resetTitle')}</span>
         </nav>
 
         <div className='max-w-md mx-auto'>
@@ -90,12 +92,12 @@ export default function ResetPasswordPage() {
             <div className='flex items-center gap-2 mb-6'>
               <Sparkles className='w-5 h-5 text-fuchsia-600' />
               <h1 className='text-2xl font-bold text-gray-900'>
-                Reset Password
+                {t('password.resetTitle')}
               </h1>
             </div>
 
             <p className='text-gray-600 mb-6'>
-              Choose a strong password (at least 8 characters) and confirm it.
+              {t('password.resetIntro', { count: 8 })}
             </p>
 
             <form
@@ -104,7 +106,7 @@ export default function ResetPasswordPage() {
             >
               <div>
                 <label className='block text-sm font-bold text-gray-900 mb-2'>
-                  New Password
+                  {t('security.newPassword')}
                 </label>
                 <div className='relative'>
                   <Lock className='pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' />
@@ -116,14 +118,14 @@ export default function ResetPasswordPage() {
                 </div>
                 {errors.password?.message && (
                   <div className='mt-2 text-sm font-semibold text-rose-700'>
-                    {errors.password.message}
+                    {t(errors.password.message)}
                   </div>
                 )}
               </div>
 
               <div>
                 <label className='block text-sm font-bold text-gray-900 mb-2'>
-                  Confirm Password
+                  {t('password.confirmPassword')}
                 </label>
                 <Input
                   type='password'
@@ -131,7 +133,7 @@ export default function ResetPasswordPage() {
                 />
                 {errors.confirmPassword?.message && (
                   <div className='mt-2 text-sm font-semibold text-rose-700'>
-                    {errors.confirmPassword.message}
+                    {t(errors.confirmPassword.message)}
                   </div>
                 )}
               </div>
@@ -146,7 +148,7 @@ export default function ResetPasswordPage() {
                       className='w-full sm:w-auto'
                       onClick={() => router.push('/auth/login')}
                     >
-                      Go to login
+                      {t('password.goToLogin')}
                     </Button>
                     <Button
                       type='button'
@@ -154,7 +156,7 @@ export default function ResetPasswordPage() {
                       className='w-full bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 sm:w-auto'
                       onClick={() => router.push('/')}
                     >
-                      Browse catalog
+                      {t('cartPage.browseCatalog')}
                     </Button>
                   </div>
                 </div>
@@ -168,10 +170,10 @@ export default function ResetPasswordPage() {
                 {resetMutation.isPending || isSubmitting ? (
                   <span className='inline-flex items-center gap-2'>
                     <Loader2 className='h-4 w-4 animate-spin' />
-                    Saving...
+                    {t('password.saving')}
                   </span>
                 ) : (
-                  'Save New Password'
+                  t('password.saveNewPassword')
                 )}
               </Button>
             </form>
@@ -182,7 +184,7 @@ export default function ResetPasswordPage() {
                 className='inline-flex items-center gap-2 text-sm font-semibold text-fuchsia-600 hover:text-fuchsia-700 transition'
               >
                 <ArrowLeft className='w-4 h-4 rtl:-scale-x-100' />
-                Back to login
+                {t('password.backToLogin')}
               </Link>
             </div>
           </div>

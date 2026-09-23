@@ -1,3 +1,5 @@
+'use client';
+
 import { Review } from '@/types';
 import { StarRating } from '../rating/StarRating';
 import { Trash2, Edit2, BadgeCheck } from 'lucide-react';

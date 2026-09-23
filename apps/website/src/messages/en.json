@@ -72,7 +72,45 @@
     "forgotPassword": "Forgot Password?",
     "rememberMe": "Remember me",
     "noAccount": "Don't have an account?",
-    "hasAccount": "Already have an account?"
+    "hasAccount": "Already have an account?",
+    "welcomeBack": "Welcome back",
+    "loginHeading": "Sign in to your account",
+    "loginIntro": "Access your profile, wishlist, and orders — then keep shopping beauty, fashion, and lifestyle picks.",
+    "perkFavorites": "Save favorites and track your orders",
+    "perkCatalog": "Browse curated beauty and fashion catalog",
+    "perkCheckout": "Secure checkout when you are ready",
+    "login": "Login",
+    "loginSubtitle": "Enter your credentials to continue.",
+    "signedIn": "Signed",
+    "loginSuccess": "Logged in successfully.",
+    "loginFailed": "Login failed",
+    "signingIn": "Signing in...",
+    "createAccount": "Create account",
+    "forgotPasswordLink": "Forgot password?",
+    "createAccountTitle": "Create Account",
+    "signupSubtitle": "Join TrendVaulta to shop beauty, fashion, and lifestyle.",
+    "username": "Username",
+    "usernamePlaceholder": "Your name",
+    "signupSuccess": "Account created successfully.",
+    "signupFailed": "Signup failed",
+    "creating": "Creating...",
+    "hasAccountPrompt": "Already have an account? {link}",
+    "newHere": "New here",
+    "signupHeading": "Create your profile",
+    "signupIntro": "Create an account in seconds and shop curated beauty, fashion, and lifestyle products.",
+    "perkWishlist": "Wishlist and order history in one place",
+    "perkDeals": "Deals, brands, and gift-ready edits",
+    "perkStripe": "Secure checkout with Stripe when configured",
+    "validation": {
+      "emailMin": "Email must be at least 5 characters",
+      "emailMax": "Email must be at most 100 characters",
+      "emailInvalid": "Enter a valid email address",
+      "usernameMin": "Username must be at least 2 characters",
+      "usernameMax": "Username must be at most 200 characters",
+      "passwordMax": "Password must be at most 100 characters",
+      "passwordMismatch": "Passwords do not match.",
+      "atLeastOneField": "Fill in at least one field."
+    }
   },
   "cartPage": {
     "title": "Your cart",
@@ -615,5 +653,476 @@
     "anonymousAsker": "A shopper",
     "notAnswered": "Our team hasn't answered this yet.",
     "helpful": "Helpful ({count})"
+  },
+  "password": {
+    "forgotTitle": "Forgot Password",
+    "forgotIntro": "Enter your email address and we'll send you a link to reset your password.",
+    "emailAddress": "Email Address",
+    "linkGeneratedToast": "Reset link generated successfully.",
+    "requestFailed": "Request failed",
+    "linkGenerated": "Reset link generated",
+    "linkCopied": "Reset link copied to clipboard.",
+    "copied": "Copied",
+    "copy": "Copy",
+    "copyFailed": "Copy failed",
+    "copyFailedMessage": "Copy failed. Please copy the link manually.",
+    "sending": "Sending...",
+    "sendResetLink": "Send Reset Link",
+    "backToLogin": "Back to login",
+    "back": "Back",
+    "checkEmail": "Check your email",
+    "linkSent": "Reset link sent",
+    "linkSentBody": "We’ve sent a password reset link to your email address.",
+    "nextSteps": "Next steps",
+    "openInboxFor": "Open your inbox for {email}, then click the reset link to set a new password.",
+    "openInbox": "Open your inbox, then click the reset link to set a new password.",
+    "spamHint": "If you don’t see it, check your spam/junk folder.",
+    "resendLink": "Resend link",
+    "resetTitle": "Reset Password",
+    "resetIntro": "Choose a strong password (at least {count} characters) and confirm it.",
+    "confirmPassword": "Confirm Password",
+    "redirecting": "Redirecting you to login...",
+    "nextStep": "Next step",
+    "resetFailed": "Reset failed",
+    "goToLogin": "Go to login",
+    "saving": "Saving...",
+    "saveNewPassword": "Save New Password"
+  },
+  "catalog": {
+    "subtitle": "Beauty, fashion & lifestyle — find your next essential.",
+    "searchLabel": "Search products",
+    "searchPlaceholder": "Search products…",
+    "sortLabel": "Sort products",
+    "sort": {
+      "featured": "Featured",
+      "bestselling": "Best Sellers",
+      "priceAsc": "Price: Low to High",
+      "priceDesc": "Price: High to Low",
+      "rating": "Avg. Customer Review",
+      "newest": "Newest Arrivals"
+    },
+    "filters": "Filters",
+    "allFilters": "All filters",
+    "clearAll": "Clear all",
+    "clearFilters": "Clear filters",
+    "chips": {
+      "search": "Search: “{query}”",
+      "category": "Category: {category}",
+      "price": "Price: {min}–{max}",
+      "rating": "{rating}★ & up",
+      "inStock": "In stock",
+      "onSale": "On sale",
+      "brand": "Brand: {name}",
+      "brandFallback": "Brand"
+    },
+    "loading": "Loading products…",
+    "loadFailed": "Failed to load products",
+    "updating": "Updating…",
+    "noResults": "No results",
+    "noResultsForQuery": "No results for {query}",
+    "resultsRange": "Results {start}–{end} of {total}",
+    "resultsRangeForQuery": "Results {start}–{end} of {total} for {query}",
+    "catalogLoadFailed": "Couldn’t load the catalog.",
+    "retry": "Retry",
+    "noMatches": "No products match these filters.",
+    "noProducts": "No products available.",
+    "emptyCategory": "No products available in this category yet.",
+    "browseAll": "Browse all products",
+    "category": {
+      "eyebrow": "Category",
+      "subcategoriesAria": "{category} subcategories",
+      "all": "All {category}"
+    }
+  },
+  "brandsPage": {
+    "loading": "Loading brands...",
+    "loadFailed": "Failed to load brands",
+    "title": "Shop by Brand",
+    "subtitle": "Discover premium products from world-renowned brands. Quality you can trust.",
+    "allBrands": "All Brands ({count})",
+    "viewProducts": "View Products",
+    "visitWebsite": "Visit Official Website",
+    "emptyTitle": "No Brands Available",
+    "emptyDescription": "Check back later as we add new brands to our collection.",
+    "detail": {
+      "loading": "Loading brand...",
+      "notFound": "Brand not found",
+      "about": "About {brand}",
+      "productsFrom": "Products from {brand}",
+      "productCount": "Products: {count}",
+      "emptyProducts": "No products available from this brand yet.",
+      "trust": {
+        "secureCheckout": "Secure Checkout",
+        "secureCheckoutText": "Safe and encrypted payment processing",
+        "authentic": "Authentic Products",
+        "authenticText": "100% genuine {brand} products",
+        "reviewsText": "Verified customer feedback"
+      }
+    }
+  },
+  "productCard": {
+    "discount": "-{percent}%",
+    "add": "Add",
+    "badges": {
+      "bestseller": "Bestseller",
+      "new": "New",
+      "lowStock": "Low stock"
+    }
+  },
+  "about": {
+    "badge": "About TrendVaulta",
+    "title": "Beauty, fashion & lifestyle — curated for everyday style",
+    "subtitle": "We help shoppers discover trusted brands and products they love — with clear prices, secure checkout, and care you can count on.",
+    "stats": {
+      "shoppers": "Shoppers",
+      "averageRating": "Average Rating"
+    },
+    "mission": {
+      "title": "Our Mission",
+      "p1": "TrendVaulta was founded to make premium beauty, fashion, and lifestyle shopping feel simple and trustworthy — without the noise of a generic marketplace.",
+      "p2": "We curate products and brands that fit real routines: skincare that works, fashion that feels current, and accessories that elevate everyday looks. Every listing is reviewed for quality and clarity before it reaches the storefront.",
+      "shipping": "Shipping to shoppers worldwide"
+    },
+    "features": {
+      "delivery": {
+        "title": "Delivery",
+        "text": "Tracked shipping options with clear expectations at checkout."
+      },
+      "security": {
+        "text": "Encrypted payments through Stripe when configured."
+      },
+      "care": {
+        "title": "Care",
+        "text": "Wishlist, reviews, and support built around real shopping."
+      }
+    },
+    "team": {
+      "title": "Meet Our Team",
+      "roles": {
+        "ceo": "CEO & Founder",
+        "creativeDirector": "Creative Director",
+        "merchandising": "Head of Merchandising",
+        "customerExperience": "Customer Experience"
+      }
+    },
+    "howWeShop": {
+      "title": "How we shop with you",
+      "intro": "TrendVaulta combines a curated catalog with modern shopping tools — search, brands, wishlist, reviews, and secure checkout — so finding your next favorite product feels effortless.",
+      "catalog": {
+        "title": "Curated catalog",
+        "text": "Beauty, fashion, and lifestyle picks from featured brands."
+      },
+      "checkout": {
+        "title": "Confident checkout",
+        "text": "Coupons, delivery options, and Stripe-secured payments."
+      },
+      "afterPurchase": {
+        "title": "After purchase",
+        "text": "Order tracking, returns guidance, and human support."
+      }
+    }
+  },
+  "contact": {
+    "badge": "Get in Touch",
+    "title": "Contact Us",
+    "subtitle": "Questions about orders, products, or returns? Send a message — the TrendVaulta care team usually replies within 24 hours.",
+    "info": {
+      "title": "Contact Information",
+      "studio": "Studio"
+    },
+    "helpFaster": {
+      "title": "Need help faster?",
+      "text": "Browse the Help Center for shipping, returns, and order guides.",
+      "faq": "FAQ"
+    },
+    "success": {
+      "title": "Message Sent!",
+      "text": "Thank you for reaching out. We'll get back to you within 24 hours."
+    },
+    "form": {
+      "subject": "Subject",
+      "subjectPlaceholder": "Select a subject",
+      "subjects": {
+        "order": "Order or tracking",
+        "product": "Product question",
+        "return": "Return or refund",
+        "billing": "Payment / billing",
+        "other": "Other"
+      },
+      "message": "Message",
+      "messagePlaceholder": "How can we help you?",
+      "submit": "Send Message"
+    },
+    "errors": {
+      "nameMin": "Enter your name (at least 2 characters)",
+      "nameMax": "Name is too long",
+      "subjectMin": "Choose a subject",
+      "subjectMax": "Subject is too long",
+      "messageMin": "Tell us a little more (at least 10 characters)",
+      "messageMax": "Message is too long (2000 characters max)",
+      "sendFailed": "Could not send your message. Please try again."
+    }
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Find answers to common questions about TrendVaulta, shipping, payments, and support",
+    "categories": {
+      "general": "General",
+      "shipping": "Shipping & Delivery",
+      "payments": "Payments & Refunds",
+      "support": "Support"
+    },
+    "items": {
+      "whatIs": {
+        "q": "What is TrendVaulta?",
+        "a": "TrendVaulta is a premium retail store for beauty, fashion, and lifestyle products from curated brands — with secure checkout and tracked delivery."
+      },
+      "howToPurchase": {
+        "q": "How do I purchase a product?",
+        "a": "Simply browse our products, select your preferred size and color, and click the \"Add to Cart\" button. You can then proceed to checkout and complete your purchase securely."
+      },
+      "canReturn": {
+        "q": "Can I return products?",
+        "a": "Yes! We offer a 30-day return policy for most products. Items must be unworn, unwashed, and in original packaging with tags attached."
+      },
+      "shippingMethods": {
+        "q": "What shipping methods do you offer?",
+        "a": "We offer standard shipping (5-7 business days) and express shipping (2-3 business days). Shipping costs are calculated based on weight and destination."
+      },
+      "international": {
+        "q": "Do you ship internationally?",
+        "a": "Yes, we ship to most countries worldwide. International shipping times and costs vary by destination."
+      },
+      "trackOrder": {
+        "q": "How can I track my order?",
+        "a": "Once your order ships, you will receive a tracking number via email. You can track your order status in your account dashboard."
+      },
+      "paymentMethods": {
+        "q": "What payment methods do you accept?",
+        "a": "We accept all major credit cards (Visa, MasterCard, American Express), PayPal, and bank transfers for enterprise purchases."
+      },
+      "refundPolicy": {
+        "q": "What is your refund policy?",
+        "a": "We offer a 30-day refund policy for most products. Refunds are processed within 5-7 business days of receiving the returned item."
+      },
+      "securePayments": {
+        "q": "Are my payments secure?",
+        "a": "Yes, all payments are processed through Stripe, which is PCI DSS compliant and uses industry-standard encryption."
+      },
+      "orderSupport": {
+        "q": "How do I get support for my order?",
+        "a": "You can contact our support team through the contact page or by emailing support@trendvaulta.com. We typically respond within 24 hours."
+      },
+      "customOrders": {
+        "q": "Do you offer custom orders?",
+        "a": "We don't offer custom orders directly, but we regularly update our inventory with new products and limited editions."
+      },
+      "damagedItem": {
+        "q": "How do I report a damaged or incorrect item?",
+        "a": "If you receive a damaged or incorrect item, please contact our support team immediately with photos of the item and packaging. We'll arrange a replacement or refund."
+      }
+    },
+    "cta": {
+      "title": "Still have questions?",
+      "text": "Our support team is here to help you",
+      "button": "Contact Support"
+    }
+  },
+  "help": {
+    "title": "How can we help?",
+    "subtitle": "Shipping, returns, orders, payments, and gifts — self-serve guides for TrendVaulta shoppers.",
+    "loading": "Loading help topics…",
+    "error": "Failed to load help topics. Please try again later.",
+    "empty": "No help topics available at this time.",
+    "open": "Open",
+    "quickAnswers": {
+      "title": "Quick answers",
+      "faq": "{link} — payments, shipping windows, and product questions",
+      "faqLink": "FAQ",
+      "shipping": "{link} — rates, tracking, and international notes",
+      "returns": "{link} — eligibility and refund timing",
+      "returnsLink": "Returns policy"
+    },
+    "human": {
+      "title": "Still need a human?",
+      "text": "Our care team can help with damaged items, missing packages, or account issues.",
+      "button": "Contact support"
+    }
+  },
+  "offersPage": {
+    "title": "Special Offers",
+    "endsOn": "Ends {date}",
+    "shopOffer": "Shop offer",
+    "loadError": "Offers could not be loaded right now.",
+    "emptyTitle": "No active offers right now",
+    "emptyDescription": "Check back soon, or browse today's best sellers.",
+    "browseProducts": "Browse products",
+    "couponHowTo": {
+      "title": "How to use a coupon code:",
+      "step1": "Add products to your cart",
+      "step2": "Proceed to checkout",
+      "step3": "Enter the code in the coupon field and press Apply"
+    }
+  },
+  "returnsPolicy": {
+    "badge": "Policies",
+    "title": "Returns & refunds",
+    "loading": "Loading returns policy…",
+    "loadError": "Failed to load returns policy. Please try again later.",
+    "unavailable": "Returns policy not available at this time.",
+    "helpPrompt": "Need help with a return? Visit the {helpLink} or {contactLink}.",
+    "contactSupport": "contact support"
+  },
+  "shippingPolicy": {
+    "badge": "Policies",
+    "title": "Shipping & delivery",
+    "loading": "Loading shipping policy…",
+    "loadError": "Failed to load shipping policy. Please try again later.",
+    "unavailable": "Shipping policy not available at this time.",
+    "helpPrompt": "Need help with a shipment? Visit the {helpLink} or {contactLink}.",
+    "contactSupport": "contact support"
+  },
+  "errors": {
+    "loading": "Loading…",
+    "notFound": {
+      "title": "Page not found",
+      "description": "That page doesn't exist — try the catalog, today's offers, or the Help Center.",
+      "homepage": "Homepage"
+    },
+    "routeError": {
+      "title": "Something went wrong",
+      "description": "This page could not be displayed. You can try again or head back home.",
+      "tryAgain": "Try again",
+      "goHome": "Go home"
+    },
+    "unauthorized": {
+      "badge": "Authorization",
+      "title": "Access denied",
+      "description": "You tried to open a page that requires different permissions. If you believe this is a mistake, login with the right account.",
+      "backHome": "Back to home",
+      "login": "Login"
+    }
+  },
+  "home": {
+    "hero": {
+      "title": "Beauty, fashion & lifestyle — curated for everyday polish",
+      "subtitle": "Discover elevated essentials, limited edits, and brands that match your rhythm. Clear prices, trusted checkout, care you can feel.",
+      "searchLabel": "Search products",
+      "searchPlaceholder": "Search beauty, fashion, lifestyle…",
+      "beauty": "Beauty",
+      "fashion": "Fashion",
+      "shopAll": "Shop all"
+    },
+    "promo": {
+      "srDescription": "Featured promotions",
+      "previous": "Previous promo",
+      "next": "Next promo",
+      "slidesLabel": "Promo slides",
+      "showSlide": "Show slide {number}: {label}"
+    },
+    "categories": {
+      "browseTitle": "Browse by category",
+      "browseSubtitle": "Beauty, fashion, and lifestyle edits for every mood",
+      "title": "Shop by category",
+      "subtitleFallback": "Beauty, fashion, and lifestyle edits for every mood",
+      "subtitle": "Beauty, fashion, and lifestyle edits — browse the TrendVaulta catalog",
+      "loading": "Loading categories…"
+    },
+    "brands": {
+      "eyebrowDemo": "Brand spotlight",
+      "eyebrow": "Featured brands",
+      "title": "Featured houses",
+      "subtitleDemo": "A taste of the houses we carry.",
+      "subtitle": "Handpicked houses from the catalog.",
+      "explore": "Explore →",
+      "fromCountry": "From {country}",
+      "shopCollection": "Shop the collection",
+      "fallbackName": "Brand"
+    },
+    "featured": {
+      "eyebrow": "Bestsellers",
+      "title": "Featured picks",
+      "subtitle": "Top sellers from the catalog",
+      "viewCatalog": "View catalog",
+      "loading": "Loading featured products…",
+      "loadError": "Could not load products. Browse the {link}.",
+      "fullCatalog": "full catalog",
+      "empty": "New arrivals are on their way. Check back soon."
+    },
+    "deals": {
+      "eyebrow": "Limited offers",
+      "title": "Limited-time edits",
+      "subtitleFallback": "Curated promotions from across the store.",
+      "subtitle": "Curated promotions — grab them before they end.",
+      "shopAll": "Shop all",
+      "loading": "Loading offers…"
+    },
+    "lookbook": {
+      "eyebrow": "Lookbook",
+      "demoEyebrow": "Style stories",
+      "title": "Inspired edits",
+      "subtitle": "Lifestyle storytelling modules curated for the season.",
+      "demoSubtitle": "Lifestyle stories and styling ideas for the season.",
+      "loading": "Loading lookbooks…"
+    },
+    "giftFinder": {
+      "eyebrow": "Gift finder",
+      "demoEyebrow": "Gift ideas",
+      "title": "Find a thoughtful gift",
+      "subtitle": "Pick an occasion, who it’s for, and a budget — we’ll route you to matching products.",
+      "demoSubtitle": "Pick an occasion, who it’s for, and a budget — we’ll suggest where to start.",
+      "loading": "Loading gift options…",
+      "occasion": "Occasion",
+      "recipient": "Who is it for?",
+      "budget": "Budget",
+      "showIdeas": "Show gift ideas",
+      "hint": "Opens catalog with your filters applied.",
+      "demoHint": "Opens the catalog with your choices applied.",
+      "imageAlt": "Gift finder illustration"
+    },
+    "inspired": {
+      "eyebrow": "Recommended for you",
+      "demoEyebrow": "Picked for you",
+      "titleBrowsing": "Inspired by your browsing",
+      "titleDefault": "You may also like",
+      "subtitleBrowsing": "Picks based on what is popular and items you have opened.",
+      "subtitleDefault": "Suggestions from our catalog for you.",
+      "demoSubtitleBrowsing": "Picks based on items you viewed on this device.",
+      "demoSubtitleDefault": "Browse a few products and we’ll tailor these picks to you.",
+      "loading": "Loading suggestions…",
+      "exploreMore": "Explore more"
+    },
+    "recentlyViewed": {
+      "synced": "Synced to your account",
+      "onDevice": "On this device",
+      "title": "Recently viewed"
+    },
+    "testimonials": {
+      "title": "What our customers say",
+      "subtitle": "Shoppers who trust TrendVaulta for beauty, fashion, and lifestyle"
+    },
+    "trust": {
+      "ariaLabel": "Shopping benefits",
+      "loading": "Loading benefits…",
+      "demoNotice": "See our shipping and returns policies for full terms."
+    },
+    "whyChooseUs": {
+      "title": "Why shop TrendVaulta",
+      "subtitle": "A calmer retail experience for beauty, fashion, and lifestyle",
+      "deliveryTitle": "Reliable delivery",
+      "deliveryDescription": "Clear shipping options and tracking on every order",
+      "returnsTitle": "Easy returns",
+      "returnsDescription": "Straightforward returns within our store policy window",
+      "paymentsTitle": "Secure payments",
+      "paymentsDescription": "Checkout protected with industry-standard encryption",
+      "supportTitle": "Care support",
+      "supportDescription": "Friendly help when you need sizing, gifts, or order care"
+    },
+    "cta": {
+      "title": "Ready for your next edit?",
+      "subtitle": "Explore TrendVaulta’s beauty, fashion, and lifestyle catalog — then checkout with secure payment when you’re ready.",
+      "browseProducts": "Browse products",
+      "contactSupport": "Talk to support"
+    }
   }
 }

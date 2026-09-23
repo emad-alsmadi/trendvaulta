@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { DEMO_CATEGORY_SHORTCUTS } from '@/data/demoStorefront';
 import { useStorefrontCategories } from '@/hooks/storefront/categoriesQuery';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 /** Retail category tiles — live categories API with demo fallback */
 export function FeaturedCategories() {
+  const { t } = useTranslation();
   const q = useStorefrontCategories();
   const source =
     q.data && q.data.length > 0
@@ -24,10 +26,10 @@ export function FeaturedCategories() {
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
         <div className='text-center mb-12'>
           <h2 className='text-3xl font-bold text-gray-900 mb-4'>
-            Browse by category
+            {t('home.categories.browseTitle')}
           </h2>
           <p className='text-gray-600 text-lg'>
-            Beauty, fashion, and lifestyle edits for every mood
+            {t('home.categories.browseSubtitle')}
           </p>
         </div>
 

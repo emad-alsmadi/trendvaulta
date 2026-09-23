@@ -16,10 +16,12 @@ import {
   getUserFacingErrorMessage,
   logErrorForDev,
 } from '@/lib/userFacingError';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const meQuery = useMe();
   const registerMutation = useRegisterMutation();
@@ -41,8 +43,8 @@ export default function SignupPage() {
   const onSubmit = handleSubmit(async (values) => {
     try {
       await registerMutation.mutateAsync(values);
-      toast('Account created successfully.', {
-        title: 'Success',
+      toast(t('auth.signupSuccess'), {
+        title: t('common.success'),
         variant: 'success',
       });
       // Sent here by the route guard / 401 handler? Go back to that page.
@@ -52,10 +54,15 @@ export default function SignupPage() {
       router.push(returnTo || '/');
     } catch (err) {
       logErrorForDev(err);
-      const msg = getUserFacingErrorMessage(err, 'Signup failed');
-      toast(msg, { title: 'Signup failed', variant: 'error' });
+      const msg = getUserFacingErrorMessage(err, t('auth.signupFailed'));
+      toast(msg, { title: t('auth.signupFailed'), variant: 'error' });
     }
   });
+
+  // One sentence with a {link} slot, so Arabic can place the link itself.
+  const [hasAccountBefore, hasAccountAfter = ''] = t(
+    'auth.hasAccountPrompt',
+  ).split('{link}');
 
   return (
     <div className='relative mx-auto max-w-6xl overflow-hidden rounded-3xl border border-white/25 bg-white/20 p-4 backdrop-blur-xl sm:p-6'>
@@ -80,15 +87,15 @@ export default function SignupPage() {
           <div className='flex items-start justify-between gap-3'>
             <div>
               <div className='text-2xl font-extrabold tracking-tight text-indigo-950'>
-                Create Account
+                {t('auth.createAccountTitle')}
               </div>
               <div className='mt-1 text-sm font-semibold text-indigo-950/80'>
-                Join TrendVaulta to shop beauty, fashion, and lifestyle.
+                {t('auth.signupSubtitle')}
               </div>
             </div>
             {meQuery.data?.user && (
               <div className='rounded-full border border-white/35 bg-emerald-500/15 px-3 py-1 text-xs font-extrabold text-emerald-900'>
-                Signed
+                {t('auth.signedIn')}
               </div>
             )}
           </div>
@@ -99,21 +106,21 @@ export default function SignupPage() {
           >
             <div>
               <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                Username
+                {t('auth.username')}
               </label>
               <Input
-                placeholder='Your name'
+                placeholder={t('auth.usernamePlaceholder')}
                 {...register('username')}
               />
               {errors.username?.message && (
                 <div className='mt-2 text-sm font-semibold text-rose-700'>
-                  {errors.username.message}
+                  {t(errors.username.message)}
                 </div>
               )}
             </div>
             <div>
               <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                Email
+                {t('auth.email')}
               </label>
               <Input
                 type='email'
@@ -122,13 +129,13 @@ export default function SignupPage() {
               />
               {errors.email?.message && (
                 <div className='mt-2 text-sm font-semibold text-rose-700'>
-                  {errors.email.message}
+                  {t(errors.email.message)}
                 </div>
               )}
             </div>
             <div>
               <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                Password
+                {t('auth.password')}
               </label>
               <Input
                 type='password'
@@ -137,7 +144,7 @@ export default function SignupPage() {
               />
               {errors.password?.message && (
                 <div className='mt-2 text-sm font-semibold text-rose-700'>
-                  {errors.password.message}
+                  {t(errors.password.message)}
                 </div>
               )}
             </div>
@@ -150,7 +157,7 @@ export default function SignupPage() {
               >
                 {getUserFacingErrorMessage(
                   registerMutation.error,
-                  'Signup failed',
+                  t('auth.signupFailed'),
                 )}
               </motion.div>
             )}
@@ -163,21 +170,22 @@ export default function SignupPage() {
               {registerMutation.isPending || isSubmitting ? (
                 <span className='inline-flex items-center gap-2'>
                   <Loader2 className='h-4 w-4 animate-spin' />
-                  Creating...
+                  {t('auth.creating')}
                 </span>
               ) : (
-                'Create account'
+                t('auth.createAccount')
               )}
             </Button>
 
             <div className='text-sm font-semibold text-indigo-950/80'>
-              Already have an account?{' '}
+              {hasAccountBefore}
               <Link
                 className='font-extrabold text-indigo-700 hover:underline'
                 href='/auth/login'
               >
-                Login
+                {t('auth.login')}
               </Link>
+              {hasAccountAfter}
             </div>
           </form>
         </motion.section>
@@ -194,27 +202,26 @@ export default function SignupPage() {
           >
             <div className='inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-extrabold'>
               <Sparkles className='h-4 w-4' />
-              New here
+              {t('auth.newHere')}
             </div>
             <h1 className='mt-4 text-4xl font-extrabold tracking-tight'>
-              Create your profile
+              {t('auth.signupHeading')}
             </h1>
             <p className='mt-3 text-sm text-white/90'>
-              Create an account in seconds and shop curated beauty, fashion, and
-              lifestyle products.
+              {t('auth.signupIntro')}
             </p>
 
             <div className='mt-8 grid gap-3'>
               {[
-                'Wishlist and order history in one place',
-                'Deals, brands, and gift-ready edits',
-                'Secure checkout with Stripe when configured',
-              ].map((t) => (
+                'auth.perkWishlist',
+                'auth.perkDeals',
+                'auth.perkStripe',
+              ].map((perkKey) => (
                 <div
-                  key={t}
+                  key={perkKey}
                   className='rounded-2xl bg-white/12 p-4 text-sm font-semibold'
                 >
-                  {t}
+                  {t(perkKey)}
                 </div>
               ))}
             </div>

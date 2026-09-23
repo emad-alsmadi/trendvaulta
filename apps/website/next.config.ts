@@ -38,6 +38,15 @@ const nextConfig: NextConfig = {
         : []),
     ],
   },
+  // The old /orders pages duplicated the account area in English only; the
+  // account pages are the translated, maintained ones. Kept as redirects so
+  // links in past emails and bookmarks still land somewhere useful.
+  async redirects() {
+    return [
+      { source: '/orders', destination: '/account/orders', permanent: true },
+      { source: '/orders/:id', destination: '/account/orders/:id', permanent: true },
+    ];
+  },
   async rewrites() {
     const apiBaseUrl =
       process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';

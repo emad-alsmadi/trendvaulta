@@ -3,6 +3,7 @@
 import { Truck, RefreshCw, ShieldCheck, Headphones } from 'lucide-react';
 import { DEMO_TRUST_ITEMS, type DemoTrustItem } from '@/data/demoStorefront';
 import { useStorefrontTrust } from '@/hooks/storefront/trustQuery';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 const ICONS = {
   truck: Truck,
@@ -18,6 +19,7 @@ type Props = {
 
 /** Trust / service strip — GET /api/storefront/trust with demo fallback */
 export function TrustServiceStrip({ items: itemsProp }: Props) {
+  const { t } = useTranslation();
   const { data, isLoading, isError } = useStorefrontTrust();
 
   const liveItems = data && data.length > 0 ? data : null;
@@ -27,7 +29,7 @@ export function TrustServiceStrip({ items: itemsProp }: Props) {
 
   return (
     <section
-      aria-label='Shopping benefits'
+      aria-label={t('home.trust.ariaLabel')}
       className='border-y border-stone-200 bg-stone-50'
     >
       <div className='mx-auto grid max-w-[1400px] grid-cols-2 gap-4 px-4 py-6 sm:px-6 lg:grid-cols-4 lg:px-8 lg:py-8'>
@@ -36,7 +38,7 @@ export function TrustServiceStrip({ items: itemsProp }: Props) {
             className='col-span-full text-sm text-stone-500'
             role='status'
           >
-            Loading benefits…
+            {t('home.trust.loading')}
           </p>
         ) : items ? (
           items.map((item) => {
@@ -67,7 +69,7 @@ export function TrustServiceStrip({ items: itemsProp }: Props) {
       </div>
       {(isError || usingFallback) && (
         <p className='sr-only'>
-          Demo merchandising content — not live policy text.
+          {t('home.trust.demoNotice')}
         </p>
       )}
     </section>

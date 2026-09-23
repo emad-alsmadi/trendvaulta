@@ -1,5 +1,8 @@
+'use client';
+
 import { Button } from './Button';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface PaginationProps {
   currentPage: number;
@@ -12,6 +15,7 @@ export function Pagination({
   totalPages,
   onPageChange,
 }: PaginationProps) {
+  const { t } = useTranslation();
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
   const maxVisible = 5;
   let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
@@ -31,7 +35,10 @@ export function Pagination({
     'border-transparent bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 text-white shadow-md hover:brightness-110';
 
   return (
-    <div className='flex items-center justify-center gap-2'>
+    <nav
+      aria-label={t('pagination.label')}
+      className='flex items-center justify-center gap-2'
+    >
       <Button
         variant='outline'
         size='sm'
@@ -39,7 +46,7 @@ export function Pagination({
         disabled={currentPage === 1}
         className={cn(navButtonClass, 'w-auto')}
       >
-        Previous
+        {t('pagination.previous')}
       </Button>
       {visiblePages.map((page) => (
         <Button
@@ -47,6 +54,8 @@ export function Pagination({
           variant={page === currentPage ? 'default' : 'outline'}
           size='sm'
           onClick={() => onPageChange(page)}
+          aria-label={t('pagination.page', { page })}
+          aria-current={page === currentPage ? 'page' : undefined}
           className={cn(
             pageButtonBaseClass,
             page === currentPage && pageButtonActiveClass,
@@ -62,8 +71,8 @@ export function Pagination({
         disabled={currentPage === totalPages}
         className={cn(navButtonClass, 'w-auto')}
       >
-        Next
+        {t('pagination.next')}
       </Button>
-    </div>
+    </nav>
   );
 }

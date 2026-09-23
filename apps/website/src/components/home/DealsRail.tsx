@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { DEMO_DEALS, type DemoDeal } from '@/data/demoStorefront';
 import { useActiveOffers } from '@/hooks/storefront/offersQuery';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 type Props = {
   deals?: DemoDeal[];
@@ -12,6 +13,7 @@ type Props = {
 
 /** Home deals rail — live GET /api/offers with demo fallback */
 export function DealsRail({ deals: dealsProp }: Props) {
+  const { t } = useTranslation();
   const { data, isLoading, isError } = useActiveOffers(12);
 
   const liveDeals = data && data.length > 0 ? data : null;
@@ -27,31 +29,31 @@ export function DealsRail({ deals: dealsProp }: Props) {
         <div className='mb-6 flex items-end justify-between gap-4'>
           <div>
             <p className='text-xs font-medium uppercase tracking-wider text-rose-600'>
-              Limited offers
+              {t('home.deals.eyebrow')}
             </p>
             <h2
               id='deals-heading'
               className='mt-1 text-2xl font-extrabold text-stone-900 sm:text-3xl'
             >
-              Limited-time edits
+              {t('home.deals.title')}
             </h2>
             <p className='mt-1 text-sm text-stone-600'>
               {isError || usingFallback
-                ? 'Curated promotions while we refresh live deals.'
-                : 'Curated promotions — grab them before they end.'}
+                ? t('home.deals.subtitleFallback')
+                : t('home.deals.subtitle')}
             </p>
           </div>
           <Link
             href='/products'
             className='hidden text-sm font-semibold text-fuchsia-700 hover:text-fuchsia-800 sm:inline'
           >
-            Shop all
+            {t('home.deals.shopAll')}
           </Link>
         </div>
 
         {isLoading && !deals ? (
           <p className='text-sm text-stone-500' role='status'>
-            Loading offers…
+            {t('home.deals.loading')}
           </p>
         ) : deals ? (
           <div className='-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 snap-x snap-mandatory sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-4'>

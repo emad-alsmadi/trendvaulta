@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useTestimonials } from '@/hooks/storefront/testimonialsQuery';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 const FALLBACK = [
   {
@@ -40,6 +41,7 @@ function initials(name: string) {
 }
 
 export function Testimonials() {
+  const { t } = useTranslation();
   const q = useTestimonials();
   const testimonials =
     q.data && q.data.length > 0 ? q.data : FALLBACK;
@@ -49,10 +51,10 @@ export function Testimonials() {
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
         <div className='text-center mb-12'>
           <h2 className='text-3xl font-bold text-gray-900 mb-4'>
-            What our customers say
+            {t('home.testimonials.title')}
           </h2>
           <p className='text-gray-600 text-lg'>
-            Shoppers who trust TrendVaulta for beauty, fashion, and lifestyle
+            {t('home.testimonials.subtitle')}
           </p>
         </div>
 

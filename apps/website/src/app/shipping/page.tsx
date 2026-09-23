@@ -5,10 +5,17 @@ import { motion } from 'framer-motion';
 import { Sparkles, Truck } from 'lucide-react';
 import { useContent } from '@/hooks/storefront/contentQuery';
 import { sanitizeHtml } from '@/lib/sanitizeHtml';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 /** Shipping policy page — API: GET /api/content?type=SHIPPING */
 export default function ShippingPage() {
   const { data: content, isLoading, error } = useContent('SHIPPING');
+  const { t } = useTranslation();
+  // One sentence with {helpLink} / {contactLink} slots so the links can sit
+  // anywhere in the translated text.
+  const helpParts = t('shippingPolicy.helpPrompt').split(
+    /(\{helpLink\}|\{contactLink\})/,
+  );
 
   return (
     <div className='min-h-screen bg-stone-50 py-12'>
@@ -23,22 +30,22 @@ export default function ShippingPage() {
               className='h-4 w-4'
               aria-hidden
             />
-            Policies
+            {t('shippingPolicy.badge')}
           </div>
           <h1 className='text-3xl font-extrabold text-stone-900 sm:text-4xl'>
-            {content?.title || 'Shipping &amp; delivery'}
+            {content?.title || t('shippingPolicy.title')}
           </h1>
         </motion.div>
 
         {isLoading && (
           <p className='py-10 text-center text-sm text-stone-500'>
-            Loading shipping policy…
+            {t('shippingPolicy.loading')}
           </p>
         )}
 
         {error && (
           <div className='rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800'>
-            Failed to load shipping policy. Please try again later.
+            {t('shippingPolicy.loadError')}
           </div>
         )}
 
@@ -53,7 +60,7 @@ export default function ShippingPage() {
 
         {!isLoading && !error && !content && (
           <div className='rounded-lg border border-stone-200 bg-white p-8 text-center text-sm text-stone-500'>
-            Shipping policy not available at this time.
+            {t('shippingPolicy.unavailable')}
           </div>
         )}
 
@@ -63,21 +70,27 @@ export default function ShippingPage() {
           className='mt-8 text-center'
         >
           <p className='text-sm font-semibold text-stone-600'>
-            Need help with a shipment? Visit the{' '}
-            <Link
-              href='/help'
-              className='font-bold text-fuchsia-700 hover:underline'
-            >
-              Help Center
-            </Link>{' '}
-            or{' '}
-            <Link
-              href='/contact'
-              className='font-bold text-fuchsia-700 hover:underline'
-            >
-              contact support
-            </Link>
-            .
+            {helpParts.map((part, i) =>
+              part === '{helpLink}' ? (
+                <Link
+                  key={i}
+                  href='/help'
+                  className='font-bold text-fuchsia-700 hover:underline'
+                >
+                  {t('productQa.helpCenter')}
+                </Link>
+              ) : part === '{contactLink}' ? (
+                <Link
+                  key={i}
+                  href='/contact'
+                  className='font-bold text-fuchsia-700 hover:underline'
+                >
+                  {t('shippingPolicy.contactSupport')}
+                </Link>
+              ) : (
+                part
+              ),
+            )}
           </p>
         </motion.div>
       </div>

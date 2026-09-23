@@ -1,23 +1,25 @@
 import { z } from 'zod';
 
+// Messages are translation keys (messages/*.json); forms show them with t().
+
 export const emailSchema = z
   .string()
   .trim()
-  .min(5, 'Email must be at least 5 characters')
-  .max(100, 'Email must be at most 100 characters')
-  .email('Email must be a valid email');
+  .min(5, 'auth.validation.emailMin')
+  .max(100, 'auth.validation.emailMax')
+  .email('auth.validation.emailInvalid');
 
 export const usernameSchema = z
   .string()
   .trim()
-  .min(2, 'Username must be at least 2 characters')
-  .max(200, 'Username must be at most 200 characters');
+  .min(2, 'auth.validation.usernameMin')
+  .max(200, 'auth.validation.usernameMax');
 
 export const passwordSchema = z
   .string()
   .trim()
-  .min(8, 'Password must be at least 8 characters')
-  .max(100, 'Password must be at most 100 characters');
+  .min(8, 'security.validation.minLength')
+  .max(100, 'auth.validation.passwordMax');
 
 export const loginSchema = z.object({
   email: emailSchema,
@@ -43,7 +45,7 @@ export const resetPasswordSchema = z
     if (password !== confirmPassword) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'Passwords do not match.',
+        message: 'auth.validation.passwordMismatch',
         path: ['confirmPassword'],
       });
     }
@@ -60,7 +62,7 @@ export const editProfileSchema = z
     if (!hasUsername && !hasEmail) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'At least one field is required.',
+        message: 'auth.validation.atLeastOneField',
         path: ['username'],
       });
     }

@@ -18,10 +18,12 @@ import {
   getUserFacingErrorMessage,
   logErrorForDev,
 } from '@/lib/userFacingError';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
   const [resetLink, setResetLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -46,8 +48,8 @@ export default function ForgotPasswordPage() {
     setCopied(false);
     try {
       const res = await forgotMutation.mutateAsync(values.email);
-      toast('Reset link generated successfully.', {
-        title: 'Success',
+      toast(t('password.linkGeneratedToast'), {
+        title: t('common.success'),
         variant: 'success',
       });
       router.push(
@@ -59,9 +61,9 @@ export default function ForgotPasswordPage() {
       }
     } catch (err) {
       logErrorForDev(err);
-      const msg = getUserFacingErrorMessage(err, 'Request failed');
+      const msg = getUserFacingErrorMessage(err, t('password.requestFailed'));
       setError(msg);
-      toast(msg, { title: 'Request failed', variant: 'error' });
+      toast(msg, { title: t('password.requestFailed'), variant: 'error' });
     }
   });
 
@@ -74,10 +76,10 @@ export default function ForgotPasswordPage() {
             href='/'
             className='hover:text-fuchsia-600'
           >
-            Home
+            {t('common.home')}
           </Link>
           <span>/</span>
-          <span className='text-gray-900'>Forgot Password</span>
+          <span className='text-gray-900'>{t('password.forgotTitle')}</span>
         </nav>
 
         <div className='max-w-md mx-auto'>
@@ -85,13 +87,12 @@ export default function ForgotPasswordPage() {
             <div className='flex items-center gap-2 mb-6'>
               <Sparkles className='w-5 h-5 text-fuchsia-600' />
               <h1 className='text-2xl font-bold text-gray-900'>
-                Forgot Password
+                {t('password.forgotTitle')}
               </h1>
             </div>
 
             <p className='text-gray-600 mb-6'>
-              Enter your email address and we&apos;ll send you a link to reset your
-              password.
+              {t('password.forgotIntro')}
             </p>
 
             <form
@@ -100,7 +101,7 @@ export default function ForgotPasswordPage() {
             >
               <div>
                 <label className='block text-sm font-bold text-gray-900 mb-2'>
-                  Email Address
+                  {t('password.emailAddress')}
                 </label>
                 <div className='relative'>
                   <Mail className='pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' />
@@ -113,7 +114,7 @@ export default function ForgotPasswordPage() {
                 </div>
                 {errors.email?.message && (
                   <div className='mt-2 text-sm font-semibold text-rose-700'>
-                    {errors.email.message}
+                    {t(errors.email.message)}
                   </div>
                 )}
               </div>
@@ -126,7 +127,9 @@ export default function ForgotPasswordPage() {
 
               {resetLink && (
                 <div className='rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900'>
-                  <div className='font-bold mb-2'>Reset link generated</div>
+                  <div className='font-bold mb-2'>
+                    {t('password.linkGenerated')}
+                  </div>
                   <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
                     <a
                       className='min-w-0 break-all font-bold underline'
@@ -144,15 +147,15 @@ export default function ForgotPasswordPage() {
                           await navigator.clipboard.writeText(resetLink);
                           setCopied(true);
                           window.setTimeout(() => setCopied(false), 1800);
-                          toast('Reset link copied to clipboard.', {
-                            title: 'Copied',
+                          toast(t('password.linkCopied'), {
+                            title: t('password.copied'),
                             variant: 'success',
                             durationMs: 2200,
                           });
                         } catch {
                           setCopied(false);
-                          toast('Copy failed. Please copy the link manually.', {
-                            title: 'Copy failed',
+                          toast(t('password.copyFailedMessage'), {
+                            title: t('password.copyFailed'),
                             variant: 'error',
                           });
                         }
@@ -162,12 +165,12 @@ export default function ForgotPasswordPage() {
                         {copied ? (
                           <>
                             <Check className='h-4 w-4' />
-                            Copied
+                            {t('password.copied')}
                           </>
                         ) : (
                           <>
                             <Copy className='h-4 w-4' />
-                            Copy
+                            {t('password.copy')}
                           </>
                         )}
                       </span>
@@ -184,10 +187,10 @@ export default function ForgotPasswordPage() {
                 {forgotMutation.isPending || isSubmitting ? (
                   <span className='inline-flex items-center gap-2'>
                     <Loader2 className='h-4 w-4 animate-spin' />
-                    Sending...
+                    {t('password.sending')}
                   </span>
                 ) : (
-                  'Send Reset Link'
+                  t('password.sendResetLink')
                 )}
               </Button>
             </form>
@@ -198,7 +201,7 @@ export default function ForgotPasswordPage() {
                 className='inline-flex items-center gap-2 text-sm font-semibold text-fuchsia-600 hover:text-fuchsia-700 transition'
               >
                 <ArrowLeft className='w-4 h-4 rtl:-scale-x-100' />
-                Back to login
+                {t('password.backToLogin')}
               </Link>
             </div>
           </div>

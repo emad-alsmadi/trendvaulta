@@ -227,7 +227,7 @@ export default function UserOrdersPage() {
                     </td>
                     <td className='px-6 py-4'>
                       <Link
-                        href={`/orders/${o._id}`}
+                        href={`/account/orders/${o._id}`}
                         className='inline-flex items-center gap-1 text-sm font-semibold text-fuchsia-600 hover:text-fuchsia-700 transition'
                       >
                         View

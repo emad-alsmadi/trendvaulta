@@ -13,8 +13,10 @@ import {
   Heart,
 } from 'lucide-react';
 import { ProductCard } from '@/components/products/ProductCard';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export function BrandDetailClient({ id }: { id: string }) {
+  const { t } = useTranslation();
   const {
     data: brand,
     isLoading: brandLoading,
@@ -32,7 +34,9 @@ export function BrandDetailClient({ id }: { id: string }) {
       <div className='min-h-screen flex items-center justify-center'>
         <div className='text-center'>
           <Loader2 className='h-12 w-12 animate-spin text-fuchsia-600 mx-auto' />
-          <p className='mt-4 text-gray-600'>Loading brand...</p>
+          <p className='mt-4 text-gray-600'>
+            {t('brandsPage.detail.loading')}
+          </p>
         </div>
       </div>
     );
@@ -41,7 +45,9 @@ export function BrandDetailClient({ id }: { id: string }) {
   if (brandError || !brand) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
-        <div className='text-center text-red-600'>Brand not found</div>
+        <div className='text-center text-red-600'>
+          {t('brandsPage.detail.notFound')}
+        </div>
       </div>
     );
   }
@@ -85,7 +91,7 @@ export function BrandDetailClient({ id }: { id: string }) {
                   className='inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition-colors'
                 >
                   <Globe className='h-4 w-4' />
-                  Visit Official Website
+                  {t('brandsPage.visitWebsite')}
                 </a>
               )}
             </div>
@@ -103,7 +109,7 @@ export function BrandDetailClient({ id }: { id: string }) {
             className='bg-white/70 backdrop-blur-xl rounded-2xl border border-white/30 p-8 shadow-lg mb-8'
           >
             <h2 className='text-2xl font-bold text-gray-900 mb-4'>
-              About {brand.name}
+              {t('brandsPage.detail.about', { brand: brand.name })}
             </h2>
             <p className='text-gray-700 leading-relaxed'>{brand.description}</p>
           </motion.div>
@@ -117,9 +123,11 @@ export function BrandDetailClient({ id }: { id: string }) {
         >
           <div className='flex items-center justify-between mb-6'>
             <h2 className='text-3xl font-bold text-gray-900'>
-              Products from {brand.name}
+              {t('brandsPage.detail.productsFrom', { brand: brand.name })}
             </h2>
-            <span className='text-gray-600'>{products.length} products</span>
+            <span className='text-gray-600'>
+              {t('brandsPage.detail.productCount', { count: products.length })}
+            </span>
           </div>
 
           {productsLoading ? (
@@ -138,7 +146,7 @@ export function BrandDetailClient({ id }: { id: string }) {
           ) : (
             <div className='text-center py-12 bg-white/70 backdrop-blur-xl rounded-2xl border border-white/30'>
               <p className='text-gray-600 text-lg'>
-                No products available from this brand yet.
+                {t('brandsPage.detail.emptyProducts')}
               </p>
             </div>
           )}
@@ -156,10 +164,10 @@ export function BrandDetailClient({ id }: { id: string }) {
               <ShoppingCart className='h-6 w-6 text-fuchsia-600' />
             </div>
             <h3 className='font-semibold text-gray-900 mb-2'>
-              Secure Checkout
+              {t('brandsPage.detail.trust.secureCheckout')}
             </h3>
             <p className='text-sm text-gray-600'>
-              Safe and encrypted payment processing
+              {t('brandsPage.detail.trust.secureCheckoutText')}
             </p>
           </div>
           <div className='bg-white/70 backdrop-blur-xl rounded-2xl border border-white/30 p-6 text-center shadow-lg'>
@@ -167,10 +175,10 @@ export function BrandDetailClient({ id }: { id: string }) {
               <Heart className='h-6 w-6 text-purple-600' />
             </div>
             <h3 className='font-semibold text-gray-900 mb-2'>
-              Authentic Products
+              {t('brandsPage.detail.trust.authentic')}
             </h3>
             <p className='text-sm text-gray-600'>
-              100% genuine {brand.name} products
+              {t('brandsPage.detail.trust.authenticText', { brand: brand.name })}
             </p>
           </div>
           <div className='bg-white/70 backdrop-blur-xl rounded-2xl border border-white/30 p-6 text-center shadow-lg'>
@@ -178,9 +186,11 @@ export function BrandDetailClient({ id }: { id: string }) {
               <Star className='h-6 w-6 text-cyan-600' />
             </div>
             <h3 className='font-semibold text-gray-900 mb-2'>
-              Customer Reviews
+              {t('productPage.reviews.title')}
             </h3>
-            <p className='text-sm text-gray-600'>Verified customer feedback</p>
+            <p className='text-sm text-gray-600'>
+              {t('brandsPage.detail.trust.reviewsText')}
+            </p>
           </div>
         </motion.div>
       </div>

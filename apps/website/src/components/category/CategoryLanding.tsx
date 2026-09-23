@@ -10,6 +10,7 @@ import {
   type CategoryDef,
 } from '@/lib/categories';
 import { getSiteUrl } from '@/lib/site';
+import { getTranslation } from '@/lib/i18n-server';
 
 type Props = {
   def: CategoryDef;
@@ -31,7 +32,12 @@ function GridFallback() {
 }
 
 /** Server-rendered category landing: breadcrumbs, hero, chips, product grid */
-export function CategoryLanding({ def, subcategories, subcategory }: Props) {
+export async function CategoryLanding({
+  def,
+  subcategories,
+  subcategory,
+}: Props) {
+  const { t } = await getTranslation();
   const site = getSiteUrl();
   const subLabel = subcategory ? subcategoryLabel(subcategory) : undefined;
 
@@ -74,14 +80,14 @@ export function CategoryLanding({ def, subcategories, subcategory }: Props) {
                   ) : null}
                   {isLast ? (
                     <span aria-current='page' className='font-semibold text-stone-900'>
-                      {crumb.name}
+                      {crumb.href === '/' ? t('common.home') : crumb.name}
                     </span>
                   ) : (
                     <Link
                       href={crumb.href}
                       className='transition-colors hover:text-stone-900'
                     >
-                      {crumb.name}
+                      {crumb.href === '/' ? t('common.home') : crumb.name}
                     </Link>
                   )}
                 </li>
@@ -94,7 +100,7 @@ export function CategoryLanding({ def, subcategories, subcategory }: Props) {
           <div className='grid grid-cols-1 md:grid-cols-[1.4fr_1fr]'>
             <div className='p-6 sm:p-8'>
               <p className='text-xs font-medium uppercase tracking-wider text-fuchsia-700'>
-                {subLabel ? def.label : 'Category'}
+                {subLabel ? def.label : t('catalog.category.eyebrow')}
               </p>
               <h1 className='mt-2 text-3xl font-extrabold text-stone-900 sm:text-4xl'>
                 {subLabel ?? def.label}
@@ -119,7 +125,9 @@ export function CategoryLanding({ def, subcategories, subcategory }: Props) {
         </header>
 
         {chips.length > 0 ? (
-          <nav aria-label={`${def.label} subcategories`} className='mb-6'>
+          <nav aria-label={t('catalog.category.subcategoriesAria', {
+            category: def.label,
+          })} className='mb-6'>
             <ul className='flex flex-wrap gap-2'>
               <li>
                 <Link
@@ -131,7 +139,7 @@ export function CategoryLanding({ def, subcategories, subcategory }: Props) {
                       : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300'
                   }`}
                 >
-                  All {def.label}
+                  {t('catalog.category.all', { category: def.label })}
                 </Link>
               </li>
               {chips.map((sub) => {

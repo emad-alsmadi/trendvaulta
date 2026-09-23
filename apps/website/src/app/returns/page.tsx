@@ -5,10 +5,17 @@ import { motion } from 'framer-motion';
 import { Sparkles, RefreshCw } from 'lucide-react';
 import { useContent } from '@/hooks/storefront/contentQuery';
 import { sanitizeHtml } from '@/lib/sanitizeHtml';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 /** Returns policy page — API: GET /api/content?type=RETURNS */
 export default function ReturnsPage() {
   const { data: content, isLoading, error } = useContent('RETURNS');
+  const { t } = useTranslation();
+  // One sentence with {helpLink} / {contactLink} slots so the links can sit
+  // anywhere in the translated text.
+  const helpParts = t('returnsPolicy.helpPrompt').split(
+    /(\{helpLink\}|\{contactLink\})/,
+  );
 
   return (
     <div className='min-h-screen bg-stone-50 py-12'>
@@ -23,22 +30,22 @@ export default function ReturnsPage() {
               className='h-4 w-4'
               aria-hidden
             />
-            Policies
+            {t('returnsPolicy.badge')}
           </div>
           <h1 className='text-3xl font-extrabold text-stone-900 sm:text-4xl'>
-            {content?.title || 'Returns &amp; refunds'}
+            {content?.title || t('returnsPolicy.title')}
           </h1>
         </motion.div>
 
         {isLoading && (
           <p className='py-10 text-center text-sm text-stone-500'>
-            Loading returns policy…
+            {t('returnsPolicy.loading')}
           </p>
         )}
 
         {error && (
           <div className='rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800'>
-            Failed to load returns policy. Please try again later.
+            {t('returnsPolicy.loadError')}
           </div>
         )}
 
@@ -53,7 +60,7 @@ export default function ReturnsPage() {
 
         {!isLoading && !error && !content && (
           <div className='rounded-lg border border-stone-200 bg-white p-8 text-center text-sm text-stone-500'>
-            Returns policy not available at this time.
+            {t('returnsPolicy.unavailable')}
           </div>
         )}
 
@@ -63,21 +70,27 @@ export default function ReturnsPage() {
           className='mt-8 text-center'
         >
           <p className='text-sm font-semibold text-stone-600'>
-            Need help with a return? Visit the{' '}
-            <Link
-              href='/help'
-              className='font-bold text-fuchsia-700 hover:underline'
-            >
-              Help Center
-            </Link>{' '}
-            or{' '}
-            <Link
-              href='/contact'
-              className='font-bold text-fuchsia-700 hover:underline'
-            >
-              contact support
-            </Link>
-            .
+            {helpParts.map((part, i) =>
+              part === '{helpLink}' ? (
+                <Link
+                  key={i}
+                  href='/help'
+                  className='font-bold text-fuchsia-700 hover:underline'
+                >
+                  {t('productQa.helpCenter')}
+                </Link>
+              ) : part === '{contactLink}' ? (
+                <Link
+                  key={i}
+                  href='/contact'
+                  className='font-bold text-fuchsia-700 hover:underline'
+                >
+                  {t('returnsPolicy.contactSupport')}
+                </Link>
+              ) : (
+                part
+              ),
+            )}
           </p>
         </motion.div>
       </div>

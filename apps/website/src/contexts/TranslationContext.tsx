@@ -10,16 +10,13 @@ import {
   ReactNode,
 } from 'react';
 import { useRouter } from 'next/navigation';
-import enMessages from '../messages/en.json';
-import arMessages from '../messages/ar.json';
 import {
   LOCALE_COOKIE,
   dirFor,
-  intlLocale,
   isLocale,
   type Locale,
 } from '@/lib/locale';
-import { formatCurrency } from '@/lib/utils';
+import { createPriceFormatter, createTranslator, type Translate } from '@/lib/i18n';
 
 interface TranslationContextType {
   locale: Locale;
@@ -30,7 +27,7 @@ interface TranslationContextType {
    * with their placeholders, never stitched from fragments, since Arabic word
    * order differs from English.
    */
-  t: (key: string, vars?: Record<string, string | number>) => string;
+  t: Translate;
   dir: 'ltr' | 'rtl';
   /** USD, formatted for the reader's language. Checkout charges USD, so no
    *  other currency is ever displayed. */
@@ -41,10 +38,6 @@ const TranslationContext = createContext<TranslationContextType | undefined>(
   undefined,
 );
 
-const messages = {
-  en: enMessages,
-  ar: arMessages,
-};
 
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 
@@ -110,33 +103,16 @@ export function TranslationProvider({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const value = useMemo<TranslationContextType>(() => {
-    const lookup = (tree: unknown, key: string): string | undefined => {
-      let node = tree;
-      for (const k of key.split('.')) {
-        if (typeof node !== 'object' || node === null) return undefined;
-        node = (node as Record<string, unknown>)[k];
-      }
-      return typeof node === 'string' ? node : undefined;
-    };
-    const t = (key: string, vars?: Record<string, string | number>): string => {
-      // Missing in Arabic: fall back to English rather than show a raw key.
-      const template =
-        lookup(messages[locale], key) ?? lookup(messages.en, key) ?? key;
-      if (!vars) return template;
-      return template.replace(/\{(\w+)\}/g, (match, name: string) =>
-        name in vars ? String(vars[name]) : match,
-      );
-    };
-    return {
+  const value = useMemo<TranslationContextType>(
+    () => ({
       locale,
       setLocale,
-      t,
+      t: createTranslator(locale),
       dir,
-      formatPrice: (amount: number) =>
-        formatCurrency(amount, 'USD', intlLocale(locale)),
-    };
-  }, [locale, dir, setLocale]);
+      formatPrice: createPriceFormatter(locale),
+    }),
+    [locale, dir, setLocale],
+  );
 
   return (
     <TranslationContext.Provider value={value}>

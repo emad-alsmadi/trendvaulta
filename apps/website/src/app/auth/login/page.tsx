@@ -17,11 +17,13 @@ import {
   logErrorForDev,
 } from '@/lib/userFacingError';
 import { useState } from 'react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
+  const { t } = useTranslation();
 
   const meQuery = useMe();
   const loginMutation = useLoginMutation();
@@ -42,8 +44,8 @@ export default function LoginPage() {
   const onSubmit = handleSubmit(async (values) => {
     try {
       await loginMutation.mutateAsync(values);
-      toast('Logged in successfully.', {
-        title: 'Success',
+      toast(t('auth.loginSuccess'), {
+        title: t('common.success'),
         variant: 'success',
       });
       // Sent here by the route guard / 401 handler? Go back to that page.
@@ -53,8 +55,8 @@ export default function LoginPage() {
       router.push(returnTo || '/');
     } catch (err) {
       logErrorForDev(err);
-      const msg = getUserFacingErrorMessage(err, 'Login failed');
-      toast(msg, { title: 'Login failed', variant: 'error' });
+      const msg = getUserFacingErrorMessage(err, t('auth.loginFailed'));
+      toast(msg, { title: t('auth.loginFailed'), variant: 'error' });
     }
   });
 
@@ -84,27 +86,26 @@ export default function LoginPage() {
           >
             <div className='inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-extrabold'>
               <Sparkles className='h-4 w-4' />
-              Welcome back
+              {t('auth.welcomeBack')}
             </div>
             <h1 className='mt-4 text-4xl font-extrabold tracking-tight'>
-              Sign in to your account
+              {t('auth.loginHeading')}
             </h1>
             <p className='mt-3 text-sm text-white/90'>
-              Access your profile, wishlist, and orders — then keep shopping
-              beauty, fashion, and lifestyle picks.
+              {t('auth.loginIntro')}
             </p>
 
             <div className='mt-8 grid gap-3'>
               {[
-                'Save favorites and track your orders',
-                'Browse curated beauty and fashion catalog',
-                'Secure checkout when you are ready',
-              ].map((t) => (
+                'auth.perkFavorites',
+                'auth.perkCatalog',
+                'auth.perkCheckout',
+              ].map((perkKey) => (
                 <div
-                  key={t}
+                  key={perkKey}
                   className='rounded-2xl bg-white/12 p-4 text-sm font-semibold'
                 >
-                  {t}
+                  {t(perkKey)}
                 </div>
               ))}
             </div>
@@ -120,15 +121,15 @@ export default function LoginPage() {
           <div className='flex items-start justify-between gap-3'>
             <div>
               <div className='text-2xl font-extrabold tracking-tight text-indigo-950'>
-                Login
+                {t('auth.login')}
               </div>
               <div className='mt-1 text-sm font-semibold text-indigo-950/80'>
-                Enter your credentials to continue.
+                {t('auth.loginSubtitle')}
               </div>
             </div>
             {meQuery.data?.user && (
               <div className='rounded-full border border-white/35 bg-emerald-500/15 px-3 py-1 text-xs font-extrabold text-emerald-900'>
-                Signed
+                {t('auth.signedIn')}
               </div>
             )}
           </div>
@@ -139,7 +140,7 @@ export default function LoginPage() {
           >
             <div>
               <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                Email
+                {t('auth.email')}
               </label>
               <Input
                 type='email'
@@ -148,13 +149,13 @@ export default function LoginPage() {
               />
               {errors.email?.message && (
                 <div className='mt-2 text-sm font-semibold text-rose-700'>
-                  {errors.email.message}
+                  {t(errors.email.message)}
                 </div>
               )}
             </div>
             <div className='relative'>
               <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                Password
+                {t('auth.password')}
               </label>
               <div className='relative'>
                 <Input
@@ -177,7 +178,7 @@ export default function LoginPage() {
               </div>
               {errors.password?.message && (
                 <div className='mt-2 text-sm font-semibold text-rose-700'>
-                  {errors.password.message}
+                  {t(errors.password.message)}
                 </div>
               )}
             </div>
@@ -188,7 +189,10 @@ export default function LoginPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className='rounded-2xl border border-rose-200 bg-rose-50/90 p-4 text-sm font-semibold text-rose-900'
               >
-                {getUserFacingErrorMessage(loginMutation.error, 'Login failed')}
+                {getUserFacingErrorMessage(
+                  loginMutation.error,
+                  t('auth.loginFailed'),
+                )}
               </motion.div>
             )}
 
@@ -200,10 +204,10 @@ export default function LoginPage() {
               {loginMutation.isPending || isSubmitting ? (
                 <span className='inline-flex items-center gap-2'>
                   <Loader2 className='h-4 w-4 animate-spin' />
-                  Signing in...
+                  {t('auth.signingIn')}
                 </span>
               ) : (
-                'Sign in'
+                t('reviews.signIn')
               )}
             </Button>
 
@@ -212,13 +216,13 @@ export default function LoginPage() {
                 className='font-extrabold text-indigo-700 hover:underline'
                 href='/auth/signup'
               >
-                Create account
+                {t('auth.createAccount')}
               </Link>
               <Link
                 className='font-extrabold text-fuchsia-700 hover:underline'
                 href='/password/forgot-password'
               >
-                Forgot password?
+                {t('auth.forgotPasswordLink')}
               </Link>
             </div>
           </form>

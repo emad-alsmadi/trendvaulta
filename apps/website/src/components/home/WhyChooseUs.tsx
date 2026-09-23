@@ -9,6 +9,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useWhyChooseUs } from '@/hooks/storefront/whyChooseUsQuery';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   truck: Truck,
@@ -21,43 +22,51 @@ const FALLBACK = [
   {
     id: 'delivery',
     icon: 'truck',
-    title: 'Reliable delivery',
-    description: 'Clear shipping options and tracking on every order',
+    titleKey: 'home.whyChooseUs.deliveryTitle',
+    descriptionKey: 'home.whyChooseUs.deliveryDescription',
   },
   {
     id: 'returns',
     icon: 'refresh',
-    title: 'Easy returns',
-    description: 'Straightforward returns within our store policy window',
+    titleKey: 'home.whyChooseUs.returnsTitle',
+    descriptionKey: 'home.whyChooseUs.returnsDescription',
   },
   {
     id: 'payments',
     icon: 'shield',
-    title: 'Secure payments',
-    description: 'Checkout protected with industry-standard encryption',
+    titleKey: 'home.whyChooseUs.paymentsTitle',
+    descriptionKey: 'home.whyChooseUs.paymentsDescription',
   },
   {
     id: 'support',
     icon: 'headset',
-    title: 'Care support',
-    description: 'Friendly help when you need sizing, gifts, or order care',
+    titleKey: 'home.whyChooseUs.supportTitle',
+    descriptionKey: 'home.whyChooseUs.supportDescription',
   },
 ];
 
 export function WhyChooseUs() {
+  const { t } = useTranslation();
   const q = useWhyChooseUs();
   const features =
-    q.data && q.data.length > 0 ? q.data : FALLBACK;
+    q.data && q.data.length > 0
+      ? q.data
+      : FALLBACK.map(({ id, icon, titleKey, descriptionKey }) => ({
+          id,
+          icon,
+          title: t(titleKey),
+          description: t(descriptionKey),
+        }));
 
   return (
     <div className='bg-slate-100 py-20'>
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
         <div className='text-center mb-12'>
           <h2 className='text-3xl font-bold text-gray-900 mb-4'>
-            Why shop TrendVaulta
+            {t('home.whyChooseUs.title')}
           </h2>
           <p className='text-gray-600 text-lg'>
-            A calmer retail experience for beauty, fashion, and lifestyle
+            {t('home.whyChooseUs.subtitle')}
           </p>
         </div>
 

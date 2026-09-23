@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { Home, ArrowRight, ShoppingBag, LifeBuoy } from 'lucide-react';
+import { getTranslation } from '@/lib/i18n-server';
 
-export default function NotFound() {
+export default async function NotFound() {
+  const { t } = await getTranslation();
   return (
     <div className='flex min-h-screen items-center justify-center bg-stone-50'>
       <div className='px-4 text-center'>
@@ -12,11 +14,10 @@ export default function NotFound() {
           404
         </h1>
         <h2 className='mb-2 text-2xl font-semibold text-stone-900'>
-          Page not found
+          {t('errors.notFound.title')}
         </h2>
         <p className='mx-auto mb-8 max-w-md text-stone-600'>
-          That page doesn&apos;t exist — try the catalog, today&apos;s offers, or
-          the Help Center.
+          {t('errors.notFound.description')}
         </p>
         <div className='flex flex-col items-center justify-center gap-3 sm:flex-row'>
           <Link
@@ -24,7 +25,7 @@ export default function NotFound() {
             className='inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 px-6 py-3 font-semibold text-white transition hover:brightness-110'
           >
             <Home className='h-4 w-4' />
-            Homepage
+            {t('errors.notFound.homepage')}
             <ArrowRight className='h-4 w-4 rtl:-scale-x-100' />
           </Link>
           <Link
@@ -32,14 +33,14 @@ export default function NotFound() {
             className='inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-6 py-3 font-semibold text-stone-800 transition hover:bg-stone-50'
           >
             <ShoppingBag className='h-4 w-4' />
-            Browse catalog
+            {t('cartPage.browseCatalog')}
           </Link>
           <Link
             href='/help'
             className='inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-6 py-3 font-semibold text-stone-800 transition hover:bg-stone-50'
           >
             <LifeBuoy className='h-4 w-4' />
-            Help Center
+            {t('productQa.helpCenter')}
           </Link>
         </div>
       </div>

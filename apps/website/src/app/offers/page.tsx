@@ -7,12 +7,17 @@ import { Tag, Clock, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useOffersList } from '@/hooks/storefront/offersQuery';
 import type { StorefrontOffer } from '@/lib/api';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { intlLocale, type Locale } from '@/lib/locale';
 
-function formatEndsAt(endsAt?: string | null): string | null {
+function formatEndsAt(
+  endsAt: string | null | undefined,
+  locale: Locale,
+): string | null {
   if (!endsAt) return null;
   const d = new Date(endsAt);
   if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString(undefined, {
+  return d.toLocaleDateString(intlLocale(locale), {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -20,7 +25,8 @@ function formatEndsAt(endsAt?: string | null): string | null {
 }
 
 function OfferCard({ offer }: { offer: StorefrontOffer }) {
-  const ends = formatEndsAt(offer.endsAt);
+  const { t, locale } = useTranslation();
+  const ends = formatEndsAt(offer.endsAt, locale);
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.96 }}
@@ -61,7 +67,7 @@ function OfferCard({ offer }: { offer: StorefrontOffer }) {
                 className='h-3.5 w-3.5'
                 aria-hidden
               />
-              Ends {ends}
+              {t('offersPage.endsOn', { date: ends })}
             </span>
           ) : (
             <span />
@@ -70,7 +76,7 @@ function OfferCard({ offer }: { offer: StorefrontOffer }) {
             href={offer.href || '/products'}
             className='inline-flex items-center gap-1 text-sm font-bold text-fuchsia-700 hover:underline'
           >
-            Shop offer
+            {t('offersPage.shopOffer')}
             <ArrowRight
               className='h-4 w-4 rtl:-scale-x-100'
               aria-hidden
@@ -84,6 +90,7 @@ function OfferCard({ offer }: { offer: StorefrontOffer }) {
 
 /** Offers page — GET /api/offers?active=true */
 export default function OffersPage() {
+  const { t } = useTranslation();
   const { data: offers = [], isLoading, error, refetch } = useOffersList(24);
 
   return (
@@ -95,7 +102,7 @@ export default function OffersPage() {
           transition={{ duration: 0.5 }}
         >
           <h1 className='mb-8 bg-gradient-to-r from-fuchsia-700 via-purple-700 to-cyan-700 bg-clip-text text-4xl font-bold text-transparent'>
-            Special Offers
+            {t('offersPage.title')}
           </h1>
 
           {isLoading ? (
@@ -109,29 +116,29 @@ export default function OffersPage() {
             </div>
           ) : error ? (
             <div className='flex flex-wrap items-center gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-6 text-sm text-rose-800'>
-              <span>Offers could not be loaded right now.</span>
+              <span>{t('offersPage.loadError')}</span>
               <Button
                 type='button'
                 size='sm'
                 variant='outline'
                 onClick={() => refetch()}
               >
-                Retry
+                {t('orders.retry')}
               </Button>
             </div>
           ) : offers.length === 0 ? (
             <div className='rounded-2xl border border-gray-200 bg-white p-10 text-center'>
               <p className='text-lg font-semibold text-gray-900'>
-                No active offers right now
+                {t('offersPage.emptyTitle')}
               </p>
               <p className='mt-2 text-sm text-gray-600'>
-                Check back soon, or browse today&apos;s best sellers.
+                {t('offersPage.emptyDescription')}
               </p>
               <Link
                 href='/products?sort=bestselling'
                 className='mt-4 inline-flex items-center gap-1 text-sm font-bold text-fuchsia-700 hover:underline'
               >
-                Browse products
+                {t('offersPage.browseProducts')}
                 <ArrowRight
                   className='h-4 w-4 rtl:-scale-x-100'
                   aria-hidden
@@ -156,12 +163,12 @@ export default function OffersPage() {
             className='mt-12 rounded-2xl border border-white/30 bg-white/70 p-6 shadow-lg backdrop-blur-xl'
           >
             <h3 className='mb-3 text-lg font-bold text-gray-900'>
-              How to use a coupon code:
+              {t('offersPage.couponHowTo.title')}
             </h3>
             <ol className='list-inside list-decimal space-y-2 text-gray-700'>
-              <li>Add products to your cart</li>
-              <li>Proceed to checkout</li>
-              <li>Enter the code in the coupon field and press Apply</li>
+              <li>{t('offersPage.couponHowTo.step1')}</li>
+              <li>{t('offersPage.couponHowTo.step2')}</li>
+              <li>{t('offersPage.couponHowTo.step3')}</li>
             </ol>
           </motion.div>
         </motion.div>

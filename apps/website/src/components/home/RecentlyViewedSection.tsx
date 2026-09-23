@@ -3,10 +3,12 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRecentlyViewed } from '@/hooks/recentlyViewed/recentlyViewedQuery';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 /** Auth: GET /api/me/recently-viewed. Anonymous: localStorage. */
 export function RecentlyViewedSection() {
   const { items, source } = useRecentlyViewed();
+  const { t, formatPrice } = useTranslation();
 
   if (items.length === 0) return null;
 
@@ -19,13 +21,15 @@ export function RecentlyViewedSection() {
         <div className='mb-5 flex items-end justify-between gap-4'>
           <div>
             <p className='text-xs font-medium uppercase tracking-wider text-stone-500'>
-              {source === 'api' ? 'Synced to your account' : 'On this device'}
+              {source === 'api'
+                ? t('home.recentlyViewed.synced')
+                : t('home.recentlyViewed.onDevice')}
             </p>
             <h2
               id='recent-heading'
               className='mt-1 text-xl font-extrabold text-stone-900 sm:text-2xl'
             >
-              Recently viewed
+              {t('home.recentlyViewed.title')}
             </h2>
           </div>
         </div>
@@ -54,7 +58,7 @@ export function RecentlyViewedSection() {
                     {item.title}
                   </p>
                   <p className='mt-1 text-sm font-semibold text-stone-800'>
-                    ${item.price.toFixed(2)}
+                    {formatPrice(item.price)}
                   </p>
                 </div>
               </Link>

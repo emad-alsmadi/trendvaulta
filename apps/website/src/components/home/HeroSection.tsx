@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { HeroPromoCarousel } from '@/components/home/HeroPromoCarousel';
 import type { DemoHeroSlide } from '@/data/demoStorefront';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface HeroSectionProps {
   searchQuery: string;
@@ -24,6 +25,7 @@ export function HeroSection({
   onSearchSubmit,
   heroSlides,
 }: HeroSectionProps) {
+  const { t } = useTranslation();
   return (
     <div className='relative overflow-hidden bg-white'>
       <div className='relative mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8'>
@@ -48,15 +50,14 @@ export function HeroSection({
               transition={{ duration: 0.45 }}
               className='text-3xl font-bold leading-[1.15] tracking-tight text-stone-900 sm:text-4xl lg:text-5xl'
             >
-              Beauty, fashion & lifestyle — curated for everyday polish
+              {t('home.hero.title')}
             </motion.h1>
             <motion.p
               variants={fadeUp}
               transition={{ duration: 0.45 }}
               className='max-w-xl text-base text-stone-700 sm:text-lg'
             >
-              Discover elevated essentials, limited edits, and brands that match
-              your rhythm. Clear prices, trusted checkout, care you can feel.
+              {t('home.hero.subtitle')}
             </motion.p>
 
             <motion.form
@@ -70,12 +71,12 @@ export function HeroSection({
                 htmlFor='home-search'
                 className='sr-only'
               >
-                Search products
+                {t('home.hero.searchLabel')}
               </label>
               <input
                 id='home-search'
                 type='text'
-                placeholder='Search beauty, fashion, lifestyle…'
+                placeholder={t('home.hero.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
                 className='w-full rounded-lg border border-stone-200 bg-white/90 py-4 pe-28 ps-12 text-gray-900 shadow-lg backdrop-blur-sm placeholder:text-gray-500 focus:outline-none focus:ring-4 focus:ring-fuchsia-500/20'
@@ -85,7 +86,7 @@ export function HeroSection({
                 type='submit'
                 className='absolute end-2 top-1/2 -translate-y-1/2 rounded-md bg-gradient-to-r from-fuchsia-600 via-indigo-600 to-cyan-500 px-6 py-2 font-medium text-white transition-colors hover:from-fuchsia-700 hover:via-indigo-700 hover:to-cyan-600'
               >
-                Search
+                {t('common.search')}
               </button>
             </motion.form>
 
@@ -99,21 +100,21 @@ export function HeroSection({
                 className='inline-flex items-center gap-2 rounded-md border border-stone-200 bg-white/80 px-4 py-2 text-sm font-medium text-stone-800 transition-colors hover:bg-white'
               >
                 <Sparkles className='h-4 w-4' />
-                Beauty
+                {t('home.hero.beauty')}
               </Link>
               <Link
                 href='/c/clothing'
                 className='inline-flex items-center gap-2 rounded-md border border-stone-200 bg-white/80 px-4 py-2 text-sm font-medium text-stone-800 transition-colors hover:bg-white'
               >
                 <Shirt className='h-4 w-4' />
-                Fashion
+                {t('home.hero.fashion')}
               </Link>
               <Link
                 href='/products'
                 className='inline-flex items-center gap-2 rounded-md border border-stone-200 bg-white/80 px-4 py-2 text-sm font-medium text-stone-800 transition-colors hover:bg-white'
               >
                 <ShoppingBag className='h-4 w-4' />
-                Shop all
+                {t('home.hero.shopAll')}
               </Link>
             </motion.div>
           </motion.div>

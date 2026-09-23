@@ -9,6 +9,7 @@ import {
   type DemoHeroSlide,
 } from '@/data/demoStorefront';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 const TONE_OVERLAY: Record<DemoHeroSlide['tone'], string> = {
   rose: 'from-rose-950/70 via-rose-900/35 to-transparent',
@@ -33,6 +34,7 @@ export function HeroPromoCarousel({
   intervalMs = 6000,
   className,
 }: Props) {
+  const { t } = useTranslation();
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const count = slides.length;
@@ -69,7 +71,7 @@ export function HeroPromoCarousel({
         }
       }}
     >
-      <p className='sr-only'>Demo promo carousel — replace with CMS hero later</p>
+      <p className='sr-only'>{t('home.promo.srDescription')}</p>
 
       <div className='relative aspect-[4/3] sm:aspect-[16/11] lg:aspect-[4/5]'>
         <AnimatePresence mode='wait'>
@@ -121,7 +123,7 @@ export function HeroPromoCarousel({
               type='button'
               onClick={() => go(-1)}
               className='absolute start-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/90 p-2 text-stone-800 shadow-sm transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500'
-              aria-label='Previous promo'
+              aria-label={t('home.promo.previous')}
             >
               <ChevronLeft className='h-4 w-4 rtl:-scale-x-100' aria-hidden />
             </button>
@@ -129,7 +131,7 @@ export function HeroPromoCarousel({
               type='button'
               onClick={() => go(1)}
               className='absolute end-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/90 p-2 text-stone-800 shadow-sm transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500'
-              aria-label='Next promo'
+              aria-label={t('home.promo.next')}
             >
               <ChevronRight className='h-4 w-4 rtl:-scale-x-100' aria-hidden />
             </button>
@@ -141,7 +143,7 @@ export function HeroPromoCarousel({
         <div
           className='flex items-center justify-center gap-1.5 bg-white/90 px-3 py-2'
           role='tablist'
-          aria-label='Promo slides'
+          aria-label={t('home.promo.slidesLabel')}
         >
           {slides.map((s, i) => (
             <button
@@ -149,7 +151,10 @@ export function HeroPromoCarousel({
               type='button'
               role='tab'
               aria-selected={i === index}
-              aria-label={`Show slide ${i + 1}: ${s.eyebrow}`}
+              aria-label={t('home.promo.showSlide', {
+                number: i + 1,
+                label: s.eyebrow,
+              })}
               onClick={() => setIndex(i)}
               className={cn(
                 'h-2 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500',

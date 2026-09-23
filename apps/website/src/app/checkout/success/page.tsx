@@ -94,7 +94,7 @@ function CheckoutSuccessInner() {
       <div className='rounded-3xl border border-rose-200 bg-rose-50 p-6 text-rose-900'>
         {t('orderResult.success.missingOrder')}{' '}
         <Link
-          href='/orders'
+          href='/account/orders'
           className='font-extrabold underline'
         >
           {t('orderResult.success.viewOrders')}
@@ -146,7 +146,7 @@ function CheckoutSuccessInner() {
         ) : null}
         <div className='mt-6 flex flex-wrap gap-3'>
           <Link
-            href={`/orders/${order._id}`}
+            href={`/account/orders/${order._id}`}
             className='inline-flex items-center justify-center rounded-full bg-gradient-to-r from-indigo-600 via-fuchsia-600 to-cyan-500 px-5 py-3 text-sm font-extrabold text-white shadow-md transition hover:brightness-110'
           >
             {t('orderResult.success.viewOrder')}

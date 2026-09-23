@@ -8,6 +8,7 @@ import {
   type DemoLookbookStory,
 } from '@/data/demoStorefront';
 import { useLookbooks } from '@/hooks/storefront/lookbooksQuery';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 const TONE_BG: Record<DemoLookbookStory['tone'], string> = {
   rose: 'from-stone-50 via-white to-stone-50',
@@ -22,6 +23,7 @@ type Props = {
 
 /** Editorial lookbook — live GET /api/storefront/lookbooks with demo fallback */
 export function EditorialLookbookSection({ stories: storiesProp }: Props) {
+  const { t } = useTranslation();
   const { data, isLoading, isError } = useLookbooks();
 
   const liveStories = data && data.length > 0 ? data : null;
@@ -39,24 +41,26 @@ export function EditorialLookbookSection({ stories: storiesProp }: Props) {
       <div className='mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8'>
         <div className='mb-8 max-w-2xl'>
           <p className='text-xs font-medium uppercase tracking-wider text-stone-500'>
-            {usingFallback || isError ? 'Demo lookbook' : 'Lookbook'}
+            {usingFallback || isError
+              ? t('home.lookbook.demoEyebrow')
+              : t('home.lookbook.eyebrow')}
           </p>
           <h2
             id='lookbook-heading'
             className='mt-1 text-2xl font-extrabold text-stone-900 sm:text-3xl'
           >
-            Inspired edits
+            {t('home.lookbook.title')}
           </h2>
           <p className='mt-2 text-sm text-stone-600'>
             {usingFallback || isError
-              ? 'Lifestyle storytelling modules — original TrendVaulta copy and local imagery while live lookbooks refresh.'
-              : 'Lifestyle storytelling modules curated for the season.'}
+              ? t('home.lookbook.demoSubtitle')
+              : t('home.lookbook.subtitle')}
           </p>
         </div>
 
         {isLoading && !stories ? (
           <p className='text-sm text-stone-500' role='status'>
-            Loading lookbooks…
+            {t('home.lookbook.loading')}
           </p>
         ) : stories ? (
           <ul className='space-y-6'>

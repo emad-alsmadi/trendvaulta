@@ -38,7 +38,7 @@ function CheckoutCancelInner() {
           </Link>
           {orderId ? (
             <Link
-              href={`/orders/${orderId}`}
+              href={`/account/orders/${orderId}`}
               className='inline-flex items-center justify-center rounded-full border border-white/35 bg-white/45 px-5 py-3 text-sm font-extrabold text-indigo-950 shadow-sm backdrop-blur-xl transition hover:bg-white/65'
             >
               {t('orderResult.cancel.viewDraftOrder')}

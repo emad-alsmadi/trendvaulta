@@ -415,7 +415,7 @@ export default function CheckoutPage() {
         title: t('checkoutPage.toast.devCheckoutTitle'),
         variant: 'info',
       });
-      router.push(`/orders/${order._id}`);
+      router.push(`/account/orders/${order._id}`);
     } catch (err: unknown) {
       logErrorForDev(err);
       const msg = getUserFacingErrorMessage(

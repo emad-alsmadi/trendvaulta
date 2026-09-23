@@ -7,6 +7,7 @@ import { WishlistButton } from '@/components/page/wishlist/WishlistButton';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import { useCart } from '@/lib/cartStore';
+import { useTranslation } from '@/contexts/TranslationContext';
 import type { Brand, Product } from '@/types';
 
 export type ProductCardBadge = 'bestseller' | 'lowStock' | 'new';
@@ -40,6 +41,7 @@ function getBrandMeta(brand: Product['brand']): Brand | null {
 
 export function ProductCard({ product, badges = [] }: ProductCardProps) {
   const cart = useCart();
+  const { t, formatPrice } = useTranslation();
   const brand = getBrandMeta(product.brand);
 
   const handleAddToCart = () => {
@@ -84,28 +86,28 @@ export function ProductCard({ product, badges = [] }: ProductCardProps) {
           <div className='absolute top-2 start-2 flex flex-col gap-1 items-start'>
             {discount > 0 && (
               <span className='bg-rose-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-sm'>
-                -{discount}%
+                {t('productCard.discount', { percent: discount })}
               </span>
             )}
             {badges.includes('bestseller') && (
               <span className='bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-sm'>
-                Bestseller
+                {t('productCard.badges.bestseller')}
               </span>
             )}
             {badges.includes('new') && (
               <span className='bg-teal-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-sm'>
-                New
+                {t('productCard.badges.new')}
               </span>
             )}
           </div>
           {!inStock && (
             <div className='absolute top-2 end-2 bg-gray-800 text-white text-xs font-bold px-2 py-1 rounded-full shadow-sm'>
-              Out of Stock
+              {t('product.outOfStock')}
             </div>
           )}
           {inStock && lowStock && (
             <div className='absolute top-2 end-2 bg-orange-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-sm'>
-              Low stock
+              {t('productCard.badges.lowStock')}
             </div>
           )}
 
@@ -120,7 +122,7 @@ export function ProductCard({ product, badges = [] }: ProductCardProps) {
               className='bg-white text-gray-900 hover:bg-gray-100 shadow-lg'
             >
               <ShoppingCart className='h-4 w-4 me-1' />
-              Add to Cart
+              {t('product.addToCart')}
             </Button>
             <Button
               size='sm'
@@ -170,11 +172,11 @@ export function ProductCard({ product, badges = [] }: ProductCardProps) {
         <div className='flex items-center justify-between mb-3'>
           <div className='flex items-center gap-2'>
             <span className='text-xl font-bold text-gray-900'>
-              ${product.price.toFixed(2)}
+              {formatPrice(product.price)}
             </span>
             {discount > 0 && (
               <span className='text-sm text-gray-400 line-through'>
-                ${product.basePrice.toFixed(2)}
+                {formatPrice(product.basePrice)}
               </span>
             )}
           </div>
@@ -188,7 +190,7 @@ export function ProductCard({ product, badges = [] }: ProductCardProps) {
             className='flex-1 gap-1'
           >
             <ShoppingCart className='h-4 w-4' />
-            Add
+            {t('productCard.add')}
           </Button>
           <WishlistButton
             productId={product._id}

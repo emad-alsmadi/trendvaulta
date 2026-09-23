@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { DEMO_CATEGORY_SHORTCUTS } from '@/data/demoStorefront';
 import { useStorefrontCategories } from '@/hooks/storefront/categoriesQuery';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 const ICONS = {
   sparkles: Sparkles,
@@ -28,6 +29,7 @@ const ICONS = {
 
 /** Category shortcuts — GET /api/storefront/categories with DEMO fallback */
 export function PopularCategories() {
+  const { t } = useTranslation();
   const { data, isLoading, isError } = useStorefrontCategories();
 
   const liveCategories = data && data.length > 0 ? data : null;
@@ -50,18 +52,18 @@ export function PopularCategories() {
             id='categories-heading'
             className='text-2xl sm:text-3xl font-extrabold text-gray-900 mb-2'
           >
-            Shop by category
+            {t('home.categories.title')}
           </h2>
           <p className='text-gray-600'>
             {usingFallback || isError
-              ? 'Beauty, fashion, and lifestyle edits — demo categories while the catalog refreshes'
-              : 'Beauty, fashion, and lifestyle edits — browse the TrendVaulta catalog'}
+              ? t('home.categories.subtitleFallback')
+              : t('home.categories.subtitle')}
           </p>
         </div>
 
         {isLoading && !categories ? (
           <p className='text-sm text-gray-500' role='status'>
-            Loading categories…
+            {t('home.categories.loading')}
           </p>
         ) : categories ? (
           <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>

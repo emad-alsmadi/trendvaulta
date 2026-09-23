@@ -18,25 +18,29 @@ import {
   getUserFacingErrorMessage,
   logErrorForDev,
 } from '@/lib/userFacingError';
+import { useTranslation } from '@/contexts/TranslationContext';
 
-/** Mirrors the server's Joi rules so the shopper sees problems before posting. */
+/**
+ * Mirrors the server's Joi rules so the shopper sees problems before posting.
+ * Issue messages are message keys, translated where the errors render.
+ */
 const contactSchema = z.object({
   name: z
     .string()
     .trim()
-    .min(2, 'Enter your name (at least 2 characters)')
-    .max(80, 'Name is too long'),
-  email: z.string().trim().email('Enter a valid email address'),
+    .min(2, 'contact.errors.nameMin')
+    .max(80, 'contact.errors.nameMax'),
+  email: z.string().trim().email('footer.newsletterError'),
   subject: z
     .string()
     .trim()
-    .min(2, 'Choose a subject')
-    .max(120, 'Subject is too long'),
+    .min(2, 'contact.errors.subjectMin')
+    .max(120, 'contact.errors.subjectMax'),
   message: z
     .string()
     .trim()
-    .min(10, 'Tell us a little more (at least 10 characters)')
-    .max(2000, 'Message is too long (2000 characters max)'),
+    .min(10, 'contact.errors.messageMin')
+    .max(2000, 'contact.errors.messageMax'),
 });
 
 type FieldErrors = Partial<
@@ -44,6 +48,7 @@ type FieldErrors = Partial<
 >;
 
 export default function ContactPage() {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -84,7 +89,7 @@ export default function ContactPage() {
       setFormError(
         getUserFacingErrorMessage(
           err,
-          'Could not send your message. Please try again.',
+          t('contact.errors.sendFailed'),
         ),
       );
     }
@@ -115,14 +120,13 @@ export default function ContactPage() {
         >
           <div className='inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-extrabold text-indigo-700 mb-4'>
             <Sparkles className='h-4 w-4' />
-            Get in Touch
+            {t('contact.badge')}
           </div>
           <h1 className='text-4xl font-extrabold text-gray-900 mb-4'>
-            Contact Us
+            {t('contact.title')}
           </h1>
           <p className='text-lg text-gray-600 max-w-2xl mx-auto'>
-            Questions about orders, products, or returns? Send a message — the
-            TrendVaulta care team usually replies within 24 hours.
+            {t('contact.subtitle')}
           </p>
         </motion.div>
 
@@ -135,7 +139,7 @@ export default function ContactPage() {
           >
             <div className='bg-white rounded-2xl border border-gray-200 p-6'>
               <h3 className='font-bold text-gray-900 mb-4'>
-                Contact Information
+                {t('contact.info.title')}
               </h3>
               <div className='space-y-4'>
                 <div className='flex items-start gap-3'>
@@ -143,7 +147,9 @@ export default function ContactPage() {
                     <Mail className='h-5 w-5 text-fuchsia-600' />
                   </div>
                   <div>
-                    <div className='font-semibold text-gray-900'>Email</div>
+                    <div className='font-semibold text-gray-900'>
+                      {t('auth.email')}
+                    </div>
                     <div className='text-sm text-gray-600'>
                       support@trendvaulta.com
                     </div>
@@ -154,7 +160,9 @@ export default function ContactPage() {
                     <Phone className='h-5 w-5 text-fuchsia-600' />
                   </div>
                   <div>
-                    <div className='font-semibold text-gray-900'>Phone</div>
+                    <div className='font-semibold text-gray-900'>
+                      {t('checkout.phone')}
+                    </div>
                     <div className='text-sm text-gray-600'>
                       +1 (555) 123-4567
                     </div>
@@ -165,7 +173,9 @@ export default function ContactPage() {
                     <MapPin className='h-5 w-5 text-fuchsia-600' />
                   </div>
                   <div>
-                    <div className='font-semibold text-gray-900'>Studio</div>
+                    <div className='font-semibold text-gray-900'>
+                      {t('contact.info.studio')}
+                    </div>
                     <div className='text-sm text-gray-600'>
                       120 Market Avenue
                       <br />
@@ -177,22 +187,22 @@ export default function ContactPage() {
             </div>
 
             <div className='bg-gradient-to-br from-indigo-600 via-purple-600 to-cyan-500 rounded-2xl p-6 text-white'>
-              <h3 className='font-bold mb-2'>Need help faster?</h3>
+              <h3 className='font-bold mb-2'>{t('contact.helpFaster.title')}</h3>
               <p className='text-sm text-white/90 mb-4'>
-                Browse the Help Center for shipping, returns, and order guides.
+                {t('contact.helpFaster.text')}
               </p>
               <div className='flex flex-wrap gap-2'>
                 <Link
                   href='/help'
                   className='inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg text-sm font-semibold transition-colors'
                 >
-                  Help Center
+                  {t('productQa.helpCenter')}
                 </Link>
                 <Link
                   href='/faq'
                   className='inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-semibold transition-colors'
                 >
-                  FAQ
+                  {t('contact.helpFaster.faq')}
                 </Link>
               </div>
             </div>
@@ -215,11 +225,10 @@ export default function ContactPage() {
                     <CheckCircle className='h-8 w-8 text-green-600' />
                   </div>
                   <h3 className='text-2xl font-bold text-gray-900 mb-2'>
-                    Message Sent!
+                    {t('contact.success.title')}
                   </h3>
                   <p className='text-gray-600'>
-                    Thank you for reaching out. We&apos;ll get back to you within 24
-                    hours.
+                    {t('contact.success.text')}
                   </p>
                 </motion.div>
               ) : (
@@ -230,7 +239,7 @@ export default function ContactPage() {
                         htmlFor='name'
                         className='block text-sm font-semibold text-gray-900 mb-2'
                       >
-                        Name
+                        {t('addresses.name')}
                       </label>
                       <input
                         type='text'
@@ -240,11 +249,11 @@ export default function ContactPage() {
                         onChange={handleChange}
                         required
                         className='w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors'
-                        placeholder='Your name'
+                        placeholder={t('checkoutPage.form.namePlaceholder')}
                       />
                       {fieldErrors.name && (
                         <p className='mt-1 text-sm text-rose-600'>
-                          {fieldErrors.name}
+                          {t(fieldErrors.name)}
                         </p>
                       )}
                     </div>
@@ -253,7 +262,7 @@ export default function ContactPage() {
                         htmlFor='email'
                         className='block text-sm font-semibold text-gray-900 mb-2'
                       >
-                        Email
+                        {t('auth.email')}
                       </label>
                       <input
                         type='email'
@@ -267,7 +276,7 @@ export default function ContactPage() {
                       />
                       {fieldErrors.email && (
                         <p className='mt-1 text-sm text-rose-600'>
-                          {fieldErrors.email}
+                          {t(fieldErrors.email)}
                         </p>
                       )}
                     </div>
@@ -278,7 +287,7 @@ export default function ContactPage() {
                       htmlFor='subject'
                       className='block text-sm font-semibold text-gray-900 mb-2'
                     >
-                      Subject
+                      {t('contact.form.subject')}
                     </label>
                     <select
                       id='subject'
@@ -288,16 +297,20 @@ export default function ContactPage() {
                       required
                       className='w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors'
                     >
-                      <option value=''>Select a subject</option>
-                      <option value='order'>Order or tracking</option>
-                      <option value='product'>Product question</option>
-                      <option value='return'>Return or refund</option>
-                      <option value='billing'>Payment / billing</option>
-                      <option value='other'>Other</option>
+                      <option value=''>{t('contact.form.subjectPlaceholder')}</option>
+                      <option value='order'>{t('contact.form.subjects.order')}</option>
+                      <option value='product'>
+                        {t('contact.form.subjects.product')}
+                      </option>
+                      <option value='return'>{t('contact.form.subjects.return')}</option>
+                      <option value='billing'>
+                        {t('contact.form.subjects.billing')}
+                      </option>
+                      <option value='other'>{t('contact.form.subjects.other')}</option>
                     </select>
                     {fieldErrors.subject && (
                       <p className='mt-1 text-sm text-rose-600'>
-                        {fieldErrors.subject}
+                        {t(fieldErrors.subject)}
                       </p>
                     )}
                   </div>
@@ -307,7 +320,7 @@ export default function ContactPage() {
                       htmlFor='message'
                       className='block text-sm font-semibold text-gray-900 mb-2'
                     >
-                      Message
+                      {t('contact.form.message')}
                     </label>
                     <textarea
                       id='message'
@@ -317,12 +330,12 @@ export default function ContactPage() {
                       required
                       rows={6}
                       className='w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-fuchsia-500 focus:border-transparent transition-colors resize-none'
-                      placeholder='How can we help you?'
+                      placeholder={t('contact.form.messagePlaceholder')}
                       maxLength={2000}
                     />
                     {fieldErrors.message && (
                       <p className='mt-1 text-sm text-rose-600'>
-                        {fieldErrors.message}
+                        {t(fieldErrors.message)}
                       </p>
                     )}
                   </div>
@@ -363,7 +376,7 @@ export default function ContactPage() {
                     ) : (
                       <Send className='h-4 w-4' />
                     )}
-                    {sendMessage.isPending ? 'Sending…' : 'Send Message'}
+                    {sendMessage.isPending ? t('returns.sending') : t('contact.form.submit')}
                   </button>
                 </form>
               )}

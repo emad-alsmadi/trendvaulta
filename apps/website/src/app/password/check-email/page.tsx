@@ -5,10 +5,16 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Mail, Sparkles } from 'lucide-react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 function CheckYourEmailContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get('email');
+  const { t } = useTranslation();
+  // One sentence with an {email} slot, so Arabic can place the address itself.
+  const [inboxBefore, inboxAfter = ''] = t('password.openInboxFor').split(
+    '{email}',
+  );
 
   return (
     <div className='relative mx-auto max-w-6xl overflow-hidden rounded-3xl border border-white/25 bg-white/20 p-4 backdrop-blur-xl sm:p-6'>
@@ -29,7 +35,7 @@ function CheckYourEmailContent() {
           className='inline-flex items-center gap-2 text-sm font-extrabold text-indigo-700'
         >
           <ArrowLeft className='h-4 w-4 rtl:-scale-x-100' />
-          Back
+          {t('password.back')}
         </Link>
 
         <motion.section
@@ -40,15 +46,15 @@ function CheckYourEmailContent() {
         >
           <div className='inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/40 px-3 py-1 text-xs font-extrabold text-indigo-950'>
             <Sparkles className='h-4 w-4 text-fuchsia-700' />
-            Check your email
+            {t('password.checkEmail')}
           </div>
 
           <h1 className='mt-4 text-4xl font-extrabold tracking-tight text-indigo-950'>
-            Reset link sent
+            {t('password.linkSent')}
           </h1>
 
           <div className='mt-2 text-sm font-semibold leading-7 text-indigo-950/80'>
-            We’ve sent a password reset link to your email address.
+            {t('password.linkSentBody')}
           </div>
 
           <div className='mt-6 rounded-2xl border border-white/35 bg-white/45 p-4'>
@@ -58,19 +64,23 @@ function CheckYourEmailContent() {
               </div>
               <div className='min-w-0'>
                 <div className='text-sm font-extrabold text-indigo-950'>
-                  Next steps
+                  {t('password.nextSteps')}
                 </div>
                 <div className='mt-1 text-sm font-semibold text-indigo-950/80'>
-                  Open your inbox{email ? ' for ' : ''}
                   {email ? (
-                    <span className='break-all font-extrabold text-indigo-950'>
-                      {email}
-                    </span>
-                  ) : null}
-                  , then click the reset link to set a new password.
+                    <>
+                      {inboxBefore}
+                      <span className='break-all font-extrabold text-indigo-950'>
+                        {email}
+                      </span>
+                      {inboxAfter}
+                    </>
+                  ) : (
+                    t('password.openInbox')
+                  )}
                 </div>
                 <div className='mt-2 text-xs font-semibold text-indigo-950/70'>
-                  If you don’t see it, check your spam/junk folder.
+                  {t('password.spamHint')}
                 </div>
               </div>
             </div>
@@ -81,13 +91,13 @@ function CheckYourEmailContent() {
               href='/auth/login'
               className='rounded-full bg-fuchsia-600 px-6 py-2.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-fuchsia-700'
             >
-              Back to login
+              {t('password.backToLogin')}
             </Link>
             <Link
               href='/password/forgot-password'
               className='rounded-full border border-white/40 bg-white/55 px-6 py-2.5 text-sm font-extrabold text-indigo-950 shadow-sm transition hover:bg-white/70'
             >
-              Resend link
+              {t('password.resendLink')}
             </Link>
           </div>
         </motion.section>

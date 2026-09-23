@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useHelpTopics } from '@/hooks/storefront/helpTopicsQuery';
 import type { DemoHelpTopic } from '@/data/demoStorefront';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 const ICONS: Record<
   DemoHelpTopic['icon'],
@@ -40,6 +41,14 @@ const ICONS: Record<
  */
 export default function HelpPage() {
   const { data: topics = [], isLoading, error } = useHelpTopics();
+  const { t } = useTranslation();
+  const [faqBefore, faqAfter = ''] = t('help.quickAnswers.faq').split('{link}');
+  const [shippingBefore, shippingAfter = ''] = t(
+    'help.quickAnswers.shipping',
+  ).split('{link}');
+  const [returnsBefore, returnsAfter = ''] = t(
+    'help.quickAnswers.returns',
+  ).split('{link}');
 
   return (
     <div className='min-h-screen bg-stone-50 py-12'>
@@ -54,32 +63,31 @@ export default function HelpPage() {
               className='h-4 w-4'
               aria-hidden
             />
-            Help Center
+            {t('productQa.helpCenter')}
           </div>
           <h1 className='text-3xl font-extrabold tracking-tight text-stone-900 sm:text-4xl'>
-            How can we help?
+            {t('help.title')}
           </h1>
           <p className='mx-auto mt-3 max-w-2xl text-sm font-semibold text-stone-600 sm:text-base'>
-            Shipping, returns, orders, payments, and gifts — self-serve guides
-            for TrendVaulta shoppers.
+            {t('help.subtitle')}
           </p>
         </motion.div>
 
         {isLoading && (
           <p className='py-10 text-center text-sm text-stone-500'>
-            Loading help topics…
+            {t('help.loading')}
           </p>
         )}
 
         {error && (
           <div className='rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800'>
-            Failed to load help topics. Please try again later.
+            {t('help.error')}
           </div>
         )}
 
         {!isLoading && !error && topics.length === 0 && (
           <p className='py-10 text-center text-sm text-stone-500'>
-            No help topics available at this time.
+            {t('help.empty')}
           </p>
         )}
 
@@ -111,7 +119,7 @@ export default function HelpPage() {
                       {topic.description}
                     </p>
                     <span className='mt-4 inline-flex items-center gap-1 text-sm font-bold text-fuchsia-700'>
-                      Open
+                      {t('help.open')}
                       <ArrowRight
                         className='h-4 w-4 rtl:-scale-x-100'
                         aria-hidden
@@ -131,50 +139,54 @@ export default function HelpPage() {
                 className='h-5 w-5 text-fuchsia-700'
                 aria-hidden
               />
-              Quick answers
+              {t('help.quickAnswers.title')}
             </div>
             <ul className='mt-4 space-y-3 text-sm font-semibold text-stone-600'>
               <li>
+                {faqBefore}
                 <Link
                   href='/faq'
                   className='text-fuchsia-700 hover:underline'
                 >
-                  FAQ
-                </Link>{' '}
-                — payments, shipping windows, and product questions
+                  {t('help.quickAnswers.faqLink')}
+                </Link>
+                {faqAfter}
               </li>
               <li>
+                {shippingBefore}
                 <Link
                   href='/shipping'
                   className='text-fuchsia-700 hover:underline'
                 >
-                  Shipping policy
-                </Link>{' '}
-                — rates, tracking, and international notes
+                  {t('orders.tracking.shippingPolicy')}
+                </Link>
+                {shippingAfter}
               </li>
               <li>
+                {returnsBefore}
                 <Link
                   href='/returns'
                   className='text-fuchsia-700 hover:underline'
                 >
-                  Returns policy
-                </Link>{' '}
-                — eligibility and refund timing
+                  {t('help.quickAnswers.returnsLink')}
+                </Link>
+                {returnsAfter}
               </li>
             </ul>
           </div>
 
           <div className='rounded-2xl border border-stone-200 bg-gradient-to-br from-stone-900 via-indigo-950 to-fuchsia-950 p-6 text-white sm:p-8'>
-            <h2 className='text-lg font-extrabold'>Still need a human?</h2>
+            <h2 className='text-lg font-extrabold'>
+              {t('help.human.title')}
+            </h2>
             <p className='mt-2 text-sm font-semibold text-white/80'>
-              Our care team can help with damaged items, missing packages, or
-              account issues.
+              {t('help.human.text')}
             </p>
             <Link
               href='/contact'
               className='mt-5 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-extrabold text-indigo-950 transition hover:bg-stone-100'
             >
-              Contact support
+              {t('help.human.button')}
               <ArrowRight
                 className='h-4 w-4 rtl:-scale-x-100'
                 aria-hidden

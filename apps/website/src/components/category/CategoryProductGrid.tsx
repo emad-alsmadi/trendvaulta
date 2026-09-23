@@ -8,14 +8,15 @@ import { Button } from '@/components/ui/Button';
 import { Pagination } from '@/components/ui/Pagination';
 import { ProductCard } from '@/components/products/ProductCard';
 import { useProducts } from '@/hooks/products/productsQuery';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 const sortOptions = [
-  { value: 'createdAt', label: 'Featured' },
-  { value: 'bestselling', label: 'Best Sellers' },
-  { value: 'price', label: 'Price: Low to High' },
-  { value: '-price', label: 'Price: High to Low' },
-  { value: '-averageRating', label: 'Avg. Customer Review' },
-  { value: '-createdAt', label: 'Newest Arrivals' },
+  { value: 'createdAt', labelKey: 'catalog.sort.featured' },
+  { value: 'bestselling', labelKey: 'catalog.sort.bestselling' },
+  { value: 'price', labelKey: 'catalog.sort.priceAsc' },
+  { value: '-price', labelKey: 'catalog.sort.priceDesc' },
+  { value: '-averageRating', labelKey: 'catalog.sort.rating' },
+  { value: '-createdAt', labelKey: 'catalog.sort.newest' },
 ];
 
 const LIMIT = 12;
@@ -34,6 +35,7 @@ export function CategoryProductGrid({ category, subcategory }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
 
   const sortBy = searchParams.get('sort') || 'createdAt';
   const pageParam = Number(searchParams.get('page') || '1');
@@ -101,24 +103,28 @@ export function CategoryProductGrid({ category, subcategory }: Props) {
       <div className='mb-4 flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center'>
         <div className='flex flex-wrap items-center gap-2 text-sm text-stone-600'>
           {isLoading && !response ? (
-            <span>Loading products…</span>
+            <span>{t('catalog.loading')}</span>
           ) : error && !response ? (
-            <span className='text-rose-600'>Failed to load products</span>
+            <span className='text-rose-600'>{t('catalog.loadFailed')}</span>
           ) : (
             <span>
               {meta.total === 0
-                ? 'No results'
-                : `${rangeStart}–${rangeEnd} of ${meta.total} results`}
+                ? t('catalog.noResults')
+                : t('catalog.resultsRange', {
+                    start: rangeStart,
+                    end: rangeEnd,
+                    total: meta.total,
+                  })}
             </span>
           )}
           {isFetching && response ? (
-            <span className='text-xs text-stone-400'>Updating…</span>
+            <span className='text-xs text-stone-400'>{t('catalog.updating')}</span>
           ) : null}
         </div>
 
         <div className='flex w-full gap-3 sm:w-auto'>
           <label className='sr-only' htmlFor='category-sort'>
-            Sort products
+            {t('catalog.sortLabel')}
           </label>
           <select
             id='category-sort'
@@ -128,7 +134,7 @@ export function CategoryProductGrid({ category, subcategory }: Props) {
           >
             {sortOptions.map((option) => (
               <option key={option.value} value={option.value}>
-                {option.label}
+                {t(option.labelKey)}
               </option>
             ))}
           </select>
@@ -138,7 +144,7 @@ export function CategoryProductGrid({ category, subcategory }: Props) {
             className='inline-flex items-center gap-2 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 transition-colors hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500'
           >
             <SlidersHorizontal className='h-4 w-4' aria-hidden />
-            All filters
+            {t('catalog.allFilters')}
           </Link>
         </div>
       </div>
@@ -154,9 +160,9 @@ export function CategoryProductGrid({ category, subcategory }: Props) {
         </div>
       ) : error && !response ? (
         <div className='rounded-xl border border-rose-100 bg-white py-12 text-center'>
-          <p className='text-rose-600'>Couldn’t load the catalog.</p>
+          <p className='text-rose-600'>{t('catalog.catalogLoadFailed')}</p>
           <Button type='button' className='mt-4' onClick={() => refetch()}>
-            Retry
+            {t('catalog.retry')}
           </Button>
         </div>
       ) : products.length > 0 ? (
@@ -184,13 +190,13 @@ export function CategoryProductGrid({ category, subcategory }: Props) {
       ) : (
         <div className='rounded-xl border border-stone-100 bg-white py-12 text-center'>
           <p className='text-lg text-stone-500'>
-            No products available in this category yet.
+            {t('catalog.emptyCategory')}
           </p>
           <Link
             href='/products'
             className='mt-4 inline-block text-sm font-semibold text-fuchsia-700 hover:text-fuchsia-800'
           >
-            Browse all products
+            {t('catalog.browseAll')}
           </Link>
         </div>
       )}

@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { CategorySidebar } from '@/components/products/CategorySidebar';
+import { useTranslation } from '@/contexts/TranslationContext';
 import type { ProductFacets } from '@/types';
 
 type Props = {
@@ -25,6 +26,8 @@ export function ProductFiltersDrawer({
   activeCount = 0,
   facets,
 }: Props) {
+  const { t } = useTranslation();
+
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -51,7 +54,7 @@ export function ProductFiltersDrawer({
       <button
         type='button'
         className='absolute inset-0 bg-stone-900/45'
-        aria-label='Close filters'
+        aria-label={t('catalog.drawer.closeFilters')}
         onClick={onClose}
       />
       <div className='absolute inset-y-0 start-0 flex w-[min(100%,22rem)] flex-col bg-white shadow-2xl'>
@@ -61,19 +64,19 @@ export function ProductFiltersDrawer({
               id='plp-filters-title'
               className='font-extrabold text-stone-900'
             >
-              Filters
+              {t('catalog.filters')}
             </p>
             <p className='text-[11px] font-semibold text-stone-500'>
               {activeCount > 0
-                ? `${activeCount} active`
-                : 'Refine by category, price, and more'}
+                ? t('catalog.drawer.activeCount', { count: activeCount })
+                : t('catalog.drawer.hint')}
             </p>
           </div>
           <button
             type='button'
             onClick={onClose}
             className='rounded-lg p-2 text-stone-600 hover:bg-stone-100'
-            aria-label='Close'
+            aria-label={t('catalog.drawer.close')}
           >
             <X className='h-5 w-5' />
           </button>
@@ -93,7 +96,7 @@ export function ProductFiltersDrawer({
             className='w-full'
             onClick={onClose}
           >
-            Show results
+            {t('catalog.drawer.showResults')}
           </Button>
         </div>
       </div>
