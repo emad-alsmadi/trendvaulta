@@ -13,6 +13,15 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'images.pexels.com',
       },
+      // Allow images from Cloudinary
+      ...(process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+        ? [
+            {
+              protocol: 'https',
+              hostname: `${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}.cloudinary.com`,
+            },
+          ]
+        : []),
       // Allow images from the API (uploads or CDN)
       ...(process.env.NEXT_PUBLIC_API_URL
         ? [

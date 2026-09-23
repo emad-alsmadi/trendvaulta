@@ -372,9 +372,7 @@ const validateCreateOrder = (obj) => {
     }).required(),
     // Client shippingPrice/taxPrice ignored — use delivery / shippingMethod
     delivery: Joi.boolean().optional(),
-    shippingMethod: Joi.string()
-      .valid('none', 'standard', 'express')
-      .optional(),
+    shippingMethod: Joi.string().trim().max(50).optional(),
     couponCode: Joi.string().trim().max(50).allow('', null).optional(),
     shippingPrice: Joi.any().strip(),
     taxPrice: Joi.any().strip(),
@@ -396,9 +394,7 @@ const validateQuote = (obj) => {
       .required(),
     couponCode: Joi.string().trim().max(50).allow('', null).optional(),
     delivery: Joi.boolean().optional(),
-    shippingMethod: Joi.string()
-      .valid('none', 'standard', 'express')
-      .optional(),
+    shippingMethod: Joi.string().trim().max(50).optional(),
     shippingAddress: Joi.object({
       country: Joi.string().trim().length(2).uppercase().optional(),
       zip: Joi.string().trim().min(2).max(20).optional(),
