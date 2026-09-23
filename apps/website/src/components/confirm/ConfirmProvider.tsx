@@ -1,6 +1,7 @@
 'use client';
 
 import * as Dialog from '@radix-ui/react-dialog';
+import { useTranslation } from '@/contexts/TranslationContext';
 import {
   createContext,
   useCallback,
@@ -26,21 +27,22 @@ function defaultCloseOnBackdrop(variant: ConfirmVariant | undefined): boolean {
   return variant !== 'danger' && variant !== 'payment';
 }
 
+/** Message keys (confirmDialog.*) for the default button labels. */
 function defaultLabels(variant: ConfirmVariant | undefined): {
   confirm: string;
   cancel: string;
 } {
   switch (variant ?? 'neutral') {
     case 'danger':
-      return { confirm: 'Continue', cancel: 'Cancel' };
+      return { confirm: 'confirmDialog.continue', cancel: 'confirmDialog.cancel' };
     case 'warning':
-      return { confirm: 'Discard', cancel: 'Keep editing' };
+      return { confirm: 'confirmDialog.discard', cancel: 'confirmDialog.keepEditing' };
     case 'payment':
-      return { confirm: 'Continue to payment', cancel: 'Review cart' };
+      return { confirm: 'confirmDialog.continueToPayment', cancel: 'confirmDialog.reviewCart' };
     case 'info':
     case 'neutral':
     default:
-      return { confirm: 'Confirm', cancel: 'Cancel' };
+      return { confirm: 'confirmDialog.confirm', cancel: 'confirmDialog.cancel' };
   }
 }
 
@@ -131,6 +133,7 @@ export function useConfirm() {
 }
 
 export function ConfirmProvider({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [opts, setOpts] = useState<ConfirmOptions | null>(null);
@@ -182,8 +185,8 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
     [opts?.variant],
   );
 
-  const confirmLabel = opts?.confirmLabel ?? defaults.confirm;
-  const cancelLabel = opts?.cancelLabel ?? defaults.cancel;
+  const confirmLabel = opts?.confirmLabel ?? t(defaults.confirm);
+  const cancelLabel = opts?.cancelLabel ?? t(defaults.cancel);
 
   const ctxValue = useMemo(() => ({ confirm }), [confirm]);
 
@@ -242,7 +245,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                   disabled={busy}
                   onClick={() => !busy && finish(false)}
                   className='-m-1 shrink-0 rounded-xl p-2 text-indigo-950/50 transition hover:bg-white/60 hover:text-indigo-950 disabled:opacity-40'
-                  aria-label='Close'
+                  aria-label={t('confirmDialog.close')}
                 >
                   <X className='h-5 w-5' />
                 </button>

@@ -24,7 +24,13 @@ import { formatCurrency } from '@/lib/utils';
 interface TranslationContextType {
   locale: Locale;
   setLocale: (locale: Locale) => void;
-  t: (key: string) => string;
+  /**
+   * Look up `key` (dot path into messages/<locale>.json). `{name}`
+   * placeholders are filled from `vars` — whole sentences are translated
+   * with their placeholders, never stitched from fragments, since Arabic word
+   * order differs from English.
+   */
+  t: (key: string, vars?: Record<string, string | number>) => string;
   dir: 'ltr' | 'rtl';
   /** USD, formatted for the reader's language. Checkout charges USD, so no
    *  other currency is ever displayed. */
@@ -105,23 +111,22 @@ export function TranslationProvider({
   }, []);
 
   const value = useMemo<TranslationContextType>(() => {
-    const t = (key: string): string => {
-      let node: unknown = messages[locale];
+    const lookup = (tree: unknown, key: string): string | undefined => {
+      let node = tree;
       for (const k of key.split('.')) {
-        if (typeof node !== 'object' || node === null) return key;
+        if (typeof node !== 'object' || node === null) return undefined;
         node = (node as Record<string, unknown>)[k];
       }
-      if (typeof node === 'string') return node;
+      return typeof node === 'string' ? node : undefined;
+    };
+    const t = (key: string, vars?: Record<string, string | number>): string => {
       // Missing in Arabic: fall back to English rather than show a raw key.
-      if (locale !== 'en') {
-        let fallback: unknown = messages.en;
-        for (const k of key.split('.')) {
-          if (typeof fallback !== 'object' || fallback === null) return key;
-          fallback = (fallback as Record<string, unknown>)[k];
-        }
-        if (typeof fallback === 'string') return fallback;
-      }
-      return key;
+      const template =
+        lookup(messages[locale], key) ?? lookup(messages.en, key) ?? key;
+      if (!vars) return template;
+      return template.replace(/\{(\w+)\}/g, (match, name: string) =>
+        name in vars ? String(vars[name]) : match,
+      );
     };
     return {
       locale,

@@ -57,13 +57,23 @@ export function getCartLineKey(
 }
 
 /** Human label for a variant, e.g. "Size: M · Color: Black". Empty when none. */
+/**
+ * "Size: M · Color: Red". Pass the translator from useTranslation() to get
+ * it in the reader's language; without one it stays English (for callers
+ * outside React, and pages not translated yet).
+ */
 export function formatVariantLabel(
   variant?: CartItem['variant'] | null,
+  t?: (key: string, vars?: Record<string, string | number>) => string,
 ): string {
   if (!variant) return '';
   return [
-    variant.size ? `Size: ${variant.size}` : '',
-    variant.color ? `Color: ${variant.color}` : '',
+    variant.size
+      ? t ? t('product.sizeValue', { value: variant.size }) : `Size: ${variant.size}`
+      : '',
+    variant.color
+      ? t ? t('product.colorValue', { value: variant.color }) : `Color: ${variant.color}`
+      : '',
   ]
     .filter(Boolean)
     .join(' · ');

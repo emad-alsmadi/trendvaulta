@@ -17,7 +17,10 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
 import { useCart, getCartLineKey, formatVariantLabel } from '@/lib/cartStore';
-import { useCartQuoteSync } from '@/hooks/cart/cartQuoteQuery';
+import {
+  cartNoticeMessage,
+  useCartQuoteSync,
+} from '@/hooks/cart/cartQuoteQuery';
 import axios from 'axios';
 import { paymentsApi, shippingApi, type ShippingMethod } from '@/lib/api';
 import { useCreateOrderMutation } from '@/hooks/orders/ordersQuery';
@@ -30,6 +33,7 @@ import { getAuthToken } from '@/lib/authCookies';
 import { useConfirm } from '@/components/confirm/ConfirmProvider';
 import { useAddresses, useCreateAddress } from '@/hooks/profile/addressesQuery';
 import type { Address, CouponValidationResponse } from '@/types';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 type AppliedCoupon = NonNullable<CouponValidationResponse['coupon']>;
 
@@ -69,6 +73,7 @@ function isStripeUnavailableForFallback(stripeErr: unknown): boolean {
 export default function CheckoutPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t, formatPrice } = useTranslation();
   const cart = useCart();
   const createOrder = useCreateOrderMutation();
   const confirm = useConfirm();
@@ -244,7 +249,7 @@ export default function CheckoutPage() {
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) {
-      toast('Please enter a coupon code', { variant: 'error' });
+      toast(t('checkoutPage.toast.enterCoupon'), { variant: 'error' });
       return;
     }
 
@@ -256,18 +261,22 @@ export default function CheckoutPage() {
       });
       if (result.valid && result.coupon) {
         setAppliedCoupon(result.coupon);
-        toast('Coupon applied successfully', { variant: 'success' });
+        toast(t('checkoutPage.toast.couponApplied'), { variant: 'success' });
         setCouponCode('');
       } else {
-        toast(result.message || 'Invalid coupon code', {
+        toast(result.message || t('checkoutPage.toast.invalidCouponCode'), {
           variant: 'error',
         });
       }
     } catch (err) {
       logErrorForDev(err);
-      toast(getUserFacingErrorMessage(err, 'Failed to validate coupon'), {
-        variant: 'error',
-      });
+      toast(
+        getUserFacingErrorMessage(
+          err,
+          t('checkoutPage.toast.couponValidateFailed'),
+        ),
+        { variant: 'error' },
+      );
     } finally {
       setValidatingCoupon(false);
     }
@@ -275,7 +284,7 @@ export default function CheckoutPage() {
 
   const handleRemoveCoupon = () => {
     setAppliedCoupon(null);
-    toast('Coupon removed', { variant: 'info' });
+    toast(t('checkoutPage.toast.couponRemoved'), { variant: 'info' });
   };
 
   const runCheckout = async (values: CheckoutValues) => {
@@ -335,9 +344,9 @@ export default function CheckoutPage() {
       if (!stripeReady) {
         if (!allowCheckoutWithoutStripe) {
           toast(
-            'Card payment is not configured on the server. Add STRIPE_SECRET_KEY to the backend environment, restart the API, then try again.',
+            t('checkoutPage.toast.paymentNotConfigured'),
             {
-              title: 'Payment unavailable',
+              title: t('checkoutPage.toast.paymentUnavailableTitle'),
               variant: 'error',
             },
           );
@@ -350,8 +359,8 @@ export default function CheckoutPage() {
             window.location.assign(session.url);
             return;
           }
-          toast('No checkout URL returned. Please try again shortly.', {
-            title: 'Checkout failed',
+          toast(t('checkoutPage.toast.noCheckoutUrl'), {
+            title: t('checkoutPage.toast.checkoutFailed'),
             variant: 'error',
           });
           return;
@@ -370,18 +379,21 @@ export default function CheckoutPage() {
               stripeErr.response?.status === 502
             ) {
               toast(
-                'We could not open the secure payment page. Please try again shortly.',
+                t('checkoutPage.toast.paymentPageUnavailable'),
                 {
-                  title: 'Checkout failed',
+                  title: t('checkoutPage.toast.checkoutFailed'),
                   variant: 'error',
                 },
               );
             } else {
               const msg = getUserFacingErrorMessage(
                 stripeErr,
-                'Could not start checkout',
+                t('checkoutPage.toast.couldNotStartCheckout'),
               );
-              toast(msg, { title: 'Checkout failed', variant: 'error' });
+              toast(msg, {
+                title: t('checkoutPage.toast.checkoutFailed'),
+                variant: 'error',
+              });
             }
             return;
           }
@@ -389,28 +401,31 @@ export default function CheckoutPage() {
       }
 
       if (!allowCheckoutWithoutStripe) {
-        toast(
-          'Could not start secure checkout. Confirm Stripe keys and try again.',
-          { title: 'Checkout failed', variant: 'error' },
-        );
+        toast(t('checkoutPage.toast.secureCheckoutUnavailable'), {
+          title: t('checkoutPage.toast.checkoutFailed'),
+          variant: 'error',
+        });
         return;
       }
 
       const order = await createOrder.mutateAsync(payload);
 
       cart.clearCart();
-      toast(
-        'Order saved without card payment (dev mode). Use Stripe in production.',
-        {
-          title: 'Dev checkout',
-          variant: 'info',
-        },
-      );
+      toast(t('checkoutPage.toast.devOrderSaved'), {
+        title: t('checkoutPage.toast.devCheckoutTitle'),
+        variant: 'info',
+      });
       router.push(`/orders/${order._id}`);
     } catch (err: unknown) {
       logErrorForDev(err);
-      const msg = getUserFacingErrorMessage(err, 'Checkout failed');
-      toast(msg, { title: 'Checkout failed', variant: 'error' });
+      const msg = getUserFacingErrorMessage(
+        err,
+        t('checkoutPage.toast.checkoutFailed'),
+      );
+      toast(msg, {
+        title: t('checkoutPage.toast.checkoutFailed'),
+        variant: 'error',
+      });
     } finally {
       setStripeRedirecting(false);
     }
@@ -419,8 +434,8 @@ export default function CheckoutPage() {
   const onSubmit = handleSubmit((values) => {
     const token = getAuthToken();
     if (!token) {
-      toast('Please log in to continue.', {
-        title: 'Login required',
+      toast(t('checkoutPage.toast.loginToContinue'), {
+        title: t('checkoutPage.toast.loginRequiredTitle'),
         variant: 'info',
       });
       router.push('/auth/login?redirect=/checkout');
@@ -428,17 +443,22 @@ export default function CheckoutPage() {
     }
 
     if (items.length === 0) {
-      toast('Your cart is empty.', { title: 'Checkout', variant: 'error' });
+      toast(t('checkoutPage.toast.cartEmpty'), {
+        title: t('checkoutPage.title'),
+        variant: 'error',
+      });
       router.push('/');
       return;
     }
 
     void confirm({
       variant: 'payment',
-      title: 'Continue to secure checkout?',
-      description: `Your order total is $${total.toFixed(2)}. You’ll finish payment on the next secure step.`,
-      confirmLabel: 'Continue to payment',
-      cancelLabel: 'Review details',
+      title: t('checkoutPage.confirm.title'),
+      description: t('checkoutPage.confirm.description', {
+        total: formatPrice(total),
+      }),
+      confirmLabel: t('checkoutPage.confirm.continueToPayment'),
+      cancelLabel: t('checkoutPage.confirm.reviewDetails'),
       closeOnBackdrop: false,
       onConfirm: async () => {
         await runCheckout(values);
@@ -451,15 +471,13 @@ export default function CheckoutPage() {
       <div className='rounded-3xl border border-white/40 bg-white/55 p-6 shadow-sm backdrop-blur-xl'>
         <div className='inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/40 px-3 py-1 text-xs font-extrabold text-indigo-950'>
           <Truck className='h-4 w-4 text-fuchsia-700' />
-          Checkout
+          {t('checkoutPage.title')}
         </div>
         <h1 className='mt-4 text-3xl font-extrabold tracking-tight text-indigo-950 sm:text-4xl'>
-          Contact &amp; checkout
+          {t('checkoutPage.heading')}
         </h1>
         <p className='mt-2 text-sm font-semibold text-indigo-950/80'>
-          After you confirm, you&apos;ll finish payment on Stripe&apos;s secure
-          page (card or wallet). Enter the address your order should ship to;
-          tracked local delivery is optional.
+          {t('checkoutPage.intro')}
         </p>
       </div>
 
@@ -477,7 +495,7 @@ export default function CheckoutPage() {
             {savedAddresses.length > 0 && (
               <fieldset className='rounded-2xl border border-white/40 bg-white/40 p-4'>
                 <legend className='px-1 text-sm font-extrabold text-indigo-950/80'>
-                  Saved addresses
+                  {t('checkoutPage.savedAddresses.title')}
                 </legend>
                 <div className='mt-1 space-y-2'>
                   {savedAddresses.map((addr) => (
@@ -495,11 +513,11 @@ export default function CheckoutPage() {
                       <span className='min-w-0'>
                         <span className='flex flex-wrap items-center gap-2'>
                           <span className='text-sm font-bold text-indigo-950'>
-                            {addr.label || 'Home'}
+                            {addr.label || t('checkoutPage.savedAddresses.home')}
                           </span>
                           {addr.isDefault && (
                             <span className='rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800'>
-                              Default
+                              {t('checkoutPage.savedAddresses.default')}
                             </span>
                           )}
                         </span>
@@ -523,7 +541,7 @@ export default function CheckoutPage() {
                       onChange={handleUseNewAddress}
                     />
                     <span className='text-sm font-bold text-indigo-950'>
-                      Use a new address
+                      {t('checkoutPage.savedAddresses.useNew')}
                     </span>
                   </label>
                 </div>
@@ -532,19 +550,23 @@ export default function CheckoutPage() {
 
             <div>
               <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                Full name
+                {t('checkoutPage.form.fullName')}
               </label>
               <Input
-                placeholder='Your name'
+                placeholder={t('checkoutPage.form.namePlaceholder')}
                 {...register('name', {
-                  required: 'Name is required',
+                  required: t('checkoutPage.validation.nameRequired'),
                   minLength: {
                     value: 2,
-                    message: 'Use at least 2 characters',
+                    message: t('checkoutPage.validation.minChars', {
+                      count: 2,
+                    }),
                   },
                   maxLength: {
                     value: 200,
-                    message: 'Maximum 200 characters',
+                    message: t('checkoutPage.validation.maxChars', {
+                      count: 200,
+                    }),
                   },
                 })}
               />
@@ -557,19 +579,23 @@ export default function CheckoutPage() {
 
             <div>
               <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                Phone
+                {t('checkout.phone')}
               </label>
               <Input
                 placeholder='+1 555 555 555'
                 {...register('phone', {
-                  required: 'Phone is required',
+                  required: t('checkoutPage.validation.phoneRequired'),
                   minLength: {
                     value: 6,
-                    message: 'Use at least 6 characters',
+                    message: t('checkoutPage.validation.minChars', {
+                      count: 6,
+                    }),
                   },
                   maxLength: {
                     value: 30,
-                    message: 'Maximum 30 characters',
+                    message: t('checkoutPage.validation.maxChars', {
+                      count: 30,
+                    }),
                   },
                 })}
               />
@@ -587,17 +613,18 @@ export default function CheckoutPage() {
                   className='h-4 w-4'
                   {...register('delivery')}
                 />
-                Add tracked local delivery
                 {deliverySelected && quote
-                  ? ` (+$${shippingPrice.toFixed(2)})`
-                  : ''}
+                  ? t('checkoutPage.delivery.addWithPrice', {
+                      price: formatPrice(shippingPrice),
+                    })
+                  : t('checkoutPage.delivery.add')}
               </label>
             </div>
 
             {deliverySelected && shippingMethods.length > 0 && (
               <div>
                 <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                  Shipping method
+                  {t('checkoutPage.delivery.method')}
                 </label>
                 <div className='space-y-2'>
                   {shippingMethods.map((method) => (
@@ -620,13 +647,15 @@ export default function CheckoutPage() {
                             {method.name}
                           </span>
                           <span className='text-sm font-bold text-indigo-950'>
-                            ${method.priceUsd.toFixed(2)}
+                            {formatPrice(method.priceUsd)}
                           </span>
                           {method.estimatedDaysMin &&
                             method.estimatedDaysMax && (
                               <span className='rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-bold text-indigo-800'>
-                                {method.estimatedDaysMin}-
-                                {method.estimatedDaysMax} days
+                                {t('checkoutPage.delivery.days', {
+                                  min: method.estimatedDaysMin,
+                                  max: method.estimatedDaysMax,
+                                })}
                               </span>
                             )}
                         </span>
@@ -642,7 +671,7 @@ export default function CheckoutPage() {
                 {fetchingShippingMethods && (
                   <div className='mt-2 flex items-center gap-2 text-xs font-semibold text-indigo-950/70'>
                     <Loader2 className='h-3.5 w-3.5 animate-spin text-fuchsia-700' />
-                    Loading shipping methods…
+                    {t('checkoutPage.delivery.loading')}
                   </div>
                 )}
               </div>
@@ -650,17 +679,19 @@ export default function CheckoutPage() {
 
             <div>
               <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                Street address
+                {t('checkoutPage.form.streetAddress')}
               </label>
               <Input
-                placeholder='Street, building, apartment'
+                placeholder={t('checkoutPage.form.streetPlaceholder')}
                 {...register('address', {
                   validate: (v) =>
                     (typeof v === 'string' && v.trim().length >= 5) ||
-                    'Address is required',
+                    t('checkoutPage.validation.addressRequired'),
                   maxLength: {
                     value: 300,
-                    message: 'Maximum 300 characters',
+                    message: t('checkoutPage.validation.maxChars', {
+                      count: 300,
+                    }),
                   },
                 })}
               />
@@ -674,17 +705,19 @@ export default function CheckoutPage() {
             <div className='grid gap-4 sm:grid-cols-3'>
               <div>
                 <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                  City
+                  {t('checkout.city')}
                 </label>
                 <Input
-                  placeholder='City'
+                  placeholder={t('checkout.city')}
                   {...register('city', {
                     validate: (v) =>
                       (typeof v === 'string' && v.trim().length >= 2) ||
-                      'City is required',
+                      t('checkoutPage.validation.cityRequired'),
                     maxLength: {
                       value: 100,
-                      message: 'Maximum 100 characters',
+                      message: t('checkoutPage.validation.maxChars', {
+                        count: 100,
+                      }),
                     },
                   })}
                 />
@@ -696,17 +729,19 @@ export default function CheckoutPage() {
               </div>
               <div>
                 <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                  ZIP / postal code
+                  {t('checkoutPage.form.zipLabel')}
                 </label>
                 <Input
-                  placeholder='ZIP'
+                  placeholder={t('checkoutPage.form.zipPlaceholder')}
                   {...register('zip', {
                     validate: (v) =>
                       (typeof v === 'string' && v.trim().length >= 2) ||
-                      'ZIP is required',
+                      t('checkoutPage.validation.zipRequired'),
                     maxLength: {
                       value: 20,
-                      message: 'Maximum 20 characters',
+                      message: t('checkoutPage.validation.maxChars', {
+                        count: 20,
+                      }),
                     },
                   })}
                 />
@@ -718,17 +753,19 @@ export default function CheckoutPage() {
               </div>
               <div>
                 <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                  Country
+                  {t('checkout.country')}
                 </label>
                 <Input
                   placeholder='US'
                   {...register('country', {
                     validate: (v) =>
                       (typeof v === 'string' && v.trim().length === 2) ||
-                      'Country code must be 2 letters',
+                      t('checkoutPage.validation.countryCode'),
                     maxLength: {
                       value: 2,
-                      message: 'Maximum 2 characters',
+                      message: t('checkoutPage.validation.maxChars', {
+                        count: 2,
+                      }),
                     },
                   })}
                 />
@@ -742,14 +779,16 @@ export default function CheckoutPage() {
 
             <div>
               <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                Notes
+                {t('checkoutPage.form.notesLabel')}
               </label>
               <Input
-                placeholder='Optional notes'
+                placeholder={t('checkoutPage.form.notesPlaceholder')}
                 {...register('notes', {
                   maxLength: {
                     value: 500,
-                    message: 'Maximum 500 characters',
+                    message: t('checkoutPage.validation.maxChars', {
+                      count: 500,
+                    }),
                   },
                 })}
               />
@@ -766,10 +805,10 @@ export default function CheckoutPage() {
               {isSubmitting || createOrder.isPending || stripeRedirecting ? (
                 <span className='inline-flex items-center gap-2'>
                   <Loader2 className='h-4 w-4 animate-spin' />
-                  Continuing...
+                  {t('checkoutPage.form.submitting')}
                 </span>
               ) : (
-                'Pay now'
+                t('checkoutPage.form.payNow')
               )}
             </Button>
 
@@ -779,21 +818,21 @@ export default function CheckoutPage() {
                   className='h-3.5 w-3.5 shrink-0 text-fuchsia-700'
                   aria-hidden
                 />
-                Secure payment via Stripe
+                {t('checkoutPage.trust.securePayment')}
               </li>
               <li className='flex items-center gap-2'>
                 <Truck
                   className='h-3.5 w-3.5 shrink-0 text-fuchsia-700'
                   aria-hidden
                 />
-                Tracked shipping when delivery is selected
+                {t('checkoutPage.trust.trackedShipping')}
               </li>
               <li className='flex items-center gap-2'>
                 <RefreshCw
                   className='h-3.5 w-3.5 shrink-0 text-fuchsia-700'
                   aria-hidden
                 />
-                Easy returns within store policy
+                {t('checkoutPage.trust.easyReturns')}
               </li>
             </ul>
           </form>
@@ -807,7 +846,7 @@ export default function CheckoutPage() {
         >
           <div className='flex items-center gap-2 text-sm font-extrabold text-indigo-950'>
             <ShoppingBag className='h-4 w-4 text-cyan-700' />
-            Order summary
+            {t('checkoutPage.summary.title')}
           </div>
 
           {removedNotices.length > 0 && (
@@ -818,7 +857,7 @@ export default function CheckoutPage() {
               <ul className='space-y-1'>
                 {removedNotices.map(([key, n]) => (
                   <li key={key}>
-                    {n.title}: {n.message}
+                    {n.title}: {cartNoticeMessage(n, t)}
                   </li>
                 ))}
               </ul>
@@ -828,7 +867,7 @@ export default function CheckoutPage() {
           <ul className='mt-4 divide-y divide-indigo-900/10'>
             {items.map((item) => {
               const lineKey = getCartLineKey(item);
-              const variantLabel = formatVariantLabel(item.variant);
+              const variantLabel = formatVariantLabel(item.variant, t);
               const notice = notices[lineKey];
               return (
                 <li
@@ -845,19 +884,22 @@ export default function CheckoutPage() {
                       </div>
                     )}
                     <div className='text-xs font-semibold text-indigo-950/60'>
-                      Qty {item.qty} × ${item.price.toFixed(2)}
+                      {t('checkoutPage.summary.qtyPrice', {
+                        qty: item.qty,
+                        price: formatPrice(item.price),
+                      })}
                     </div>
                     {notice && (
                       <div
                         role='status'
                         className='mt-0.5 text-xs font-semibold text-amber-700'
                       >
-                        {notice.message}
+                        {cartNoticeMessage(notice, t)}
                       </div>
                     )}
                   </div>
                   <div className='text-sm font-extrabold text-indigo-950'>
-                    ${(item.price * item.qty).toFixed(2)}
+                    {formatPrice(item.price * item.qty)}
                   </div>
                 </li>
               );
@@ -866,28 +908,33 @@ export default function CheckoutPage() {
 
           <div className='mt-4 space-y-3'>
             <div className='flex items-center justify-between text-sm font-semibold text-indigo-950/80'>
-              <span>Items</span>
+              <span>{t('checkoutPage.summary.items')}</span>
               <span>{items.length}</span>
             </div>
             <div className='flex items-center justify-between text-sm font-semibold text-indigo-950/80'>
-              <span>Subtotal</span>
-              <span>${itemsPrice.toFixed(2)}</span>
+              <span>{t('checkout.subtotal')}</span>
+              <span>{formatPrice(itemsPrice)}</span>
             </div>
 
             {appliedCoupon && (
               <div className='flex items-center justify-between text-sm font-semibold text-green-700 bg-green-50 rounded-lg px-3 py-2'>
                 <div className='flex items-center gap-2'>
                   <Check className='h-4 w-4' />
-                  <span>Coupon ({appliedCoupon.code})</span>
+                  <span>
+                    {t('checkoutPage.summary.coupon', {
+                      code: appliedCoupon.code,
+                    })}
+                  </span>
                 </div>
                 <div className='flex items-center gap-2'>
-                  <span>-${discountAmount.toFixed(2)}</span>
+                  <span>-{formatPrice(discountAmount)}</span>
                   <button
                     type='button'
                     onClick={handleRemoveCoupon}
+                    aria-label={t('checkoutPage.summary.removeCoupon')}
                     className='text-gray-500 hover:text-red-600 transition-colors'
                   >
-                    <X className='h-4 w-4' />
+                    <X className='h-4 w-4' aria-hidden />
                   </button>
                 </div>
               </div>
@@ -895,7 +942,7 @@ export default function CheckoutPage() {
             {couponRejectedByServer && (
               <div className='text-xs font-semibold text-rose-700'>
                 {quote?.couponMessage ||
-                  'This coupon can no longer be applied to your order.'}
+                  t('checkoutPage.summary.couponNoLongerValid')}
               </div>
             )}
 
@@ -903,7 +950,7 @@ export default function CheckoutPage() {
               <div className='space-y-2'>
                 <div className='flex gap-2'>
                   <Input
-                    placeholder='Coupon code'
+                    placeholder={t('checkoutPage.summary.couponPlaceholder')}
                     value={couponCode}
                     onChange={(e) =>
                       setCouponCode(e.target.value.toUpperCase())
@@ -918,14 +965,16 @@ export default function CheckoutPage() {
                     onClick={handleApplyCoupon}
                     disabled={validatingCoupon || !couponCode.trim()}
                   >
-                    {validatingCoupon ? 'Checking...' : 'Apply'}
+                    {validatingCoupon
+                      ? t('checkoutPage.summary.checking')
+                      : t('checkoutPage.summary.apply')}
                   </Button>
                 </div>
                 {couponMutation.error && (
                   <div className='text-xs font-semibold text-rose-700'>
                     {getUserFacingErrorMessage(
                       couponMutation.error,
-                      'Invalid coupon',
+                      t('checkoutPage.summary.invalidCoupon'),
                     )}
                   </div>
                 )}
@@ -933,17 +982,17 @@ export default function CheckoutPage() {
             )}
 
             <div className='flex items-center justify-between text-sm font-semibold text-indigo-950/70'>
-              <span>Shipping</span>
-              <span>${shippingPrice.toFixed(2)}</span>
+              <span>{t('checkout.shipping')}</span>
+              <span>{formatPrice(shippingPrice)}</span>
             </div>
             <div className='flex items-center justify-between text-sm font-semibold text-indigo-950/70'>
-              <span>Tax</span>
-              <span>${taxPrice.toFixed(2)}</span>
+              <span>{t('checkout.tax')}</span>
+              <span>{formatPrice(taxPrice)}</span>
             </div>
             <div className='h-px bg-indigo-900/10' />
             <div className='flex items-center justify-between text-base font-extrabold text-indigo-950'>
-              <span>Total</span>
-              <span>${total.toFixed(2)}</span>
+              <span>{t('checkout.total')}</span>
+              <span>{formatPrice(total)}</span>
             </div>
           </div>
         </motion.aside>

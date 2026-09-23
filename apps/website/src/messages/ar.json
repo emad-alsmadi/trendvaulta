@@ -44,7 +44,9 @@
     "questions": "الأسئلة",
     "variant": "الخيار",
     "size": "المقاس",
-    "color": "اللون"
+    "color": "اللون",
+    "sizeValue": "المقاس: {value}",
+    "colorValue": "اللون: {value}"
   },
   "checkout": {
     "shippingAddress": "عنوان الشحن",
@@ -71,5 +73,210 @@
     "rememberMe": "تذكرني",
     "noAccount": "ليس لديك حساب؟",
     "hasAccount": "لديك حساب بالفعل؟"
+  },
+  "cartPage": {
+    "title": "سلة التسوق",
+    "subtitle": "راجع المنتجات قبل إتمام الطلب.",
+    "continueShopping": "متابعة التسوق",
+    "clearCart": "إفراغ السلة",
+    "clearConfirmTitle": "هل تريد إفراغ السلة؟",
+    "clearConfirmDescription": "ستتم إزالة جميع المنتجات. يمكنك إضافة المنتجات مجددًا في أي وقت.",
+    "keepShopping": "متابعة التسوق",
+    "emptyTitle": "سلة التسوق فارغة",
+    "emptyDescription": "تصفّح مختاراتنا في الجمال والأزياء وأسلوب الحياة، ثم أضف ما يعجبك.",
+    "browseCatalog": "تصفّح المنتجات",
+    "todaysDeals": "عروض اليوم",
+    "removeConfirmTitle": "هل تريد إزالة هذا المنتج؟",
+    "removeConfirmDescription": "ستتم إزالة \"{title}\" من سلة التسوق.",
+    "remove": "إزالة",
+    "keepIt": "الإبقاء عليه",
+    "decreaseQty": "تقليل الكمية",
+    "increaseQty": "زيادة الكمية",
+    "maxQty": "الحد الأقصى: {max}",
+    "summary": "ملخص الطلب",
+    "discount": "الخصم",
+    "browseMore": "تصفّح المزيد",
+    "trustSecureCheckout": "دفع آمن",
+    "trustTrackedShipping": "شحن قابل للتتبع لكل طلب",
+    "trustEasyReturns": "إرجاع سهل وفق سياسة الإرجاع",
+    "checkoutNote": "تُطبَّق القسائم عند إتمام الطلب. تتم معالجة الدفع بأمان عند تفعيل Stripe."
+  },
+  "checkoutPage": {
+    "title": "إتمام الطلب",
+    "heading": "بيانات التواصل وإتمام الطلب",
+    "intro": "بعد التأكيد، ستُكمل الدفع عبر صفحة Stripe الآمنة (بالبطاقة أو المحفظة الإلكترونية). أدخل العنوان الذي سيُشحن إليه طلبك؛ علمًا بأن خدمة التوصيل المحلي مع التتبع اختيارية.",
+    "savedAddresses": {
+      "title": "العناوين المحفوظة",
+      "home": "المنزل",
+      "default": "افتراضي",
+      "useNew": "استخدام عنوان جديد"
+    },
+    "form": {
+      "fullName": "الاسم الكامل",
+      "namePlaceholder": "اسمك",
+      "streetAddress": "عنوان الشارع",
+      "streetPlaceholder": "الشارع، المبنى، الشقة",
+      "zipLabel": "الرمز البريدي",
+      "zipPlaceholder": "الرمز البريدي",
+      "notesLabel": "ملاحظات",
+      "notesPlaceholder": "ملاحظات (اختياري)",
+      "submitting": "جارٍ المتابعة...",
+      "payNow": "ادفع الآن"
+    },
+    "delivery": {
+      "add": "إضافة توصيل محلي مع التتبع",
+      "addWithPrice": "إضافة توصيل محلي مع التتبع (+{price})",
+      "method": "طريقة الشحن",
+      "days": "{min}-{max} أيام",
+      "loading": "جارٍ تحميل طرق الشحن…"
+    },
+    "trust": {
+      "securePayment": "دفع آمن عبر Stripe",
+      "trackedShipping": "شحن قابل للتتبع عند اختيار التوصيل",
+      "easyReturns": "إرجاع سهل وفق سياسة المتجر"
+    },
+    "validation": {
+      "nameRequired": "الاسم مطلوب",
+      "phoneRequired": "رقم الهاتف مطلوب",
+      "addressRequired": "العنوان مطلوب",
+      "cityRequired": "المدينة مطلوبة",
+      "zipRequired": "الرمز البريدي مطلوب",
+      "countryCode": "يجب أن يتكوّن رمز البلد من حرفين",
+      "minChars": "يجب ألا يقل عدد الأحرف عن {count}",
+      "maxChars": "يجب ألا يزيد عدد الأحرف على {count}"
+    },
+    "summary": {
+      "title": "ملخص الطلب",
+      "qtyPrice": "الكمية: {qty} × {price}",
+      "items": "عدد المنتجات",
+      "coupon": "الكوبون ({code})",
+      "couponNoLongerValid": "لم يعد بالإمكان تطبيق هذا الكوبون على طلبك.",
+      "couponPlaceholder": "رمز الكوبون",
+      "checking": "جارٍ التحقق...",
+      "apply": "تطبيق",
+      "invalidCoupon": "كوبون غير صالح",
+      "removeCoupon": "إزالة القسيمة"
+    },
+    "confirm": {
+      "title": "هل تريد المتابعة إلى الدفع الآمن؟",
+      "description": "إجمالي طلبك {total}. ستُكمل الدفع في الخطوة الآمنة التالية.",
+      "continueToPayment": "المتابعة إلى الدفع",
+      "reviewDetails": "مراجعة التفاصيل"
+    },
+    "toast": {
+      "enterCoupon": "يرجى إدخال رمز الكوبون",
+      "couponApplied": "تم تطبيق الكوبون بنجاح",
+      "invalidCouponCode": "رمز الكوبون غير صالح",
+      "couponValidateFailed": "تعذّر التحقق من الكوبون",
+      "couponRemoved": "تمت إزالة الكوبون",
+      "paymentUnavailableTitle": "الدفع غير متاح",
+      "paymentNotConfigured": "الدفع بالبطاقة غير مُهيّأ على الخادم. أضف STRIPE_SECRET_KEY إلى بيئة الخادم، ثم أعد تشغيل واجهة API وحاول مرة أخرى.",
+      "checkoutFailed": "تعذّر إتمام الطلب",
+      "noCheckoutUrl": "لم يتم استلام رابط صفحة الدفع. يرجى المحاولة مرة أخرى بعد قليل.",
+      "paymentPageUnavailable": "تعذّر فتح صفحة الدفع الآمنة. يرجى المحاولة مرة أخرى بعد قليل.",
+      "couldNotStartCheckout": "تعذّر بدء عملية الدفع",
+      "secureCheckoutUnavailable": "تعذّر بدء الدفع الآمن. تحقّق من مفاتيح Stripe وحاول مرة أخرى.",
+      "devOrderSaved": "تم حفظ الطلب دون الدفع بالبطاقة (وضع التطوير). استخدم Stripe في بيئة الإنتاج.",
+      "devCheckoutTitle": "دفع تجريبي (وضع التطوير)",
+      "loginRequiredTitle": "تسجيل الدخول مطلوب",
+      "loginToContinue": "يرجى تسجيل الدخول للمتابعة.",
+      "cartEmpty": "سلة التسوق فارغة."
+    }
+  },
+  "orderResult": {
+    "success": {
+      "missingOrder": "رقم الطلب غير موجود.",
+      "viewOrders": "عرض الطلبات",
+      "loadError": "تعذّر تحميل الطلب.",
+      "confirmingTitle": "جارٍ تأكيد الدفع…",
+      "title": "تم الدفع بنجاح",
+      "waitingMessage": "بانتظار تأكيد الدفع من Stripe. سيتم تحديث هذه الصفحة تلقائيًا.",
+      "paidMessage": "شكرًا لك، تم دفع قيمة طلبك بنجاح.",
+      "sessionLabel": "جلسة الدفع {id}…",
+      "viewOrder": "عرض الطلب",
+      "continueShopping": "متابعة التسوق"
+    },
+    "cancel": {
+      "title": "تم إلغاء الدفع",
+      "message": "لم يتم خصم أي مبلغ. يمكنك العودة إلى إتمام الطلب في أي وقت.",
+      "messageWithOrder": "لم يتم خصم أي مبلغ مقابل مسودة الطلب #{id}. يمكنك العودة إلى إتمام الطلب في أي وقت.",
+      "returnToCheckout": "العودة إلى إتمام الطلب",
+      "backToCart": "العودة إلى السلة",
+      "viewDraftOrder": "عرض مسودة الطلب"
+    }
+  },
+  "productPage": {
+    "loading": "جارٍ تحميل المنتج...",
+    "notFound": "المنتج غير موجود",
+    "discountBadge": "خصم {percent}%",
+    "reviewCount": "التقييمات: {count}",
+    "save": "وفّر {amount}",
+    "buyNow": "اشترِ الآن",
+    "gallery": {
+      "imageAlt": "{title} - الصورة {number}",
+      "previous": "الصورة السابقة",
+      "next": "الصورة التالية"
+    },
+    "variants": {
+      "title": "الخيارات",
+      "required": "(مطلوب)",
+      "optionNumber": "الخيار {number}",
+      "optionFallback": "خيار",
+      "chooseToContinue": "يرجى اختيار أحد الخيارات للمتابعة.",
+      "selected": "الخيار المحدد: {label}",
+      "chooseFirst": "يرجى اختيار أحد الخيارات أولاً"
+    },
+    "stock": {
+      "outOfStock": "غير متوفر",
+      "onlyLeft": "تبقّى {count} فقط",
+      "chooseForAvailability": "اختر أحد الخيارات لمعرفة التوفر",
+      "max": "الحد الأقصى: {count}",
+      "inStock": "الكمية المتوفرة: {count}"
+    },
+    "quantity": {
+      "decrease": "تقليل الكمية",
+      "increase": "زيادة الكمية"
+    },
+    "trust": {
+      "freeShipping": "شحن مجاني",
+      "securePayment": "دفع آمن",
+      "easyReturns": "إرجاع سهل"
+    },
+    "details": {
+      "title": "تفاصيل المنتج",
+      "material": "الخامة",
+      "weight": "الوزن",
+      "weightValue": "{weight} كغ",
+      "dimensions": "الأبعاد",
+      "dimensionsValue": "{dims} سم",
+      "sku": "رمز المنتج (SKU)",
+      "shippingInfo": "معلومات الشحن"
+    },
+    "shipping": {
+      "packedWeight": "الوزن مع التغليف {weight} كغ",
+      "package": "أبعاد الطرد {dims}",
+      "specialHandling": "يتطلب معاملة خاصة"
+    },
+    "reviews": {
+      "title": "تقييمات العملاء"
+    },
+    "share": "مشاركة"
+  },
+  "cartNotice": {
+    "lowStock": "الكمية المتوفرة {count} فقط — تم تعديل الكمية",
+    "outOfStock": "نفد من المخزون — تمت إزالته من سلة التسوق",
+    "priceChanged": "تم تحديث السعر",
+    "unavailable": "لم يعد متوفرًا — تمت إزالته من سلة التسوق",
+    "variantRequired": "يرجى اختيار المقاس أو اللون لهذا المنتج"
+  },
+  "confirmDialog": {
+    "continue": "متابعة",
+    "cancel": "إلغاء",
+    "discard": "تجاهل التغييرات",
+    "keepEditing": "متابعة التعديل",
+    "continueToPayment": "المتابعة إلى الدفع",
+    "reviewCart": "مراجعة السلة",
+    "confirm": "تأكيد",
+    "close": "إغلاق"
   }
 }

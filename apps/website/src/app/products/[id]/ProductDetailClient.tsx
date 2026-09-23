@@ -26,26 +26,35 @@ import { ProductQaSection } from '@/components/products/ProductQaSection';
 import { ProductReviewsSection } from '@/components/products/ProductReviewsSection';
 import { WishlistButton } from '@/components/page/wishlist/WishlistButton';
 import { trackRecentlyViewed } from '@/lib/recentlyViewed';
+import { useTranslation } from '@/contexts/TranslationContext';
 import type { Product, ProductVariant } from '@/types';
 
 type Dimensions = Product['dimensions'];
+type Translate = ReturnType<typeof useTranslation>['t'];
 
 /** "30 × 20 × 10 cm" from whichever sides are set, or null when none are. */
-function formatDimensions(d: Dimensions): string | null {
+function formatDimensions(d: Dimensions, t: Translate): string | null {
   const sides = [d?.length, d?.width, d?.height].filter(
     (v): v is number => typeof v === 'number' && v > 0,
   );
-  return sides.length ? `${sides.join(' × ')} cm` : null;
+  return sides.length
+    ? t('productPage.details.dimensionsValue', { dims: sides.join(' × ') })
+    : null;
 }
 
 /** One readable line from the shipping object, or null when it says nothing. */
-function shippingSummary(info: Product['shippingInfo']): string | null {
+function shippingSummary(
+  info: Product['shippingInfo'],
+  t: Translate,
+): string | null {
   if (!info) return null;
   const parts: string[] = [];
-  if (info.weight) parts.push(`Packed weight ${info.weight} kg`);
-  const dims = formatDimensions(info.dimensions);
-  if (dims) parts.push(`package ${dims}`);
-  if (info.requiresSpecialHandling) parts.push('requires special handling');
+  if (info.weight)
+    parts.push(t('productPage.shipping.packedWeight', { weight: info.weight }));
+  const dims = formatDimensions(info.dimensions, t);
+  if (dims) parts.push(t('productPage.shipping.package', { dims }));
+  if (info.requiresSpecialHandling)
+    parts.push(t('productPage.shipping.specialHandling'));
   if (!parts.length) return null;
   const line = parts.join(' · ');
   return line.charAt(0).toUpperCase() + line.slice(1);
@@ -59,6 +68,7 @@ export function ProductDetailClient({ id }: { id: string }) {
     null,
   );
   const cart = useCart();
+  const { t, formatPrice } = useTranslation();
 
   // DEMO: local recently viewed — TODO(api): POST /api/me/recently-viewed
   useEffect(() => {
@@ -77,7 +87,7 @@ export function ProductDetailClient({ id }: { id: string }) {
       <div className='min-h-screen flex items-center justify-center'>
         <div className='text-center'>
           <Loader2 className='h-12 w-12 animate-spin text-fuchsia-600 mx-auto' />
-          <p className='mt-4 text-gray-600'>Loading product...</p>
+          <p className='mt-4 text-gray-600'>{t('productPage.loading')}</p>
         </div>
       </div>
     );
@@ -86,7 +96,9 @@ export function ProductDetailClient({ id }: { id: string }) {
   if (error || !product) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
-        <div className='text-center text-red-600'>Product not found</div>
+        <div className='text-center text-red-600'>
+          {t('productPage.notFound')}
+        </div>
       </div>
     );
   }
@@ -166,14 +178,14 @@ export function ProductDetailClient({ id }: { id: string }) {
               href='/'
               className='hover:text-fuchsia-600'
             >
-              Home
+              {t('common.home')}
             </Link>
             <span>/</span>
             <Link
               href='/products'
               className='hover:text-fuchsia-600'
             >
-              Products
+              {t('common.products')}
             </Link>
             <span>/</span>
             {product.brand && typeof product.brand === 'object' && (
@@ -212,13 +224,17 @@ export function ProductDetailClient({ id }: { id: string }) {
               {images.length > 1 && (
                 <>
                   <button
+                    type='button'
                     onClick={prevImage}
+                    aria-label={t('productPage.gallery.previous')}
                     className='absolute start-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-full shadow-md transition-colors'
                   >
                     <ChevronLeft className='h-5 w-5 rtl:-scale-x-100' />
                   </button>
                   <button
+                    type='button'
                     onClick={nextImage}
+                    aria-label={t('productPage.gallery.next')}
                     className='absolute end-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-full shadow-md transition-colors'
                   >
                     <ChevronRight className='h-5 w-5 rtl:-scale-x-100' />
@@ -227,7 +243,7 @@ export function ProductDetailClient({ id }: { id: string }) {
               )}
               {discount > 0 && (
                 <div className='absolute top-4 start-4 bg-red-500 text-white text-sm font-bold px-3 py-1 rounded-full'>
-                  -{discount}% OFF
+                  {t('productPage.discountBadge', { percent: discount })}
                 </div>
               )}
             </div>
@@ -246,7 +262,10 @@ export function ProductDetailClient({ id }: { id: string }) {
                   >
                     <Image
                       src={img}
-                      alt={`${product.title} view ${idx + 1}`}
+                      alt={t('productPage.gallery.imageAlt', {
+                        title: product.title,
+                        number: idx + 1,
+                      })}
                       fill
                       className='object-cover'
                     />
@@ -305,22 +324,26 @@ export function ProductDetailClient({ id }: { id: string }) {
               </span>
               <span className='text-gray-400'>|</span>
               <span className='text-gray-600'>
-                {product.reviewCount || 0} reviews
+                {t('productPage.reviewCount', {
+                  count: product.reviewCount || 0,
+                })}
               </span>
             </div>
 
             {/* Price */}
             <div className='flex items-baseline gap-3'>
               <span className='text-4xl font-bold text-gray-900'>
-                ${unitPrice.toFixed(2)}
+                {formatPrice(unitPrice)}
               </span>
               {discount > 0 && (
                 <>
                   <span className='text-xl text-gray-400 line-through'>
-                    ${product.basePrice?.toFixed(2)}
+                    {formatPrice(product.basePrice)}
                   </span>
                   <span className='text-sm font-semibold text-green-600'>
-                    Save ${(product.basePrice - product.price).toFixed(2)}
+                    {t('productPage.save', {
+                      amount: formatPrice(product.basePrice - product.price),
+                    })}
                   </span>
                 </>
               )}
@@ -335,8 +358,10 @@ export function ProductDetailClient({ id }: { id: string }) {
             {product.variants && product.variants.length > 0 && (
               <div className='space-y-3'>
                 <h3 className='font-semibold text-gray-900'>
-                  Options{' '}
-                  <span className='font-normal text-gray-500'>(required)</span>
+                  {t('productPage.variants.title')}{' '}
+                  <span className='font-normal text-gray-500'>
+                    {t('productPage.variants.required')}
+                  </span>
                 </h3>
                 <div className='flex flex-wrap gap-2'>
                   {product.variants.map((variant, idx) => {
@@ -345,7 +370,10 @@ export function ProductDetailClient({ id }: { id: string }) {
                     const label =
                       [variant.size, variant.color]
                         .filter(Boolean)
-                        .join(' / ') || `Option ${idx + 1}`;
+                        .join(' / ') ||
+                      t('productPage.variants.optionNumber', {
+                        number: idx + 1,
+                      });
                     return (
                       <button
                         key={
@@ -366,11 +394,11 @@ export function ProductDetailClient({ id }: { id: string }) {
                           {label}
                         </span>
                         <span className='block text-xs text-gray-500'>
-                          ${(variant.price ?? product.price).toFixed(2)}
+                          {formatPrice(variant.price ?? product.price)}
                           {soldOut
-                            ? ' · Out of stock'
+                            ? ` · ${t('productPage.stock.outOfStock')}`
                             : stock <= 5
-                              ? ` · Only ${stock} left`
+                              ? ` · ${t('productPage.stock.onlyLeft', { count: stock })}`
                               : ''}
                         </span>
                       </button>
@@ -379,11 +407,15 @@ export function ProductDetailClient({ id }: { id: string }) {
                 </div>
                 {variantRequired ? (
                   <p className='text-sm text-gray-600'>
-                    Please choose an option to continue.
+                    {t('productPage.variants.chooseToContinue')}
                   </p>
                 ) : selectedVariant ? (
                   <p className='text-sm text-gray-600'>
-                    Selected: {formatVariantLabel(selectedVariant) || 'Option'}
+                    {t('productPage.variants.selected', {
+                      label:
+                        formatVariantLabel(selectedVariant, t) ||
+                        t('productPage.variants.optionFallback'),
+                    })}
                   </p>
                 ) : null}
               </div>
@@ -391,13 +423,15 @@ export function ProductDetailClient({ id }: { id: string }) {
 
             {/* Quantity */}
             <div className='space-y-3'>
-              <h3 className='font-semibold text-gray-900'>Quantity</h3>
+              <h3 className='font-semibold text-gray-900'>
+                {t('product.quantity')}
+              </h3>
               <div className='flex items-center gap-3'>
                 <button
                   type='button'
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
                   disabled={quantity <= 1}
-                  aria-label='Decrease quantity'
+                  aria-label={t('productPage.quantity.decrease')}
                   className='w-10 h-10 border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                 >
                   <Minus className='h-4 w-4' />
@@ -415,21 +449,25 @@ export function ProductDetailClient({ id }: { id: string }) {
                     )
                   }
                   disabled={outOfStock || atMax}
-                  aria-label='Increase quantity'
+                  aria-label={t('productPage.quantity.increase')}
                   className='w-10 h-10 border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                 >
                   <Plus className='h-4 w-4' />
                 </button>
                 <span className='text-sm text-gray-600'>
                   {variantRequired
-                    ? 'Choose an option to see availability'
+                    ? t('productPage.stock.chooseForAvailability')
                     : outOfStock
-                      ? 'Out of stock'
+                      ? t('productPage.stock.outOfStock')
                       : atMax
-                        ? `Max ${maxQty}`
+                        ? t('productPage.stock.max', { count: maxQty })
                         : availableStock <= 5
-                          ? `Only ${availableStock} left`
-                          : `${availableStock} in stock`}
+                          ? t('productPage.stock.onlyLeft', {
+                              count: availableStock,
+                            })
+                          : t('productPage.stock.inStock', {
+                              count: availableStock,
+                            })}
                 </span>
               </div>
             </div>
@@ -440,21 +478,29 @@ export function ProductDetailClient({ id }: { id: string }) {
                 size='lg'
                 onClick={() => void handleAddToCart()}
                 disabled={!canPurchase}
-                title={variantRequired ? 'Choose an option first' : undefined}
+                title={
+                  variantRequired
+                    ? t('productPage.variants.chooseFirst')
+                    : undefined
+                }
                 className='flex-1 gap-2'
               >
                 <ShoppingCart className='h-5 w-5' />
-                Add to Cart
+                {t('product.addToCart')}
               </Button>
               <Button
                 size='lg'
                 variant='outline'
                 onClick={handleBuyNow}
                 disabled={!canPurchase}
-                title={variantRequired ? 'Choose an option first' : undefined}
+                title={
+                  variantRequired
+                    ? t('productPage.variants.chooseFirst')
+                    : undefined
+                }
                 className='flex-1'
               >
-                Buy Now
+                {t('productPage.buyNow')}
               </Button>
               <WishlistButton
                 productId={product._id}
@@ -466,8 +512,9 @@ export function ProductDetailClient({ id }: { id: string }) {
                 size='lg'
                 variant='outline'
                 className='px-4'
+                aria-label={t('productPage.share')}
               >
-                <Share2 className='h-5 w-5' />
+                <Share2 className='h-5 w-5' aria-hidden />
               </Button>
             </div>
 
@@ -475,15 +522,21 @@ export function ProductDetailClient({ id }: { id: string }) {
             <div className='grid grid-cols-3 gap-4 pt-6 border-t'>
               <div className='text-center'>
                 <Truck className='h-6 w-6 text-fuchsia-600 mx-auto mb-2' />
-                <p className='text-xs text-gray-600'>Free Shipping</p>
+                <p className='text-xs text-gray-600'>
+                  {t('productPage.trust.freeShipping')}
+                </p>
               </div>
               <div className='text-center'>
                 <Shield className='h-6 w-6 text-fuchsia-600 mx-auto mb-2' />
-                <p className='text-xs text-gray-600'>Secure Payment</p>
+                <p className='text-xs text-gray-600'>
+                  {t('productPage.trust.securePayment')}
+                </p>
               </div>
               <div className='text-center'>
                 <RotateCcw className='h-6 w-6 text-fuchsia-600 mx-auto mb-2' />
-                <p className='text-xs text-gray-600'>Easy Returns</p>
+                <p className='text-xs text-gray-600'>
+                  {t('productPage.trust.easyReturns')}
+                </p>
               </div>
             </div>
           </motion.div>
@@ -508,42 +561,54 @@ export function ProductDetailClient({ id }: { id: string }) {
           className='bg-white rounded-2xl shadow-sm p-8 mb-8'
         >
           <h2 className='text-2xl font-bold text-gray-900 mb-6'>
-            Product Details
+            {t('productPage.details.title')}
           </h2>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
             {product.material && (
               <div>
-                <h3 className='font-semibold text-gray-900 mb-2'>Material</h3>
+                <h3 className='font-semibold text-gray-900 mb-2'>
+                  {t('productPage.details.material')}
+                </h3>
                 <p className='text-gray-700'>{product.material}</p>
               </div>
             )}
             {product.weight != null && product.weight > 0 && (
               <div>
-                <h3 className='font-semibold text-gray-900 mb-2'>Weight</h3>
-                <p className='text-gray-700'>{product.weight} kg</p>
+                <h3 className='font-semibold text-gray-900 mb-2'>
+                  {t('productPage.details.weight')}
+                </h3>
+                <p className='text-gray-700'>
+                  {t('productPage.details.weightValue', {
+                    weight: product.weight,
+                  })}
+                </p>
               </div>
             )}
-            {formatDimensions(product.dimensions) && (
+            {formatDimensions(product.dimensions, t) && (
               <div>
-                <h3 className='font-semibold text-gray-900 mb-2'>Dimensions</h3>
+                <h3 className='font-semibold text-gray-900 mb-2'>
+                  {t('productPage.details.dimensions')}
+                </h3>
                 <p className='text-gray-700'>
-                  {formatDimensions(product.dimensions)}
+                  {formatDimensions(product.dimensions, t)}
                 </p>
               </div>
             )}
             {product.sku && (
               <div>
-                <h3 className='font-semibold text-gray-900 mb-2'>SKU</h3>
+                <h3 className='font-semibold text-gray-900 mb-2'>
+                  {t('productPage.details.sku')}
+                </h3>
                 <p className='text-gray-700'>{product.sku}</p>
               </div>
             )}
-            {shippingSummary(product.shippingInfo) && (
+            {shippingSummary(product.shippingInfo, t) && (
               <div className='md:col-span-2'>
                 <h3 className='font-semibold text-gray-900 mb-2'>
-                  Shipping Information
+                  {t('productPage.details.shippingInfo')}
                 </h3>
                 <p className='text-gray-700'>
-                  {shippingSummary(product.shippingInfo)}
+                  {shippingSummary(product.shippingInfo, t)}
                 </p>
               </div>
             )}
@@ -560,7 +625,7 @@ export function ProductDetailClient({ id }: { id: string }) {
           className='bg-white rounded-2xl shadow-sm p-8 mb-8'
         >
           <h2 className='text-2xl font-bold text-gray-900 mb-6'>
-            Customer Reviews
+            {t('productPage.reviews.title')}
           </h2>
           <div className='flex items-center gap-4 mb-6'>
             <div className='text-5xl font-bold text-gray-900'>
@@ -580,7 +645,9 @@ export function ProductDetailClient({ id }: { id: string }) {
                 ))}
               </div>
               <p className='text-gray-600'>
-                {product.reviewCount || 0} reviews
+                {t('productPage.reviewCount', {
+                  count: product.reviewCount || 0,
+                })}
               </p>
             </div>
           </div>

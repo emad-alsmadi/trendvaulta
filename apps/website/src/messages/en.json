@@ -44,7 +44,9 @@
     "questions": "Questions",
     "variant": "Variant",
     "size": "Size",
-    "color": "Color"
+    "color": "Color",
+    "sizeValue": "Size: {value}",
+    "colorValue": "Color: {value}"
   },
   "checkout": {
     "shippingAddress": "Shipping Address",
@@ -71,5 +73,210 @@
     "rememberMe": "Remember me",
     "noAccount": "Don't have an account?",
     "hasAccount": "Already have an account?"
+  },
+  "cartPage": {
+    "title": "Your cart",
+    "subtitle": "Review items before checkout.",
+    "continueShopping": "Continue shopping",
+    "clearCart": "Clear cart",
+    "clearConfirmTitle": "Clear your cart?",
+    "clearConfirmDescription": "All items will be removed. You can add products again anytime.",
+    "keepShopping": "Keep shopping",
+    "emptyTitle": "Your cart is empty",
+    "emptyDescription": "Browse beauty, fashion, and lifestyle picks — then add what you love.",
+    "browseCatalog": "Browse catalog",
+    "todaysDeals": "See today's deals",
+    "removeConfirmTitle": "Remove this product?",
+    "removeConfirmDescription": "\"{title}\" will be removed from your cart.",
+    "remove": "Remove",
+    "keepIt": "Keep it",
+    "decreaseQty": "Decrease quantity",
+    "increaseQty": "Increase quantity",
+    "maxQty": "Max: {max}",
+    "summary": "Summary",
+    "discount": "Discount",
+    "browseMore": "Browse more",
+    "trustSecureCheckout": "Secure checkout",
+    "trustTrackedShipping": "Tracked shipping on every order",
+    "trustEasyReturns": "Easy returns within policy",
+    "checkoutNote": "Coupons apply at checkout. Payment is processed securely when Stripe is configured."
+  },
+  "checkoutPage": {
+    "title": "Checkout",
+    "heading": "Contact & checkout",
+    "intro": "After you confirm, you'll finish payment on Stripe's secure page (card or wallet). Enter the address your order should ship to; tracked local delivery is optional.",
+    "savedAddresses": {
+      "title": "Saved addresses",
+      "home": "Home",
+      "default": "Default",
+      "useNew": "Use a new address"
+    },
+    "form": {
+      "fullName": "Full name",
+      "namePlaceholder": "Your name",
+      "streetAddress": "Street address",
+      "streetPlaceholder": "Street, building, apartment",
+      "zipLabel": "ZIP / postal code",
+      "zipPlaceholder": "ZIP",
+      "notesLabel": "Notes",
+      "notesPlaceholder": "Optional notes",
+      "submitting": "Continuing...",
+      "payNow": "Pay now"
+    },
+    "delivery": {
+      "add": "Add tracked local delivery",
+      "addWithPrice": "Add tracked local delivery (+{price})",
+      "method": "Shipping method",
+      "days": "{min}-{max} days",
+      "loading": "Loading shipping methods…"
+    },
+    "trust": {
+      "securePayment": "Secure payment via Stripe",
+      "trackedShipping": "Tracked shipping when delivery is selected",
+      "easyReturns": "Easy returns within store policy"
+    },
+    "validation": {
+      "nameRequired": "Name is required",
+      "phoneRequired": "Phone is required",
+      "addressRequired": "Address is required",
+      "cityRequired": "City is required",
+      "zipRequired": "ZIP is required",
+      "countryCode": "Country code must be 2 letters",
+      "minChars": "Use at least {count} characters",
+      "maxChars": "Maximum {count} characters"
+    },
+    "summary": {
+      "title": "Order summary",
+      "qtyPrice": "Qty {qty} × {price}",
+      "items": "Items",
+      "coupon": "Coupon ({code})",
+      "couponNoLongerValid": "This coupon can no longer be applied to your order.",
+      "couponPlaceholder": "Coupon code",
+      "checking": "Checking...",
+      "apply": "Apply",
+      "invalidCoupon": "Invalid coupon",
+      "removeCoupon": "Remove coupon"
+    },
+    "confirm": {
+      "title": "Continue to secure checkout?",
+      "description": "Your order total is {total}. You’ll finish payment on the next secure step.",
+      "continueToPayment": "Continue to payment",
+      "reviewDetails": "Review details"
+    },
+    "toast": {
+      "enterCoupon": "Please enter a coupon code",
+      "couponApplied": "Coupon applied successfully",
+      "invalidCouponCode": "Invalid coupon code",
+      "couponValidateFailed": "Failed to validate coupon",
+      "couponRemoved": "Coupon removed",
+      "paymentUnavailableTitle": "Payment unavailable",
+      "paymentNotConfigured": "Card payment is not configured on the server. Add STRIPE_SECRET_KEY to the backend environment, restart the API, then try again.",
+      "checkoutFailed": "Checkout failed",
+      "noCheckoutUrl": "No checkout URL returned. Please try again shortly.",
+      "paymentPageUnavailable": "We could not open the secure payment page. Please try again shortly.",
+      "couldNotStartCheckout": "Could not start checkout",
+      "secureCheckoutUnavailable": "Could not start secure checkout. Confirm Stripe keys and try again.",
+      "devOrderSaved": "Order saved without card payment (dev mode). Use Stripe in production.",
+      "devCheckoutTitle": "Dev checkout",
+      "loginRequiredTitle": "Login required",
+      "loginToContinue": "Please log in to continue.",
+      "cartEmpty": "Your cart is empty."
+    }
+  },
+  "orderResult": {
+    "success": {
+      "missingOrder": "Missing order reference.",
+      "viewOrders": "View orders",
+      "loadError": "Could not load order.",
+      "confirmingTitle": "Confirming payment…",
+      "title": "Payment successful",
+      "waitingMessage": "Waiting for Stripe confirmation. This page updates automatically.",
+      "paidMessage": "Thank you — your order is paid.",
+      "sessionLabel": "Checkout session {id}…",
+      "viewOrder": "View order",
+      "continueShopping": "Continue shopping"
+    },
+    "cancel": {
+      "title": "Payment canceled",
+      "message": "No charge was made. You can return to checkout anytime.",
+      "messageWithOrder": "No charge was made for draft order #{id}. You can return to checkout anytime.",
+      "returnToCheckout": "Return to checkout",
+      "backToCart": "Back to cart",
+      "viewDraftOrder": "View draft order"
+    }
+  },
+  "productPage": {
+    "loading": "Loading product...",
+    "notFound": "Product not found",
+    "discountBadge": "-{percent}% OFF",
+    "reviewCount": "{count} reviews",
+    "save": "Save {amount}",
+    "buyNow": "Buy Now",
+    "gallery": {
+      "imageAlt": "{title} view {number}",
+      "previous": "Previous image",
+      "next": "Next image"
+    },
+    "variants": {
+      "title": "Options",
+      "required": "(required)",
+      "optionNumber": "Option {number}",
+      "optionFallback": "Option",
+      "chooseToContinue": "Please choose an option to continue.",
+      "selected": "Selected: {label}",
+      "chooseFirst": "Choose an option first"
+    },
+    "stock": {
+      "outOfStock": "Out of stock",
+      "onlyLeft": "Only {count} left",
+      "chooseForAvailability": "Choose an option to see availability",
+      "max": "Max {count}",
+      "inStock": "{count} in stock"
+    },
+    "quantity": {
+      "decrease": "Decrease quantity",
+      "increase": "Increase quantity"
+    },
+    "trust": {
+      "freeShipping": "Free Shipping",
+      "securePayment": "Secure Payment",
+      "easyReturns": "Easy Returns"
+    },
+    "details": {
+      "title": "Product Details",
+      "material": "Material",
+      "weight": "Weight",
+      "weightValue": "{weight} kg",
+      "dimensions": "Dimensions",
+      "dimensionsValue": "{dims} cm",
+      "sku": "SKU",
+      "shippingInfo": "Shipping Information"
+    },
+    "shipping": {
+      "packedWeight": "Packed weight {weight} kg",
+      "package": "package {dims}",
+      "specialHandling": "requires special handling"
+    },
+    "reviews": {
+      "title": "Customer Reviews"
+    },
+    "share": "Share"
+  },
+  "cartNotice": {
+    "lowStock": "Only {count} left — quantity adjusted",
+    "outOfStock": "Out of stock — removed from your cart",
+    "priceChanged": "Price updated",
+    "unavailable": "No longer available — removed from your cart",
+    "variantRequired": "Please choose a size or colour for this item"
+  },
+  "confirmDialog": {
+    "continue": "Continue",
+    "cancel": "Cancel",
+    "discard": "Discard",
+    "keepEditing": "Keep editing",
+    "continueToPayment": "Continue to payment",
+    "reviewCart": "Review cart",
+    "confirm": "Confirm",
+    "close": "Close"
   }
 }

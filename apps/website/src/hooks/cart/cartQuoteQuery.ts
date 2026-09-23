@@ -74,9 +74,12 @@ export type CartLineNotice = {
     | 'price_changed'
     | 'unavailable'
     | 'variant_required';
+  /** English text; UI should prefer cartNoticeMessage(notice, t). */
   message: string;
   /** Line title, kept so a notice can still be shown after the line is removed. */
   title: string;
+  /** Units still in stock, for `insufficient_stock`. */
+  available?: number;
 };
 
 function noticeFor(
@@ -89,6 +92,7 @@ function noticeFor(
       return {
         code,
         title,
+        available,
         message:
           typeof available === 'number' && available > 0
             ? `Only ${available} left, quantity adjusted`
@@ -108,6 +112,30 @@ function noticeFor(
         title,
         message: 'Please choose a size or colour for this item',
       };
+  }
+}
+
+/**
+ * The notice in the reader's language. The code (and stock count) travel on
+ * the notice, so the text is chosen at render time rather than baked in here.
+ */
+export function cartNoticeMessage(
+  notice: CartLineNotice,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+): string {
+  switch (notice.code) {
+    case 'insufficient_stock':
+      return typeof notice.available === 'number' && notice.available > 0
+        ? t('cartNotice.lowStock', { count: notice.available })
+        : t('cartNotice.outOfStock');
+    case 'price_changed':
+      return t('cartNotice.priceChanged');
+    case 'unavailable':
+      return t('cartNotice.unavailable');
+    case 'variant_required':
+      return t('cartNotice.variantRequired');
+    default:
+      return notice.message;
   }
 }
 
