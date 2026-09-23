@@ -1,8 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  adminOrdersApi,
-  type AdminOrdersQuery,
-} from '../lib/api';
+import { adminOrdersApi, type AdminOrdersQuery } from '../lib/api';
 
 export const ADMIN_ORDERS_KEY = ['admin', 'orders'] as const;
 export const ADMIN_ORDER_DETAIL_KEY = ['admin', 'order'] as const;
@@ -30,6 +27,18 @@ export function useUpdateOrderStatusMutation() {
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       adminOrdersApi.updateOrderStatus(id, status),
     onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ADMIN_ORDERS_KEY });
+    },
+  });
+}
+
+export function useUpdateOrderTrackingMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, tracking }: { id: string; tracking: any }) =>
+      adminOrdersApi.updateOrderTracking(id, tracking),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ADMIN_ORDER_DETAIL_KEY });
       await qc.invalidateQueries({ queryKey: ADMIN_ORDERS_KEY });
     },
   });

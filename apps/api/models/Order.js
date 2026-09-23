@@ -235,6 +235,37 @@ const OrderSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    trackingEvents: {
+      type: [
+        {
+          status: {
+            type: String,
+            enum: [
+              'picked_up',
+              'in_transit',
+              'out_for_delivery',
+              'delivered',
+              'exception',
+            ],
+          },
+          description: {
+            type: String,
+            trim: true,
+            default: '',
+          },
+          location: {
+            type: String,
+            trim: true,
+            default: '',
+          },
+          timestamp: {
+            type: Date,
+            default: Date.now,
+          },
+        },
+      ],
+      default: [],
+    },
   },
   { timestamps: true },
 );

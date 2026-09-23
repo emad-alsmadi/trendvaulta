@@ -13,6 +13,12 @@ const {
   restoreStockOnce,
 } = require('../utils/commerce');
 const {
+  sendOrderShippedEmail,
+  sendOrderDeliveredEmail,
+  sendOrderCanceledEmail,
+  sendOrderRefundedEmail,
+} = require('../utils/mail');
+const {
   getStripeOrThrow,
   refundPaymentIntent,
 } = require('../services/stripe.service');
@@ -210,6 +216,19 @@ const updateOrderTracking = asyncHandler(async (req, res) => {
     trackingNumber: Joi.string().trim().allow('').optional(),
     trackingCarrier: Joi.string().trim().allow('').optional(),
     trackingUrl: Joi.string().trim().allow('').optional(),
+    trackingEvent: Joi.object({
+      status: Joi.string()
+        .valid(
+          'picked_up',
+          'in_transit',
+          'out_for_delivery',
+          'delivered',
+          'exception',
+        )
+        .required(),
+      description: Joi.string().trim().allow('').optional(),
+      location: Joi.string().trim().allow('').optional(),
+    }).optional(),
   });
   const { error, value } = schema.validate(req.body || {});
   if (error) {
@@ -221,7 +240,23 @@ const updateOrderTracking = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: 'Order not found' });
   }
 
-  Object.assign(order, value);
+  // Update basic tracking fields
+  if (value.trackingNumber !== undefined)
+    order.trackingNumber = value.trackingNumber;
+  if (value.trackingCarrier !== undefined)
+    order.trackingCarrier = value.trackingCarrier;
+  if (value.trackingUrl !== undefined) order.trackingUrl = value.trackingUrl;
+
+  // Add tracking event if provided
+  if (value.trackingEvent) {
+    order.trackingEvents.push({
+      status: value.trackingEvent.status,
+      description: value.trackingEvent.description || '',
+      location: value.trackingEvent.location || '',
+      timestamp: new Date(),
+    });
+  }
+
   await order.save();
 
   const serialized = serializeOrder(order);
@@ -350,6 +385,36 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
 
   order.status = value.status;
   await order.save();
+
+  // Send email notifications based on status change
+  const user = await order.populate('user');
+  const userEmail = user?.email;
+  if (userEmail) {
+    if (value.status === 'shipped' && order.trackingNumber) {
+      await sendOrderShippedEmail({
+        to: userEmail,
+        orderId: order._id,
+        trackingNumber: order.trackingNumber,
+        trackingCarrier: order.trackingCarrier,
+      }).catch(() => {});
+    } else if (value.status === 'delivered') {
+      await sendOrderDeliveredEmail({
+        to: userEmail,
+        orderId: order._id,
+      }).catch(() => {});
+    } else if (value.status === 'canceled') {
+      await sendOrderCanceledEmail({
+        to: userEmail,
+        orderId: order._id,
+      }).catch(() => {});
+    } else if (value.status === 'refunded' && order.refundAmount > 0) {
+      await sendOrderRefundedEmail({
+        to: userEmail,
+        orderId: order._id,
+        refundAmount: order.refundAmount,
+      }).catch(() => {});
+    }
+  }
 
   const serialized = serializeOrder(order);
   let message = `Order status updated to ${value.status}`;

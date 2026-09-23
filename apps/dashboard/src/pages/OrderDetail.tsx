@@ -1,9 +1,13 @@
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Copy } from 'lucide-react';
-import { useAdminOrderById } from '../hooks/useAdminOrders';
+import { ArrowLeft, Copy, Package, Plus } from 'lucide-react';
+import {
+  useAdminOrderById,
+  useUpdateOrderTrackingMutation,
+} from '../hooks/useAdminOrders';
 import { errorMessage, type AdminOrderCustomer } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
+import { useState } from 'react';
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Pending',
@@ -69,6 +73,52 @@ export default function OrderDetail() {
   const toast = useToast();
   const orderQ = useAdminOrderById(id);
   const order = orderQ.data;
+  const updateTracking = useUpdateOrderTrackingMutation();
+  const [showTrackingForm, setShowTrackingForm] = useState(false);
+  const [trackingForm, setTrackingForm] = useState({
+    trackingNumber: '',
+    trackingCarrier: '',
+    trackingUrl: '',
+    eventStatus: '',
+    eventDescription: '',
+    eventLocation: '',
+  });
+
+  const handleUpdateTracking = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id) return;
+
+    const tracking: any = {};
+    if (trackingForm.trackingNumber)
+      tracking.trackingNumber = trackingForm.trackingNumber;
+    if (trackingForm.trackingCarrier)
+      tracking.trackingCarrier = trackingForm.trackingCarrier;
+    if (trackingForm.trackingUrl)
+      tracking.trackingUrl = trackingForm.trackingUrl;
+    if (trackingForm.eventStatus) {
+      tracking.trackingEvent = {
+        status: trackingForm.eventStatus,
+        description: trackingForm.eventDescription,
+        location: trackingForm.eventLocation,
+      };
+    }
+
+    try {
+      await updateTracking.mutateAsync({ id, tracking });
+      toast.success('Tracking updated successfully');
+      setShowTrackingForm(false);
+      setTrackingForm({
+        trackingNumber: '',
+        trackingCarrier: '',
+        trackingUrl: '',
+        eventStatus: '',
+        eventDescription: '',
+        eventLocation: '',
+      });
+    } catch (err) {
+      toast.error(errorMessage(err, 'Failed to update tracking'));
+    }
+  };
 
   const copyId = async (value: string) => {
     try {
@@ -256,7 +306,8 @@ export default function OrderDetail() {
                   {order.discountAmount > 0 && (
                     <div className='flex justify-between'>
                       <dt className='text-gray-500 dark:text-gray-400'>
-                        Discount {order.couponCode ? `(${order.couponCode})` : ''}
+                        Discount{' '}
+                        {order.couponCode ? `(${order.couponCode})` : ''}
                       </dt>
                       <dd className='text-gray-900 dark:text-white'>
                         -{money(order.discountAmount)}
@@ -292,7 +343,9 @@ export default function OrderDetail() {
                 </dl>
               </section>
 
-              {(order.stripeSessionId || order.paymentIntentId || order.refundId) && (
+              {(order.stripeSessionId ||
+                order.paymentIntentId ||
+                order.refundId) && (
                 <section className='rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800'>
                   <h2 className='mb-4 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400'>
                     Payment references
@@ -329,6 +382,216 @@ export default function OrderDetail() {
                       </div>
                     )}
                   </dl>
+                </section>
+              )}
+
+              {(order.trackingNumber ||
+                order.trackingCarrier ||
+                order.trackingUrl ||
+                (order.trackingEvents && order.trackingEvents.length > 0)) && (
+                <section className='rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800'>
+                  <h2 className='mb-4 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400'>
+                    Tracking
+                  </h2>
+                  <dl className='space-y-2 text-sm'>
+                    {order.trackingNumber && (
+                      <div>
+                        <dt className='text-gray-500 dark:text-gray-400'>
+                          Tracking number
+                        </dt>
+                        <dd className='font-mono text-gray-900 dark:text-white'>
+                          {order.trackingNumber}
+                        </dd>
+                      </div>
+                    )}
+                    {order.trackingCarrier && (
+                      <div>
+                        <dt className='text-gray-500 dark:text-gray-400'>
+                          Carrier
+                        </dt>
+                        <dd className='font-medium text-gray-900 dark:text-white'>
+                          {order.trackingCarrier}
+                        </dd>
+                      </div>
+                    )}
+                    {order.trackingUrl && (
+                      <div>
+                        <dt className='text-gray-500 dark:text-gray-400'>
+                          Tracking URL
+                        </dt>
+                        <dd>
+                          <a
+                            href={order.trackingUrl}
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            className='font-medium text-blue-600 hover:underline dark:text-blue-400'
+                          >
+                            View tracking
+                          </a>
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+                  {order.trackingEvents && order.trackingEvents.length > 0 && (
+                    <div className='mt-4'>
+                      <h3 className='mb-2 text-xs font-semibold text-gray-500 dark:text-gray-400'>
+                        Tracking events
+                      </h3>
+                      <ul className='space-y-2 text-xs'>
+                        {order.trackingEvents.map((event, i) => (
+                          <li
+                            key={i}
+                            className='rounded bg-gray-50 p-2 dark:bg-gray-700'
+                          >
+                            <div className='flex items-center justify-between gap-2'>
+                              <span className='font-medium text-gray-900 dark:text-white'>
+                                {event.status}
+                              </span>
+                              <span className='text-gray-500 dark:text-gray-400'>
+                                {event.timestamp
+                                  ? new Date(event.timestamp).toLocaleString()
+                                  : '—'}
+                              </span>
+                            </div>
+                            {event.description && (
+                              <p className='mt-1 text-gray-600 dark:text-gray-300'>
+                                {event.description}
+                              </p>
+                            )}
+                            {event.location && (
+                              <p className='mt-1 text-gray-500 dark:text-gray-400'>
+                                {event.location}
+                              </p>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <button
+                    type='button'
+                    onClick={() => setShowTrackingForm(!showTrackingForm)}
+                    className='mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:underline dark:text-blue-400'
+                  >
+                    <Plus className='h-4 w-4' />
+                    {showTrackingForm ? 'Cancel' : 'Update tracking'}
+                  </button>
+                  {showTrackingForm && (
+                    <form
+                      onSubmit={handleUpdateTracking}
+                      className='mt-4 space-y-3'
+                    >
+                      <div>
+                        <label className='mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300'>
+                          Tracking number
+                        </label>
+                        <input
+                          type='text'
+                          value={trackingForm.trackingNumber}
+                          onChange={(e) =>
+                            setTrackingForm({
+                              ...trackingForm,
+                              trackingNumber: e.target.value,
+                            })
+                          }
+                          className='w-full rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white'
+                          placeholder='e.g. 1Z999AA10123456784'
+                        />
+                      </div>
+                      <div>
+                        <label className='mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300'>
+                          Carrier
+                        </label>
+                        <input
+                          type='text'
+                          value={trackingForm.trackingCarrier}
+                          onChange={(e) =>
+                            setTrackingForm({
+                              ...trackingForm,
+                              trackingCarrier: e.target.value,
+                            })
+                          }
+                          className='w-full rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white'
+                          placeholder='e.g. FedEx, UPS, DHL'
+                        />
+                      </div>
+                      <div>
+                        <label className='mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300'>
+                          Tracking URL
+                        </label>
+                        <input
+                          type='url'
+                          value={trackingForm.trackingUrl}
+                          onChange={(e) =>
+                            setTrackingForm({
+                              ...trackingForm,
+                              trackingUrl: e.target.value,
+                            })
+                          }
+                          className='w-full rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white'
+                          placeholder='https://...'
+                        />
+                      </div>
+                      <div className='border-t border-gray-200 pt-3 dark:border-gray-700'>
+                        <label className='mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300'>
+                          Add tracking event (optional)
+                        </label>
+                        <select
+                          value={trackingForm.eventStatus}
+                          onChange={(e) =>
+                            setTrackingForm({
+                              ...trackingForm,
+                              eventStatus: e.target.value,
+                            })
+                          }
+                          className='mb-2 w-full rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white'
+                        >
+                          <option value=''>Select status...</option>
+                          <option value='picked_up'>Picked up</option>
+                          <option value='in_transit'>In transit</option>
+                          <option value='out_for_delivery'>
+                            Out for delivery
+                          </option>
+                          <option value='delivered'>Delivered</option>
+                          <option value='exception'>Exception</option>
+                        </select>
+                        <input
+                          type='text'
+                          value={trackingForm.eventDescription}
+                          onChange={(e) =>
+                            setTrackingForm({
+                              ...trackingForm,
+                              eventDescription: e.target.value,
+                            })
+                          }
+                          className='mb-2 w-full rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white'
+                          placeholder='Description (optional)'
+                        />
+                        <input
+                          type='text'
+                          value={trackingForm.eventLocation}
+                          onChange={(e) =>
+                            setTrackingForm({
+                              ...trackingForm,
+                              eventLocation: e.target.value,
+                            })
+                          }
+                          className='w-full rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white'
+                          placeholder='Location (optional)'
+                        />
+                      </div>
+                      <button
+                        type='submit'
+                        disabled={updateTracking.isPending}
+                        className='inline-flex items-center gap-1.5 rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60'
+                      >
+                        <Package className='h-4 w-4' />
+                        {updateTracking.isPending
+                          ? 'Updating...'
+                          : 'Update tracking'}
+                      </button>
+                    </form>
+                  )}
                 </section>
               )}
             </div>

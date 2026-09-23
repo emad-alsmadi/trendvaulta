@@ -146,6 +146,15 @@ export type AdminOrder = {
   refundId?: string;
   refundedAt?: string;
   refundAmount?: number;
+  trackingNumber?: string;
+  trackingCarrier?: string;
+  trackingUrl?: string;
+  trackingEvents?: Array<{
+    status: string;
+    description?: string;
+    location?: string;
+    timestamp?: string;
+  }>;
 };
 
 export type AdminOrderItem = {
@@ -278,6 +287,26 @@ export const adminOrdersApi = {
     const { data } = await api.patch<AdminOrder>(`/orders/${id}/status`, {
       status,
     });
+    return data;
+  },
+
+  updateOrderTracking: async (
+    id: string,
+    tracking: {
+      trackingNumber?: string;
+      trackingCarrier?: string;
+      trackingUrl?: string;
+      trackingEvent?: {
+        status: string;
+        description?: string;
+        location?: string;
+      };
+    },
+  ): Promise<AdminOrder> => {
+    const { data } = await api.patch<AdminOrder>(
+      `/orders/${id}/tracking`,
+      tracking,
+    );
     return data;
   },
 
@@ -456,11 +485,9 @@ export const uploadsApi = {
   uploadImage: async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append('image', file);
-    const { data } = await api.post<UploadImageResponse>(
-      '/uploads',
-      formData,
-      { headers: { 'Content-Type': 'multipart/form-data' } },
-    );
+    const { data } = await api.post<UploadImageResponse>('/uploads', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return data.data.url;
   },
 };
@@ -1008,7 +1035,9 @@ export const adminTestimonialsApi = {
 
 export type BundleItem = {
   /** Product id; admin list responses populate this into an object. */
-  product: string | { _id: string; title?: string; price?: number; cover?: string };
+  product:
+    | string
+    | { _id: string; title?: string; price?: number; cover?: string };
   quantity: number;
 };
 

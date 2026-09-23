@@ -47,9 +47,7 @@ async function sendOrderConfirmationEmail(opts) {
   if (!to) return false;
 
   const hasCreds =
-    process.env.SMTP_HOST ||
-    process.env.EMAIL_USER ||
-    process.env.SMTP_USER;
+    process.env.SMTP_HOST || process.env.EMAIL_USER || process.env.SMTP_USER;
   if (!hasCreds) {
     console.warn(
       '[mail] Skipping order confirmation — SMTP/EMAIL credentials not configured',
@@ -111,9 +109,7 @@ async function sendContactNotificationEmail(opts) {
   }
 
   const hasCreds =
-    process.env.SMTP_HOST ||
-    process.env.EMAIL_USER ||
-    process.env.SMTP_USER;
+    process.env.SMTP_HOST || process.env.EMAIL_USER || process.env.SMTP_USER;
   if (!hasCreds) {
     console.warn(
       '[mail] Skipping contact notification — SMTP/EMAIL credentials not configured',
@@ -147,9 +143,205 @@ async function sendContactNotificationEmail(opts) {
   }
 }
 
+/**
+ * Send order shipped email. Fail-soft: logs and returns false on error.
+ * @param {{ to: string, orderId: string, trackingNumber?: string, trackingCarrier?: string }} opts
+ */
+async function sendOrderShippedEmail(opts) {
+  const { to, orderId, trackingNumber, trackingCarrier } = opts;
+  if (!to) return false;
+
+  const hasCreds =
+    process.env.SMTP_HOST || process.env.EMAIL_USER || process.env.SMTP_USER;
+  if (!hasCreds) {
+    console.warn(
+      '[mail] Skipping order shipped notification — SMTP/EMAIL credentials not configured',
+    );
+    return false;
+  }
+
+  const frontend = process.env.FRONTEND_URL || 'http://localhost:3001';
+  const text = [
+    'Your TrendVaulta order has been shipped!',
+    '',
+    `Order ID: ${orderId}`,
+    trackingNumber ? `Tracking Number: ${trackingNumber}` : '',
+    trackingCarrier ? `Carrier: ${trackingCarrier}` : '',
+    '',
+    `Track your order: ${frontend}/orders`,
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  try {
+    const transporter = createTransporter();
+    await transporter.sendMail({
+      from: getFromAddress(),
+      to,
+      subject: `Order shipped — ${orderId}`,
+      text,
+    });
+    return true;
+  } catch (err) {
+    console.error(
+      '[mail] Order shipped notification failed:',
+      err?.message || err,
+    );
+    return false;
+  }
+}
+
+/**
+ * Send order delivered email. Fail-soft: logs and returns false on error.
+ * @param {{ to: string, orderId: string }} opts
+ */
+async function sendOrderDeliveredEmail(opts) {
+  const { to, orderId } = opts;
+  if (!to) return false;
+
+  const hasCreds =
+    process.env.SMTP_HOST || process.env.EMAIL_USER || process.env.SMTP_USER;
+  if (!hasCreds) {
+    console.warn(
+      '[mail] Skipping order delivered notification — SMTP/EMAIL credentials not configured',
+    );
+    return false;
+  }
+
+  const frontend = process.env.FRONTEND_URL || 'http://localhost:3001';
+  const text = [
+    'Your TrendVaulta order has been delivered!',
+    '',
+    `Order ID: ${orderId}`,
+    '',
+    `View your orders: ${frontend}/orders`,
+    '',
+    'Thank you for shopping with us!',
+  ].join('\n');
+
+  try {
+    const transporter = createTransporter();
+    await transporter.sendMail({
+      from: getFromAddress(),
+      to,
+      subject: `Order delivered — ${orderId}`,
+      text,
+    });
+    return true;
+  } catch (err) {
+    console.error(
+      '[mail] Order delivered notification failed:',
+      err?.message || err,
+    );
+    return false;
+  }
+}
+
+/**
+ * Send order canceled email. Fail-soft: logs and returns false on error.
+ * @param {{ to: string, orderId: string }} opts
+ */
+async function sendOrderCanceledEmail(opts) {
+  const { to, orderId } = opts;
+  if (!to) return false;
+
+  const hasCreds =
+    process.env.SMTP_HOST || process.env.EMAIL_USER || process.env.SMTP_USER;
+  if (!hasCreds) {
+    console.warn(
+      '[mail] Skipping order canceled notification — SMTP/EMAIL credentials not configured',
+    );
+    return false;
+  }
+
+  const frontend = process.env.FRONTEND_URL || 'http://localhost:3001';
+  const text = [
+    'Your TrendVaulta order has been canceled.',
+    '',
+    `Order ID: ${orderId}`,
+    '',
+    'If you have any questions, please contact our support team.',
+    '',
+    `View your orders: ${frontend}/orders`,
+  ].join('\n');
+
+  try {
+    const transporter = createTransporter();
+    await transporter.sendMail({
+      from: getFromAddress(),
+      to,
+      subject: `Order canceled — ${orderId}`,
+      text,
+    });
+    return true;
+  } catch (err) {
+    console.error(
+      '[mail] Order canceled notification failed:',
+      err?.message || err,
+    );
+    return false;
+  }
+}
+
+/**
+ * Send order refunded email. Fail-soft: logs and returns false on error.
+ * @param {{ to: string, orderId: string, refundAmount?: number }} opts
+ */
+async function sendOrderRefundedEmail(opts) {
+  const { to, orderId, refundAmount } = opts;
+  if (!to) return false;
+
+  const hasCreds =
+    process.env.SMTP_HOST || process.env.EMAIL_USER || process.env.SMTP_USER;
+  if (!hasCreds) {
+    console.warn(
+      '[mail] Skipping order refunded notification — SMTP/EMAIL credentials not configured',
+    );
+    return false;
+  }
+
+  const amountText = refundAmount
+    ? `Refund amount: $${Number(refundAmount).toFixed(2)}`
+    : '';
+  const frontend = process.env.FRONTEND_URL || 'http://localhost:3001';
+  const text = [
+    'Your TrendVaulta order has been refunded.',
+    '',
+    `Order ID: ${orderId}`,
+    amountText,
+    '',
+    'The refund has been processed to your original payment method.',
+    '',
+    `View your orders: ${frontend}/orders`,
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  try {
+    const transporter = createTransporter();
+    await transporter.sendMail({
+      from: getFromAddress(),
+      to,
+      subject: `Order refunded — ${orderId}`,
+      text,
+    });
+    return true;
+  } catch (err) {
+    console.error(
+      '[mail] Order refunded notification failed:',
+      err?.message || err,
+    );
+    return false;
+  }
+}
+
 module.exports = {
   createTransporter,
   getFromAddress,
   sendOrderConfirmationEmail,
   sendContactNotificationEmail,
+  sendOrderShippedEmail,
+  sendOrderDeliveredEmail,
+  sendOrderCanceledEmail,
+  sendOrderRefundedEmail,
 };
