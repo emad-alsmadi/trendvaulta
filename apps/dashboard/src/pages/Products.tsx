@@ -25,6 +25,7 @@ import {
   validateVariants,
 } from '../components/products/VariantsEditor';
 import { useTableQuery } from '../hooks/useTableQuery';
+import { useAdminCategories } from '../hooks/useAdminCategories';
 import { TablePagination } from '../components/ui/TablePagination';
 
 const emptyForm: ProductFormPayload = {
@@ -204,6 +205,13 @@ export default function Products() {
   const meta = productsQ.data?.meta;
 
   const hasVariants = (form.variants?.length ?? 0) > 0;
+
+  // Suggestions only: free text stays allowed so a product filed under a
+  // value that predates the Categories screen can still be saved as-is.
+  const categoriesQ = useAdminCategories();
+  const subcategoryOptions = (categoriesQ.data || [])
+    .filter((c) => c.parent === form.category)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
 
   function openCreate() {
     setEditing(null);
@@ -599,11 +607,19 @@ export default function Products() {
                 </span>
                 <input
                   value={form.subcategory}
+                  list="product-subcategories"
                   onChange={(e) =>
                     setForm((f) => ({ ...f, subcategory: e.target.value }))
                   }
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                 />
+                <datalist id="product-subcategories">
+                  {subcategoryOptions.map((c) => (
+                    <option key={c._id} value={c.slug}>
+                      {c.name}
+                    </option>
+                  ))}
+                </datalist>
               </label>
               <ImageUploadField
                 label="Cover image"

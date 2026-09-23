@@ -10,6 +10,7 @@ import LowStock from './pages/LowStock';
 import Users from './pages/Users';
 import Products from './pages/Products';
 import Brands from './pages/Brands';
+import Categories from './pages/Categories';
 import Orders from './pages/Orders';
 import OrderDetail from './pages/OrderDetail';
 import Coupons from './pages/Coupons';
@@ -74,6 +75,10 @@ function App() {
               <Route
                 path='brands'
                 element={<Brands />}
+              />
+              <Route
+                path='categories'
+                element={<Categories />}
               />
               <Route
                 path='orders'

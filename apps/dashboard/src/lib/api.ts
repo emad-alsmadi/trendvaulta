@@ -577,6 +577,72 @@ export type UploadImageResponse = {
   data: { url: string };
 };
 
+export type AdminCategory = {
+  _id: string;
+  slug: string;
+  name: string;
+  /** Top-level slug for a subcategory; null for a top-level category. */
+  parent: string | null;
+  description?: string;
+  imageUrl?: string;
+  sortOrder: number;
+  isActive: boolean;
+  /** Products filed under this category (or subcategory). */
+  productCount: number;
+};
+
+/** Create takes slug + parent; update may not change either. */
+export type CategoryCreatePayload = {
+  slug: string;
+  parent: string;
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  sortOrder?: number;
+  isActive?: boolean;
+};
+
+export type CategoryUpdatePayload = Partial<
+  Omit<CategoryCreatePayload, 'slug' | 'parent'>
+>;
+
+export const adminCategoriesApi = {
+  getCategories: async (): Promise<AdminCategory[]> => {
+    const { data } = await api.get<{ data: AdminCategory[] }>(
+      '/categories/admin',
+    );
+    return data.data ?? [];
+  },
+
+  createCategory: async (
+    payload: CategoryCreatePayload,
+  ): Promise<AdminCategory> => {
+    const { data } = await api.post<{ data: AdminCategory }>(
+      '/categories',
+      payload,
+    );
+    return data.data;
+  },
+
+  updateCategory: async (
+    id: string,
+    payload: CategoryUpdatePayload,
+  ): Promise<AdminCategory> => {
+    const { data } = await api.put<{ data: AdminCategory }>(
+      `/categories/${id}`,
+      payload,
+    );
+    return data.data;
+  },
+
+  deleteCategory: async (id: string): Promise<{ message: string }> => {
+    const { data } = await api.delete<{ message: string }>(
+      `/categories/${id}`,
+    );
+    return data;
+  },
+};
+
 export const uploadsApi = {
   /** Uploads a single product/brand image; returns its public URL. */
   uploadImage: async (file: File): Promise<string> => {
