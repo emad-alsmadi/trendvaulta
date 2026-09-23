@@ -474,7 +474,7 @@ export type CartQuoteRequest = {
   items: { productId: string; qty: number; variant?: OrderLineVariant }[];
   couponCode?: string;
   delivery?: boolean;
-  shippingMethod?: 'none' | 'standard' | 'express';
+  shippingMethod?: string;
 };
 
 export type CartQuoteWarningCode =
@@ -535,7 +535,6 @@ export type OrderCheckoutPayload = {
   /** Server re-validates and applies discount */
   couponCode?: string;
 };
-
 
 /**
  * Wishlist API - Handles user wishlist operations
