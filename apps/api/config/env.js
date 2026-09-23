@@ -41,6 +41,19 @@ function validateEnv(env = process.env) {
     if (!isSet(name, env)) problems.push(`${name} is required`);
   }
 
+  const driver = (env.STORAGE_DRIVER || 'local').trim().toLowerCase();
+  if (!['local', 'cloudinary'].includes(driver)) {
+    problems.push(`STORAGE_DRIVER must be "local" or "cloudinary" (got "${driver}")`);
+  } else if (driver === 'cloudinary') {
+    for (const name of ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET']) {
+      if (!isSet(name, env)) problems.push(`${name} is required when STORAGE_DRIVER=cloudinary`);
+    }
+  } else if (production) {
+    warnings.push(
+      'STORAGE_DRIVER is local: uploaded images live on this server\'s disk and are lost on redeploy unless apps/api/uploads is a persistent volume.',
+    );
+  }
+
   if (production) {
     for (const name of PRODUCTION_REQUIRED) {
       if (!isSet(name, env)) problems.push(`${name} is required in production`);

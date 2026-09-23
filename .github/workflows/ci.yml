@@ -17,7 +17,9 @@ defaults:
     shell: bash
 
 env:
-  NODE_VERSION: '20'
+  # 22 LTS: Node 20 is EOL, and `node --test` only expands the glob patterns
+  # in apps/api's test script from Node 21 onward.
+  NODE_VERSION: '22'
 
 jobs:
   api:
@@ -119,9 +121,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Real gate, but only on *critical* advisories: high-severity findings in
-      # this tree are mostly transitive dev tooling with no upstream fix yet, so
+      # Real gate, but only on *critical* advisories in what ships to
+      # production: high-severity findings and dev tooling (test runners,
+      # linters) never reach users and mostly have no upstream fix yet, so
       # gating on them would block every PR. Tighten to --audit-level=high once
       # the baseline is clean.
-      - name: npm audit (critical)
-        run: npm audit --audit-level=critical
+      - name: npm audit (critical, production deps)
+        run: npm audit --omit=dev --audit-level=critical

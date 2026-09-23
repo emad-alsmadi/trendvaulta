@@ -7,13 +7,12 @@
     "start": "node app.js",
     "dev": "nodemon app.js",
     "build": "echo 'No build step required for Express backend'",
-    "test": "node --test app.test.js utils/**/*.test.js middlewares/**/*.test.js services/**/*.test.js tests/**/*.test.js"
+    "test": "node --test app.test.js 'utils/**/*.test.js' 'middlewares/**/*.test.js' 'services/**/*.test.js' 'tests/**/*.test.js'"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "bcryptjs": "^3.0.3",
-    "cloudinary": "^2.11.0",
     "cors": "^2.8.5",
     "dotenv": "^17.3.0",
     "express": "^5.2.1",

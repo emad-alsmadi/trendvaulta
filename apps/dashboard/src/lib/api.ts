@@ -141,6 +141,7 @@ export type AdminOrder = {
   totalPrice?: number;
   createdAt?: string;
   allowedNextStatuses?: string[];
+  returnRequest?: AdminReturnRequest | null;
   user?: string | AdminOrderCustomer;
   attentionReason?: AdminOrderAttentionReason | string;
   refundId?: string;
@@ -180,6 +181,36 @@ export type AdminOrderShippingAddress = {
   notes?: string;
 };
 
+export type AdminReturnStatus =
+  | 'requested'
+  | 'approved'
+  | 'rejected'
+  | 'received'
+  | 'refunded';
+
+/** A customer's return (RMA) on an order — see utils/returns.js. */
+export type AdminReturnRequest = {
+  status: AdminReturnStatus | 'none';
+  reason: string;
+  items: { productId: string; title: string; qty: number; reason?: string }[];
+  requestedAt?: string;
+  approvedAt?: string;
+  rejectedAt?: string;
+  receivedAt?: string;
+  refundedAt?: string;
+  refundAmount?: number;
+  refundId?: string;
+  instructions?: string;
+  notes?: string;
+};
+
+export type ReturnUpdatePayload = {
+  status: Exclude<AdminReturnStatus, 'requested'>;
+  notes?: string;
+  instructions?: string;
+  refundAmount?: number;
+};
+
 export type AdminOrderDetail = AdminOrder & {
   items: AdminOrderItem[];
   shippingAddress: AdminOrderShippingAddress;
@@ -214,6 +245,8 @@ export type AdminOrdersQuery = {
   q?: string;
   /** One customer's orders (user id). */
   user?: string;
+  /** Returns queue: orders whose return is at this step. */
+  returnStatus?: AdminReturnStatus;
   sort?: string;
   order?: 'asc' | 'desc';
 };
@@ -303,6 +336,18 @@ export const adminOrdersApi = {
     const { data } = await api.patch<AdminOrder>(`/orders/${id}/status`, {
       status,
     });
+    return data;
+  },
+
+  /** Move a return to its next step; `refunded` issues the Stripe refund. */
+  updateReturn: async (
+    id: string,
+    payload: ReturnUpdatePayload,
+  ): Promise<{ message: string; data: AdminReturnRequest }> => {
+    const { data } = await api.patch<{ message: string; data: AdminReturnRequest }>(
+      `/orders/${id}/return`,
+      payload,
+    );
     return data;
   },
 

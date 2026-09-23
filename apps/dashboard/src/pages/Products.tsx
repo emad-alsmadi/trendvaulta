@@ -20,10 +20,8 @@ import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { ImageUploadField } from '../components/ui/ImageUploadField';
 import { GalleryField } from '../components/products/GalleryField';
-import {
-  VariantsEditor,
-  validateVariants,
-} from '../components/products/VariantsEditor';
+import { VariantsEditor } from '../components/products/VariantsEditor';
+import { validateVariants } from '../lib/variants';
 import { useTableQuery } from '../hooks/useTableQuery';
 import { useAdminCategories } from '../hooks/useAdminCategories';
 import { TablePagination } from '../components/ui/TablePagination';

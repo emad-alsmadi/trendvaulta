@@ -13,6 +13,7 @@ import {
 } from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
+import { ReturnPanel } from '../components/orders/ReturnPanel';
 import { usePermissions } from '../hooks/usePermissions';
 import { useState } from 'react';
 
@@ -249,6 +250,7 @@ export default function OrderDetail() {
 
           <div className='grid gap-6 lg:grid-cols-3'>
             <div className='lg:col-span-2 space-y-6'>
+              <ReturnPanel key={order.returnRequest?.status ?? 'none'} order={order} />
               <section className='rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800'>
                 <h2 className='mb-4 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400'>
                   Items

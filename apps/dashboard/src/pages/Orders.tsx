@@ -9,6 +9,7 @@ import {
 import {
   errorMessage,
   type AdminOrder,
+  type AdminOrdersQuery,
 } from '../lib/api';
 import { getAuthToken } from '../lib/auth';
 import { usePermissions } from '../hooks/usePermissions';
@@ -38,6 +39,20 @@ const PAYMENT_FILTERS = [
   { value: 'failed', label: 'Failed' },
   { value: 'refunded', label: 'Refunded' },
 ];
+
+/** Open return steps first — the ones that need someone to act. */
+const RETURN_FILTERS = [
+  { value: '', label: 'All returns' },
+  { value: 'requested', label: 'Return requested' },
+  { value: 'approved', label: 'Return approved' },
+  { value: 'received', label: 'Return received' },
+  { value: 'refunded', label: 'Return refunded' },
+  { value: 'rejected', label: 'Return rejected' },
+];
+
+const RETURN_LABELS: Record<string, string> = Object.fromEntries(
+  RETURN_FILTERS.filter((f) => f.value).map((f) => [f.value, f.label]),
+);
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Pending',
@@ -108,6 +123,7 @@ export default function Orders() {
   const confirm = useConfirm();
   const [statusFilter, setStatusFilter] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('');
+  const [returnFilter, setReturnFilter] = useState('');
   const [search, setSearch] = useState('');
   const [appliedQ, setAppliedQ] = useState('');
   const table = useTableQuery({ limit: 25, sort: 'createdAt', order: 'desc' });
@@ -124,8 +140,9 @@ export default function Orders() {
       paymentStatus: paymentFilter || undefined,
       q: appliedQ || undefined,
       user: customerId || undefined,
+      returnStatus: (returnFilter || undefined) as AdminOrdersQuery['returnStatus'],
     }),
-    [table.params, statusFilter, paymentFilter, appliedQ, customerId],
+    [table.params, statusFilter, paymentFilter, appliedQ, customerId, returnFilter],
   );
 
   const ordersQ = useAdminOrders(query);
@@ -205,6 +222,21 @@ export default function Orders() {
             className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
           >
             {PAYMENT_FILTERS.map((s) => (
+              <option key={s.value || 'all'} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+          <select
+            value={returnFilter}
+            onChange={(e) => {
+              setReturnFilter(e.target.value);
+              resetPage();
+            }}
+            aria-label="Filter by return status"
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+          >
+            {RETURN_FILTERS.map((s) => (
               <option key={s.value || 'all'} value={s.value}>
                 {s.label}
               </option>
@@ -385,6 +417,13 @@ export default function Orders() {
                           {order.attentionReason ? (
                             <span className="mt-1 block w-fit rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">
                               {attentionReasonLabel(order.attentionReason)}
+                            </span>
+                          ) : null}
+                          {order.returnRequest &&
+                          order.returnRequest.status !== 'none' ? (
+                            <span className="mt-1 block w-fit rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-medium text-violet-800 dark:bg-violet-900 dark:text-violet-200">
+                              {RETURN_LABELS[order.returnRequest.status] ||
+                                order.returnRequest.status}
                             </span>
                           ) : null}
                         </td>

@@ -1,5 +1,8 @@
 const asyncHandler = require('express-async-handler');
-const { saveUploadedFile } = require('../services/storage.service');
+const {
+  saveUploadedFile,
+  matchesImageSignature,
+} = require('../services/storage.service');
 
 /**
  * Resolve the public origin used to build absolute upload URLs.
@@ -30,12 +33,20 @@ const uploadImage = asyncHandler(async (req, res) => {
   }
 
   const { buffer, originalname, mimetype } = req.file;
-  const { publicPath } = await saveUploadedFile(buffer, {
+  if (!matchesImageSignature(buffer, mimetype)) {
+    return res.status(400).json({
+      message: 'This file is not a valid JPEG, PNG, WEBP, or GIF image',
+    });
+  }
+
+  const saved = await saveUploadedFile(buffer, {
     originalName: originalname,
     mimeType: mimetype,
   });
 
-  const url = `${resolvePublicBaseUrl(req)}${publicPath}`;
+  // Cloudinary returns an absolute CDN URL; local storage returns a path
+  // served by this API under /uploads.
+  const url = saved.url || `${resolvePublicBaseUrl(req)}${saved.publicPath}`;
 
   res.status(201).json({
     message: 'Image uploaded',

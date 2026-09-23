@@ -8,6 +8,7 @@ import {
   adminOrdersApi,
   type AdminOrdersQuery,
   type OrderTrackingPayload,
+  type ReturnUpdatePayload,
 } from '../lib/api';
 
 export const ADMIN_ORDERS_KEY = ['admin', 'orders'] as const;
@@ -59,6 +60,19 @@ export function useUpdateOrderTrackingMutation() {
     }) =>
       adminOrdersApi.updateOrderTracking(id, tracking),
     onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ADMIN_ORDER_DETAIL_KEY });
+      await qc.invalidateQueries({ queryKey: ADMIN_ORDERS_KEY });
+    },
+  });
+}
+
+export function useUpdateReturnMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: ReturnUpdatePayload }) =>
+      adminOrdersApi.updateReturn(id, payload),
+    onSuccess: async () => {
+      // A refund also changes the order's payment totals and status.
       await qc.invalidateQueries({ queryKey: ADMIN_ORDER_DETAIL_KEY });
       await qc.invalidateQueries({ queryKey: ADMIN_ORDERS_KEY });
     },

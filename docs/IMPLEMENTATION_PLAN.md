@@ -14,16 +14,16 @@ Every task below was checked against the code rather than taken from the
 original estimate. Phases 0-2 are complete; the remaining work is concentrated
 in the dashboard (Phase 5) and i18n.
 
-| Phase                           | State               | Notes                                                                                                                                                                                                                                                       |
-| ------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0 — Critical recovery           | **Complete**        | C1-C6, D2-D4 all verified in code. CI had two red jobs on pre-existing lint errors; fixed.                                                                                                                                                                  |
-| 1 — Security                    | **Complete**        | P1-P5, S1-S9. Two real gaps found and closed: production 5xx leaked `err.message`, and `resetPassword` had no validation on its params.                                                                                                                     |
-| 2 — Store & dashboard workflows | **Complete**        | W1-W8, D5-D10. Two deliberate deviations from the plan's wording: W7 always requires a validated address (delivery itself is optional), and guest _checkout_ sits under Feature 5.                                                                          |
-| 3 — Revenue features            | **Mostly complete** | Open: F8 (no customer-facing cancel/return button), F9 (uploads are local disk only, no CDN driver).                                                                                                                                                        |
-| 4 — Arabic & growth             | **Mostly complete** | Open: **F12 i18n is the largest remaining gap** — the provider exists but only a handful of components consume it and `<html lang>` is fixed at `en` server-side.                                                                                           |
-| 5 — Dashboard                   | **Partial**         | Done: F21 low stock, F23 analytics. Open: F19 (no variants/multi-image in the product form), F20 (no payment-status filter or email search on Orders), F22 (all tables are client-side), F24 (no Category model), F25 (no per-customer history or disable). |
-| 6 — Infrastructure              | **Partial**         | Done: I3 seeders, `/health`, pino + request IDs, graceful shutdown, Dependabot. Open: I1 deploy jobs and e2e, Sentry, I4 dashboard README and guides, I5 `packages/types` is built but unused.                                                              |
-| 7 — Tech debt                   | **Partial**         | T3 indexes done. T1 (178 `express-async-handler` wraps) and T2 (response contracts) remain, both low priority.                                                                                                                                              |
+| Phase | State | Notes |
+| --- | --- | --- |
+| 0 — Critical recovery | **Complete** | C1-C6, D2-D4 all verified in code. CI had two red jobs on pre-existing lint errors; fixed. |
+| 1 — Security | **Complete** | P1-P5, S1-S9. Two real gaps found and closed: production 5xx leaked `err.message`, and `resetPassword` had no validation on its params. |
+| 2 — Store & dashboard workflows | **Complete** | W1-W8, D5-D10. Two deliberate deviations from the plan's wording: W7 always requires a validated address (delivery itself is optional), and guest *checkout* sits under Feature 5. |
+| 3 — Revenue features | **Complete** | F8 cancel + returns, F9 Cloudinary storage. |
+| 4 — Arabic & growth | **Mostly complete** | F12: foundation done (server lang/dir, RTL-safe classes, USD only); **text translation of the purchase path is next**. |
+| 5 — Dashboard | **Complete** | Done: F19 product form, F20 order detail, F21 low stock, F22 server-side tables, F23 analytics, F24 categories and review replies, F25 customer management. |
+| 6 — Infrastructure | **Partial** | Done: I3 seeders, `/health`, pino + request IDs, graceful shutdown, Dependabot. Open: I1 deploy jobs and e2e, Sentry, I4 dashboard README and guides, I5 `packages/types` is built but unused. |
+| 7 — Tech debt | **Partial** | T3 indexes done. T1 (178 `express-async-handler` wraps) and T2 (response contracts) remain, both low priority. |
 
 Checkboxes below are ticked only where the behaviour was verified, not merely
 written.
@@ -1562,11 +1562,11 @@ module.exports = {
 
 **Acceptance Criteria:**
 
-- [ ] Customer can cancel
-- [ ] RMA request flow
-- [ ] Refunded status
-- [ ] Stripe refund linked
-- [ ] Return instructions
+- [x] Customer can cancel — account order page, before shipping; the endpoint existed but 500'd on every call (`req.user._id` is not in the JWT) and never sent its email. Now claims the cancel atomically, refunds via the idempotent `refundPaymentIntent`, flags staff when a refund can't be automatic
+- [x] RMA request flow — requested → approved → received → refunded (rejected from any open step), every step a conditional update; customer form on the account order page within a return window (`RETURN_WINDOW_DAYS`, default 30, from `deliveredAt`); dashboard return panel on order detail and a returns filter on Orders
+- [x] Refunded status
+- [x] Stripe refund linked — cancellation (full) and returns (partial, capped at the unrefunded balance, idempotency key per return/amount)
+- [x] Return instructions — written by staff on approval (address placeholder must be filled), shown to the customer
 
 ---
 
@@ -1588,11 +1588,11 @@ module.exports = {
 
 **Acceptance Criteria:**
 
-- [ ] Multer configured
-- [ ] Cloudinary/S3 integrated
-- [ ] Upload UI functional
-- [ ] CDN configured
-- [ ] next/image used
+- [x] Multer configured — memory storage, 5 MB, image mimetypes; file content now checked against the claimed type (magic bytes)
+- [x] Cloudinary/S3 integrated — Cloudinary (decision 2026-09-23) via its signed REST API, no SDK dependency; `STORAGE_DRIVER=cloudinary` + `CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET` (validated at boot), `local` stays the dev default
+- [x] Upload UI functional — dashboard ImageUploadField / GalleryField
+- [x] CDN configured — Cloudinary delivery URLs; storefront `remotePatterns` scoped to `res.cloudinary.com/<CLOUDINARY_CLOUD_NAME>/**`
+- [x] next/image used — no raw `<img>` left in the storefront
 
 ---
 
@@ -1665,10 +1665,10 @@ module.exports = {
 
 **Acceptance Criteria:**
 
-- [ ] i18n configured
-- [ ] RTL layout functional
-- [ ] Currency switchable
-- [ ] All text translated
+- [x] i18n configured — decisions 2026-09-23: locale in a `tv_locale` cookie read by the root layout (no /ar routes), so `<html lang dir>` is correct on first paint; existing TranslationProvider kept (no next-intl), English fallback for missing Arabic keys; IBM Plex Sans Arabic via next/font
+- [x] RTL layout functional — 102 physical classes converted to logical (ms/me/ps/pe/start/end/text-start/border-s…), centering pairs left alone; 24 directional icons mirror with `rtl:-scale-x-100`; language switch added to the mobile menu
+- [x] Currency switchable — **replaced by decision: USD only.** The switcher only swapped the symbol (would have shown $10 as ر.س10). Prices are USD, formatted per locale with Latin digits
+- [ ] All text translated — next: product page, cart, checkout, order success; then account, home rails, content pages
 - [ ] Arabic tested
 
 ---
@@ -1846,12 +1846,12 @@ module.exports = {
 
 **Acceptance Criteria:**
 
-- [ ] Variants functional
-- [ ] Multiple images
-- [ ] Active/featured toggles
-- [ ] Physical attributes
-- [ ] Shipping info
-- [ ] Image upload integrated
+- [x] Variants functional — size/color/swatch/stock/price/SKU; product stock is saved as the variant sum, and duplicate size+color pairs are refused (checkout matches the first one)
+- [x] Multiple images — gallery with multi-file upload, reorder, remove
+- [x] Active/featured toggles
+- [x] Physical attributes — material, weight (kg), dimensions (cm)
+- [x] Shipping info — packed weight/dimensions, special handling
+- [x] Image upload integrated — via the existing `POST /api/uploads` (local disk; CDN is still F9)
 
 ---
 
@@ -1875,12 +1875,12 @@ module.exports = {
 
 **Acceptance Criteria:**
 
-- [ ] Detail page created
-- [ ] All details shown
-- [ ] Tracking input
-- [ ] Refund button
-- [ ] Payment status filter
-- [ ] Email search
+- [x] Detail page created
+- [x] All details shown
+- [x] Tracking input
+- [x] Refund button — a status control on the detail page; moving a paid order to canceled/refunded issues the Stripe refund after an explicit confirm
+- [x] Payment status filter
+- [x] Email search
 
 ---
 
@@ -1925,10 +1925,15 @@ module.exports = {
 
 **Acceptance Criteria:**
 
-- [ ] Server-side sorting
-- [ ] Server-side pagination
-- [ ] No loading flicker
-- [ ] All tables updated
+- [x] Server-side sorting
+- [x] Server-side pagination
+- [x] No loading flicker
+- [x] All tables updated — every list that grows with use: Products, Brands, Orders, Users, Reviews, Coupons, Product Q&A, Bundles
+
+Deliberately *not* paginated: Offers, Help topics, Testimonials, Lookbooks and
+Content. They are small, curated sets the admin arranges by `sortOrder` (the
+order the storefront shows them in); paging or re-sorting them would hide the
+very order being edited.
 
 ---
 
@@ -1977,12 +1982,12 @@ module.exports = {
 
 **Acceptance Criteria:**
 
-- [ ] Category model
-- [ ] Hierarchy
-- [ ] CRUD interface
-- [ ] Home editor
-- [ ] Review replies
-- [ ] Store settings
+- [x] Category model — managed metadata over the fixed `Product.category` enum (decision 2026-09-23): the six top-level slugs are seeded and cannot be added, removed or re-slugged; admins edit name, image, description, order and visibility
+- [x] Hierarchy — two levels (category → subcategory), slugs unique per parent; subcategory slugs are immutable and cannot be deleted while products use them
+- [x] CRUD interface — dashboard Categories screen; product form suggests the chosen category's subcategories
+- [x] Home editor — already existed (Storefront Modules screen)
+- [x] Review replies — one public store reply per review (`PUT`/`DELETE /api/reviews/admin/:id/reply`, admin `reviews:write`); shown under the review on the storefront, author never exposed
+- [x] Store settings — already existed (Settings: shipping rates, free-shipping threshold, tax)
 
 ---
 
@@ -2003,10 +2008,10 @@ module.exports = {
 
 **Acceptance Criteria:**
 
-- [ ] Order history
-- [ ] Account disable
-- [ ] Customer notes
-- [ ] Customer search
+- [x] Order history — Users → receipt icon opens `/orders?user=<id>`
+- [x] Account disable — revokes refresh tokens, refuses login and refresh; the 15-minute access token is the only residual window
+- [x] Customer notes — `adminNotes`, `select: false` so only admin endpoints return it
+- [x] Customer search
 
 ---
 
