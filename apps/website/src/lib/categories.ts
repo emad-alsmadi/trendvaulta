@@ -28,7 +28,7 @@ export const CATEGORIES: CategoryDef[] = [
     label: 'Makeup',
     description:
       'Foundations, lipsticks, eyeshadows and everyday essentials from world-renowned beauty brands.',
-    image: '/images/1.webp',
+    image: '/images/1.jpeg',
     subcategories: [
       'foundation',
       'lipstick',
@@ -45,7 +45,7 @@ export const CATEGORIES: CategoryDef[] = [
     label: 'Perfumes',
     description:
       'Signature fragrances, body mists and gift sets — find a scent that feels like you.',
-    image: '/images/2.webp',
+    image: '/images/2.jpeg',
     subcategories: [
       'eau-de-parfum',
       'eau-de-toilette',
@@ -60,7 +60,7 @@ export const CATEGORIES: CategoryDef[] = [
     label: 'Clothing',
     description:
       'Dresses, tops, jackets and activewear — wardrobe staples and seasonal edits.',
-    image: '/images/3.webp',
+    image: '/images/3.jpeg',
     subcategories: [
       'dresses',
       'tops',
@@ -77,7 +77,7 @@ export const CATEGORIES: CategoryDef[] = [
     label: 'Skincare',
     description:
       'Cleansers, serums, moisturizers and SPF for every skin type and ritual.',
-    image: '/images/4.webp',
+    image: '/images/4.jpeg',
     subcategories: [
       'cleanser',
       'moisturizer',
@@ -94,7 +94,7 @@ export const CATEGORIES: CategoryDef[] = [
     label: 'Accessories',
     description:
       'Jewelry, bags, watches and sunglasses to finish every look.',
-    image: '/images/1.webp',
+    image: '/images/1.jpeg',
     subcategories: [
       'jewelry',
       'bags',
@@ -111,7 +111,7 @@ export const CATEGORIES: CategoryDef[] = [
     label: 'Home & Living',
     description:
       'Decor, bedding, lighting and kitchen pieces that make a house feel like home.',
-    image: '/images/2.webp',
+    image: '/images/2.jpeg',
     subcategories: [
       'decor',
       'kitchen',

@@ -9,6 +9,7 @@ import { LogIn, LogOut, MoreHorizontal, User } from 'lucide-react';
 import { useLogout, useMe } from '@/hooks/auth/authQuery';
 import { useConfirm } from '@/components/confirm/ConfirmProvider';
 import { Footer } from '@/components/layout/Footer'
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -16,13 +17,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const meQuery = useMe();
   const logout = useLogout();
   const confirm = useConfirm();
+  const { t } = useTranslation();
   const user = meQuery.data?.user || null;
   const hydrated = true;
-  const currentUsername =
-    user?.username || (user?.email ? user.email.split('@')[0] : '');
-  const profileHref = currentUsername
-    ? `/user/${currentUsername}`
-    : '/auth/login';
 
   return (
     <div className='min-h-screen bg-gray-50'>
@@ -53,7 +50,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     className={cn('h-5 w-5', active && 'text-indigo-600')}
                   />
                   <span className='w-full truncate text-center'>
-                    {item.label}
+                    {t(item.label)}
                   </span>
                 </Link>
               );
@@ -69,7 +66,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 )}
               >
                 <MoreHorizontal className='h-5 w-5' />
-                <span className='w-full truncate text-center'>More</span>
+                <span className='w-full truncate text-center'>{t('nav.more')}</span>
               </button>
             </DropdownMenu.Trigger>
 
@@ -85,7 +82,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     href='/offers'
                     className='flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 outline-none transition hover:bg-gray-100'
                   >
-                    Offers
+                    {t('nav.deals')}
                   </Link>
                 </DropdownMenu.Item>
 
@@ -94,7 +91,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     href='/about'
                     className='flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 outline-none transition hover:bg-gray-100'
                   >
-                    About
+                    {t('common.about')}
                   </Link>
                 </DropdownMenu.Item>
 
@@ -103,7 +100,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     href='/help'
                     className='flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 outline-none transition hover:bg-gray-100'
                   >
-                    Help Center
+                    {t('productQa.helpCenter')}
                   </Link>
                 </DropdownMenu.Item>
 
@@ -116,26 +113,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       className='flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 outline-none transition hover:bg-gray-100'
                     >
                       <LogIn className='h-4 w-4 text-gray-600' />
-                      Sign in
+                      {t('common.login')}
                     </Link>
                   </DropdownMenu.Item>
                 ) : (
                   <>
                     <DropdownMenu.Item asChild>
                       <Link
-                        href={profileHref}
+                        href='/account'
                         className='flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 outline-none transition hover:bg-gray-100'
                       >
                         <User className='h-4 w-4 text-gray-600' />
-                        Account
+                        {t('nav.account')}
                       </Link>
                     </DropdownMenu.Item>
                     <DropdownMenu.Item asChild>
                       <Link
-                        href={`/user/${currentUsername}/orders`}
+                        href='/account/orders'
                         className='flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 outline-none transition hover:bg-gray-100'
                       >
-                        Orders
+                        {t('nav.orders')}
                       </Link>
                     </DropdownMenu.Item>
                     <DropdownMenu.Item
@@ -143,11 +140,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         e.preventDefault();
                         void confirm({
                           variant: 'danger',
-                          title: 'Log out?',
-                          description:
-                            'You will need to sign in again to access your cart, orders, and profile.',
-                          confirmLabel: 'Log out',
-                          cancelLabel: 'Stay signed in',
+                          title: t('nav.logoutConfirm.title'),
+                          description: t('nav.logoutConfirm.description'),
+                          confirmLabel: t('nav.logoutConfirm.confirm'),
+                          cancelLabel: t('nav.logoutConfirm.cancel'),
                           closeOnBackdrop: false,
                           onConfirm: async () => {
                             await logout();
@@ -158,7 +154,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       className='flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-extrabold text-red-600 outline-none transition hover:bg-red-50'
                     >
                       <LogOut className='h-4 w-4 text-red-600' />
-                      Logout
+                      {t('common.logout')}
                     </DropdownMenu.Item>
                   </>
                 )}

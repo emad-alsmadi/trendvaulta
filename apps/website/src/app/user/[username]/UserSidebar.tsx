@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMe } from '@/hooks/auth/authQuery';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 type ActivePage = 'profile' | 'orders' | 'wishlist' | 'reviews';
 
@@ -12,6 +13,7 @@ interface UserSidebarProps {
 
 export default function UserSidebar({ username }: UserSidebarProps) {
   const pathname = usePathname();
+  const { t } = useTranslation();
   const { data } = useMe();
   const user = data?.user;
 
@@ -35,23 +37,23 @@ export default function UserSidebar({ username }: UserSidebarProps) {
 
   const navItems = [
     {
-      href: `/user/${currentUsername}`,
-      label: 'Profile',
+      href: '/account',
+      label: t('userArea.sidebar.profile'),
       page: 'profile' as ActivePage,
     },
     {
-      href: `/user/${currentUsername}/orders`,
-      label: 'Orders',
+      href: '/account/orders',
+      label: t('orders.badge'),
       page: 'orders' as ActivePage,
     },
     {
       href: `/user/${currentUsername}/wishlist`,
-      label: 'Wishlist',
+      label: t('userArea.sidebar.wishlist'),
       page: 'wishlist' as ActivePage,
     },
     {
       href: `/user/${currentUsername}/reviews`,
-      label: 'Reviews',
+      label: t('product.reviews'),
       page: 'reviews' as ActivePage,
     },
   ];
@@ -59,7 +61,7 @@ export default function UserSidebar({ username }: UserSidebarProps) {
   return (
     <aside className='w-64 shrink-0 hidden lg:block'>
       <div className='bg-white rounded-lg border border-gray-200 p-4 sticky top-8'>
-        <h3 className='font-bold text-gray-900 mb-4'>Account</h3>
+        <h3 className='font-bold text-gray-900 mb-4'>{t('nav.account')}</h3>
         <nav className='space-y-1'>
           {navItems.map((item) => (
             <Link

@@ -7,9 +7,11 @@ import { Heart } from 'lucide-react';
 import { getAuthToken } from '@/lib/authCookies';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function UserWishlistPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const isAuthenticated = !!getAuthToken();
   const { data: wishlist, isLoading, error } = useMyWishlist();
 
@@ -35,7 +37,7 @@ export default function UserWishlistPage() {
   if (error) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
-        Error loading wishlist
+        {t('userArea.wishlist.loadError')}
       </div>
     );
   }
@@ -52,11 +54,10 @@ export default function UserWishlistPage() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            My Wishlist
+            {t('userArea.wishlist.title')}
           </h1>
           <p className="text-sm text-gray-600">
-            {wishlist?.length || 0}{' '}
-            {wishlist?.length === 1 ? 'product' : 'products'} saved
+            {t('userArea.wishlist.savedCount', { count: wishlist?.length || 0 })}
           </p>
         </div>
       </div>

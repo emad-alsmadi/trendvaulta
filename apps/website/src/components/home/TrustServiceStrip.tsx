@@ -56,10 +56,10 @@ export function TrustServiceStrip({ items: itemsProp }: Props) {
                 </span>
                 <div>
                   <h3 className='text-sm font-semibold text-stone-900'>
-                    {item.title}
+                    {t(item.title)}
                   </h3>
                   <p className='mt-0.5 text-xs text-stone-600 sm:text-sm'>
-                    {item.description}
+                    {t(item.description)}
                   </p>
                 </div>
               </div>

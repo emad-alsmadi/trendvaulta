@@ -29,6 +29,7 @@ function ChipGroup({
   value: string | null;
   onChange: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <fieldset>
       <legend className='mb-2 text-sm font-semibold text-stone-900'>
@@ -49,7 +50,7 @@ function ChipGroup({
                   : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300'
               }`}
             >
-              {option.label}
+              {t(option.label)}
             </button>
           );
         })}
@@ -172,7 +173,7 @@ export function GiftFinderSection({ config: configProp }: Props) {
 
             <div className='relative min-h-[220px] border-t border-stone-200/80 lg:border-s lg:border-t-0'>
               <Image
-                src='/images/4.webp'
+                src='/images/4.jpeg'
                 alt={t('home.giftFinder.imageAlt')}
                 fill
                 className='object-cover'

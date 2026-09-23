@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import UserSidebar from './UserSidebar';
 import { useMe } from '@/hooks/auth/authQuery';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface UserLayoutProps {
   children: React.ReactNode;
@@ -12,6 +13,7 @@ interface UserLayoutProps {
 }
 
 export default function UserLayout({ children }: UserLayoutProps) {
+  const { t } = useTranslation();
   const { data } = useMe();
   const user = data?.user;
 
@@ -32,7 +34,7 @@ export default function UserLayout({ children }: UserLayoutProps) {
             href='/'
             className='hover:text-fuchsia-600'
           >
-            Home
+            {t('common.home')}
           </Link>
           <span>/</span>
           <span className='text-gray-900'>{username}</span>

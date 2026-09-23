@@ -101,7 +101,9 @@ export function FeaturedBrandsStrip({ brands: brandsProp }: Props) {
                   <h3 className='text-lg font-semibold text-stone-900'>
                     {brand.name}
                   </h3>
-                  <p className='mt-1 text-sm text-stone-600'>{brand.tagline}</p>
+                  <p className='mt-1 text-sm text-stone-600'>
+                    {t(brand.tagline)}
+                  </p>
                 </div>
                 <span className='mt-4 text-sm font-semibold text-fuchsia-700'>
                   {t('home.brands.explore')}

@@ -88,8 +88,8 @@ export function PopularCategories() {
                         className='h-8 w-8 mb-3 opacity-90'
                         aria-hidden
                       />
-                      <h3 className='font-bold text-lg mb-1'>{category.name}</h3>
-                      <p className='text-sm opacity-90'>{category.countLabel}</p>
+                      <h3 className='font-bold text-lg mb-1'>{t(category.name)}</h3>
+                      <p className='text-sm opacity-90'>{t(category.countLabel)}</p>
                     </div>
                   </Link>
                 </motion.div>

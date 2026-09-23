@@ -14,59 +14,62 @@ type CategoryMeta = Pick<
   'accent' | 'icon' | 'countLabel'
 >;
 
-/** Visual meta for Product.category ids (API returns id/label/href only) */
+/**
+ * Visual meta for Product.category ids (API returns id/label/href only).
+ * `countLabel` is a message key; screens show it with t().
+ */
 const CATEGORY_META: Record<string, CategoryMeta> = {
   makeup: {
     accent: 'from-rose-500 to-pink-600',
     icon: 'sparkles',
-    countLabel: 'Color & glam',
+    countLabel: 'home.categories.taglines.makeup',
   },
   perfumes: {
     accent: 'from-violet-500 to-fuchsia-600',
     icon: 'gift',
-    countLabel: 'Scents & sets',
+    countLabel: 'home.categories.taglines.perfumes',
   },
   clothing: {
     accent: 'from-stone-600 to-neutral-800',
     icon: 'shirt',
-    countLabel: 'Ready-to-wear',
+    countLabel: 'home.categories.taglines.clothing',
   },
   skincare: {
     accent: 'from-emerald-500 to-teal-600',
     icon: 'heart',
-    countLabel: 'Glow essentials',
+    countLabel: 'home.categories.taglines.skincare',
   },
   accessories: {
     accent: 'from-amber-500 to-orange-600',
     icon: 'watch',
-    countLabel: 'Bags & details',
+    countLabel: 'home.categories.taglines.accessories',
   },
   home: {
     accent: 'from-sky-500 to-indigo-600',
     icon: 'home',
-    countLabel: 'Lifestyle living',
+    countLabel: 'home.categories.taglines.home',
   },
   beauty: {
     accent: 'from-rose-500 to-pink-600',
     icon: 'sparkles',
-    countLabel: 'Skincare & makeup',
+    countLabel: 'home.categories.taglines.beauty',
   },
   fashion: {
     accent: 'from-stone-600 to-neutral-800',
     icon: 'shirt',
-    countLabel: 'Ready-to-wear',
+    countLabel: 'home.categories.taglines.fashion',
   },
   wellness: {
     accent: 'from-emerald-500 to-teal-600',
     icon: 'heart',
-    countLabel: 'Self-care picks',
+    countLabel: 'home.categories.taglines.wellness',
   },
 };
 
 const DEFAULT_META: CategoryMeta = {
   accent: 'from-cyan-500 to-blue-600',
   icon: 'bag',
-  countLabel: 'Shop collection',
+  countLabel: 'home.categories.taglines.default',
 };
 
 function mapCategoryItem(item: StorefrontCategoryItem): DemoCategoryShortcut | null {

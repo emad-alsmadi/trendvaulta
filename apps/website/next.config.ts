@@ -45,6 +45,10 @@ const nextConfig: NextConfig = {
     return [
       { source: '/orders', destination: '/account/orders', permanent: true },
       { source: '/orders/:id', destination: '/account/orders/:id', permanent: true },
+      // Same for the old per-user profile and order list; edit, settings,
+      // reviews and wishlist under /user/:username have no account twin yet.
+      { source: '/user/:username', destination: '/account', permanent: true },
+      { source: '/user/:username/orders', destination: '/account/orders', permanent: true },
     ];
   },
   async rewrites() {

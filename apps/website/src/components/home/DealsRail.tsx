@@ -73,24 +73,24 @@ export function DealsRail({ deals: dealsProp }: Props) {
                   <div className='relative aspect-[4/3] overflow-hidden'>
                     <Image
                       src={deal.imageUrl}
-                      alt={deal.title}
+                      alt={t(deal.title)}
                       fill
                       className='object-cover transition-transform duration-500 group-hover:scale-105'
                       sizes='(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw'
                     />
                     {deal.badge ? (
                       <span className='absolute start-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-xs font-semibold text-stone-900 shadow-sm'>
-                        {deal.badge}
+                        {t(deal.badge)}
                       </span>
                     ) : null}
                   </div>
                   <div className='p-4'>
                     <h3 className='font-semibold text-stone-900 group-hover:text-fuchsia-700'>
-                      {deal.title}
+                      {t(deal.title)}
                     </h3>
                     {deal.subtitle ? (
                       <p className='mt-1 text-sm text-stone-600'>
-                        {deal.subtitle}
+                        {t(deal.subtitle)}
                       </p>
                     ) : null}
                   </div>

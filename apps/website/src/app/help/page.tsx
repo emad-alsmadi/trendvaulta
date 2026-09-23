@@ -113,10 +113,10 @@ export default function HelpPage() {
                       />
                     </span>
                     <h2 className='mt-4 text-base font-extrabold text-stone-900'>
-                      {topic.title}
+                      {t(topic.title)}
                     </h2>
                     <p className='mt-2 flex-1 text-sm font-semibold text-stone-600'>
-                      {topic.description}
+                      {t(topic.description)}
                     </p>
                     <span className='mt-4 inline-flex items-center gap-1 text-sm font-bold text-fuchsia-700'>
                       {t('help.open')}

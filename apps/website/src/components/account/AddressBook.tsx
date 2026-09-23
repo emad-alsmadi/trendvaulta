@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -21,6 +21,8 @@ import {
   getUserFacingErrorMessage,
   logErrorForDev,
 } from '@/lib/userFacingError';
+import { useTranslation } from '@/contexts/TranslationContext';
+import type { Translate } from '@/lib/i18n';
 import type { Address } from '@/types';
 
 /**
@@ -29,41 +31,25 @@ import type { Address } from '@/types';
  * (apps/api/models/User.js) so both paths accept exactly the same input.
  * `notes` is per-order and is deliberately not part of a saved address.
  */
-const addressSchema = z.object({
-  label: z.string().trim().max(40, 'Maximum 40 characters'),
-  name: z
-    .string()
-    .trim()
-    .min(2, 'Use at least 2 characters')
-    .max(200, 'Maximum 200 characters'),
-  phone: z
-    .string()
-    .trim()
-    .min(6, 'Use at least 6 characters')
-    .max(30, 'Maximum 30 characters'),
-  address: z
-    .string()
-    .trim()
-    .min(5, 'Use at least 5 characters')
-    .max(300, 'Maximum 300 characters'),
-  city: z
-    .string()
-    .trim()
-    .min(2, 'Use at least 2 characters')
-    .max(100, 'Maximum 100 characters'),
-  zip: z
-    .string()
-    .trim()
-    .min(2, 'Use at least 2 characters')
-    .max(20, 'Maximum 20 characters'),
-  country: z.string().trim().max(100, 'Maximum 100 characters'),
-  isDefault: z.boolean(),
-});
+function buildAddressSchema(t: Translate) {
+  const max = (count: number) => t('account.addressBook.validation.maxChars', { count });
+  const min = (count: number) => t('account.addressBook.validation.minChars', { count });
+  return z.object({
+    label: z.string().trim().max(40, max(40)),
+    name: z.string().trim().min(2, min(2)).max(200, max(200)),
+    phone: z.string().trim().min(6, min(6)).max(30, max(30)),
+    address: z.string().trim().min(5, min(5)).max(300, max(300)),
+    city: z.string().trim().min(2, min(2)).max(100, max(100)),
+    zip: z.string().trim().min(2, min(2)).max(20, max(20)),
+    country: z.string().trim().max(100, max(100)),
+    isDefault: z.boolean(),
+  });
+}
 
-type AddressFormValues = z.infer<typeof addressSchema>;
+type AddressFormValues = z.infer<ReturnType<typeof buildAddressSchema>>;
 
-const emptyAddress: AddressFormValues = {
-  label: 'Home',
+const emptyAddress: Omit<AddressFormValues, 'label'> & { label: string } = {
+  label: '',
   name: '',
   phone: '',
   address: '',
@@ -77,6 +63,7 @@ const emptyAddress: AddressFormValues = {
 type EditorState = null | 'new' | Address;
 
 export function AddressBook() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const confirm = useConfirm();
   const addressesQuery = useAddresses();
@@ -92,18 +79,22 @@ export function AddressBook() {
 
   const addresses = addressesQuery.data ?? [];
   const atCap = addresses.length >= MAX_ADDRESSES;
+  const addressSchema = useMemo(() => buildAddressSchema(t), [t]);
 
   const handleSetDefault = async (addr: Address) => {
     setPendingDefaultId(addr._id);
     try {
       await setDefaultAddress.mutateAsync(addr._id);
-      toast('Default address updated', { variant: 'success' });
+      toast(t('account.addressBook.defaultUpdated'), { variant: 'success' });
     } catch (err) {
       logErrorForDev(err);
-      toast(getUserFacingErrorMessage(err, 'Could not update the default address'), {
-        title: 'Update failed',
-        variant: 'error',
-      });
+      toast(
+        getUserFacingErrorMessage(err, t('account.addressBook.defaultUpdateFailed')),
+        {
+          title: t('account.addressBook.updateFailedTitle'),
+          variant: 'error',
+        },
+      );
     } finally {
       setPendingDefaultId(null);
     }
@@ -112,9 +103,11 @@ export function AddressBook() {
   const handleDelete = (addr: Address) => {
     confirm({
       variant: 'danger',
-      title: 'Delete this address?',
-      description: `“${addr.label}” will be removed from your address book. This can't be undone.`,
-      confirmLabel: 'Delete address',
+      title: t('account.addressBook.deleteConfirmTitle'),
+      description: t('account.addressBook.deleteConfirmDescription', {
+        label: addr.label || t('account.addressBook.homeLabel'),
+      }),
+      confirmLabel: t('account.addressBook.deleteConfirmLabel'),
       onConfirm: async () => {
         setPendingDeleteId(addr._id);
         try {
@@ -125,13 +118,16 @@ export function AddressBook() {
               ? null
               : current,
           );
-          toast('Address deleted', { variant: 'success' });
+          toast(t('account.addressBook.addressDeleted'), { variant: 'success' });
         } catch (err) {
           logErrorForDev(err);
-          toast(getUserFacingErrorMessage(err, 'Could not delete the address'), {
-            title: 'Delete failed',
-            variant: 'error',
-          });
+          toast(
+            getUserFacingErrorMessage(err, t('account.addressBook.deleteFailed')),
+            {
+              title: t('account.addressBook.deleteFailedTitle'),
+              variant: 'error',
+            },
+          );
         } finally {
           setPendingDeleteId(null);
         }
@@ -155,7 +151,7 @@ export function AddressBook() {
         <p className='text-sm font-semibold text-rose-800'>
           {getUserFacingErrorMessage(
             addressesQuery.error,
-            'Could not load your saved addresses',
+            t('account.addressBook.loadFailed'),
           )}
         </p>
         <Button
@@ -169,7 +165,7 @@ export function AddressBook() {
           {addressesQuery.isFetching && (
             <Loader2 className='me-2 h-4 w-4 animate-spin' aria-hidden />
           )}
-          Try again
+          {t('account.addressBook.tryAgain')}
         </Button>
       </div>
     );
@@ -179,10 +175,10 @@ export function AddressBook() {
     <section className='space-y-4'>
       <div className='flex flex-wrap items-center justify-between gap-3'>
         <div>
-          <h2 className='text-lg font-bold text-gray-900'>Saved addresses</h2>
+          <h2 className='text-lg font-bold text-gray-900'>{t('account.addressBook.title')}</h2>
           <p className='mt-1 text-sm text-gray-600'>
-            {addresses.length} of {MAX_ADDRESSES} saved
-            {atCap && ' — delete one to add another'}
+            {t('account.addressBook.countOf', { count: addresses.length, max: MAX_ADDRESSES })}
+            {atCap && t('account.addressBook.atCap')}
           </p>
         </div>
 
@@ -195,7 +191,7 @@ export function AddressBook() {
             className='gap-2'
           >
             <Plus className='h-4 w-4' aria-hidden />
-            Add address
+            {t('account.addressBook.addAddress')}
           </Button>
         )}
       </div>
@@ -203,8 +199,9 @@ export function AddressBook() {
       {editor === 'new' && (
         <AddressForm
           key='new'
-          title='Add a new address'
-          submitLabel='Save address'
+          title={t('account.addressBook.addNewTitle')}
+          submitLabel={t('account.addressBook.saveAddress')}
+          schema={addressSchema}
           initial={{ ...emptyAddress, isDefault: addresses.length === 0 }}
           lockDefault={addresses.length === 0}
           isPending={createAddress.isPending}
@@ -213,12 +210,12 @@ export function AddressBook() {
             try {
               await createAddress.mutateAsync(values);
               setEditor(null);
-              toast('Address saved', { variant: 'success' });
+              toast(t('account.addressBook.addressSaved'), { variant: 'success' });
             } catch (err) {
               logErrorForDev(err);
               toast(
-                getUserFacingErrorMessage(err, 'Could not save the address'),
-                { title: 'Save failed', variant: 'error' },
+                getUserFacingErrorMessage(err, t('account.addressBook.saveFailed')),
+                { title: t('account.addressBook.saveFailedTitle'), variant: 'error' },
               );
             }
           }}
@@ -229,10 +226,10 @@ export function AddressBook() {
         <div className='rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center'>
           <MapPin className='mx-auto h-8 w-8 text-gray-400' aria-hidden />
           <p className='mt-3 text-sm font-semibold text-gray-900'>
-            No saved addresses yet
+            {t('account.addressBook.emptyTitle')}
           </p>
           <p className='mt-1 text-sm text-gray-600'>
-            Save an address to reuse it at checkout.
+            {t('account.addressBook.emptyDescription')}
           </p>
         </div>
       )}
@@ -246,10 +243,11 @@ export function AddressBook() {
               <li key={addr._id}>
                 <AddressForm
                   key={addr._id}
-                  title='Edit address'
-                  submitLabel='Save changes'
+                  title={t('account.addressBook.editTitle')}
+                  submitLabel={t('account.addressBook.saveChanges')}
+                  schema={addressSchema}
                   initial={{
-                    label: addr.label || 'Home',
+                    label: addr.label || t('account.addressBook.homeLabel'),
                     name: addr.name,
                     phone: addr.phone,
                     address: addr.address,
@@ -270,15 +268,15 @@ export function AddressBook() {
                         payload: values,
                       });
                       setEditor(null);
-                      toast('Address updated', { variant: 'success' });
+                      toast(t('account.addressBook.addressUpdated'), { variant: 'success' });
                     } catch (err) {
                       logErrorForDev(err);
                       toast(
                         getUserFacingErrorMessage(
                           err,
-                          'Could not update the address',
+                          t('account.addressBook.updateFailed'),
                         ),
-                        { title: 'Update failed', variant: 'error' },
+                        { title: t('account.addressBook.updateFailedTitle'), variant: 'error' },
                       );
                     }
                   }}
@@ -296,12 +294,12 @@ export function AddressBook() {
                 <div className='min-w-0'>
                   <div className='flex flex-wrap items-center gap-2'>
                     <span className='text-sm font-bold text-gray-900'>
-                      {addr.label || 'Home'}
+                      {addr.label || t('account.addressBook.homeLabel')}
                     </span>
                     {addr.isDefault && (
                       <span className='inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800'>
                         <Star className='h-3 w-3' aria-hidden />
-                        Default
+                        {t('account.addressBook.default')}
                       </span>
                     )}
                   </div>
@@ -330,7 +328,7 @@ export function AddressBook() {
                       ) : (
                         <Star className='h-4 w-4' aria-hidden />
                       )}
-                      Set default
+                      {t('account.addressBook.setDefault')}
                     </Button>
                   )}
                   <Button
@@ -341,7 +339,7 @@ export function AddressBook() {
                     onClick={() => setEditor(addr)}
                   >
                     <Pencil className='h-4 w-4' aria-hidden />
-                    Edit
+                    {t('account.addressBook.edit')}
                   </Button>
                   <Button
                     type='button'
@@ -356,7 +354,7 @@ export function AddressBook() {
                     ) : (
                       <Trash2 className='h-4 w-4' aria-hidden />
                     )}
-                    Delete
+                    {t('account.addressBook.delete')}
                   </Button>
                 </div>
               </div>
@@ -374,11 +372,13 @@ function AddressForm({
   initial,
   lockDefault,
   isPending,
+  schema,
   onSubmit,
   onCancel,
 }: {
   title: string;
   submitLabel: string;
+  schema: ReturnType<typeof buildAddressSchema>;
   initial: AddressFormValues;
   /** True when this address must stay the default (first/only, or current). */
   lockDefault: boolean;
@@ -386,12 +386,13 @@ function AddressForm({
   onSubmit: (values: AddressFormValues) => Promise<void>;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<AddressFormValues>({
-    resolver: zodResolver(addressSchema),
+    resolver: zodResolver(schema),
     defaultValues: initial,
     mode: 'onTouched',
   });
@@ -409,7 +410,7 @@ function AddressForm({
           onClick={onCancel}
           disabled={isPending}
           className='rounded-md p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50'
-          aria-label='Close address form'
+          aria-label={t('account.addressBook.closeForm')}
         >
           <X className='h-4 w-4' aria-hidden />
         </button>
@@ -417,11 +418,11 @@ function AddressForm({
 
       <div className='grid gap-4 sm:grid-cols-2'>
         <Field
-          label='Label'
+          label={t('account.addressBook.field.label')}
           error={errors.label?.message}
           input={
             <Input
-              placeholder='Home, Work…'
+              placeholder={t('account.addressBook.field.labelPlaceholder')}
               maxLength={40}
               disabled={isPending}
               {...register('label')}
@@ -429,11 +430,11 @@ function AddressForm({
           }
         />
         <Field
-          label='Full name'
+          label={t('account.addressBook.field.fullName')}
           error={errors.name?.message}
           input={
             <Input
-              placeholder='Your name'
+              placeholder={t('account.addressBook.field.fullNamePlaceholder')}
               autoComplete='name'
               maxLength={200}
               disabled={isPending}
@@ -442,11 +443,11 @@ function AddressForm({
           }
         />
         <Field
-          label='Phone'
+          label={t('account.addressBook.field.phone')}
           error={errors.phone?.message}
           input={
             <Input
-              placeholder='Phone number'
+              placeholder={t('account.addressBook.field.phonePlaceholder')}
               autoComplete='tel'
               maxLength={30}
               disabled={isPending}
@@ -455,11 +456,11 @@ function AddressForm({
           }
         />
         <Field
-          label='City'
+          label={t('account.addressBook.field.city')}
           error={errors.city?.message}
           input={
             <Input
-              placeholder='City'
+              placeholder={t('account.addressBook.field.city')}
               autoComplete='address-level2'
               maxLength={100}
               disabled={isPending}
@@ -469,11 +470,11 @@ function AddressForm({
         />
         <div className='sm:col-span-2'>
           <Field
-            label='Address'
+            label={t('account.addressBook.field.address')}
             error={errors.address?.message}
             input={
               <Input
-                placeholder='Street, building, apartment'
+                placeholder={t('account.addressBook.field.addressPlaceholder')}
                 autoComplete='street-address'
                 maxLength={300}
                 disabled={isPending}
@@ -483,11 +484,11 @@ function AddressForm({
           />
         </div>
         <Field
-          label='ZIP / Postal code'
+          label={t('account.addressBook.field.zip')}
           error={errors.zip?.message}
           input={
             <Input
-              placeholder='ZIP'
+              placeholder={t('account.addressBook.field.zip')}
               autoComplete='postal-code'
               maxLength={20}
               disabled={isPending}
@@ -496,11 +497,11 @@ function AddressForm({
           }
         />
         <Field
-          label='Country'
+          label={t('account.addressBook.field.country')}
           error={errors.country?.message}
           input={
             <Input
-              placeholder='Country (optional)'
+              placeholder={t('account.addressBook.field.countryPlaceholder')}
               autoComplete='country-name'
               maxLength={100}
               disabled={isPending}
@@ -517,11 +518,11 @@ function AddressForm({
           disabled={isPending || lockDefault}
           {...register('isDefault')}
         />
-        Use as my default address
+        {t('account.addressBook.useAsDefault')}
       </label>
       {lockDefault && (
         <p className='mt-1 text-xs text-gray-500'>
-          Your address book always keeps one default.
+          {t('account.addressBook.alwaysOneDefault')}
         </p>
       )}
 
@@ -539,7 +540,7 @@ function AddressForm({
           onClick={onCancel}
           disabled={isPending}
         >
-          Cancel
+          {t('account.addressBook.cancel')}
         </Button>
       </div>
     </form>

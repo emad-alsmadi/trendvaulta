@@ -59,9 +59,10 @@ export function getHeroSlidesFromHome(
         eyebrow: slide.eyebrow?.trim() ?? '',
         title,
         subtitle: slide.subtitle?.trim() ?? '',
-        ctaLabel: slide.ctaLabel?.trim() || 'Shop now',
+        // Message key — HeroPromoCarousel renders ctaLabel with t()
+        ctaLabel: slide.ctaLabel?.trim() || 'demo.hero.shopNow',
         href,
-        imageUrl: slide.imageUrl?.trim() || '/images/1.webp',
+        imageUrl: slide.imageUrl?.trim() || '/images/1.jpeg',
         tone: slide.tone ?? 'rose',
       } satisfies DemoHeroSlide;
     })

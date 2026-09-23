@@ -32,6 +32,12 @@ import { useCart } from '@/lib/cartStore';
 import { useConfirm } from '@/components/confirm/ConfirmProvider';
 import { DeliverToControl } from '@/components/navigation/DeliverToControl';
 import { useTranslation } from '@/contexts/TranslationContext';
+import {
+  CATEGORIES,
+  categoryHref,
+  categoryLabel,
+  subcategoryLabel,
+} from '@/lib/categories';
 import { useState } from 'react';
 
 // Admin management lives in the standalone dashboard app, not in the
@@ -44,40 +50,6 @@ export const navItems = [
   { href: '/brands', label: 'common.brands', icon: Users },
   { href: '/offers', label: 'nav.deals', icon: Sparkles },
   { href: '/cart', label: 'common.cart', icon: ShoppingCart },
-];
-
-/** Department shortcuts — hrefs use the API's product category enum */
-export const categories = [
-  {
-    name: 'Makeup',
-    href: '/c/makeup',
-    subcategories: ['Face', 'Eyes', 'Lips', 'Tools'],
-  },
-  {
-    name: 'Perfumes',
-    href: '/c/perfumes',
-    subcategories: ['Women', 'Men', 'Unisex', 'Discovery Sets'],
-  },
-  {
-    name: 'Clothing',
-    href: '/c/clothing',
-    subcategories: ['Women', 'Men', 'Essentials', 'New Arrivals'],
-  },
-  {
-    name: 'Skincare',
-    href: '/c/skincare',
-    subcategories: ['Cleansers', 'Serums', 'Moisturizers', 'Treatments'],
-  },
-  {
-    name: 'Accessories',
-    href: '/c/accessories',
-    subcategories: ['Jewelry', 'Bags', 'Watches', 'Sunglasses'],
-  },
-  {
-    name: 'Home',
-    href: '/c/home',
-    subcategories: ['Decor', 'Living', 'Bedding', 'Gifts'],
-  },
 ];
 
 const AVATAR_STYLES = [
@@ -156,6 +128,28 @@ export function Navbar() {
   const currentUsername =
     user?.username || getUsernameFromEmail(user?.email || '');
 
+  const categories = CATEGORIES.map((category) => ({
+    name: categoryLabel(category, t),
+    href: categoryHref(category.slug),
+    subcategories: category.subcategories
+      .slice(0, 4)
+      .map((sub) => subcategoryLabel(sub, t)),
+  }));
+
+  const confirmLogout = () =>
+    confirm({
+      variant: 'danger',
+      title: t('nav.logoutConfirm.title'),
+      description: t('nav.logoutConfirm.description'),
+      confirmLabel: t('nav.logoutConfirm.confirm'),
+      cancelLabel: t('nav.logoutConfirm.cancel'),
+      closeOnBackdrop: false,
+      onConfirm: async () => {
+        await logout();
+        router.push('/');
+      },
+    });
+
   const wishlistHref = currentUsername
     ? `/user/${currentUsername}/wishlist`
     : '/auth/login';
@@ -179,7 +173,7 @@ export function Navbar() {
               type='button'
               onClick={() => setLocale(locale === 'en' ? 'ar' : 'en')}
               className='inline-flex items-center gap-1.5 hover:text-stone-900'
-              title={locale === 'en' ? 'Switch to Arabic' : 'Switch to English'}
+              title={t('nav.switchLanguage')}
               lang={locale === 'en' ? 'ar' : 'en'}
             >
               <Globe
@@ -196,40 +190,40 @@ export function Navbar() {
                 className='h-3.5 w-3.5'
                 aria-hidden
               />
-              Today&apos;s offers
+              {t('nav.todaysOffers')}
             </Link>
             <p className='inline-flex items-center gap-1.5 text-stone-500'>
               <Truck
                 className='h-3.5 w-3.5'
                 aria-hidden
               />
-              Fast shipping · Easy returns
+              {t('nav.shippingReturns')}
             </p>
             <Link
               href='/help'
               className='hover:text-stone-900'
             >
-              Help
+              {t('nav.help')}
             </Link>
             <Link
               href='/shipping'
               className='hover:text-stone-900'
             >
-              Shipping
+              {t('checkout.shipping')}
             </Link>
             {user ? (
               <Link
-                href={`/user/${currentUsername}/orders`}
+                href='/account/orders'
                 className='hover:text-stone-900'
               >
-                Orders
+                {t('nav.orders')}
               </Link>
             ) : (
               <Link
                 href='/auth/login'
                 className='hover:text-stone-900'
               >
-                Returns & Orders
+                {t('nav.returnsAndOrders')}
               </Link>
             )}
           </div>
@@ -265,7 +259,7 @@ export function Navbar() {
                 htmlFor='nav-search'
                 className='sr-only'
               >
-                Search products
+                {t('catalog.searchLabel')}
               </label>
               <Search className='pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400' />
               <input
@@ -315,7 +309,7 @@ export function Navbar() {
                                 {category.name}
                               </div>
                               <div className='text-xs leading-relaxed text-gray-500'>
-                                {category.subcategories.slice(0, 3).join(', ')}
+                                {category.subcategories.slice(0, 3).join(locale === 'ar' ? '، ' : ', ')}
                               </div>
                             </Link>
                           </DropdownMenu.Item>
@@ -327,8 +321,8 @@ export function Navbar() {
                         href='/products'
                         className='flex gap-2 justify-center items-center text-sm font-semibold text-indigo-600 transition-colors hover:text-indigo-700'
                       >
-                        View All {t('common.categories')}
-                        <ChevronDown className='h-4 w-4 rotate-[-90deg]' />
+                        {t('nav.viewAllCategories')}
+                        <ChevronDown className='h-4 w-4 rotate-[-90deg] rtl:rotate-90' />
                       </Link>
                     </div>
                   </DropdownMenu.Content>
@@ -362,7 +356,7 @@ export function Navbar() {
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger asChild>
                   <button className='flex relative gap-1 items-center font-medium text-gray-700 transition-colors hover:text-gray-900 group'>
-                    More
+                    {t('nav.more')}
                     <ChevronDown className='w-4 h-4' />
                     <span className='absolute bottom-0 start-0 w-0 h-0.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 transition-all duration-300 group-hover:w-full'></span>
                   </button>
@@ -379,7 +373,7 @@ export function Navbar() {
                         className='flex gap-2 items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100'
                       >
                         <Info className='w-4 h-4' />
-                        About
+                        {t('common.about')}
                       </Link>
                     </DropdownMenu.Item>
 
@@ -389,7 +383,7 @@ export function Navbar() {
                         className='flex gap-2 items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100'
                       >
                         <MessageSquare className='w-4 h-4' />
-                        Contact
+                        {t('common.contact')}
                       </Link>
                     </DropdownMenu.Item>
 
@@ -399,7 +393,7 @@ export function Navbar() {
                         className='flex gap-2 items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100'
                       >
                         <HelpCircle className='w-4 h-4' />
-                        FAQ
+                        {t('nav.faq')}
                       </Link>
                     </DropdownMenu.Item>
 
@@ -409,7 +403,7 @@ export function Navbar() {
                         className='flex gap-2 items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100'
                       >
                         <Scale className='w-4 h-4' />
-                        Terms
+                        {t('nav.terms')}
                       </Link>
                     </DropdownMenu.Item>
                   </DropdownMenu.Content>
@@ -422,6 +416,7 @@ export function Navbar() {
               {/* Cart */}
               <Link
                 href='/cart'
+                aria-label={t('common.cart')}
                 className='relative p-2 text-gray-700 transition-colors hover:text-gray-900'
               >
                 <ShoppingCart className='w-5 h-5' />
@@ -435,7 +430,7 @@ export function Navbar() {
               {/* Wishlist */}
               <Link
                 href={wishlistHref}
-                aria-label={user ? 'Wishlist' : 'Sign in to view wishlist'}
+                aria-label={user ? t('nav.wishlist') : t('nav.signInForWishlist')}
                 className='hidden p-2 text-gray-700 transition-colors sm:block hover:text-gray-900'
               >
                 <Heart className='w-5 h-5' />
@@ -448,7 +443,7 @@ export function Navbar() {
                   className='inline-flex gap-2 items-center px-3 py-2 font-medium text-white bg-indigo-600 rounded-lg transition-colors hover:bg-indigo-700 sm:px-4'
                 >
                   <LogIn className='w-4 h-4' />
-                  <span className='hidden sm:inline'>Sign in</span>
+                  <span className='hidden sm:inline'>{t('common.login')}</span>
                 </Link>
               ) : (
                 <DropdownMenu.Root>
@@ -463,7 +458,7 @@ export function Navbar() {
                         {initials}
                       </span>
                       <span className='hidden text-sm font-medium text-gray-700 sm:block'>
-                        {user?.username || 'Account'}
+                        {user?.username || t('nav.account')}
                       </span>
                       <ChevronDown className='w-4 h-4 text-gray-400' />
                     </button>
@@ -477,30 +472,30 @@ export function Navbar() {
                     >
                       <div className='px-4 py-3 border-b border-gray-200'>
                         <div className='text-sm font-semibold text-gray-900'>
-                          {user?.username || 'Account'}
+                          {user?.username || t('nav.account')}
                         </div>
                         <div className='text-xs text-gray-500'>
-                          {user?.email || 'Signed in'}
+                          {user?.email || t('auth.signedIn')}
                         </div>
                       </div>
 
                       <DropdownMenu.Item asChild>
                         <Link
-                          href={`/user/${currentUsername}`}
+                          href='/account'
                           className='flex gap-2 items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100'
                         >
                           <User className='w-4 h-4' />
-                          Profile
+                          {t('nav.account')}
                         </Link>
                       </DropdownMenu.Item>
 
                       <DropdownMenu.Item asChild>
                         <Link
-                          href={`/user/${currentUsername}/orders`}
+                          href='/account/orders'
                           className='flex gap-2 items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100'
                         >
                           <Receipt className='w-4 h-4' />
-                          Orders
+                          {t('nav.orders')}
                         </Link>
                       </DropdownMenu.Item>
                       <DropdownMenu.Item asChild>
@@ -509,7 +504,7 @@ export function Navbar() {
                           className='flex gap-2 items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100'
                         >
                           <MessageSquare className='w-4 h-4' />
-                          Reviews
+                          {t('nav.myReviews')}
                         </Link>
                       </DropdownMenu.Item>
 
@@ -519,7 +514,7 @@ export function Navbar() {
                           className='flex gap-2 items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100'
                         >
                           <Heart className='w-4 h-4' />
-                          Wishlist
+                          {t('nav.wishlist')}
                         </Link>
                       </DropdownMenu.Item>
 
@@ -533,7 +528,7 @@ export function Navbar() {
                             className='flex gap-2 items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100'
                           >
                             <Shield className='w-4 h-4' />
-                            Admin Dashboard
+                            {t('nav.adminDashboard')}
                           </a>
                         </DropdownMenu.Item>
                       ) : null}
@@ -543,24 +538,12 @@ export function Navbar() {
                       <DropdownMenu.Item
                         onSelect={(e) => {
                           e.preventDefault();
-                          void confirm({
-                            variant: 'danger',
-                            title: 'Log out?',
-                            description:
-                              'You will need to sign in again to access your account.',
-                            confirmLabel: 'Log out',
-                            cancelLabel: 'Cancel',
-                            closeOnBackdrop: false,
-                            onConfirm: async () => {
-                              await logout();
-                              router.push('/');
-                            },
-                          });
+                          void confirmLogout();
                         }}
                         className='flex gap-2 items-center px-4 py-2 text-sm text-red-600 transition-colors hover:bg-red-50'
                       >
                         <LogOut className='w-4 h-4' />
-                        Logout
+                        {t('common.logout')}
                       </DropdownMenu.Item>
                     </DropdownMenu.Content>
                   </DropdownMenu.Portal>
@@ -572,6 +555,7 @@ export function Navbar() {
                 type='button'
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 aria-expanded={mobileMenuOpen}
+                aria-label={mobileMenuOpen ? t('nav.closeMenu') : t('nav.openMenu')}
                 aria-controls='mobile-nav-menu'
                 className='p-2 text-gray-700 lg:hidden hover:text-gray-900'
               >
@@ -588,7 +572,7 @@ export function Navbar() {
 
       {/* Secondary department strip — desktop + mobile horizontal scroll */}
       <nav
-        aria-label='Quick shop links'
+        aria-label={t('nav.quickLinks')}
         className='border-t border-stone-100 bg-white'
       >
         <div className='mx-auto flex max-w-[1400px] items-center gap-1 overflow-x-auto px-4 py-2 text-sm sm:px-6 lg:px-8'>
@@ -601,25 +585,20 @@ export function Navbar() {
                 : 'text-fuchsia-700 hover:bg-fuchsia-50',
             )}
           >
-            Today&apos;s offers
+            {t('nav.todaysOffers')}
           </Link>
           {[
-            { href: '/c/makeup', label: 'Makeup' },
-            { href: '/c/perfumes', label: 'Perfumes' },
-            { href: '/c/clothing', label: 'Clothing' },
-            { href: '/c/skincare', label: 'Skincare' },
-            { href: '/c/accessories', label: 'Accessories' },
-            { href: '/c/home', label: 'Home & Living' },
-            { href: '/brands', label: 'Brands' },
-            { href: '/#gift-finder', label: 'Gift finder' },
-            { href: '/help', label: 'Contact' },
+            ...categories.map(({ href, name }) => ({ href, label: name })),
+            { href: '/brands', label: t('common.brands') },
+            { href: '/#gift-finder', label: t('nav.giftFinder') },
+            { href: '/help', label: t('common.contact') },
           ].map((item) => (
             <Link
               key={item.href}
               href={item.href}
               className='shrink-0 rounded-full px-3 py-1 font-semibold text-stone-700 transition hover:bg-stone-100 hover:text-stone-900'
             >
-              {t(item.label)}
+              {item.label}
             </Link>
           ))}
         </div>
@@ -641,7 +620,7 @@ export function Navbar() {
                 htmlFor='nav-search-mobile'
                 className='sr-only'
               >
-                Search products
+                {t('catalog.searchLabel')}
               </label>
               <Search className='pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400' />
               <input
@@ -649,7 +628,7 @@ export function Navbar() {
                 type='search'
                 value={navSearch}
                 onChange={(e) => setNavSearch(e.target.value)}
-                placeholder='Search products…'
+                placeholder={t('catalog.searchPlaceholder')}
                 className='w-full rounded-lg border border-stone-200 bg-stone-50 py-2.5 ps-9 pe-4 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20'
               />
             </form>
@@ -675,24 +654,24 @@ export function Navbar() {
                 onClick={() => setMobileMenuOpen(false)}
                 className='block px-4 py-2 text-gray-700 rounded-lg text-medium hover:bg-gray-100'
               >
-                Shop
+                {t('nav.shop')}
               </Link>
               <Link
                 href='/brands'
                 onClick={() => setMobileMenuOpen(false)}
                 className='block px-4 py-2 text-gray-700 rounded-lg text-medium hover:bg-gray-100'
               >
-                Brands
+                {t('common.brands')}
               </Link>
               <Link
                 href='/offers'
                 onClick={() => setMobileMenuOpen(false)}
                 className='block px-4 py-2 text-gray-700 rounded-lg text-medium hover:bg-gray-100'
               >
-                Offers
+                {t('nav.deals')}
               </Link>
               <div className='px-4 py-2 font-semibold text-gray-900 text-medium'>
-                Help &amp; info
+                {t('nav.helpAndInfo')}
               </div>
               <div className='ps-8 space-y-2'>
                 <Link
@@ -700,35 +679,35 @@ export function Navbar() {
                   onClick={() => setMobileMenuOpen(false)}
                   className='block px-4 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100'
                 >
-                  About
+                  {t('common.about')}
                 </Link>
                 <Link
                   href='/contact'
                   onClick={() => setMobileMenuOpen(false)}
                   className='block px-4 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100'
                 >
-                  Contact
+                  {t('common.contact')}
                 </Link>
                 <Link
                   href='/faq'
                   onClick={() => setMobileMenuOpen(false)}
                   className='block px-4 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100'
                 >
-                  FAQ
+                  {t('nav.faq')}
                 </Link>
                 <Link
                   href='/privacy'
                   onClick={() => setMobileMenuOpen(false)}
                   className='block px-4 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100'
                 >
-                  Privacy
+                  {t('nav.privacy')}
                 </Link>
                 <Link
                   href='/terms'
                   onClick={() => setMobileMenuOpen(false)}
                   className='block px-4 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100'
                 >
-                  Terms
+                  {t('nav.terms')}
                 </Link>
               </div>
               <div className='px-4 py-2 font-semibold text-gray-900 text-medium'>
@@ -757,33 +736,33 @@ export function Navbar() {
                 href='/auth/login'
                 className='block px-4 py-2 w-full font-medium text-center text-white bg-indigo-600 rounded-lg'
               >
-                Sign In
+                {t('common.login')}
               </Link>
             ) : (
               <nav className='pt-4 space-y-2 border-t border-gray-200'>
                 <Link
-                  href={`/user/${currentUsername}`}
+                  href='/account'
                   className='block px-4 py-2 text-gray-700 rounded-lg text-medium hover:bg-gray-100'
                 >
-                  Profile
+                  {t('nav.account')}
                 </Link>
                 <Link
-                  href={`/user/${currentUsername}/orders`}
+                  href='/account/orders'
                   className='block px-4 py-2 text-gray-700 rounded-lg text-medium hover:bg-gray-100'
                 >
-                  Orders
+                  {t('nav.orders')}
                 </Link>
                 <Link
                   href={`/user/${currentUsername}/reviews`}
                   className='block px-4 py-2 text-gray-700 rounded-lg text-medium hover:bg-gray-100'
                 >
-                  Reviews
+                  {t('nav.myReviews')}
                 </Link>
                 <Link
                   href={`/user/${currentUsername}/wishlist`}
                   className='block px-4 py-2 text-gray-700 rounded-lg text-medium hover:bg-gray-100'
                 >
-                  Wishlist
+                  {t('nav.wishlist')}
                 </Link>
                 {getUserRole() === 'admin' || user?.roles?.includes('admin') ? (
                   <a
@@ -792,27 +771,16 @@ export function Navbar() {
                     rel='noreferrer'
                     className='block px-4 py-2 text-gray-700 rounded-lg text-medium hover:bg-gray-100'
                   >
-                    Admin Dashboard
+                    {t('nav.adminDashboard')}
                   </a>
                 ) : null}
                 <button
                   onClick={() => {
-                    void confirm({
-                      variant: 'danger',
-                      title: 'Log out?',
-                      description: 'You will need to sign in again.',
-                      confirmLabel: 'Log out',
-                      cancelLabel: 'Cancel',
-                      closeOnBackdrop: false,
-                      onConfirm: async () => {
-                        await logout();
-                        router.push('/');
-                      },
-                    });
+                    void confirmLogout();
                   }}
                   className='block px-4 py-2 w-full text-start text-red-600 rounded-lg text-medium hover:bg-red-50'
                 >
-                  Logout
+                  {t('common.logout')}
                 </button>
               </nav>
             )}

@@ -15,8 +15,8 @@ export function FeaturedCategories() {
       : DEMO_CATEGORY_SHORTCUTS;
 
   const categories = source.slice(0, 6).map((c, i) => ({
-    name: c.name,
-    count: c.countLabel,
+    name: t(c.name),
+    count: t(c.countLabel),
     href: c.href,
     image: `/images/${(i % 4) + 1}.webp`,
   }));

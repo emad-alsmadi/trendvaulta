@@ -18,9 +18,12 @@ import { useState } from 'react';
 import { getAuthToken } from '@/lib/authCookies';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { intlLocale } from '@/lib/locale';
 
 export default function UserReviewsPage() {
   const router = useRouter();
+  const { t, locale } = useTranslation();
   const isAuthenticated = !!getAuthToken();
   const { data: reviews, isLoading, error } = useMyReviews();
   const deleteReview = useDeleteReviewMutation();
@@ -42,7 +45,7 @@ export default function UserReviewsPage() {
   };
 
   const handleDelete = async (reviewId: string, productId: string) => {
-    if (confirm('Are you sure you want to delete this review?')) {
+    if (confirm(t('userArea.reviews.deleteConfirm'))) {
       setDeletingId(reviewId);
       try {
         await deleteReview.mutateAsync({ reviewId, productId });
@@ -55,7 +58,7 @@ export default function UserReviewsPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString(intlLocale(locale), {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -85,7 +88,7 @@ export default function UserReviewsPage() {
   if (error) {
     return (
       <div className='bg-red-50 border border-red-200 rounded-lg p-4 text-red-800'>
-        Failed to load reviews
+        {t('userArea.reviews.loadError')}
       </div>
     );
   }
@@ -93,21 +96,22 @@ export default function UserReviewsPage() {
   if (!reviews || reviews.length === 0) {
     return (
       <>
-        <h1 className='text-2xl font-bold text-gray-900 mb-8'>My Reviews</h1>
+        <h1 className='text-2xl font-bold text-gray-900 mb-8'>
+          {t('userArea.reviews.title')}
+        </h1>
         <div className='bg-white rounded-lg border border-gray-200 p-12 text-center'>
           <MessageSquare className='w-16 h-16 text-gray-400 mx-auto mb-4' />
           <h2 className='text-xl font-semibold text-gray-900 mb-2'>
-            No reviews yet
+            {t('userArea.reviews.emptyTitle')}
           </h2>
           <p className='text-gray-600 mb-6'>
-            Start reviewing products you&apos;ve purchased to share your experience
-            with others.
+            {t('userArea.reviews.emptyDescription')}
           </p>
           <Link
             href='/products'
             className='inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 text-white font-semibold rounded-lg hover:brightness-110 transition'
           >
-            Browse Products
+            {t('userArea.reviews.browseProducts')}
           </Link>
         </div>
       </>
@@ -117,9 +121,11 @@ export default function UserReviewsPage() {
   return (
     <>
       <div className='flex items-center justify-between mb-6'>
-        <h1 className='text-2xl font-bold text-gray-900'>My Reviews</h1>
+        <h1 className='text-2xl font-bold text-gray-900'>
+          {t('userArea.reviews.title')}
+        </h1>
         <div className='text-sm text-gray-600'>
-          {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
+          {t('userArea.reviews.count', { count: reviews.length })}
         </div>
       </div>
 
@@ -128,19 +134,19 @@ export default function UserReviewsPage() {
           <thead className='bg-gray-50 border-b border-gray-200'>
             <tr>
               <th className='px-6 py-4 text-start text-xs font-bold text-gray-600 uppercase tracking-wider'>
-                Product
+                {t('userArea.reviews.product')}
               </th>
               <th className='px-6 py-4 text-start text-xs font-bold text-gray-600 uppercase tracking-wider'>
-                Rating
+                {t('reviews.form.ratingLabel')}
               </th>
               <th className='px-6 py-4 text-start text-xs font-bold text-gray-600 uppercase tracking-wider'>
-                Comment
+                {t('userArea.reviews.comment')}
               </th>
               <th className='px-6 py-4 text-start text-xs font-bold text-gray-600 uppercase tracking-wider'>
-                Date
+                {t('orders.table.date')}
               </th>
               <th className='px-6 py-4 text-start text-xs font-bold text-gray-600 uppercase tracking-wider'>
-                Actions
+                {t('orders.table.actions')}
               </th>
             </tr>
           </thead>
@@ -155,7 +161,7 @@ export default function UserReviewsPage() {
                     href={`/products/${getProductId(review.product)}`}
                     className='font-semibold text-gray-900 hover:text-fuchsia-600 transition'
                   >
-                    Product
+                    {t('userArea.reviews.product')}
                   </Link>
                 </td>
                 <td className='px-6 py-4'>
@@ -181,7 +187,7 @@ export default function UserReviewsPage() {
                       className='inline-flex items-center gap-1 px-3 py-1.5 text-sm font-semibold text-fuchsia-600 hover:text-fuchsia-700 transition'
                     >
                       <Edit className='w-4 h-4' />
-                      Edit
+                      {t('addresses.edit')}
                     </Link>
                     <button
                       onClick={() =>
@@ -193,7 +199,9 @@ export default function UserReviewsPage() {
                       className='inline-flex items-center gap-1 px-3 py-1.5 text-sm font-semibold text-gray-400 hover:text-red-600 transition disabled:opacity-50'
                     >
                       <Trash2 className='w-4 h-4' />
-                      {deletingId === review._id ? 'Deleting...' : 'Delete'}
+                      {deletingId === review._id
+                        ? t('userArea.reviews.deleting')
+                        : t('addresses.delete')}
                     </button>
                   </div>
                 </td>
@@ -205,10 +213,11 @@ export default function UserReviewsPage() {
 
       {/* Help Section */}
       <div className='mt-8 bg-gradient-to-br from-fuchsia-600 via-purple-600 to-cyan-500 rounded-lg p-6 text-white'>
-        <h3 className='font-bold mb-2'>Need help with your reviews?</h3>
+        <h3 className='font-bold mb-2'>
+          {t('userArea.reviews.helpTitle')}
+        </h3>
         <p className='text-white/90 text-sm mb-4'>
-          If you have questions about reviewing products, please check our FAQ
-          or contact support.
+          {t('userArea.reviews.helpDescription')}
         </p>
         <div className='flex gap-3'>
           <Link
@@ -216,14 +225,14 @@ export default function UserReviewsPage() {
             className='inline-flex items-center gap-2 bg-white text-fuchsia-600 px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition text-sm'
           >
             <FolderOpen className='w-4 h-4' />
-            View FAQ
+            {t('orders.viewFaq')}
           </Link>
           <Link
             href='/contact'
             className='inline-flex items-center gap-2 bg-white/20 text-white px-4 py-2 rounded-lg font-semibold hover:bg-white/30 transition text-sm'
           >
             <ExternalLink className='w-4 h-4' />
-            Contact Support
+            {t('orders.contactSupport')}
           </Link>
         </div>
       </div>

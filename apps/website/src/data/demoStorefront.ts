@@ -105,7 +105,8 @@ export type DemoHelpTopic = {
     | 'tag';
 };
 
-/** DEMO deliver-to regions — expectation messaging only (no geo/shipping engine) */
+/** DEMO deliver-to regions — expectation messaging only (no geo/shipping engine).
+ *  `label`/`hint` are message keys — render with t(). */
 export type DemoDeliverRegion = {
   id: string;
   label: string;
@@ -115,39 +116,41 @@ export type DemoDeliverRegion = {
 export const DEMO_DELIVER_REGIONS: DemoDeliverRegion[] = [
   {
     id: 'us',
-    label: 'United States',
-    hint: 'Standard & express options at checkout',
+    label: 'demo.deliverRegions.us.label',
+    hint: 'demo.deliverRegions.us.hint',
   },
   {
     id: 'gb',
-    label: 'United Kingdom',
-    hint: 'Tracked delivery on eligible orders',
+    label: 'demo.deliverRegions.gb.label',
+    hint: 'demo.deliverRegions.gb.hint',
   },
   {
     id: 'ae',
-    label: 'United Arab Emirates',
-    hint: 'Regional shipping estimates at checkout',
+    label: 'demo.deliverRegions.ae.label',
+    hint: 'demo.deliverRegions.ae.hint',
   },
   {
     id: 'sa',
-    label: 'Saudi Arabia',
-    hint: 'Delivery windows vary by city',
+    label: 'demo.deliverRegions.sa.label',
+    hint: 'demo.deliverRegions.sa.hint',
   },
   {
     id: 'lb',
-    label: 'Lebanon',
-    hint: 'Local delivery when selected at checkout',
+    label: 'demo.deliverRegions.lb.label',
+    hint: 'demo.deliverRegions.lb.hint',
   },
   {
     id: 'ch',
-    label: 'Switzerland',
-    hint: 'International shipping notes may apply',
+    label: 'demo.deliverRegions.ch.label',
+    hint: 'demo.deliverRegions.ch.hint',
   },
 ];
 
 export const DEMO_DEFAULT_DELIVER_REGION_ID = 'us';
 
-/** DEMO homepage hero promo slides — replace with CMS / GET /api/storefront/hero */
+/** DEMO homepage hero promo slides — replace with CMS / GET /api/storefront/hero.
+ *  In the demo set, `eyebrow`/`title`/`subtitle`/`ctaLabel` are message keys
+ *  (live slides carry plain text) — always render with t(). */
 export type DemoHeroSlide = {
   id: string;
   eyebrow: string;
@@ -162,47 +165,48 @@ export type DemoHeroSlide = {
 export const DEMO_HERO_SLIDES: DemoHeroSlide[] = [
   {
     id: 'hero-glow',
-    eyebrow: 'Beauty edit',
-    title: 'Soft-glow essentials for every routine',
-    subtitle: 'Skincare and makeup picks with clear prices.',
-    ctaLabel: 'Shop beauty',
+    eyebrow: 'demo.hero.glow.eyebrow',
+    title: 'demo.hero.glow.title',
+    subtitle: 'demo.hero.glow.subtitle',
+    ctaLabel: 'demo.hero.glow.ctaLabel',
     href: '/products?category=makeup',
-    imageUrl: '/images/1.webp',
+    imageUrl: '/images/1.jpeg',
     tone: 'rose',
   },
   {
     id: 'hero-fashion',
-    eyebrow: 'Fashion',
-    title: 'Everyday pieces that feel elevated',
-    subtitle: 'Layer-ready looks without the noise.',
-    ctaLabel: 'Shop fashion',
+    eyebrow: 'demo.hero.fashion.eyebrow',
+    title: 'demo.hero.fashion.title',
+    subtitle: 'demo.hero.fashion.subtitle',
+    ctaLabel: 'demo.hero.fashion.ctaLabel',
     href: '/products?category=clothing',
-    imageUrl: '/images/2.webp',
+    imageUrl: '/images/2.jpeg',
     tone: 'indigo',
   },
   {
     id: 'hero-offers',
-    eyebrow: "Today's offers",
-    title: 'Limited edits worth a second look',
-    subtitle: 'Seasonal deals curated for TrendVaulta shoppers.',
-    ctaLabel: 'See offers',
+    eyebrow: 'demo.hero.offers.eyebrow',
+    title: 'demo.hero.offers.title',
+    subtitle: 'demo.hero.offers.subtitle',
+    ctaLabel: 'demo.hero.offers.ctaLabel',
     href: '/offers',
-    imageUrl: '/images/3.webp',
+    imageUrl: '/images/3.jpeg',
     tone: 'teal',
   },
   {
     id: 'hero-lifestyle',
-    eyebrow: 'Lifestyle',
-    title: 'Home & self-care that fits your pace',
-    subtitle: 'Thoughtful details for calm, polished days.',
-    ctaLabel: 'Explore lifestyle',
+    eyebrow: 'demo.hero.lifestyle.eyebrow',
+    title: 'demo.hero.lifestyle.title',
+    subtitle: 'demo.hero.lifestyle.subtitle',
+    ctaLabel: 'demo.hero.lifestyle.ctaLabel',
     href: '/products?category=home',
-    imageUrl: '/images/4.webp',
+    imageUrl: '/images/4.jpeg',
     tone: 'stone',
   },
 ];
 
-/** DEMO PDP Q&A — category-scoped FAQ (not live customer Q&A) */
+/** DEMO PDP Q&A — category-scoped FAQ (not live customer Q&A).
+ *  `question`/`answer` are message keys — render with t(). */
 export type DemoProductQaItem = {
   id: string;
   question: string;
@@ -212,21 +216,18 @@ export type DemoProductQaItem = {
 const DEMO_QA_COMMON: DemoProductQaItem[] = [
   {
     id: 'qa-ship',
-    question: 'How long does shipping usually take?',
-    answer:
-      'Most orders dispatch within 1–2 business days. Standard delivery is typically 5–7 business days; express options appear at checkout when available.',
+    question: 'demo.qa.shipping.question',
+    answer: 'demo.qa.shipping.answer',
   },
   {
     id: 'qa-return',
-    question: 'Can I return this item?',
-    answer:
-      'Eligible unused items can usually be returned within 30 days in original packaging. See our returns policy for hygiene-sealed exceptions.',
+    question: 'demo.qa.returns.question',
+    answer: 'demo.qa.returns.answer',
   },
   {
     id: 'qa-pay',
-    question: 'Is checkout secure?',
-    answer:
-      'Yes. Payments are processed through encrypted checkout (Stripe when configured). TrendVaulta never stores full card numbers in the storefront.',
+    question: 'demo.qa.payments.question',
+    answer: 'demo.qa.payments.answer',
   },
 ];
 
@@ -234,69 +235,60 @@ const DEMO_QA_BY_CATEGORY: Record<string, DemoProductQaItem[]> = {
   beauty: [
     {
       id: 'qa-beauty-skin',
-      question: 'Is this suitable for sensitive skin?',
-      answer:
-        'Always check the ingredient list on the product page. If you have sensitivities, patch-test first or ask our care team before full use.',
+      question: 'demo.qa.sensitiveSkin.question',
+      answer: 'demo.qa.sensitiveSkin.answer',
     },
     {
       id: 'qa-beauty-expire',
-      question: 'How should I store this product?',
-      answer:
-        'Keep in a cool, dry place away from direct sun. Close lids tightly after use to protect texture and scent.',
+      question: 'demo.qa.storage.question',
+      answer: 'demo.qa.storage.answer',
     },
   ],
   skincare: [
     {
       id: 'qa-skin-order',
-      question: 'When should I use this in my routine?',
-      answer:
-        'Most cleansers go first, then treatments/serums, then moisturizer and SPF by day. Follow any usage notes on the packaging.',
+      question: 'demo.qa.routine.question',
+      answer: 'demo.qa.routine.answer',
     },
   ],
   makeup: [
     {
       id: 'qa-makeup-shade',
-      question: 'How do I choose the right shade?',
-      answer:
-        'Compare undertone (cool/warm/neutral) in natural light. If you are between shades, the lighter option is often easier to correct.',
+      question: 'demo.qa.shade.question',
+      answer: 'demo.qa.shade.answer',
     },
   ],
   fashion: [
     {
       id: 'qa-fashion-fit',
-      question: 'How does sizing run?',
-      answer:
-        'Check the size guide and measurements on the product page when listed. If you prefer a relaxed fit, consider sizing up.',
+      question: 'demo.qa.sizing.question',
+      answer: 'demo.qa.sizing.answer',
     },
     {
       id: 'qa-fashion-care',
-      question: 'How do I care for this piece?',
-      answer:
-        'Follow the care label. Many items prefer gentle wash or cool water; avoid high heat drying unless the label allows it.',
+      question: 'demo.qa.fashionCare.question',
+      answer: 'demo.qa.fashionCare.answer',
     },
   ],
   clothing: [
     {
       id: 'qa-clothing-fit',
-      question: 'Will this shrink after washing?',
-      answer:
-        'Follow the garment care label. Natural fibers can relax or shrink with heat — cool wash and air dry when recommended.',
+      question: 'demo.qa.shrink.question',
+      answer: 'demo.qa.shrink.answer',
     },
   ],
   lifestyle: [
     {
       id: 'qa-life-use',
-      question: 'Is this ready to use out of the box?',
-      answer:
-        'Most lifestyle pieces arrive ready for everyday use. Any assembly or care notes will be listed under product details when required.',
+      question: 'demo.qa.readyToUse.question',
+      answer: 'demo.qa.readyToUse.answer',
     },
   ],
   home: [
     {
       id: 'qa-home-place',
-      question: 'Where does this work best at home?',
-      answer:
-        'Use on a stable, dry surface unless the listing says otherwise. Keep away from prolonged moisture if the material is not waterproof.',
+      question: 'demo.qa.placement.question',
+      answer: 'demo.qa.placement.answer',
     },
   ],
 };
@@ -313,217 +305,218 @@ export function getDemoProductQa(
   return [...(specific ?? []), ...DEMO_QA_COMMON];
 }
 
-/** DEMO — Customer Service / Help Center topics (Amazon-like IA, TrendVaulta copy) */
+/** DEMO — Customer Service / Help Center topics (Amazon-like IA, TrendVaulta copy).
+ *  `title`/`description` are message keys — render with t(). */
 export const DEMO_HELP_TOPICS: DemoHelpTopic[] = [
   {
     id: 'orders',
-    title: 'Your orders',
-    description: 'Track shipments, view history, and manage recent purchases.',
+    title: 'demo.help.orders.title',
+    description: 'demo.help.orders.description',
     href: '/auth/login',
     icon: 'package',
   },
   {
     id: 'shipping',
-    title: 'Shipping & delivery',
-    description: 'Rates, timelines, and how tracked delivery works.',
+    title: 'demo.help.shipping.title',
+    description: 'demo.help.shipping.description',
     href: '/shipping',
     icon: 'truck',
   },
   {
     id: 'returns',
-    title: 'Returns & refunds',
-    description:
-      'Return window, eligible items, and how refunds are processed.',
+    title: 'demo.help.returns.title',
+    description: 'demo.help.returns.description',
     href: '/returns',
     icon: 'refresh',
   },
   {
     id: 'payments',
-    title: 'Secure payments',
-    description: 'Checkout, coupons, and how Stripe-secured payments work.',
+    title: 'demo.help.payments.title',
+    description: 'demo.help.payments.description',
     href: '/faq',
     icon: 'shield',
   },
   {
     id: 'gifts',
-    title: 'Gifts & occasions',
-    description: 'Find gift-ready edits by occasion, recipient, and budget.',
+    title: 'demo.help.gifts.title',
+    description: 'demo.help.gifts.description',
     href: '/#gift-finder',
     icon: 'gift',
   },
   {
     id: 'offers',
-    title: 'Offers & deals',
-    description: 'Browse limited-time promotions and seasonal edits.',
+    title: 'demo.help.offers.title',
+    description: 'demo.help.offers.description',
     href: '/offers',
     icon: 'tag',
   },
   {
     id: 'account',
-    title: 'Account & wishlist',
-    description: 'Sign in to manage profile, wishlist, and reviews.',
+    title: 'demo.help.account.title',
+    description: 'demo.help.account.description',
     href: '/auth/login',
     icon: 'user',
   },
   {
     id: 'contact',
-    title: 'Contact support',
-    description: 'Reach the care team for order or product questions.',
+    title: 'demo.help.contact.title',
+    description: 'demo.help.contact.description',
     href: '/contact',
     icon: 'headset',
   },
 ];
 
-/** DEMO — trust / service strip */
+/** DEMO — trust / service strip (`title`/`description` are message keys — render with t()) */
 export const DEMO_TRUST_ITEMS: DemoTrustItem[] = [
   {
     id: 'shipping',
     icon: 'truck',
-    title: 'Fast shipping',
-    description: 'Tracked delivery on every order',
+    title: 'demo.trust.shipping.title',
+    description: 'demo.trust.shipping.description',
   },
   {
     id: 'returns',
     icon: 'refresh',
-    title: 'Easy returns',
-    description: 'Hassle-free returns within policy window',
+    title: 'demo.trust.returns.title',
+    description: 'demo.trust.returns.description',
   },
   {
     id: 'secure',
     icon: 'shield',
-    title: 'Secure checkout',
-    description: 'Encrypted payments you can trust',
+    title: 'demo.trust.secure.title',
+    description: 'demo.trust.secure.description',
   },
   {
     id: 'support',
     icon: 'headset',
-    title: 'Care support',
-    description: 'Real people ready to help',
+    title: 'demo.trust.support.title',
+    description: 'demo.trust.support.description',
   },
 ];
 
-/** DEMO — offers rail (replace with GET /api/offers) */
+/** DEMO — offers rail (replace with GET /api/offers).
+ *  `title`/`subtitle`/`badge` are message keys — render with t(). */
 export const DEMO_DEALS: DemoDeal[] = [
   {
     id: 'deal-glow',
-    title: 'Glow edit',
-    subtitle: 'Skincare picks for a fresh finish',
-    badge: 'Limited',
+    title: 'demo.deals.glow.title',
+    subtitle: 'demo.deals.glow.subtitle',
+    badge: 'demo.deals.glow.badge',
     href: '/products?category=makeup',
-    imageUrl: '/images/1.webp',
+    imageUrl: '/images/1.jpeg',
   },
   {
     id: 'deal-fashion',
-    title: 'Wardrobe refresh',
-    subtitle: 'New-season essentials under your budget',
-    badge: 'Trending',
+    title: 'demo.deals.fashion.title',
+    subtitle: 'demo.deals.fashion.subtitle',
+    badge: 'demo.deals.fashion.badge',
     href: '/products?category=clothing',
-    imageUrl: '/images/2.webp',
+    imageUrl: '/images/2.jpeg',
   },
   {
     id: 'deal-lifestyle',
-    title: 'Home & lifestyle',
-    subtitle: 'Quiet luxury accents for everyday',
-    badge: 'New',
+    title: 'demo.deals.lifestyle.title',
+    subtitle: 'demo.deals.lifestyle.subtitle',
+    badge: 'demo.deals.lifestyle.badge',
     href: '/products?category=home',
-    imageUrl: '/images/3.webp',
+    imageUrl: '/images/3.jpeg',
   },
   {
     id: 'deal-gift',
-    title: 'Gift-ready sets',
-    subtitle: 'Curated bundles for someone special',
-    badge: 'Gift',
+    title: 'demo.deals.gift.title',
+    subtitle: 'demo.deals.gift.subtitle',
+    badge: 'demo.deals.gift.badge',
     href: '/products?q=gift',
-    imageUrl: '/images/4.webp',
+    imageUrl: '/images/4.jpeg',
   },
 ];
 
-/** DEMO — featured brands strip */
+/** DEMO — featured brands strip (`name` is a brand name; `tagline` is a message key — render with t()) */
 export const DEMO_FEATURED_BRANDS: DemoBrand[] = [
   {
     id: 'brand-aura',
     name: 'Aura Lab',
-    tagline: 'Clean beauty rituals',
+    tagline: 'demo.brands.aura.tagline',
     href: '/products?q=makeup',
     accent: 'from-rose-500 to-amber-400',
   },
   {
     id: 'brand-thread',
     name: 'Thread & Form',
-    tagline: 'Modern wardrobe basics',
+    tagline: 'demo.brands.thread.tagline',
     href: '/products?q=clothing',
     accent: 'from-slate-700 to-stone-500',
   },
   {
     id: 'brand-lumen',
     name: 'Lumen Home',
-    tagline: 'Soft lifestyle pieces',
+    tagline: 'demo.brands.lumen.tagline',
     href: '/products?q=home',
     accent: 'from-teal-600 to-cyan-500',
   },
   {
     id: 'brand-noir',
     name: 'Noir Atelier',
-    tagline: 'Evening accessories',
+    tagline: 'demo.brands.noir.tagline',
     href: '/products?q=accessories',
     accent: 'from-zinc-800 to-neutral-600',
   },
 ];
 
-/** DEMO — category shortcuts for homepage */
+/** DEMO — category shortcuts for homepage (`name`/`countLabel` are message keys) */
 export const DEMO_CATEGORY_SHORTCUTS: DemoCategoryShortcut[] = [
   {
-    name: 'Beauty',
-    countLabel: 'Skincare & makeup',
+    name: 'home.categories.shortcuts.beauty',
+    countLabel: 'home.categories.taglines.beauty',
     href: '/products?category=makeup',
     accent: 'from-rose-500 to-pink-600',
     icon: 'sparkles',
   },
   {
-    name: 'Fashion',
-    countLabel: 'Ready-to-wear',
+    name: 'home.categories.shortcuts.fashion',
+    countLabel: 'home.categories.taglines.fashion',
     href: '/products?category=clothing',
     accent: 'from-stone-600 to-neutral-800',
     icon: 'shirt',
   },
   {
-    name: 'Wellness',
-    countLabel: 'Self-care picks',
+    name: 'home.categories.shortcuts.wellness',
+    countLabel: 'home.categories.taglines.wellness',
     href: '/products?category=skincare',
     accent: 'from-emerald-500 to-teal-600',
     icon: 'heart',
   },
   {
-    name: 'Accessories',
-    countLabel: 'Bags & details',
+    name: 'home.categories.shortcuts.accessories',
+    countLabel: 'home.categories.taglines.accessories',
     href: '/products?category=accessories',
     accent: 'from-amber-500 to-orange-600',
     icon: 'watch',
   },
   {
-    name: 'Home',
-    countLabel: 'Lifestyle living',
+    name: 'home.categories.shortcuts.home',
+    countLabel: 'home.categories.taglines.home',
     href: '/products?category=home',
     accent: 'from-sky-500 to-indigo-600',
     icon: 'home',
   },
   {
-    name: 'Gifts',
-    countLabel: 'Thoughtful sets',
+    name: 'home.categories.shortcuts.gifts',
+    countLabel: 'home.categories.taglines.gifts',
     href: '/products?q=gift',
     accent: 'from-fuchsia-500 to-violet-600',
     icon: 'gift',
   },
   {
-    name: 'Summer edit',
-    countLabel: 'Light layers',
+    name: 'home.categories.shortcuts.summer',
+    countLabel: 'home.categories.taglines.summer',
     href: '/products?q=summer',
     accent: 'from-yellow-400 to-amber-500',
     icon: 'sun',
   },
   {
-    name: 'New arrivals',
-    countLabel: 'Just dropped',
+    name: 'home.categories.shortcuts.newArrivals',
+    countLabel: 'home.categories.taglines.newArrivals',
     href: '/products?sort=createdAt',
     accent: 'from-cyan-500 to-blue-600',
     icon: 'bag',
@@ -531,33 +524,59 @@ export const DEMO_CATEGORY_SHORTCUTS: DemoCategoryShortcut[] = [
 ];
 
 /**
- * DEMO — gift finder facet options.
+ * DEMO — gift finder facet options (`label` is a message key — render with t()).
  * TODO(api): GET /api/storefront/gift-finder
  */
 export const DEMO_GIFT_FINDER: DemoGiftFinderConfig = {
   occasions: [
-    { id: 'birthday', label: 'Birthday', q: 'gift' },
-    { id: 'thank-you', label: 'Thank you', q: 'gift' },
+    { id: 'birthday', label: 'demo.giftFinder.occasions.birthday', q: 'gift' },
+    { id: 'thank-you', label: 'demo.giftFinder.occasions.thankYou', q: 'gift' },
     {
       id: 'self-care',
-      label: 'Self-care',
+      label: 'demo.giftFinder.occasions.selfCare',
       category: 'skincare',
       q: 'skincare',
     },
-    { id: 'housewarming', label: 'Housewarming', category: 'home', q: 'home' },
-    { id: 'just-because', label: 'Just because', q: 'gift' },
+    {
+      id: 'housewarming',
+      label: 'demo.giftFinder.occasions.housewarming',
+      category: 'home',
+      q: 'home',
+    },
+    {
+      id: 'just-because',
+      label: 'demo.giftFinder.occasions.justBecause',
+      q: 'gift',
+    },
   ],
   recipients: [
-    { id: 'for-her', label: 'For her', q: 'makeup' },
-    { id: 'for-him', label: 'For him', q: 'grooming' },
-    { id: 'for-home', label: 'For home', category: 'home' },
-    { id: 'for-anyone', label: 'For anyone', q: 'gift' },
+    { id: 'for-her', label: 'demo.giftFinder.recipients.forHer', q: 'makeup' },
+    {
+      id: 'for-him',
+      label: 'demo.giftFinder.recipients.forHim',
+      q: 'grooming',
+    },
+    {
+      id: 'for-home',
+      label: 'demo.giftFinder.recipients.forHome',
+      category: 'home',
+    },
+    {
+      id: 'for-anyone',
+      label: 'demo.giftFinder.recipients.forAnyone',
+      q: 'gift',
+    },
   ],
   budgets: [
-    { id: 'under-25', label: 'Under $25', maxPrice: 25 },
-    { id: '25-50', label: '$25–$50', minPrice: 25, maxPrice: 50 },
-    { id: '50-plus', label: '$50+', minPrice: 50 },
-    { id: 'any', label: 'Any budget' },
+    { id: 'under-25', label: 'demo.giftFinder.budgets.under25', maxPrice: 25 },
+    {
+      id: '25-50',
+      label: 'demo.giftFinder.budgets.from25to50',
+      minPrice: 25,
+      maxPrice: 50,
+    },
+    { id: '50-plus', label: 'demo.giftFinder.budgets.over50', minPrice: 50 },
+    { id: 'any', label: 'demo.giftFinder.budgets.any' },
   ],
 };
 
@@ -607,36 +626,37 @@ export function buildGiftFinderHref(
   return `/products?${params.toString()}`;
 }
 
-/** DEMO — editorial lookbook stories (replace with GET /api/storefront/lookbooks) */
+/** DEMO — editorial lookbook stories (replace with GET /api/storefront/lookbooks).
+ *  `eyebrow`/`title`/`body`/`ctaLabel` are message keys — render with t(). */
 export const DEMO_LOOKBOOK_STORIES: DemoLookbookStory[] = [
   {
     id: 'look-morning',
-    eyebrow: 'Beauty edit',
-    title: 'Soft morning ritual',
-    body: 'Layer lightweight textures that wake skin without the fuss. Original TrendVaulta styling — demo content only.',
-    ctaLabel: 'Shop the ritual',
+    eyebrow: 'demo.lookbook.morning.eyebrow',
+    title: 'demo.lookbook.morning.title',
+    body: 'demo.lookbook.morning.body',
+    ctaLabel: 'demo.lookbook.morning.ctaLabel',
     href: '/products?category=makeup',
-    imageUrl: '/images/1.webp',
+    imageUrl: '/images/1.jpeg',
     tone: 'rose',
   },
   {
     id: 'look-wardrobe',
-    eyebrow: 'Fashion edit',
-    title: 'Quiet wardrobe staples',
-    body: 'Clean silhouettes and easy layers for days that move. Curated for polish, not noise.',
-    ctaLabel: 'Browse fashion',
+    eyebrow: 'demo.lookbook.wardrobe.eyebrow',
+    title: 'demo.lookbook.wardrobe.title',
+    body: 'demo.lookbook.wardrobe.body',
+    ctaLabel: 'demo.lookbook.wardrobe.ctaLabel',
     href: '/products?category=clothing',
-    imageUrl: '/images/2.webp',
+    imageUrl: '/images/2.jpeg',
     tone: 'stone',
   },
   {
     id: 'look-home',
-    eyebrow: 'Lifestyle edit',
-    title: 'At-home calm corners',
-    body: 'Small accents that make everyday spaces feel intentional — candles, linen, soft light.',
-    ctaLabel: 'Explore lifestyle',
+    eyebrow: 'demo.lookbook.home.eyebrow',
+    title: 'demo.lookbook.home.title',
+    body: 'demo.lookbook.home.body',
+    ctaLabel: 'demo.lookbook.home.ctaLabel',
     href: '/products?category=home',
-    imageUrl: '/images/3.webp',
+    imageUrl: '/images/3.jpeg',
     tone: 'teal',
   },
 ];

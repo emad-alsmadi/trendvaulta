@@ -5,12 +5,14 @@ import { WishlistItem } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { WishlistButton } from '@/components/page/wishlist/WishlistButton';
 import { motion } from 'framer-motion';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface WishlistCardProps {
   item: WishlistItem;
 }
 
 export function WishlistCard({ item }: WishlistCardProps) {
+  const { t, formatPrice } = useTranslation();
   const product = item.product;
   if (!product) return null;
   const brandName =
@@ -50,11 +52,11 @@ export function WishlistCard({ item }: WishlistCardProps) {
             </h3>
           </Link>
           <p className='text-xs font-extrabold text-indigo-900/80'>
-            by {brandName}
+            {t('wishlist.byBrand', { brand: brandName })}
           </p>
           <div className='flex items-center justify-between'>
             <p className='text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-700 via-indigo-700 to-cyan-700'>
-              ${product.price.toFixed(2)}
+              {formatPrice(product.price)}
             </p>
           </div>
           <div className='flex gap-2'>
@@ -62,7 +64,7 @@ export function WishlistCard({ item }: WishlistCardProps) {
               href={`/products/${product._id}`}
               className='flex-1'
             >
-              <Button className='w-full'>View Details</Button>
+              <Button className='w-full'>{t('wishlist.viewDetails')}</Button>
             </Link>
           </div>
         </div>

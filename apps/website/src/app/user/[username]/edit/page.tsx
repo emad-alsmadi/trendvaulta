@@ -7,6 +7,7 @@ import { Loader2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { useMe, useUpdateProfile, type MeResponse } from '@/hooks/auth/authQuery';
 import { getAuthToken } from '@/lib/authCookies';
 import { buildLoginUrl } from '@/lib/safeRedirect';
@@ -46,6 +47,7 @@ export default function EditProfilePage() {
 function EditProfileForm({ user }: { user: ProfileUser }) {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const updateProfile = useUpdateProfile();
 
   const [username, setUsername] = useState(user.username || '');
@@ -55,11 +57,11 @@ function EditProfileForm({ user }: { user: ProfileUser }) {
   const trimmedEmail = email.trim();
   const usernameError =
     trimmedUsername.length > 0 && trimmedUsername.length < 3
-      ? 'Username must be at least 3 characters'
+      ? 'userArea.edit.usernameMin'
       : null;
   const emailError =
     trimmedEmail.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)
-      ? 'Enter a valid email address'
+      ? 'auth.validation.emailInvalid'
       : null;
   const unchanged =
     trimmedUsername === (user.username || '') &&
@@ -76,29 +78,31 @@ function EditProfileForm({ user }: { user: ProfileUser }) {
     e.preventDefault();
     if (!canSave) return;
     try {
-      const res = await updateProfile.mutateAsync({
+      await updateProfile.mutateAsync({
         username: trimmedUsername,
         email: trimmedEmail,
       });
-      toast('Profile updated', { title: 'Saved', variant: 'success' });
-      const nextName = res?.user?.username || trimmedUsername;
-      router.push(`/user/${encodeURIComponent(nextName)}`);
+      toast(t('userArea.edit.updated'), {
+        title: t('userArea.edit.savedTitle'),
+        variant: 'success',
+      });
+      router.push('/account');
     } catch (err) {
       logErrorForDev(err);
-      toast(getUserFacingErrorMessage(err, 'Could not update your profile'), {
-        title: 'Update failed',
+      toast(getUserFacingErrorMessage(err, t('userArea.edit.updateError')), {
+        title: t('userArea.edit.updateFailedTitle'),
         variant: 'error',
       });
     }
   };
 
-  const backHref = `/user/${encodeURIComponent(
-    user.username || (user.email || '').split('@')[0],
-  )}`;
+  const backHref = '/account';
 
   return (
     <>
-      <h1 className='mb-6 text-2xl font-bold text-gray-900'>Edit profile</h1>
+      <h1 className='mb-6 text-2xl font-bold text-gray-900'>
+        {t('userArea.edit.title')}
+      </h1>
 
       <form
         onSubmit={onSubmit}
@@ -111,7 +115,7 @@ function EditProfileForm({ user }: { user: ProfileUser }) {
               htmlFor='profile-username'
               className='mb-1 block text-xs font-bold uppercase tracking-wider text-gray-500'
             >
-              Username
+              {t('auth.username')}
             </label>
             <Input
               id='profile-username'
@@ -123,7 +127,7 @@ function EditProfileForm({ user }: { user: ProfileUser }) {
             />
             {usernameError && (
               <p className='mt-2 text-sm font-semibold text-rose-700'>
-                {usernameError}
+                {t(usernameError)}
               </p>
             )}
           </div>
@@ -133,7 +137,7 @@ function EditProfileForm({ user }: { user: ProfileUser }) {
               htmlFor='profile-email'
               className='mb-1 block text-xs font-bold uppercase tracking-wider text-gray-500'
             >
-              Email
+              {t('auth.email')}
             </label>
             <Input
               id='profile-email'
@@ -146,7 +150,7 @@ function EditProfileForm({ user }: { user: ProfileUser }) {
             />
             {emailError && (
               <p className='mt-2 text-sm font-semibold text-rose-700'>
-                {emailError}
+                {t(emailError)}
               </p>
             )}
           </div>
@@ -159,13 +163,13 @@ function EditProfileForm({ user }: { user: ProfileUser }) {
             ) : (
               <Save className='h-4 w-4' aria-hidden />
             )}
-            Save changes
+            {t('userArea.edit.save')}
           </Button>
           <Link
             href={backHref}
             className='text-sm font-semibold text-gray-600 hover:text-gray-900'
           >
-            Cancel
+            {t('confirmDialog.cancel')}
           </Link>
         </div>
       </form>

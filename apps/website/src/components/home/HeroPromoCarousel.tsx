@@ -87,7 +87,7 @@ export function HeroPromoCarousel({
               className='absolute inset-0 bg-cover bg-center'
               style={{ backgroundImage: `url(${slide.imageUrl})` }}
               role='img'
-              aria-label={slide.title}
+              aria-label={t(slide.title)}
             />
             <div
               className={cn(
@@ -101,19 +101,19 @@ export function HeroPromoCarousel({
 
         <div className='absolute inset-x-0 bottom-0 z-10 p-5 sm:p-6'>
           <p className='text-xs font-semibold uppercase tracking-[0.18em] text-white/80'>
-            {slide.eyebrow}
+            {t(slide.eyebrow)}
           </p>
           <h2 className='mt-1 max-w-md text-xl font-extrabold leading-snug text-white sm:text-2xl'>
-            {slide.title}
+            {t(slide.title)}
           </h2>
           <p className='mt-1.5 max-w-sm text-sm font-medium text-white/85'>
-            {slide.subtitle}
+            {t(slide.subtitle)}
           </p>
           <Link
             href={slide.href}
             className='mt-4 inline-flex rounded-full bg-white px-4 py-2 text-sm font-extrabold text-stone-900 transition hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white'
           >
-            {slide.ctaLabel}
+            {t(slide.ctaLabel)}
           </Link>
         </div>
 
@@ -153,7 +153,7 @@ export function HeroPromoCarousel({
               aria-selected={i === index}
               aria-label={t('home.promo.showSlide', {
                 number: i + 1,
-                label: s.eyebrow,
+                label: t(s.eyebrow),
               })}
               onClick={() => setIndex(i)}
               className={cn(
