@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import axios from 'axios';
 import { paymentsApi, type CartQuoteResponse } from '@/lib/api';
@@ -107,6 +107,105 @@ function noticeFor(
   }
 }
 
+type QuoteSyncPlan = {
+  notices: Record<string, CartLineNotice>;
+  /** Cart-store writes the quote implies, deferred so this stays pure. */
+  mutations: Array<() => void>;
+};
+
+/**
+ * Compares a quote against the cart and works out what has to change. Pure:
+ * it only *collects* the store writes so the caller can run them in an effect.
+ */
+function planQuoteSync(
+  quote: CartQuoteResponse | null,
+  items: CartItem[],
+): QuoteSyncPlan {
+  const notices: Record<string, CartLineNotice> = {};
+  const mutations: Array<() => void> = [];
+  if (!quote) return { notices, mutations };
+
+  const warnings = quote.warnings ?? [];
+
+  // Match cart lines to quote lines on productId + size + colour only:
+  // the API echoes the matched variant's sku, which the cart may not carry.
+  const matchKey = (
+    productId: string,
+    variant?: { size?: string; color?: string } | null,
+  ) => `${productId}|${variant?.size ?? ''}|${variant?.color ?? ''}`;
+  const warningFor = (productId: string, code: CartLineNotice['code']) =>
+    warnings.find((w) => w.productId === productId && w.code === code);
+
+  // Per-line reconciliation from quote.lines (precise per variant).
+  for (const line of quote.lines ?? []) {
+    const lineKey = matchKey(line.productId, line.variant);
+    const cartLine = items.find(
+      (i) => matchKey(i.productId, i.variant) === lineKey,
+    );
+    if (!cartLine) continue;
+    const key = getCartLineKey(cartLine);
+
+    // `available: 0` also covers "not purchasable" reasons; classify first.
+    if (warningFor(line.productId, 'unavailable')) {
+      mutations.push(() => removeFromCart(key));
+      notices[key] = noticeFor('unavailable', cartLine.title);
+      continue;
+    }
+    if (warningFor(line.productId, 'variant_required')) {
+      notices[key] = noticeFor('variant_required', cartLine.title);
+      continue;
+    }
+
+    const available = Number(line.available);
+    if (Number.isFinite(available)) {
+      if (available <= 0) {
+        mutations.push(() => removeFromCart(key));
+        notices[key] = noticeFor('insufficient_stock', cartLine.title, 0);
+        continue;
+      }
+      if (cartLine.qty > available) {
+        mutations.push(() => setCartQty(key, available));
+        notices[key] = noticeFor('insufficient_stock', cartLine.title, available);
+      }
+      if (cartLine.maxQty !== available) {
+        mutations.push(() => syncCartLine(key, { maxQty: available }));
+      }
+    }
+
+    const price = Number(line.price);
+    if (Number.isFinite(price) && price !== cartLine.price) {
+      mutations.push(() => syncCartLine(key, { price }));
+      notices[key] = notices[key] ?? noticeFor('price_changed', cartLine.title);
+    }
+  }
+
+  // Product-level warnings (unavailable / variant_required) fall back to
+  // matching by productId when the line is not in quote.lines.
+  for (const w of warnings) {
+    for (const cartLine of items) {
+      if (cartLine.productId !== w.productId) continue;
+      const key = getCartLineKey(cartLine);
+      if (notices[key]) continue;
+      if (w.code === 'unavailable') {
+        mutations.push(() => removeFromCart(key));
+        notices[key] = noticeFor('unavailable', cartLine.title);
+      } else if (w.code === 'insufficient_stock') {
+        const available = Number(w.available);
+        if (Number.isFinite(available)) {
+          if (available <= 0) mutations.push(() => removeFromCart(key));
+          else if (cartLine.qty > available)
+            mutations.push(() => setCartQty(key, available));
+          notices[key] = noticeFor('insufficient_stock', cartLine.title, available);
+        }
+      } else {
+        notices[key] = noticeFor(w.code, cartLine.title);
+      }
+    }
+  }
+
+  return { notices, mutations };
+}
+
 /**
  * Runs the cart quote and applies its warnings to the cart store once per
  * quote result: caps quantities to available stock, removes unavailable
@@ -115,7 +214,6 @@ function noticeFor(
  */
 export function useCartQuoteSync(opts: CartQuoteOptions) {
   const query = useCartQuote(opts);
-  const [notices, setNotices] = useState<Record<string, CartLineNotice>>({});
   const appliedAtRef = useRef<number>(0);
   const itemsRef = useRef(opts.items);
   useEffect(() => {
@@ -125,95 +223,31 @@ export function useCartQuoteSync(opts: CartQuoteOptions) {
   const quote = query.data ?? null;
   const dataUpdatedAt = query.dataUpdatedAt;
 
+  // Derived from the quote, not stored: the plan is recomputed whenever a new
+  // quote lands, and its notices are visible on that same render.
+  const plan = useMemo(
+    () => planQuoteSync(quote, itemsRef.current),
+    // itemsRef is read, not tracked — a new quote is what makes the plan stale.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [quote, dataUpdatedAt],
+  );
+
+  // A notice must outlive the quote that raised it: capping a quantity triggers
+  // a refetch where the line is fine again, and the reader still needs to know
+  // why their cart changed. Kept in a ref because the store writes below
+  // already re-render every subscriber.
+  const seenRef = useRef<Record<string, CartLineNotice>>({});
+
   useEffect(() => {
     if (!quote || !dataUpdatedAt || appliedAtRef.current === dataUpdatedAt) {
       return;
     }
     appliedAtRef.current = dataUpdatedAt;
+    seenRef.current = { ...seenRef.current, ...plan.notices };
+    for (const apply of plan.mutations) apply();
+  }, [quote, dataUpdatedAt, plan]);
 
-    const items = itemsRef.current;
-    const warnings = quote.warnings ?? [];
-    const next: Record<string, CartLineNotice> = {};
-
-    // Match cart lines to quote lines on productId + size + colour only:
-    // the API echoes the matched variant's sku, which the cart may not carry.
-    const matchKey = (
-      productId: string,
-      variant?: { size?: string; color?: string } | null,
-    ) => `${productId}|${variant?.size ?? ''}|${variant?.color ?? ''}`;
-    const warningFor = (productId: string, code: CartLineNotice['code']) =>
-      warnings.find((w) => w.productId === productId && w.code === code);
-
-    // Per-line reconciliation from quote.lines (precise per variant).
-    for (const line of quote.lines ?? []) {
-      const lineKey = matchKey(line.productId, line.variant);
-      const cartLine = items.find(
-        (i) => matchKey(i.productId, i.variant) === lineKey,
-      );
-      if (!cartLine) continue;
-      const key = getCartLineKey(cartLine);
-
-      // `available: 0` also covers "not purchasable" reasons; classify first.
-      if (warningFor(line.productId, 'unavailable')) {
-        removeFromCart(key);
-        next[key] = noticeFor('unavailable', cartLine.title);
-        continue;
-      }
-      if (warningFor(line.productId, 'variant_required')) {
-        next[key] = noticeFor('variant_required', cartLine.title);
-        continue;
-      }
-
-      const available = Number(line.available);
-      if (Number.isFinite(available)) {
-        if (available <= 0) {
-          removeFromCart(key);
-          next[key] = noticeFor('insufficient_stock', cartLine.title, 0);
-          continue;
-        }
-        if (cartLine.qty > available) {
-          setCartQty(key, available);
-          next[key] = noticeFor('insufficient_stock', cartLine.title, available);
-        }
-        if (cartLine.maxQty !== available) {
-          syncCartLine(key, { maxQty: available });
-        }
-      }
-
-      const price = Number(line.price);
-      if (Number.isFinite(price) && price !== cartLine.price) {
-        syncCartLine(key, { price });
-        next[key] = next[key] ?? noticeFor('price_changed', cartLine.title);
-      }
-    }
-
-    // Product-level warnings (unavailable / variant_required) fall back to
-    // matching by productId when the line is not in quote.lines.
-    for (const w of warnings) {
-      for (const cartLine of items) {
-        if (cartLine.productId !== w.productId) continue;
-        const key = getCartLineKey(cartLine);
-        if (next[key]) continue;
-        if (w.code === 'unavailable') {
-          removeFromCart(key);
-          next[key] = noticeFor('unavailable', cartLine.title);
-        } else if (w.code === 'insufficient_stock') {
-          const available = Number(w.available);
-          if (Number.isFinite(available)) {
-            if (available <= 0) removeFromCart(key);
-            else if (cartLine.qty > available) setCartQty(key, available);
-            next[key] = noticeFor('insufficient_stock', cartLine.title, available);
-          }
-        } else {
-          next[key] = noticeFor(w.code, cartLine.title);
-        }
-      }
-    }
-
-    if (Object.keys(next).length > 0) {
-      setNotices((prev) => ({ ...prev, ...next }));
-    }
-  }, [quote, dataUpdatedAt]);
+  const notices = { ...seenRef.current, ...plan.notices };
 
   return { query, quote, notices };
 }

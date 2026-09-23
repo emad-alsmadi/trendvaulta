@@ -194,6 +194,17 @@ export type AdminOrderDetail = AdminOrder & {
   updatedAt?: string;
 };
 
+export type OrderTrackingPayload = {
+  trackingNumber?: string;
+  trackingCarrier?: string;
+  trackingUrl?: string;
+  trackingEvent?: {
+    status: string;
+    description?: string;
+    location?: string;
+  };
+};
+
 export type AdminOrdersQuery = {
   page?: number;
   limit?: number;
@@ -292,16 +303,7 @@ export const adminOrdersApi = {
 
   updateOrderTracking: async (
     id: string,
-    tracking: {
-      trackingNumber?: string;
-      trackingCarrier?: string;
-      trackingUrl?: string;
-      trackingEvent?: {
-        status: string;
-        description?: string;
-        location?: string;
-      };
-    },
+    tracking: OrderTrackingPayload,
   ): Promise<AdminOrder> => {
     const { data } = await api.patch<AdminOrder>(
       `/orders/${id}/tracking`,

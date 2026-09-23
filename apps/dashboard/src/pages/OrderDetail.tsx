@@ -5,7 +5,11 @@ import {
   useAdminOrderById,
   useUpdateOrderTrackingMutation,
 } from '../hooks/useAdminOrders';
-import { errorMessage, type AdminOrderCustomer } from '../lib/api';
+import {
+  errorMessage,
+  type AdminOrderCustomer,
+  type OrderTrackingPayload,
+} from '../lib/api';
 import { useToast } from '../components/ui/Toast';
 import { useState } from 'react';
 
@@ -88,7 +92,7 @@ export default function OrderDetail() {
     e.preventDefault();
     if (!id) return;
 
-    const tracking: any = {};
+    const tracking: OrderTrackingPayload = {};
     if (trackingForm.trackingNumber)
       tracking.trackingNumber = trackingForm.trackingNumber;
     if (trackingForm.trackingCarrier)

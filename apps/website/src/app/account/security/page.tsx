@@ -257,7 +257,7 @@ export default function SecurityPage() {
           <ul className='space-y-2 text-sm font-semibold text-indigo-950/70'>
             <li className='flex items-center gap-2'>
               <CheckCircle className='h-4 w-4 text-emerald-600' />
-              Use a unique password you don't use elsewhere
+              Use a unique password you don&apos;t use elsewhere
             </li>
             <li className='flex items-center gap-2'>
               <CheckCircle className='h-4 w-4 text-emerald-600' />

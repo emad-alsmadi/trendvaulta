@@ -69,8 +69,7 @@ export default async function BrandDetailPage({ params }: Params) {
       {brand && (
         <script
           type='application/ld+json'
-          // Server-rendered from our own API response; no user input is
-          // interpolated, and JSON.stringify escapes the values.
+          // JSON-LD is serialized from API data, escaped to avoid closing the tag
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               '@context': 'https://schema.org',
@@ -80,7 +79,7 @@ export default async function BrandDetailPage({ params }: Params) {
               ...(brand.logo ? { logo: brand.logo } : {}),
               ...(brand.website ? { sameAs: [brand.website] } : {}),
               url: `${getSiteUrl()}/brands/${brand.slug || brand._id}`,
-            }),
+            }).replace(/</g, '\\u003c'),
           }}
         />
       )}

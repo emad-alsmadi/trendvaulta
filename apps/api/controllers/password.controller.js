@@ -15,6 +15,23 @@ const forgotPasswordSchema = Joi.object({
 const FORGOT_PASSWORD_MESSAGE =
   'If an account exists for that email, a password reset link has been sent.';
 
+const resetPasswordParamsSchema = Joi.object({
+  userId: Joi.string()
+    .hex()
+    .length(24)
+    .required()
+    .messages({ '*': 'Invalid or expired reset link' }),
+  token: Joi.string().trim().max(1000).required(),
+});
+
+const resetPasswordBodySchema = Joi.object({
+  password: Joi.string().min(8).max(128).required(),
+}).unknown(true);
+
+// Unknown user and bad token are indistinguishable, so a caller cannot probe
+// which user ids exist by replaying the reset endpoint.
+const RESET_LINK_INVALID_MESSAGE = 'Invalid or expired reset link';
+
 /**
  * Send a password reset link to the user's email.
  *
@@ -119,29 +136,34 @@ const sendForgotPasswordLink = asyncHandler(async (req, res) => {
  * @returns {Promise<void>} JSON confirmation message
  */
 const resetPassword = asyncHandler(async (req, res) => {
-  // TODO: Validation
-  const user = await User.findById(req.params.userId);
+  const { error: paramsError, value: params } = resetPasswordParamsSchema.validate(
+    { userId: req.params.userId, token: req.params.token },
+    { stripUnknown: true },
+  );
+  if (paramsError) {
+    return res.status(400).json({ message: RESET_LINK_INVALID_MESSAGE });
+  }
+
+  const { error: bodyError } = resetPasswordBodySchema.validate(req.body ?? {});
+  if (bodyError) {
+    return res.status(400).json({
+      message: 'Password is required and must be 8-128 characters',
+    });
+  }
+
+  const user = await User.findById(params.userId);
   if (!user) {
-    return res.status(404).json({ message: 'User not Found' });
+    return res.status(400).json({ message: RESET_LINK_INVALID_MESSAGE });
   }
   const secret = process.env.JWT_SECRET_KEY + user.password;
 
   try {
-    jwt.verify(req.params.token, secret);
+    jwt.verify(params.token, secret);
 
-    const salt = await bcrypt.genSalt(10);
-    if (!req.body?.password || String(req.body.password).length < 8) {
-      return res.status(400).json({
-        message: 'Password is required and must be at least 8 characters',
-      });
-    }
-    req.body.password = await bcrypt.hash(req.body.password, salt);
-
-    user.password = req.body.password;
+    user.password = await bcrypt.hash(req.body.password, await bcrypt.genSalt(10));
     await user.save();
-  } catch (error) {
-    console.log(error);
-    return res.status(400).json({ message: 'Invalid or expired token' });
+  } catch {
+    return res.status(400).json({ message: RESET_LINK_INVALID_MESSAGE });
   }
 
   // Every existing session must re-authenticate with the new password

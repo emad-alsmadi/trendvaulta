@@ -74,6 +74,15 @@ const errorHandler = (err, req, res, next) => {
     message = 'Token expired';
   }
 
+  // Unexpected server faults carry driver/runtime text (collection names, query
+  // shapes, stack fragments). Only errors we raised deliberately (AppError sets
+  // isOperational) may speak for themselves at 5xx in production.
+  if (statusCode >= 500 && !err.isOperational && process.env.NODE_ENV === 'production') {
+    message = 'Internal server error';
+    code = 'INTERNAL_ERROR';
+    details = null;
+  }
+
   // Send error response
   res.status(statusCode).json({
     success: false,

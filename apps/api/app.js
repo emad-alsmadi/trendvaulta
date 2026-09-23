@@ -56,6 +56,18 @@ app.use(
   }),
 );
 
+// Liveness/readiness probe for the platform's health checks. Kept above the
+// routers and outside /api so it is never rate limited or auth gated. Reports
+// 503 while Mongo is not connected so a rolling deploy holds traffic back.
+app.get('/health', (req, res) => {
+  const dbConnected = mongoose.connection.readyState === 1;
+  res.status(dbConnected ? 200 : 503).json({
+    status: dbConnected ? 'ok' : 'degraded',
+    uptime: Math.floor(process.uptime()),
+    db: dbConnected ? 'connected' : 'disconnected',
+  });
+});
+
 //Routers
 app.use('/api/', require('./routes/uploads'));
 app.use('/api/', require('./routes/products'));

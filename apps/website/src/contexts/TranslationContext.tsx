@@ -3,8 +3,8 @@
 import {
   createContext,
   useContext,
-  useState,
   useEffect,
+  useSyncExternalStore,
   ReactNode,
 } from 'react';
 import enMessages from '../messages/en.json';
@@ -44,72 +44,94 @@ const currencyLocales: Record<Currency, Locale> = {
   EUR: 'en',
 };
 
+const isLocale = (value: string | null): value is Locale =>
+  value === 'en' || value === 'ar';
+
+const isCurrency = (value: string | null): value is Currency =>
+  value !== null && value in currencySymbols;
+
+const LOCALE_KEY = 'tv_locale';
+const CURRENCY_KEY = 'tv_currency';
+
+// The reader's locale and currency live in localStorage, which React does not
+// own, so they are read through useSyncExternalStore: the server snapshot is
+// the default, the client snapshot is the stored value, and a write notifies
+// every subscriber (including other tabs, via the native `storage` event).
+const listeners = new Set<() => void>();
+
+function subscribe(onChange: () => void) {
+  listeners.add(onChange);
+  window.addEventListener('storage', onChange);
+  return () => {
+    listeners.delete(onChange);
+    window.removeEventListener('storage', onChange);
+  };
+}
+
+function writePreference(key: string, value: string) {
+  localStorage.setItem(key, value);
+  for (const notify of listeners) notify();
+}
+
+const readLocale = (): Locale => {
+  const saved = localStorage.getItem(LOCALE_KEY);
+  return isLocale(saved) ? saved : 'en';
+};
+
+const readCurrency = (): Currency => {
+  const saved = localStorage.getItem(CURRENCY_KEY);
+  return isCurrency(saved) ? saved : 'USD';
+};
+
 export function TranslationProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>('en');
-  const [currency, setCurrencyState] = useState<Currency>('USD');
+  const locale = useSyncExternalStore<Locale>(
+    subscribe,
+    readLocale,
+    () => 'en',
+  );
+  const currency = useSyncExternalStore<Currency>(
+    subscribe,
+    readCurrency,
+    () => 'USD',
+  );
 
+  const dir: 'ltr' | 'rtl' = locale === 'ar' ? 'rtl' : 'ltr';
+
+  // The <html> element is the one piece of state React does not own here, so
+  // it is synchronised in one place rather than at each call site. Server
+  // render emits lang="en"/dir="ltr"; this corrects it after hydration.
   useEffect(() => {
-    // Load saved locale from localStorage
-    const saved = localStorage.getItem('tv_locale') as Locale | null;
-    if (saved && (saved === 'en' || saved === 'ar')) {
-      setLocaleState(saved);
-    } else {
-      // Set initial dir based on default locale
-      document.documentElement.dir = 'ltr';
-      document.documentElement.lang = 'en';
-    }
-
-    // Load saved currency from localStorage
-    const savedCurrency = localStorage.getItem(
-      'tv_currency',
-    ) as Currency | null;
-    if (
-      savedCurrency &&
-      (savedCurrency === 'USD' ||
-        savedCurrency === 'SAR' ||
-        savedCurrency === 'EUR')
-    ) {
-      setCurrencyState(savedCurrency);
-    }
-  }, []);
+    document.documentElement.lang = locale;
+    document.documentElement.dir = dir;
+  }, [locale, dir]);
 
   const setLocale = (newLocale: Locale) => {
-    setLocaleState(newLocale);
-    localStorage.setItem('tv_locale', newLocale);
-    document.documentElement.dir = newLocale === 'ar' ? 'rtl' : 'ltr';
-    document.documentElement.lang = newLocale;
+    writePreference(LOCALE_KEY, newLocale);
 
-    // Auto-switch currency to match locale
+    // Arabic browsing defaults to SAR pricing, English back to USD. A currency
+    // the reader picked explicitly for the other locale is left alone.
     if (newLocale === 'ar' && currency === 'USD') {
-      setCurrency('SAR');
+      writePreference(CURRENCY_KEY, 'SAR');
     } else if (newLocale === 'en' && currency === 'SAR') {
-      setCurrency('USD');
+      writePreference(CURRENCY_KEY, 'USD');
     }
   };
 
   const setCurrency = (newCurrency: Currency) => {
-    setCurrencyState(newCurrency);
-    localStorage.setItem('tv_currency', newCurrency);
+    writePreference(CURRENCY_KEY, newCurrency);
 
-    // Auto-switch locale to match currency
     const targetLocale = currencyLocales[newCurrency];
-    if (targetLocale && targetLocale !== locale) {
-      setLocaleState(targetLocale);
-      document.documentElement.dir = targetLocale === 'ar' ? 'rtl' : 'ltr';
-      document.documentElement.lang = targetLocale;
-    }
+    if (targetLocale !== locale) writePreference(LOCALE_KEY, targetLocale);
   };
 
   const t = (key: string): string => {
-    const keys = key.split('.');
-    let value: any = messages[locale];
-    for (const k of keys) {
-      value = value?.[k];
+    let value: unknown = messages[locale];
+    for (const k of key.split('.')) {
+      if (typeof value !== 'object' || value === null) return key;
+      value = (value as Record<string, unknown>)[k];
     }
-    return value || key;
+    return typeof value === 'string' ? value : key;
   };
-
-  const dir: 'ltr' | 'rtl' = locale === 'ar' ? 'rtl' : 'ltr';
 
   const formatPrice = (amount: number): string => {
     const symbol = currencySymbols[currency];

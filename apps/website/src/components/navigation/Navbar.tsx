@@ -614,10 +614,10 @@ export function Navbar() {
             { href: '/c/clothing', label: 'Clothing' },
             { href: '/c/skincare', label: 'Skincare' },
             { href: '/c/accessories', label: 'Accessories' },
-            { href: '/c/home', label: 'common.home' },
-            { href: '/brands', label: 'common.brands' },
+            { href: '/c/home', label: 'Home & Living' },
+            { href: '/brands', label: 'Brands' },
             { href: '/#gift-finder', label: 'Gift finder' },
-            { href: '/help', label: 'common.contact' },
+            { href: '/help', label: 'Contact' },
           ].map((item) => (
             <Link
               key={item.href}
