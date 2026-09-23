@@ -1,13 +1,23 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { adminCouponsApi, type CouponPayload } from '../lib/api';
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import {
+  adminCouponsApi,
+  type AdminCouponsQuery,
+  type CouponPayload,
+} from '../lib/api';
 
 export const ADMIN_COUPONS_KEY = ['admin', 'coupons'] as const;
 
-export function useAdminCoupons(params?: { page?: number; limit?: number }) {
+export function useAdminCoupons(params?: AdminCouponsQuery) {
   return useQuery({
     queryKey: [...ADMIN_COUPONS_KEY, params ?? {}] as const,
     queryFn: () => adminCouponsApi.getCoupons(params),
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
   });
 }
 

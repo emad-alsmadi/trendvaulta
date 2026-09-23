@@ -1,13 +1,19 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { adminReviewsApi } from '../lib/api';
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import { adminReviewsApi, type AdminReviewsQuery } from '../lib/api';
 
 export const ADMIN_REVIEWS_KEY = ['admin', 'reviews'] as const;
 
-export function useAdminReviews(params?: { page?: number; limit?: number }) {
+export function useAdminReviews(params?: AdminReviewsQuery) {
   return useQuery({
     queryKey: [...ADMIN_REVIEWS_KEY, params ?? {}] as const,
     queryFn: () => adminReviewsApi.getReviews(params),
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
   });
 }
 

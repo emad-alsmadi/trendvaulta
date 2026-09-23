@@ -634,12 +634,21 @@ export type CouponPayload = {
   description?: string;
 };
 
+export type AdminCouponsQuery = {
+  page?: number;
+  limit?: number;
+  /** Code or description. */
+  q?: string;
+  sort?: string;
+  order?: 'asc' | 'desc';
+};
+
 export const adminCouponsApi = {
   getCoupons: async (
-    params: { page?: number; limit?: number } = {},
+    params: AdminCouponsQuery = {},
   ): Promise<PaginatedList<AdminCoupon>> => {
     const { data } = await api.get<PaginatedList<AdminCoupon>>('/coupons', {
-      params: { limit: 100, ...params },
+      params: { limit: 25, ...params },
     });
     return data;
   },
@@ -728,13 +737,23 @@ export type AdminReview = {
     | { _id?: string; title?: string; cover?: string; sku?: string };
 };
 
+export type AdminReviewsQuery = {
+  page?: number;
+  limit?: number;
+  /** Comment text. */
+  q?: string;
+  rating?: number;
+  sort?: string;
+  order?: 'asc' | 'desc';
+};
+
 export const adminReviewsApi = {
   getReviews: async (
-    params: { page?: number; limit?: number } = {},
+    params: AdminReviewsQuery = {},
   ): Promise<PaginatedList<AdminReview>> => {
     const { data } = await api.get<PaginatedList<AdminReview>>(
       '/reviews/admin',
-      { params: { limit: 100, ...params } },
+      { params: { limit: 25, ...params } },
     );
     return data;
   },
