@@ -45,7 +45,6 @@ const RecentlyViewedSchema = new mongoose.Schema(
   },
 );
 
-RecentlyViewedSchema.index({ user: 1 });
 
 const RecentlyViewed = mongoose.model('RecentlyViewed', RecentlyViewedSchema);
 

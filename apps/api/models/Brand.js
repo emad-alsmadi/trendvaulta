@@ -51,7 +51,6 @@ const BrandSchema = new mongoose.Schema(
 );
 
 BrandSchema.index({ featured: 1, isActive: 1 });
-BrandSchema.index({ name: 1 });
 
 const Brand = mongoose.model('Brand', BrandSchema);
 

@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import {
   adminOrdersApi,
   type AdminOrdersQuery,
@@ -22,6 +27,9 @@ export function useAdminOrders(params?: AdminOrdersQuery) {
     queryKey: [...ADMIN_ORDERS_KEY, params ?? {}] as const,
     queryFn: () => adminOrdersApi.getOrders(params),
     staleTime: 15_000,
+    // Paging and sorting should redraw the table in place; without this the
+    // rows blank out on every page change and the layout jumps.
+    placeholderData: keepPreviousData,
   });
 }
 

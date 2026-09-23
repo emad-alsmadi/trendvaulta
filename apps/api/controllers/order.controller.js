@@ -27,6 +27,17 @@ const {
   canTransitionOrderStatus,
   getAllowedNextStatuses,
 } = require('../utils/orderTransitions');
+const { buildSort } = require('../utils/sort');
+const { normalizeSearchTerm } = require('../utils/search');
+const { User } = require('../models/User');
+
+/** Columns the admin order table may sort on; all are indexed (models/Order.js). */
+const ORDER_SORT_FIELDS = [
+  'createdAt',
+  'totalPrice',
+  'status',
+  'paymentStatus',
+];
 
 const createOrder = asyncHandler(async (req, res) => {
   const stripeKey = process.env.STRIPE_SECRET_KEY?.trim();
@@ -156,6 +167,7 @@ const getOrderById = asyncHandler(async (req, res) => {
  */
 const getAllOrders = asyncHandler(async (req, res) => {
   const { page = 1, limit = 20, status, paymentStatus, q } = req.query;
+  const sort = buildSort(req.query.sort, req.query.order, ORDER_SORT_FIELDS);
 
   const query = {};
   if (status && ORDER_STATUSES.includes(String(status))) {
@@ -169,10 +181,24 @@ const getAllOrders = asyncHandler(async (req, res) => {
   ) {
     query.paymentStatus = String(paymentStatus);
   }
-  if (q && String(q).trim()) {
-    const term = String(q).trim();
+  // An order id matches exactly; anything else is treated as a customer email
+  // or username. A term that matches nothing must return nothing — dropping
+  // the filter instead would answer a failed search with the whole list.
+  const term = normalizeSearchTerm(q);
+  if (term) {
     if (/^[a-f\d]{24}$/i.test(term)) {
       query._id = term;
+    } else {
+      const customers = await User.find({
+        $or: [
+          { email: { $regex: term, $options: 'i' } },
+          { username: { $regex: term, $options: 'i' } },
+        ],
+      })
+        .select('_id')
+        .limit(200)
+        .lean();
+      query.user = { $in: customers.map((u) => u._id) };
     }
   }
 
@@ -183,7 +209,7 @@ const getAllOrders = asyncHandler(async (req, res) => {
   const [orders, total] = await Promise.all([
     Order.find(query)
       .populate('user', 'username email')
-      .sort({ createdAt: -1 })
+      .sort(sort)
       .skip(skip)
       .limit(limitNum)
       .lean(),

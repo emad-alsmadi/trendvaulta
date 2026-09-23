@@ -14,6 +14,9 @@ import { getAuthToken } from '../lib/auth';
 import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
+import { useTableQuery } from '../hooks/useTableQuery';
+import { SortableHeader } from '../components/ui/SortableHeader';
+import { TablePagination } from '../components/ui/TablePagination';
 
 const STATUS_FILTERS = [
   { value: '', label: 'All statuses' },
@@ -23,6 +26,16 @@ const STATUS_FILTERS = [
   { value: 'delivered', label: 'Delivered' },
   { value: 'canceled', label: 'Canceled' },
   { value: 'needs_attention', label: 'Needs attention' },
+  { value: 'refunded', label: 'Refunded' },
+];
+
+// Mirrors the paymentStatus values order.controller.js accepts.
+const PAYMENT_FILTERS = [
+  { value: '', label: 'All payments' },
+  { value: 'unpaid', label: 'Unpaid' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'failed', label: 'Failed' },
   { value: 'refunded', label: 'Refunded' },
 ];
 
@@ -94,16 +107,20 @@ export default function Orders() {
   const toast = useToast();
   const confirm = useConfirm();
   const [statusFilter, setStatusFilter] = useState('');
+  const [paymentFilter, setPaymentFilter] = useState('');
   const [search, setSearch] = useState('');
   const [appliedQ, setAppliedQ] = useState('');
+  const table = useTableQuery({ limit: 25, sort: 'createdAt', order: 'desc' });
+  const { resetPage } = table;
 
   const query = useMemo(
     () => ({
-      limit: 50,
+      ...table.params,
       status: statusFilter || undefined,
+      paymentStatus: paymentFilter || undefined,
       q: appliedQ || undefined,
     }),
-    [statusFilter, appliedQ],
+    [table.params, statusFilter, paymentFilter, appliedQ],
   );
 
   const ordersQ = useAdminOrders(query);
@@ -129,6 +146,7 @@ export default function Orders() {
   function onSearchSubmit(e: React.FormEvent) {
     e.preventDefault();
     setAppliedQ(search.trim());
+    resetPage();
   }
 
   return (
@@ -150,11 +168,29 @@ export default function Orders() {
         <div className="flex flex-wrap items-center gap-2">
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              resetPage();
+            }}
             aria-label="Filter by status"
             className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
           >
             {STATUS_FILTERS.map((s) => (
+              <option key={s.value || 'all'} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+          <select
+            value={paymentFilter}
+            onChange={(e) => {
+              setPaymentFilter(e.target.value);
+              resetPage();
+            }}
+            aria-label="Filter by payment status"
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+          >
+            {PAYMENT_FILTERS.map((s) => (
               <option key={s.value || 'all'} value={s.value}>
                 {s.label}
               </option>
@@ -224,24 +260,43 @@ export default function Orders() {
         >
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px]">
-              <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  {[
-                    'Order',
-                    'Customer',
-                    'Total',
-                    'Payment',
-                    'Status',
-                    'Date',
-                    'Next action',
-                  ].map((h) => (
-                    <th
-                      key={h}
-                      className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300"
-                    >
-                      {h}
-                    </th>
-                  ))}
+              <thead className="bg-gray-50 text-xs uppercase tracking-wider dark:bg-gray-700">
+                <tr className="[&>th]:px-4 [&>th]:py-3 [&>th]:text-left [&>th]:font-medium [&>th]:text-gray-500 dark:[&>th]:text-gray-300">
+                  <th scope="col">Order</th>
+                  <th scope="col">Customer</th>
+                  <SortableHeader
+                    field="totalPrice"
+                    active={table.sort}
+                    order={table.order}
+                    onSort={table.toggleSort}
+                  >
+                    Total
+                  </SortableHeader>
+                  <SortableHeader
+                    field="paymentStatus"
+                    active={table.sort}
+                    order={table.order}
+                    onSort={table.toggleSort}
+                  >
+                    Payment
+                  </SortableHeader>
+                  <SortableHeader
+                    field="status"
+                    active={table.sort}
+                    order={table.order}
+                    onSort={table.toggleSort}
+                  >
+                    Status
+                  </SortableHeader>
+                  <SortableHeader
+                    field="createdAt"
+                    active={table.sort}
+                    order={table.order}
+                    onSort={table.toggleSort}
+                  >
+                    Date
+                  </SortableHeader>
+                  <th scope="col">Next action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -333,11 +388,14 @@ export default function Orders() {
               </tbody>
             </table>
           </div>
-          {meta ? (
-            <p className="border-t border-gray-200 px-4 py-3 text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">
-              Showing {orders.length} of {meta.total} orders
-            </p>
-          ) : null}
+          <div className="px-4 pb-4">
+            <TablePagination
+              meta={meta}
+              busy={ordersQ.isFetching}
+              onPage={table.setPage}
+              onLimit={table.setLimit}
+            />
+          </div>
         </motion.div>
       )}
     </motion.div>

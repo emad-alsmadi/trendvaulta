@@ -6,6 +6,10 @@ const {
 } = require('../models/Brand');
 const mongoose = require('mongoose');
 const { normalizeSearchTerm } = require('../utils/search');
+const { buildSort } = require('../utils/sort');
+
+/** Columns the brand list may sort on. */
+const BRAND_SORT_FIELDS = ['name', 'createdAt', 'country'];
 
 /**
  * Get all brands with filtering, sorting and pagination.
@@ -66,21 +70,22 @@ const getAllBrands = asyncHandler(async (req, res) => {
     ];
   }
 
-  const sortObj = {};
-  sort.split(',').forEach((field) => {
-    const direction = field.startsWith('-') ? -1 : 1;
-    const fieldName = field.replace(/^-/, '');
-    sortObj[fieldName] = direction;
-  });
+  // A leading '-' is the legacy way this endpoint spelled "descending"; both
+  // that and ?order=desc are accepted. The field itself must be allow-listed —
+  // it previously went straight into .sort(), which let a caller order by any
+  // path, indexed or not.
+  const legacyDescending = String(sort).startsWith('-');
+  const sortObj = buildSort(
+    String(sort).replace(/^-/, ''),
+    legacyDescending ? 'desc' : req.query.order,
+    BRAND_SORT_FIELDS,
+    // Featured strip: keep name order unless the caller asks for another sort.
+    { name: 1 },
+  );
 
   const pageNum = Math.max(1, parseInt(page, 10) || 1);
   const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
   const skip = (pageNum - 1) * limitNum;
-
-  // Featured strip: keep name order unless client passes another sort
-  if (Object.keys(sortObj).length === 0) {
-    sortObj.name = 1;
-  }
 
   const [brands, total] = await Promise.all([
     Brand.find(query)

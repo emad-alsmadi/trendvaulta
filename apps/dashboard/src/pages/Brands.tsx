@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Plus, Pencil, Trash2, X } from 'lucide-react';
 import {
@@ -16,6 +16,8 @@ import {
 import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
+import { useTableQuery, type SortOrder } from '../hooks/useTableQuery';
+import { TablePagination } from '../components/ui/TablePagination';
 import { ImageUploadField } from '../components/ui/ImageUploadField';
 
 const emptyForm: BrandFormPayload = {
@@ -62,8 +64,11 @@ export default function Brands() {
   const [editing, setEditing] = useState<AdminBrand | null>(null);
   const [form, setForm] = useState<BrandFormPayload>(emptyForm);
 
+  const table = useTableQuery({ limit: 24, sort: 'name', order: 'asc' });
+  const { resetPage } = table;
+
   const brandsQ = useAdminBrands({
-    limit: 100,
+    ...table.params,
     q: appliedQ || undefined,
   });
   const createMut = useCreateBrandMutation();
@@ -72,17 +77,8 @@ export default function Brands() {
 
   const saving = createMut.isPending || updateMut.isPending;
 
-  const filtered = useMemo(() => {
-    const list = brandsQ.data?.data || [];
-    if (!search.trim() || appliedQ) return list;
-    const q = search.trim().toLowerCase();
-    return list.filter(
-      (b) =>
-        b.name.toLowerCase().includes(q) ||
-        b.slug?.toLowerCase().includes(q) ||
-        b.country?.toLowerCase().includes(q),
-    );
-  }, [brandsQ.data, search, appliedQ]);
+  const brands = brandsQ.data?.data || [];
+  const meta = brandsQ.data?.meta;
 
   function openCreate() {
     setEditing(null);
@@ -178,14 +174,15 @@ export default function Brands() {
         )}
       </div>
 
-      <form
-        className="mb-6"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setAppliedQ(search.trim());
-        }}
-      >
-        <div className="relative">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row">
+        <form
+          className="relative flex-1"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setAppliedQ(search.trim());
+            resetPage();
+          }}
+        >
           <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
           <input
             type="search"
@@ -194,8 +191,23 @@ export default function Brands() {
             placeholder="Search brands…"
             className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
           />
-        </div>
-      </form>
+        </form>
+        <select
+          value={`${table.sort}:${table.order}`}
+          onChange={(e) => {
+            // The grid has no column headers to click, so sort is a control.
+            const [field, order] = e.target.value.split(':');
+            table.setSort(field, order as SortOrder);
+          }}
+          aria-label="Sort brands"
+          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+        >
+          <option value="name:asc">Name A–Z</option>
+          <option value="name:desc">Name Z–A</option>
+          <option value="createdAt:desc">Newest first</option>
+          <option value="createdAt:asc">Oldest first</option>
+        </select>
+      </div>
 
       {brandsQ.isLoading && (
         <p className="py-10 text-center text-sm text-gray-500">Loading brands…</p>
@@ -208,12 +220,12 @@ export default function Brands() {
 
       {!brandsQ.isLoading && !brandsQ.isError && (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filtered.length === 0 ? (
+          {brands.length === 0 ? (
             <p className="col-span-full py-10 text-center text-sm text-gray-500">
               No brands found.
             </p>
           ) : (
-            filtered.map((brand) => (
+            brands.map((brand) => (
               <div
                 key={brand._id}
                 className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
@@ -286,6 +298,15 @@ export default function Brands() {
             ))
           )}
         </div>
+      )}
+
+      {!brandsQ.isLoading && !brandsQ.isError && (
+        <TablePagination
+          meta={meta}
+          busy={brandsQ.isFetching}
+          onPage={table.setPage}
+          onLimit={table.setLimit}
+        />
       )}
 
       {open && (

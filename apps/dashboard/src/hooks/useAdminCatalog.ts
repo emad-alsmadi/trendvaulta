@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import {
   adminBrandsApi,
   adminProductsApi,
@@ -13,11 +18,14 @@ export function useAdminBrands(params?: {
   page?: number;
   limit?: number;
   q?: string;
+  sort?: string;
+  order?: 'asc' | 'desc';
 }) {
   return useQuery({
     queryKey: [...ADMIN_BRANDS_KEY, params ?? {}] as const,
     queryFn: () => adminBrandsApi.getBrands(params),
     staleTime: 15_000,
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -64,6 +72,7 @@ export function useAdminProducts(params?: {
   limit?: number;
   q?: string;
   category?: string;
+  sort?: string;
 }) {
   return useQuery({
     queryKey: [...ADMIN_PRODUCTS_KEY, params ?? {}] as const,
@@ -73,6 +82,7 @@ export function useAdminProducts(params?: {
         ...params,
       }),
     staleTime: 15_000,
+    placeholderData: keepPreviousData,
   });
 }
 

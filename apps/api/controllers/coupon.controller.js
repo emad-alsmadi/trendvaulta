@@ -1,5 +1,9 @@
 const asyncHandler = require('express-async-handler');
 const { parsePagination } = require('../utils/pagination');
+const { buildSort } = require('../utils/sort');
+
+/** Columns the coupon table may sort on. */
+const COUPON_SORT_FIELDS = ['createdAt', 'code', 'expiresAt', 'discountValue'];
 const {
   Coupon,
   validateCreateCoupon,
@@ -24,10 +28,11 @@ const getAllCoupons = asyncHandler(async (req, res) => {
     { defaultLimit: 10, maxLimit: 100 },
   );
   const skip = (pageNum - 1) * limitNum;
+  const sort = buildSort(req.query.sort, req.query.order, COUPON_SORT_FIELDS);
 
   const [coupons, total] = await Promise.all([
     Coupon.find()
-      .sort({ createdAt: -1 })
+      .sort(sort)
       .skip(skip)
       .limit(limitNum)
       .lean(),

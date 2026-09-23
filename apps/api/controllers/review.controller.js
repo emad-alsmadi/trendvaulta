@@ -6,6 +6,10 @@ const {
 } = require('../models/Review');
 const { Product } = require('../models/Product');
 const { Order } = require('../models/Order');
+const { buildSort } = require('../utils/sort');
+
+/** Columns the admin review table may sort on. */
+const REVIEW_SORT_FIELDS = ['createdAt', 'rating'];
 
 /**
  * Whether userId has a paid/refunded, non-canceled order containing productId.
@@ -271,12 +275,13 @@ const getAdminReviews = asyncHandler(async (req, res) => {
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
   const limit = Math.max(1, Math.min(100, parseInt(req.query.limit, 10) || 50));
   const skip = (page - 1) * limit;
+  const sort = buildSort(req.query.sort, req.query.order, REVIEW_SORT_FIELDS);
 
   const [data, total] = await Promise.all([
     Review.find()
       .populate('user', 'username email')
       .populate('product', 'title cover sku')
-      .sort({ createdAt: -1 })
+      .sort(sort)
       .skip(skip)
       .limit(limit)
       .lean(),

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Pencil, Trash2, X } from 'lucide-react';
 import {
@@ -15,6 +15,9 @@ import {
 import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
+import { useTableQuery } from '../hooks/useTableQuery';
+import { SortableHeader } from '../components/ui/SortableHeader';
+import { TablePagination } from '../components/ui/TablePagination';
 
 const ROLES: AppRole[] = ['user', 'moderator', 'admin'];
 
@@ -36,11 +39,20 @@ export default function Users() {
   const { can } = usePermissions();
   const toast = useToast();
   const confirm = useConfirm();
-  const usersQ = useAdminUsers();
+  const table = useTableQuery({ limit: 25, sort: 'createdAt', order: 'desc' });
+  const { resetPage } = table;
+  const [search, setSearch] = useState('');
+  const [appliedQ, setAppliedQ] = useState('');
+  const [roleFilter, setRoleFilter] = useState<AppRole | ''>('');
+
+  const usersQ = useAdminUsers({
+    ...table.params,
+    q: appliedQ || undefined,
+    role: roleFilter || undefined,
+  });
   const updateMut = useUpdateUserMutation();
   const deleteMut = useDeleteUserMutation();
 
-  const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AdminUser | null>(null);
   const [form, setForm] = useState<UserForm>({
@@ -50,20 +62,9 @@ export default function Users() {
     password: '',
   });
 
-  const users = usersQ.data || [];
+  const users = usersQ.data?.data || [];
+  const meta = usersQ.data?.meta;
   const saving = updateMut.isPending;
-
-  const filtered = useMemo(() => {
-    const list = usersQ.data || [];
-    const q = search.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter(
-      (u) =>
-        u.email.toLowerCase().includes(q) ||
-        u.username.toLowerCase().includes(q) ||
-        (u.roles || []).some((r) => r.toLowerCase().includes(q)),
-    );
-  }, [usersQ.data, search]);
 
   function openEdit(user: AdminUser) {
     setEditing(user);
@@ -140,15 +141,38 @@ export default function Users() {
         </div>
       </div>
 
-      <div className="relative mb-6">
-        <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by email, username, or role…"
-          className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-        />
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row">
+        <form
+          className="relative flex-1"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setAppliedQ(search.trim());
+            resetPage();
+          }}
+        >
+          <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by email or username…"
+            className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+          />
+        </form>
+        <select
+          value={roleFilter}
+          onChange={(e) => {
+            setRoleFilter(e.target.value as AppRole | '');
+            resetPage();
+          }}
+          aria-label="Filter by role"
+          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+        >
+          <option value="">All roles</option>
+          <option value="user">User</option>
+          <option value="moderator">Moderator</option>
+          <option value="admin">Admin</option>
+        </select>
       </div>
 
       {usersQ.isLoading && (
@@ -165,22 +189,38 @@ export default function Users() {
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px]">
-              <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  {['Username', 'Email', 'Roles', 'Joined', 'Actions'].map(
-                    (h) => (
-                      <th
-                        key={h}
-                        className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300"
-                      >
-                        {h}
-                      </th>
-                    ),
-                  )}
+              <thead className="bg-gray-50 text-xs uppercase tracking-wider dark:bg-gray-700">
+                <tr className="[&>th]:px-4 [&>th]:py-3 [&>th]:text-left [&>th]:font-medium [&>th]:text-gray-500 dark:[&>th]:text-gray-300">
+                  <SortableHeader
+                    field="username"
+                    active={table.sort}
+                    order={table.order}
+                    onSort={table.toggleSort}
+                  >
+                    Username
+                  </SortableHeader>
+                  <SortableHeader
+                    field="email"
+                    active={table.sort}
+                    order={table.order}
+                    onSort={table.toggleSort}
+                  >
+                    Email
+                  </SortableHeader>
+                  <th scope="col">Roles</th>
+                  <SortableHeader
+                    field="createdAt"
+                    active={table.sort}
+                    order={table.order}
+                    onSort={table.toggleSort}
+                  >
+                    Joined
+                  </SortableHeader>
+                  <th scope="col">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {filtered.length === 0 ? (
+                {users.length === 0 ? (
                   <tr>
                     <td
                       colSpan={5}
@@ -190,7 +230,7 @@ export default function Users() {
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((user) => (
+                  users.map((user) => (
                     <tr
                       key={user._id}
                       className="hover:bg-gray-50 dark:hover:bg-gray-700/60"
@@ -252,9 +292,14 @@ export default function Users() {
               </tbody>
             </table>
           </div>
-          <p className="border-t border-gray-200 px-4 py-3 text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">
-            Showing {filtered.length} of {users.length} users
-          </p>
+          <div className="px-4 pb-4">
+            <TablePagination
+              meta={meta}
+              busy={usersQ.isFetching}
+              onPage={table.setPage}
+              onLimit={table.setLimit}
+            />
+          </div>
         </div>
       )}
 

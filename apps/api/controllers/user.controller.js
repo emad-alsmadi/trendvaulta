@@ -3,19 +3,56 @@ const bcrypt = require('bcryptjs');
 const { User, validateUpdateUser } = require('../models/User');
 const { RefreshToken } = require('../models/RefreshToken');
 const { revokeAllForUser } = require('../utils/refreshTokens');
+const { parsePagination } = require('../utils/pagination');
+const { normalizeSearchTerm } = require('../utils/search');
+const { buildSort } = require('../utils/sort');
+
+const APP_ROLES = ['user', 'admin', 'moderator'];
+
+/** Columns the admin user table may sort on. */
+const USER_SORT_FIELDS = ['createdAt', 'username', 'email'];
 
 /**
- * Get all users.
+ * Get users, paginated.
+ *
+ * Supports `page`, `limit`, `q` (username or email), `role`, `sort`/`order`.
+ * The legacy shape of this endpoint was an unbounded array of every user; it
+ * now returns `{ data, meta }` like the other admin lists.
  *
  * @route GET /api/users
  * @access Private (admin)
  * @param {import('express').Request} req
  * @param {import('express').Response} res
- * @returns {Promise<void>} JSON array of users (password excluded)
+ * @returns {Promise<void>} JSON `{ data, meta }` (password excluded)
  */
 const getAllUsers = asyncHandler(async (req, res) => {
-  const users = await User.find().select('-password');
-  res.status(200).json(users);
+  const { page, limit, skip } = parsePagination(req.query, { defaultLimit: 25 });
+  const sort = buildSort(req.query.sort, req.query.order, USER_SORT_FIELDS);
+
+  const query = {};
+
+  const term = normalizeSearchTerm(req.query.q);
+  if (term) {
+    query.$or = [
+      { username: { $regex: term, $options: 'i' } },
+      { email: { $regex: term, $options: 'i' } },
+    ];
+  }
+
+  const role = typeof req.query.role === 'string' ? req.query.role.trim() : '';
+  if (APP_ROLES.includes(role)) {
+    query.roles = role;
+  }
+
+  const [users, total] = await Promise.all([
+    User.find(query).select('-password').sort(sort).skip(skip).limit(limit).lean(),
+    User.countDocuments(query),
+  ]);
+
+  res.status(200).json({
+    data: users,
+    meta: { total, page, pages: Math.ceil(total / limit) || 1, limit },
+  });
 });
 
 /**

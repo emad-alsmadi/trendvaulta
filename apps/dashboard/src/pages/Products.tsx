@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Plus, Pencil, Trash2, X } from 'lucide-react';
 import {
@@ -17,6 +17,8 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { ImageUploadField } from '../components/ui/ImageUploadField';
+import { useTableQuery } from '../hooks/useTableQuery';
+import { TablePagination } from '../components/ui/TablePagination';
 
 const emptyForm: ProductFormPayload = {
   title: '',
@@ -33,6 +35,15 @@ const emptyForm: ProductFormPayload = {
 };
 
 // Must match the Product model enum (apps/api/models/Product.js).
+/** Values product.controller.js accepts for ?sort=. */
+const SORT_PRESETS = [
+  { value: 'newest', label: 'Newest' },
+  { value: 'bestselling', label: 'Best selling' },
+  { value: 'price_asc', label: 'Price: low to high' },
+  { value: 'price_desc', label: 'Price: high to low' },
+  { value: 'rating', label: 'Top rated' },
+];
+
 const CATEGORIES = [
   { value: 'makeup', label: 'Makeup' },
   { value: 'skincare', label: 'Skincare' },
@@ -81,8 +92,15 @@ export default function Products() {
   const [editing, setEditing] = useState<AdminProduct | null>(null);
   const [form, setForm] = useState<ProductFormPayload>(emptyForm);
 
+  const table = useTableQuery({ limit: 24 });
+  const { resetPage } = table;
+  const [sortPreset, setSortPreset] = useState('newest');
+
   const productsQ = useAdminProducts({
-    limit: 100,
+    page: table.page,
+    limit: table.limit,
+    // Products take a named preset rather than field+order (product.controller.js).
+    sort: sortPreset,
     q: appliedQ || undefined,
     category: category || undefined,
   });
@@ -95,17 +113,8 @@ export default function Products() {
   const saving = createMut.isPending || updateMut.isPending;
   const defaultBrand = brands[0]?._id || '';
 
-  const filtered = useMemo(() => {
-    const list = productsQ.data?.data || [];
-    if (!search.trim() || appliedQ) return list;
-    const q = search.trim().toLowerCase();
-    return list.filter(
-      (p) =>
-        p.title.toLowerCase().includes(q) ||
-        p.category?.toLowerCase().includes(q) ||
-        p.sku?.toLowerCase().includes(q),
-    );
-  }, [productsQ.data, search, appliedQ]);
+  const products = productsQ.data?.data || [];
+  const meta = productsQ.data?.meta;
 
   function openCreate() {
     setEditing(null);
@@ -200,6 +209,7 @@ export default function Products() {
           onSubmit={(e) => {
             e.preventDefault();
             setAppliedQ(search.trim());
+            resetPage();
           }}
         >
           <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
@@ -213,7 +223,10 @@ export default function Products() {
         </form>
         <select
           value={category}
-          onChange={(e) => setCategory(e.target.value)}
+          onChange={(e) => {
+            setCategory(e.target.value);
+            resetPage();
+          }}
           aria-label="Filter by category"
           className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
         >
@@ -221,6 +234,21 @@ export default function Products() {
           {CATEGORIES.map((c) => (
             <option key={c.value} value={c.value}>
               {c.label}
+            </option>
+          ))}
+        </select>
+        <select
+          value={sortPreset}
+          onChange={(e) => {
+            setSortPreset(e.target.value);
+            resetPage();
+          }}
+          aria-label="Sort products"
+          className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+        >
+          {SORT_PRESETS.map((s) => (
+            <option key={s.value} value={s.value}>
+              {s.label}
             </option>
           ))}
         </select>
@@ -239,12 +267,12 @@ export default function Products() {
 
       {!productsQ.isLoading && !productsQ.isError && (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filtered.length === 0 ? (
+          {products.length === 0 ? (
             <p className="col-span-full py-10 text-center text-sm text-gray-500">
               No products found.
             </p>
           ) : (
-            filtered.map((product) => (
+            products.map((product) => (
               <div
                 key={product._id}
                 className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
@@ -321,6 +349,15 @@ export default function Products() {
             ))
           )}
         </div>
+      )}
+
+      {!productsQ.isLoading && !productsQ.isError && (
+        <TablePagination
+          meta={meta}
+          busy={productsQ.isFetching}
+          onPage={table.setPage}
+          onLimit={table.setLimit}
+        />
       )}
 
       {open && (

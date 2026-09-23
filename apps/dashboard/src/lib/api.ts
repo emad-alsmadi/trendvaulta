@@ -210,7 +210,10 @@ export type AdminOrdersQuery = {
   limit?: number;
   status?: string;
   paymentStatus?: string;
+  /** Order id or customer email. */
   q?: string;
+  sort?: string;
+  order?: 'asc' | 'desc';
 };
 
 export type AdminOrdersResponse = {
@@ -286,7 +289,7 @@ export const adminOrdersApi = {
     params: AdminOrdersQuery = {},
   ): Promise<AdminOrdersResponse> => {
     const { data } = await api.get<AdminOrdersResponse>('/orders', {
-      params: { limit: 50, ...params },
+      params: { limit: 25, ...params },
     });
     return data;
   },
@@ -465,11 +468,13 @@ export const adminBrandsApi = {
       page?: number;
       limit?: number;
       q?: string;
+      sort?: string;
+      order?: 'asc' | 'desc';
       includeInactive?: boolean;
     } = {},
   ): Promise<PaginatedList<AdminBrand>> => {
     const { data } = await api.get<PaginatedList<AdminBrand>>('/brands', {
-      params: { limit: 50, includeInactive: true, ...params },
+      params: { limit: 25, includeInactive: true, ...params },
     });
     return data;
   },
@@ -501,11 +506,13 @@ export const adminProductsApi = {
       q?: string;
       category?: string;
       brand?: string;
+      /** Preset name, e.g. `price_asc` — see product.controller.js. */
+      sort?: string;
       includeInactive?: boolean;
     } = {},
   ): Promise<PaginatedList<AdminProduct>> => {
     const { data } = await api.get<PaginatedList<AdminProduct>>('/products', {
-      params: { limit: 100, includeInactive: true, ...params },
+      params: { limit: 24, includeInactive: true, ...params },
     });
     return data;
   },
@@ -548,6 +555,16 @@ export const uploadsApi = {
 
 export type AppRole = 'user' | 'admin' | 'moderator';
 
+export type AdminUsersQuery = {
+  page?: number;
+  limit?: number;
+  /** Username or email. */
+  q?: string;
+  role?: AppRole;
+  sort?: string;
+  order?: 'asc' | 'desc';
+};
+
 export type AdminUser = {
   _id: string;
   email: string;
@@ -564,9 +581,13 @@ export type UserUpdatePayload = {
 };
 
 export const adminUsersApi = {
-  getUsers: async (): Promise<AdminUser[]> => {
-    const { data } = await api.get<AdminUser[]>('/users');
-    return Array.isArray(data) ? data : [];
+  getUsers: async (
+    params: AdminUsersQuery = {},
+  ): Promise<PaginatedList<AdminUser>> => {
+    const { data } = await api.get<PaginatedList<AdminUser>>('/users', {
+      params: { limit: 25, ...params },
+    });
+    return data;
   },
 
   updateUser: async (

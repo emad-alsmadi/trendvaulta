@@ -35,13 +35,14 @@ const ProductQASchema = new mongoose.Schema(
     approved: {
       type: Boolean,
       default: false,
-      index: true,
     },
   },
   { timestamps: true, collection: 'product_qa' }
 );
 
 ProductQASchema.index({ product: 1, approved: 1 });
+// Moderation queue: pending questions across every product. Not served by the
+// compound above, which is prefixed on `product`.
 ProductQASchema.index({ approved: 1 });
 
 module.exports = mongoose.model('ProductQA', ProductQASchema);
