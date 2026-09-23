@@ -16,7 +16,7 @@ export type CartQuoteOptions = {
   items: CartItem[];
   couponCode?: string;
   delivery?: boolean;
-  shippingMethod?: 'none' | 'standard' | 'express';
+  shippingMethod?: string;
 };
 
 export function cartQuoteKey(opts: CartQuoteOptions) {
@@ -30,7 +30,7 @@ export function cartQuoteKey(opts: CartQuoteOptions) {
     })),
     opts.couponCode ?? '',
     opts.shippingMethod ?? (opts.delivery ? 'standard' : 'none'),
-  ] as const;
+  ];
 }
 
 /**
@@ -69,7 +69,11 @@ export function useCartQuote(opts: CartQuoteOptions) {
 }
 
 export type CartLineNotice = {
-  code: 'insufficient_stock' | 'price_changed' | 'unavailable' | 'variant_required';
+  code:
+    | 'insufficient_stock'
+    | 'price_changed'
+    | 'unavailable'
+    | 'variant_required';
   message: string;
   /** Line title, kept so a notice can still be shown after the line is removed. */
   title: string;
@@ -165,7 +169,11 @@ function planQuoteSync(
       }
       if (cartLine.qty > available) {
         mutations.push(() => setCartQty(key, available));
-        notices[key] = noticeFor('insufficient_stock', cartLine.title, available);
+        notices[key] = noticeFor(
+          'insufficient_stock',
+          cartLine.title,
+          available,
+        );
       }
       if (cartLine.maxQty !== available) {
         mutations.push(() => syncCartLine(key, { maxQty: available }));
@@ -195,7 +203,11 @@ function planQuoteSync(
           if (available <= 0) mutations.push(() => removeFromCart(key));
           else if (cartLine.qty > available)
             mutations.push(() => setCartQty(key, available));
-          notices[key] = noticeFor('insufficient_stock', cartLine.title, available);
+          notices[key] = noticeFor(
+            'insufficient_stock',
+            cartLine.title,
+            available,
+          );
         }
       } else {
         notices[key] = noticeFor(w.code, cartLine.title);

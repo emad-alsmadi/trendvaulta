@@ -1,4 +1,4 @@
-'use client';
+p'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -92,7 +92,7 @@ export default function CheckoutPage() {
   // Shipping methods
   const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
   const [selectedShippingMethod, setSelectedShippingMethod] =
-    useState<string>('standard');
+    useState<string>('');
   const [fetchingShippingMethods, setFetchingShippingMethods] = useState(false);
 
   const items = cart.state.items;
@@ -125,8 +125,8 @@ export default function CheckoutPage() {
 
   const deliverySelected = Boolean(watch('delivery'));
   const shippingMethod = deliverySelected
-    ? ('standard' as const)
-    : ('none' as const);
+    ? selectedShippingMethod || 'standard'
+    : 'none';
 
   /**
    * Copy a saved address onto the form. Only the shipping fields are touched —
@@ -191,18 +191,16 @@ export default function CheckoutPage() {
           setShippingMethods(res.data || []);
           if (res.data?.length) {
             const firstMethod = res.data[0];
-            setSelectedShippingMethod(
-              firstMethod.handle as 'standard' | 'express',
-            );
+            setSelectedShippingMethod(firstMethod.handle);
           } else {
-            setSelectedShippingMethod('standard');
+            setSelectedShippingMethod('');
           }
         }
       })
       .catch(() => {
         if (!cancelled) {
           setShippingMethods([]);
-          setSelectedShippingMethod('standard');
+          setSelectedShippingMethod('');
         }
       })
       .finally(() => {
@@ -226,9 +224,7 @@ export default function CheckoutPage() {
     items,
     couponCode: appliedCoupon?.code,
     delivery: deliverySelected,
-    shippingMethod: deliverySelected
-      ? (selectedShippingMethod as 'standard' | 'express')
-      : 'none',
+    shippingMethod: deliverySelected ? selectedShippingMethod : 'none',
   });
   const itemsPrice = quote?.itemsPrice ?? subtotal;
   const discountAmount =
@@ -615,9 +611,7 @@ export default function CheckoutPage() {
                         className='h-4 w-4'
                         checked={selectedShippingMethod === method.handle}
                         onChange={() =>
-                          setSelectedShippingMethod(
-                            method.handle as 'standard' | 'express',
-                          )
+                          setSelectedShippingMethod(method.handle)
                         }
                       />
                       <span className='min-w-0'>
