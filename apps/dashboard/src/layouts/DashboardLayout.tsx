@@ -8,6 +8,8 @@ import {
 import { useEffect, useState } from 'react';
 import {
   LayoutDashboard,
+  ChartColumn,
+  AlertTriangle,
   Users,
   Package,
   Tag,
@@ -41,9 +43,11 @@ import { isStaffRole, roleHasPermission } from '../lib/permissions';
 /** `permission` is the read permission the page needs; omitted = any staff. */
 const sidebarItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
+  { icon: ChartColumn, label: 'Analytics', path: '/analytics', permission: 'orders:read' },
   { icon: Users, label: 'Users', path: '/users', permission: 'users:read' },
   { icon: Package, label: 'Products', path: '/products', permission: 'products:read' },
   { icon: Tag, label: 'Brands', path: '/brands', permission: 'brands:read' },
+  { icon: AlertTriangle, label: 'Low Stock', path: '/low-stock', permission: 'products:read' },
   { icon: ShoppingCart, label: 'Orders', path: '/orders', permission: 'orders:read' },
   { icon: TicketPercent, label: 'Coupons', path: '/coupons', permission: 'coupons:read' },
   { icon: Percent, label: 'Offers', path: '/offers', permission: 'offers:read' },

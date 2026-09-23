@@ -342,10 +342,62 @@ export type AdminStatsResponse = {
   data: AdminStats;
 };
 
+export type AdminAnalyticsPoint = {
+  date: string;
+  revenue: number;
+  orders: number;
+};
+
+export type AdminAnalyticsLeader = {
+  title?: string;
+  name?: string;
+  productId?: string;
+  brandId?: string;
+  units: number;
+  revenue: number;
+};
+
+export type AdminAnalytics = {
+  days: number;
+  series: AdminAnalyticsPoint[];
+  topProducts: AdminAnalyticsLeader[];
+  topBrands: AdminAnalyticsLeader[];
+};
+
+export type LowStockProduct = {
+  _id: string;
+  title: string;
+  slug?: string;
+  cover?: string;
+  price: number;
+  stock: number;
+  sku?: string;
+  category?: string;
+  subcategory?: string;
+  brand?: { _id: string; name: string } | null;
+};
+
 export const adminStatsApi = {
   getStats: async (): Promise<AdminStats> => {
     const { data } = await api.get<AdminStatsResponse>('/admin/stats');
     return data.data;
+  },
+
+  getAnalytics: async (days: number): Promise<AdminAnalytics> => {
+    const { data } = await api.get<{ data: AdminAnalytics }>('/admin/analytics', {
+      params: { days },
+    });
+    return data.data;
+  },
+
+  getLowStock: async (
+    threshold?: number,
+  ): Promise<{ data: LowStockProduct[]; threshold: number }> => {
+    const { data } = await api.get<{ data: LowStockProduct[]; threshold: number }>(
+      '/admin/low-stock',
+      { params: threshold ? { threshold } : undefined },
+    );
+    return { data: data.data, threshold: data.threshold };
   },
 };
 

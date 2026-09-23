@@ -4,7 +4,25 @@ const { Brand } = require('./models/Brand');
 const { Coupon } = require('./models/Coupon');
 const { Offer } = require('./models/Offer');
 const { User } = require('./models/User');
-const { buildSeedData } = require('./data');
+const Bundle = require('./models/Bundle');
+const Lookbook = require('./models/Lookbook');
+const Testimonial = require('./models/Testimonial');
+const StorefrontModule = require('./models/StorefrontModule');
+const GiftFinderConfig = require('./models/GiftFinderConfig');
+const ProductQA = require('./models/ProductQA');
+const { Content } = require('./models/Content');
+const { HelpTopic } = require('./models/HelpTopic');
+const {
+  buildSeedData,
+  LOOKBOOKS,
+  TESTIMONIALS,
+  HELP_TOPICS,
+  CMS_CONTENT,
+  STOREFRONT_MODULES,
+  GIFT_FINDER_CONFIG,
+  buildBundles,
+  buildProductQA,
+} = require('./data');
 const { connectToDB } = require('./config/db');
 require('dotenv').config();
 
@@ -15,7 +33,7 @@ function assertSafeToWrite() {
   const env = process.env.NODE_ENV || 'development';
   if (env === 'production' && !FORCE_FLAG) {
     console.error(
-      `❌ Refusing to run against NODE_ENV=production (this deletes all products, brands, coupons and offers).\n` +
+      `❌ Refusing to run against NODE_ENV=production (this deletes all products, brands, coupons, offers, CMS content and merchandising data).\n` +
         `   Re-run with --force if you really mean to do this.`,
     );
     process.exit(1);
@@ -27,6 +45,9 @@ function assertSafeToWrite() {
  * with SEED_ADMIN_EMAIL has the admin role. Needs SEED_ADMIN_EMAIL and
  * SEED_ADMIN_PASSWORD in the environment; silently skipped otherwise so a
  * bare `-import` still works without extra setup.
+ *
+ * @returns {Promise<object|null>} The admin user, or null when skipped — the
+ *   Q&A seed credits answers to it when one exists.
  */
 async function seedAdminUser() {
   const email = process.env.SEED_ADMIN_EMAIL;
@@ -37,7 +58,7 @@ async function seedAdminUser() {
     console.log(
       'ℹ️  Skipping admin user (set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD to create one).',
     );
-    return;
+    return null;
   }
 
   const normalizedEmail = email.trim().toLowerCase();
@@ -50,18 +71,90 @@ async function seedAdminUser() {
     } else {
       console.log(`👑 Admin user ${normalizedEmail} already exists`);
     }
-    return;
+    return existing;
   }
 
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
-  await User.create({
+  const admin = await User.create({
     email: normalizedEmail,
     username,
     password: hashedPassword,
     roles: ['admin'],
   });
   console.log(`👑 Created admin user ${normalizedEmail}`);
+  return admin;
+}
+
+/**
+ * Seed the CMS and merchandising collections.
+ *
+ * Bundles and Q&A reference products, so this runs after the catalogue is in
+ * the database and resolves the refs from what was actually inserted rather
+ * than from the pre-insert fixtures (which carry no _id).
+ *
+ * @param {object|null} admin Admin user from seedAdminUser, used as the Q&A answerer.
+ * @returns {Promise<Record<string, number>>} Inserted document count per collection.
+ */
+async function seedContent(admin) {
+  console.log('🧹 Clearing CMS and merchandising data...');
+  await Promise.all([
+    Bundle.deleteMany({}),
+    Lookbook.deleteMany({}),
+    Testimonial.deleteMany({}),
+    StorefrontModule.deleteMany({}),
+    GiftFinderConfig.deleteMany({}),
+    ProductQA.deleteMany({}),
+    Content.deleteMany({}),
+    HelpTopic.deleteMany({}),
+  ]);
+
+  console.log(`📰 Inserting ${CMS_CONTENT.length} CMS content pages...`);
+  await Content.insertMany(CMS_CONTENT);
+
+  console.log(`❓ Inserting ${HELP_TOPICS.length} help topics...`);
+  await HelpTopic.insertMany(HELP_TOPICS);
+
+  console.log(`📖 Inserting ${LOOKBOOKS.length} lookbooks...`);
+  await Lookbook.insertMany(LOOKBOOKS);
+
+  console.log(`💬 Inserting ${TESTIMONIALS.length} testimonials...`);
+  await Testimonial.insertMany(TESTIMONIALS);
+
+  console.log(`🧩 Inserting ${STOREFRONT_MODULES.length} storefront modules...`);
+  await StorefrontModule.insertMany(STOREFRONT_MODULES);
+
+  console.log('🎁 Inserting gift finder config...');
+  await GiftFinderConfig.create(GIFT_FINDER_CONFIG);
+
+  // One representative product per category is enough to build bundles and Q&A
+  // against; pulling the whole catalogue here would be wasteful.
+  const catalogue = await Product.find({ isActive: true })
+    .select('_id category price')
+    .sort({ category: 1, createdAt: 1 })
+    .lean();
+
+  const bundles = buildBundles(catalogue);
+  console.log(`🎒 Inserting ${bundles.length} bundles...`);
+  await Bundle.insertMany(bundles);
+
+  const qa = buildProductQA(catalogue, {
+    askedBy: admin?._id,
+    answeredBy: admin?._id,
+  });
+  console.log(`🗣️  Inserting ${qa.length} product Q&A entries...`);
+  await ProductQA.insertMany(qa);
+
+  return {
+    content: CMS_CONTENT.length,
+    helpTopics: HELP_TOPICS.length,
+    lookbooks: LOOKBOOKS.length,
+    testimonials: TESTIMONIALS.length,
+    storefrontModules: STOREFRONT_MODULES.length,
+    giftFinderConfig: 1,
+    bundles: bundles.length,
+    productQA: qa.length,
+  };
 }
 
 const dayMs = 24 * 60 * 60 * 1000;
@@ -260,7 +353,8 @@ const importData = async () => {
     console.log(`🏷️  Inserting ${offers.length} offers...`);
     await Offer.insertMany(offers);
 
-    await seedAdminUser();
+    const admin = await seedAdminUser();
+    const contentCounts = await seedContent(admin);
 
     console.log('✅ Data imported successfully!');
     console.log(`📊 Summary:`);
@@ -268,6 +362,14 @@ const importData = async () => {
     console.log(`   - Products: ${products.length}`);
     console.log(`   - Coupons: ${coupons.length}`);
     console.log(`   - Offers: ${offers.length}`);
+    console.log(`   - CMS content pages: ${contentCounts.content}`);
+    console.log(`   - Help topics: ${contentCounts.helpTopics}`);
+    console.log(`   - Lookbooks: ${contentCounts.lookbooks}`);
+    console.log(`   - Testimonials: ${contentCounts.testimonials}`);
+    console.log(`   - Storefront modules: ${contentCounts.storefrontModules}`);
+    console.log(`   - Gift finder config: ${contentCounts.giftFinderConfig}`);
+    console.log(`   - Bundles: ${contentCounts.bundles}`);
+    console.log(`   - Product Q&A: ${contentCounts.productQA}`);
     console.log(`   - Products per category: ~${productsPerCategory}`);
 
     process.exit();
@@ -277,7 +379,7 @@ const importData = async () => {
   }
 };
 
-// Remove Products, Brands, Coupons & Offers
+// Remove the catalogue plus every CMS/merchandising collection -import writes
 const removeData = async () => {
   try {
     assertSafeToWrite();
@@ -287,6 +389,18 @@ const removeData = async () => {
     await Brand.deleteMany({});
     await Coupon.deleteMany({});
     await Offer.deleteMany({});
+    // Bundles and Q&A point at products that no longer exist, so they have to
+    // go too — leaving them behind would surface dangling refs on the storefront.
+    await Promise.all([
+      Bundle.deleteMany({}),
+      Lookbook.deleteMany({}),
+      Testimonial.deleteMany({}),
+      StorefrontModule.deleteMany({}),
+      GiftFinderConfig.deleteMany({}),
+      ProductQA.deleteMany({}),
+      Content.deleteMany({}),
+      HelpTopic.deleteMany({}),
+    ]);
     console.log('✅ Data removed successfully!');
     process.exit();
   } catch (error) {
@@ -304,8 +418,14 @@ const showUsage = () => {
   console.log('    Example: node seeder.js -import 50');
   console.log('    Default: 50 products per category');
   console.log('');
+  console.log('    Seeds brands, products, coupons and offers, then the CMS and');
+  console.log('    merchandising collections: content pages, help topics,');
+  console.log('    lookbooks, testimonials, storefront modules, the gift finder');
+  console.log('    config, bundles and product Q&A.');
+  console.log('');
   console.log('  Remove data:');
   console.log('    node seeder.js -remove');
+  console.log('    Clears every collection -import writes.');
   console.log('');
   console.log('  Safety:');
   console.log('    Refuses to run when NODE_ENV=production unless --force is passed.');
