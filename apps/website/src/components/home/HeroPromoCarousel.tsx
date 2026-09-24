@@ -99,18 +99,22 @@ export function HeroPromoCarousel({
           </motion.div>
         </AnimatePresence>
 
+        {/* Slides can come from the CMS in one language only; dir='auto'
+            lets each line follow its own text so English punctuation stays
+            in place on the Arabic page. */}
         <div className='absolute inset-x-0 bottom-0 z-10 p-5 sm:p-6'>
-          <p className='text-xs font-semibold uppercase tracking-[0.18em] text-white/80'>
+          <p dir='auto' className='text-xs font-semibold uppercase tracking-[0.18em] text-white/80'>
             {t(slide.eyebrow)}
           </p>
-          <h2 className='mt-1 max-w-md text-xl font-extrabold leading-snug text-white sm:text-2xl'>
+          <h2 dir='auto' className='mt-1 max-w-md text-xl font-extrabold leading-snug text-white sm:text-2xl'>
             {t(slide.title)}
           </h2>
-          <p className='mt-1.5 max-w-sm text-sm font-medium text-white/85'>
+          <p dir='auto' className='mt-1.5 max-w-sm text-sm font-medium text-white/85'>
             {t(slide.subtitle)}
           </p>
           <Link
             href={slide.href}
+            dir='auto'
             className='mt-4 inline-flex rounded-full bg-white px-4 py-2 text-sm font-extrabold text-stone-900 transition hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white'
           >
             {t(slide.ctaLabel)}

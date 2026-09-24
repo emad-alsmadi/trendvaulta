@@ -12,15 +12,15 @@ Package manager: **npm workspaces** (root `package.json`, `apps/*`). Each app
 keeps its own API client and types. `packages/types` exists but no app imports
 it yet (plan item I5).
 
-**New here?** Follow [`docs/SETUP.md`](docs/SETUP.md) (local setup) and
-[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) (production).
+**New here?** Follow [`docs/PROJECT_REFERENCE.md`](docs/PROJECT_REFERENCE.md)
+for local setup and production deployment.
 
 ---
 
 ## Features
 
 - English and Arabic storefront (RTL), USD pricing
-- JWT auth with refresh tokens (login, register, profile, password reset email)
+- JWT auth (login, register, profile, password reset email) — no refresh tokens
 - Product catalog with brands, filters, badges, and sorting (e.g. bestselling)
 - Client cart + Stripe Checkout, shipping zones, tax
 - Orders with cancellation, returns and Stripe refunds; wishlist, reviews with staff replies
@@ -53,7 +53,7 @@ trendvaulta/
 │   └── dashboard/           # Vite admin (port 3002; proxies /api → :3000)
 ├── packages/
 │   └── types/               # unused so far (plan item I5)
-├── docs/                    # Plan, setup/deploy guides, reference docs; docs/archive/ for old audits
+├── docs/                    # PROJECT_REFERENCE.md — setup, deployment, CI, API, data model, security, business rules
 ├── package.json             # npm workspaces + scripts
 └── AGENTS.md                # AI agent instructions
 ```
@@ -69,7 +69,7 @@ trendvaulta/
 - Stripe keys for checkout (optional for non-payment work)
 
 The step-by-step version, with seeding an admin and Stripe webhooks, is in
-[`docs/SETUP.md`](docs/SETUP.md).
+[`docs/PROJECT_REFERENCE.md`](docs/PROJECT_REFERENCE.md).
 
 ### Install
 
@@ -168,7 +168,7 @@ The storefront persists the JWT with client-readable cookies (`js-cookie`). Trea
 API on Render (`apps/api/render.yaml`), storefront and dashboard on Vercel
 (`vercel.json` in each app), MongoDB Atlas, Cloudinary for images, and the
 Stripe webhook at `POST /api/webhooks/stripe`. The order, the variables and a
-smoke-test checklist are in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+smoke-test checklist are in [`docs/PROJECT_REFERENCE.md`](docs/PROJECT_REFERENCE.md).
 
 ---
 
@@ -178,10 +178,7 @@ smoke-test checklist are in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 |---|---|
 | `AGENTS.md` | Instructions for AI agents |
 | `.cursor/rules/` | Cursor rules (session, API, frontend) |
-| `docs/IMPLEMENTATION_PLAN.md` | Current plan and status |
-| `docs/SETUP.md`, `docs/DEPLOYMENT.md` | Local setup, production deployment |
-| `docs/API_CONTRACT.md`, `BUSINESS_RULES.md`, `DATA_MODEL.md`, `SECURITY_MODEL.md`, `CI.md` | Reference |
-| `docs/archive/` | Superseded audits and backlogs (history only) |
+| `docs/PROJECT_REFERENCE.md` | Setup, deployment, CI, API surface, data model, security, business rules, open work |
 | `apps/*/README.md` | Per-app run, env, structure, conventions |
 
 ---

@@ -44,7 +44,9 @@ export function RecentlyViewedSection() {
                 href={`/products/${item.id}`}
                 className='block overflow-hidden rounded-xl border border-stone-200 bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500'
               >
-                <div className='aspect-square overflow-hidden bg-stone-100'>
+                {/* `relative` contains the fill image; without it the image escapes to
+                    the top of the page and covers the hero. */}
+                <div className='relative aspect-square overflow-hidden bg-stone-100'>
                   <Image
                     src={item.cover}
                     alt={item.title}

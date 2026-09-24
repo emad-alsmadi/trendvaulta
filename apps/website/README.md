@@ -76,4 +76,4 @@ src/
 
 ## Deploy
 
-`vercel.json` in this folder configures the Vercel build (`framework: nextjs`). Set the variables above in the hosting environment. Full steps are in [`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md).
+`vercel.json` in this folder configures the Vercel build (`framework: nextjs`). Set the variables above in the hosting environment. Full steps are in [`docs/PROJECT_REFERENCE.md`](../../docs/PROJECT_REFERENCE.md).

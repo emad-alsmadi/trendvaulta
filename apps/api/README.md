@@ -22,7 +22,7 @@ Default port is **3000** (`PORT` env). Base path is `/api`.
 
 Copy `.env.example` to `.env`; it documents every variable the code reads.
 `config/env.js` validates the environment at startup and refuses to boot on
-missing or unsafe values (see [`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md)). Summary:
+missing or unsafe values (see [`docs/PROJECT_REFERENCE.md`](../../docs/PROJECT_REFERENCE.md)). Summary:
 
 | Group | Variables |
 |---|---|
@@ -122,7 +122,7 @@ See `SEEDER_README.md` for categories and generated fields. Uses `MONGO_URL` fro
 
 ## Deploy
 
-`render.yaml` is a Render Blueprint (`rootDir: apps/api`, `healthCheckPath: /api/ready`, `STORAGE_DRIVER=cloudinary`); set `sync: false` secrets in the Render dashboard. Use MongoDB Atlas for production data. Full steps are in [`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md).
+`render.yaml` is a Render Blueprint (`rootDir: apps/api`, `healthCheckPath: /api/ready`, `STORAGE_DRIVER=cloudinary`); set `sync: false` secrets in the Render dashboard. Use MongoDB Atlas for production data. Full steps are in [`docs/PROJECT_REFERENCE.md`](../../docs/PROJECT_REFERENCE.md).
 
 ## License
 
