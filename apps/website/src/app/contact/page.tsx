@@ -90,6 +90,7 @@ export default function ContactPage() {
         getUserFacingErrorMessage(
           err,
           t('contact.errors.sendFailed'),
+          t,
         ),
       );
     }

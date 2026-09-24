@@ -189,7 +189,7 @@ function ReturnRequestForm({ order }: { order: Order }) {
       });
       toast(t('returns.toast.requested'), { variant: 'success' });
     } catch (err) {
-      toast(getUserFacingErrorMessage(err, t('returns.toast.requestFailed')), {
+      toast(getUserFacingErrorMessage(err, t('returns.toast.requestFailed'), t), {
         variant: 'error',
       });
     }

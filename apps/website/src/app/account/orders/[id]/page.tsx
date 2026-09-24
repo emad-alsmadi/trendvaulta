@@ -131,7 +131,7 @@ export default function OrderDetailPage() {
         { variant: 'success' },
       );
     } catch (err) {
-      toast(getUserFacingErrorMessage(err, t('orders.toast.cancelFailed')), {
+      toast(getUserFacingErrorMessage(err, t('orders.toast.cancelFailed'), t), {
         variant: 'error',
       });
       // A 409 means the order changed under us (e.g. it just shipped):

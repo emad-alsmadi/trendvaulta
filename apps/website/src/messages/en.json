@@ -51,13 +51,29 @@
       "description": "You will need to sign in again to see your cart, orders and account.",
       "confirm": "Sign out",
       "cancel": "Stay signed in"
-    }
+    },
+    "breadcrumb": "Breadcrumb"
   },
   "footer": {
     "newsletter": "Get deals in your inbox",
     "subscribe": "Subscribe",
     "subscribed": "You're subscribed! Watch your inbox for deals.",
-    "newsletterError": "Enter a valid email address"
+    "newsletterError": "Enter a valid email address",
+    "subscribeFailed": "Could not subscribe right now",
+    "tagline": "Beauty, fashion, and lifestyle retail — curated products, clear pricing, and secure checkout.",
+    "company": "Company",
+    "support": "Support",
+    "returnsRefunds": "Returns & refunds",
+    "termsOfService": "Terms of Service",
+    "privacyPolicy": "Privacy Policy",
+    "cookiePolicy": "Cookie Policy",
+    "copyright": "© {year} TrendVaulta. All rights reserved.",
+    "social": {
+      "x": "TrendVaulta on X",
+      "facebook": "TrendVaulta on Facebook",
+      "instagram": "TrendVaulta on Instagram",
+      "linkedin": "TrendVaulta on LinkedIn"
+    }
   },
   "product": {
     "addToCart": "Add to Cart",
@@ -341,7 +357,8 @@
     "continueToPayment": "Continue to payment",
     "reviewCart": "Review cart",
     "confirm": "Confirm",
-    "close": "Close"
+    "close": "Close",
+    "srDescription": "Confirm this action."
   },
   "addresses": {
     "title": "Saved Addresses",
@@ -1140,6 +1157,11 @@
   },
   "errors": {
     "loading": "Loading…",
+    "sessionExpired": "Your session has expired. Please log in again.",
+    "forbidden": "You do not have permission to do that.",
+    "notFoundGeneric": "We could not find what you requested.",
+    "serverError": "Something went wrong on our side. Please try again later.",
+    "networkError": "Unable to reach the server. Please check your connection and try again.",
     "notFound": {
       "title": "Page not found",
       "description": "That page doesn't exist — try the catalog, today's offers, or the Help Center.",

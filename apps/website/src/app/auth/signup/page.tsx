@@ -54,7 +54,7 @@ export default function SignupPage() {
       router.push(returnTo || '/');
     } catch (err) {
       logErrorForDev(err);
-      const msg = getUserFacingErrorMessage(err, t('auth.signupFailed'));
+      const msg = getUserFacingErrorMessage(err, t('auth.signupFailed'), t);
       toast(msg, { title: t('auth.signupFailed'), variant: 'error' });
     }
   });
@@ -158,6 +158,7 @@ export default function SignupPage() {
                 {getUserFacingErrorMessage(
                   registerMutation.error,
                   t('auth.signupFailed'),
+                  t,
                 )}
               </motion.div>
             )}

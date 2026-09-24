@@ -235,7 +235,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                   </Dialog.Description>
                 ) : (
                   <Dialog.Description className='sr-only'>
-                    Confirm this action.
+                    {t('confirmDialog.srDescription')}
                   </Dialog.Description>
                 )}
               </div>

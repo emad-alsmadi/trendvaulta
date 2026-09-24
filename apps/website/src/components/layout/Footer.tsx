@@ -39,7 +39,7 @@ function NewsletterForm() {
       setEmail('');
     } catch (err) {
       logErrorForDev(err);
-      setError(getUserFacingErrorMessage(err, 'Could not subscribe right now'));
+      setError(getUserFacingErrorMessage(err, t('footer.subscribeFailed'), t));
     }
   };
 
@@ -115,8 +115,7 @@ export function Footer() {
               </div>
             </div>
             <p className='text-gray-400 text-sm mb-6 max-w-sm'>
-              Beauty, fashion, and lifestyle retail — curated products, clear
-              pricing, and secure checkout.
+              {t('footer.tagline')}
             </p>
             <div className='mb-6'>
               <NewsletterForm />
@@ -124,27 +123,31 @@ export function Footer() {
             <div className='flex gap-4'>
               <a
                 href='#'
+                aria-label={t('footer.social.x')}
                 className='text-gray-400 hover:text-white transition-colors'
               >
-                <Twitter className='h-5 w-5' />
+                <Twitter className='h-5 w-5' aria-hidden />
               </a>
               <a
                 href='#'
+                aria-label={t('footer.social.facebook')}
                 className='text-gray-400 hover:text-white transition-colors'
               >
-                <Facebook className='h-5 w-5' />
+                <Facebook className='h-5 w-5' aria-hidden />
               </a>
               <a
                 href='#'
+                aria-label={t('footer.social.instagram')}
                 className='text-gray-400 hover:text-white transition-colors'
               >
-                <Instagram className='h-5 w-5' />
+                <Instagram className='h-5 w-5' aria-hidden />
               </a>
               <a
                 href='#'
+                aria-label={t('footer.social.linkedin')}
                 className='text-gray-400 hover:text-white transition-colors'
               >
-                <Linkedin className='h-5 w-5' />
+                <Linkedin className='h-5 w-5' aria-hidden />
               </a>
             </div>
           </div>
@@ -152,7 +155,7 @@ export function Footer() {
           {/* Shop */}
           <div>
             <h3 className='text-sm font-semibold text-white uppercase tracking-wider mb-4'>
-              Shop
+              {t('nav.shop')}
             </h3>
             <ul className='space-y-3'>
               <li>
@@ -160,7 +163,7 @@ export function Footer() {
                   href='/products'
                   className='text-gray-400 hover:text-white text-sm transition-colors'
                 >
-                  All products
+                  {t('catalog.sidebar.allProducts')}
                 </Link>
               </li>
               <li>
@@ -168,7 +171,7 @@ export function Footer() {
                   href='/c/makeup'
                   className='text-gray-400 hover:text-white text-sm transition-colors'
                 >
-                  Makeup
+                  {t('categories.makeup.label')}
                 </Link>
               </li>
               <li>
@@ -176,7 +179,7 @@ export function Footer() {
                   href='/c/perfumes'
                   className='text-gray-400 hover:text-white text-sm transition-colors'
                 >
-                  Perfumes
+                  {t('categories.perfumes.label')}
                 </Link>
               </li>
               <li>
@@ -184,7 +187,7 @@ export function Footer() {
                   href='/c/clothing'
                   className='text-gray-400 hover:text-white text-sm transition-colors'
                 >
-                  Clothing
+                  {t('categories.clothing.label')}
                 </Link>
               </li>
               <li>
@@ -192,7 +195,7 @@ export function Footer() {
                   href='/c/skincare'
                   className='text-gray-400 hover:text-white text-sm transition-colors'
                 >
-                  Skincare
+                  {t('categories.skincare.label')}
                 </Link>
               </li>
               <li>
@@ -200,7 +203,7 @@ export function Footer() {
                   href='/c/accessories'
                   className='text-gray-400 hover:text-white text-sm transition-colors'
                 >
-                  Accessories
+                  {t('categories.accessories.label')}
                 </Link>
               </li>
               <li>
@@ -208,7 +211,7 @@ export function Footer() {
                   href='/c/home'
                   className='text-gray-400 hover:text-white text-sm transition-colors'
                 >
-                  Home
+                  {t('categories.home.label')}
                 </Link>
               </li>
             </ul>
@@ -217,7 +220,7 @@ export function Footer() {
           {/* Company */}
           <div>
             <h3 className='text-sm font-semibold text-white uppercase tracking-wider mb-4'>
-              Company
+              {t('footer.company')}
             </h3>
             <ul className='space-y-3'>
               <li>
@@ -225,7 +228,7 @@ export function Footer() {
                   href='/about'
                   className='text-gray-400 hover:text-white text-sm transition-colors'
                 >
-                  About Us
+                  {t('common.about')}
                 </Link>
               </li>
               <li>
@@ -233,7 +236,7 @@ export function Footer() {
                   href='/brands'
                   className='text-gray-400 hover:text-white text-sm transition-colors'
                 >
-                  Brands
+                  {t('common.brands')}
                 </Link>
               </li>
               <li>
@@ -241,7 +244,7 @@ export function Footer() {
                   href='/offers'
                   className='text-gray-400 hover:text-white text-sm transition-colors'
                 >
-                  Offers
+                  {t('nav.deals')}
                 </Link>
               </li>
               <li>
@@ -249,7 +252,7 @@ export function Footer() {
                   href='/cart'
                   className='text-gray-400 hover:text-white text-sm transition-colors'
                 >
-                  Cart
+                  {t('common.cart')}
                 </Link>
               </li>
             </ul>
@@ -258,7 +261,7 @@ export function Footer() {
           {/* Support — Amazon-like “Let Us Help You” IA, TrendVaulta links */}
           <div>
             <h3 className='text-sm font-semibold text-white uppercase tracking-wider mb-4'>
-              Support
+              {t('footer.support')}
             </h3>
             <ul className='space-y-3'>
               <li>
@@ -266,7 +269,7 @@ export function Footer() {
                   href='/help'
                   className='text-gray-400 hover:text-white text-sm transition-colors'
                 >
-                  Help Center
+                  {t('productQa.helpCenter')}
                 </Link>
               </li>
               <li>
@@ -274,7 +277,7 @@ export function Footer() {
                   href='/shipping'
                   className='text-gray-400 hover:text-white text-sm transition-colors'
                 >
-                  Shipping &amp; delivery
+                  {t('shippingPolicy.title')}
                 </Link>
               </li>
               <li>
@@ -282,7 +285,7 @@ export function Footer() {
                   href='/returns'
                   className='text-gray-400 hover:text-white text-sm transition-colors'
                 >
-                  Returns &amp; refunds
+                  {t('footer.returnsRefunds')}
                 </Link>
               </li>
               <li>
@@ -290,7 +293,7 @@ export function Footer() {
                   href='/contact'
                   className='text-gray-400 hover:text-white text-sm transition-colors'
                 >
-                  Contact Us
+                  {t('common.contact')}
                 </Link>
               </li>
               <li>
@@ -298,7 +301,7 @@ export function Footer() {
                   href='/faq'
                   className='text-gray-400 hover:text-white text-sm transition-colors'
                 >
-                  FAQ
+                  {t('nav.faq')}
                 </Link>
               </li>
               <li>
@@ -306,7 +309,7 @@ export function Footer() {
                   href='/terms'
                   className='text-gray-400 hover:text-white text-sm transition-colors'
                 >
-                  Terms of Service
+                  {t('footer.termsOfService')}
                 </Link>
               </li>
             </ul>
@@ -316,26 +319,26 @@ export function Footer() {
         <div className='border-t border-gray-800 mt-12 pt-8'>
           <div className='flex flex-col md:flex-row justify-between items-center gap-4'>
             <p className='text-gray-400 text-sm'>
-              © {new Date().getFullYear()} TrendVaulta. All rights reserved.
+              {t('footer.copyright', { year: new Date().getFullYear() })}
             </p>
             <div className='flex gap-6'>
               <Link
                 href='/privacy'
                 className='text-gray-400 hover:text-white text-sm transition-colors'
               >
-                Privacy Policy
+                {t('footer.privacyPolicy')}
               </Link>
               <Link
                 href='/terms'
                 className='text-gray-400 hover:text-white text-sm transition-colors'
               >
-                Terms of Service
+                {t('footer.termsOfService')}
               </Link>
               <Link
                 href='/cookies'
                 className='text-gray-400 hover:text-white text-sm transition-colors'
               >
-                Cookie Policy
+                {t('footer.cookiePolicy')}
               </Link>
             </div>
           </div>

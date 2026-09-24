@@ -67,7 +67,7 @@ export default function ResetPasswordPage() {
       }, 2200);
     } catch (err) {
       logErrorForDev(err);
-      const msg = getUserFacingErrorMessage(err, t('password.resetFailed'));
+      const msg = getUserFacingErrorMessage(err, t('password.resetFailed'), t);
       toast(msg, { title: t('password.resetFailed'), variant: 'error' });
     }
   });

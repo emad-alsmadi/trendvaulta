@@ -89,7 +89,7 @@ export function AddressBook() {
     } catch (err) {
       logErrorForDev(err);
       toast(
-        getUserFacingErrorMessage(err, t('account.addressBook.defaultUpdateFailed')),
+        getUserFacingErrorMessage(err, t('account.addressBook.defaultUpdateFailed'), t),
         {
           title: t('account.addressBook.updateFailedTitle'),
           variant: 'error',
@@ -122,7 +122,7 @@ export function AddressBook() {
         } catch (err) {
           logErrorForDev(err);
           toast(
-            getUserFacingErrorMessage(err, t('account.addressBook.deleteFailed')),
+            getUserFacingErrorMessage(err, t('account.addressBook.deleteFailed'), t),
             {
               title: t('account.addressBook.deleteFailedTitle'),
               variant: 'error',
@@ -152,6 +152,7 @@ export function AddressBook() {
           {getUserFacingErrorMessage(
             addressesQuery.error,
             t('account.addressBook.loadFailed'),
+            t,
           )}
         </p>
         <Button
@@ -214,7 +215,7 @@ export function AddressBook() {
             } catch (err) {
               logErrorForDev(err);
               toast(
-                getUserFacingErrorMessage(err, t('account.addressBook.saveFailed')),
+                getUserFacingErrorMessage(err, t('account.addressBook.saveFailed'), t),
                 { title: t('account.addressBook.saveFailedTitle'), variant: 'error' },
               );
             }
@@ -275,6 +276,7 @@ export function AddressBook() {
                         getUserFacingErrorMessage(
                           err,
                           t('account.addressBook.updateFailed'),
+                          t,
                         ),
                         { title: t('account.addressBook.updateFailedTitle'), variant: 'error' },
                       );

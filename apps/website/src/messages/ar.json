@@ -51,13 +51,29 @@
       "description": "ستحتاج إلى تسجيل الدخول مرة أخرى لعرض سلتك وطلباتك وحسابك.",
       "confirm": "تسجيل الخروج",
       "cancel": "البقاء مسجّلًا"
-    }
+    },
+    "breadcrumb": "مسار التنقل"
   },
   "footer": {
     "newsletter": "احصل على العروض في بريدك",
     "subscribe": "اشترك",
     "subscribed": "أنت مشترك الآن! راقب بريدك للحصول على العروض.",
-    "newsletterError": "أدخل عنوان بريد إلكتروني صحيح"
+    "newsletterError": "أدخل عنوان بريد إلكتروني صحيح",
+    "subscribeFailed": "تعذّر الاشتراك في الوقت الحالي",
+    "tagline": "متجر للجمال والأزياء وأسلوب الحياة — منتجات مختارة بعناية، وأسعار واضحة، ودفع آمن.",
+    "company": "الشركة",
+    "support": "الدعم",
+    "returnsRefunds": "الإرجاع والاسترداد",
+    "termsOfService": "شروط الخدمة",
+    "privacyPolicy": "سياسة الخصوصية",
+    "cookiePolicy": "سياسة ملفات تعريف الارتباط",
+    "copyright": "© {year} TrendVaulta. جميع الحقوق محفوظة.",
+    "social": {
+      "x": "TrendVaulta على X",
+      "facebook": "TrendVaulta على Facebook",
+      "instagram": "TrendVaulta على Instagram",
+      "linkedin": "TrendVaulta على LinkedIn"
+    }
   },
   "product": {
     "addToCart": "أضف إلى السلة",
@@ -341,7 +357,8 @@
     "continueToPayment": "المتابعة إلى الدفع",
     "reviewCart": "مراجعة السلة",
     "confirm": "تأكيد",
-    "close": "إغلاق"
+    "close": "إغلاق",
+    "srDescription": "أكّد هذا الإجراء."
   },
   "addresses": {
     "title": "العناوين المحفوظة",
@@ -1140,6 +1157,11 @@
   },
   "errors": {
     "loading": "جارٍ التحميل…",
+    "sessionExpired": "انتهت صلاحية جلستك. يُرجى تسجيل الدخول مرة أخرى.",
+    "forbidden": "ليس لديك صلاحية للقيام بذلك.",
+    "notFoundGeneric": "تعذّر العثور على ما طلبته.",
+    "serverError": "حدث خطأ من جانبنا. يُرجى المحاولة مرة أخرى لاحقًا.",
+    "networkError": "تعذّر الوصول إلى الخادم. يُرجى التحقق من اتصالك والمحاولة مرة أخرى.",
     "notFound": {
       "title": "الصفحة غير موجودة",
       "description": "هذه الصفحة غير موجودة. جرّب تصفّح المنتجات، أو عروض اليوم، أو مركز المساعدة.",

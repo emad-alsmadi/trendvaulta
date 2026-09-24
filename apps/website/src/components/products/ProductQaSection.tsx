@@ -73,7 +73,7 @@ export function ProductQaSection({ productId }: Props) {
       });
     } catch (err) {
       logErrorForDev(err);
-      toast(getUserFacingErrorMessage(err, t('productQa.submitError')), {
+      toast(getUserFacingErrorMessage(err, t('productQa.submitError'), t), {
         variant: 'error',
       });
     }
@@ -88,7 +88,7 @@ export function ProductQaSection({ productId }: Props) {
       await markHelpful.mutateAsync({ qaId, helpful: true });
     } catch (err) {
       logErrorForDev(err);
-      toast(getUserFacingErrorMessage(err, t('productQa.voteError')), {
+      toast(getUserFacingErrorMessage(err, t('productQa.voteError'), t), {
         variant: 'error',
       });
     }

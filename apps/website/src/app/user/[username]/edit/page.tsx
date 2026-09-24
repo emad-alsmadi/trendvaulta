@@ -89,7 +89,7 @@ function EditProfileForm({ user }: { user: ProfileUser }) {
       router.push('/account');
     } catch (err) {
       logErrorForDev(err);
-      toast(getUserFacingErrorMessage(err, t('userArea.edit.updateError')), {
+      toast(getUserFacingErrorMessage(err, t('userArea.edit.updateError'), t), {
         title: t('userArea.edit.updateFailedTitle'),
         variant: 'error',
       });

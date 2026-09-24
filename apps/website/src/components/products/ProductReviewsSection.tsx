@@ -80,7 +80,7 @@ export function ProductReviewsSection({ productId }: Props) {
       // Everything else keeps the generic toast.
       if (isPurchaseRequiredError(err)) throw err;
       logErrorForDev(err);
-      toast(getUserFacingErrorMessage(err, t('reviews.saveError')), {
+      toast(getUserFacingErrorMessage(err, t('reviews.saveError'), t), {
         variant: 'error',
       });
     }
@@ -94,7 +94,7 @@ export function ProductReviewsSection({ productId }: Props) {
       setFormOpen(false);
     } catch (err) {
       logErrorForDev(err);
-      toast(getUserFacingErrorMessage(err, t('reviews.deleteError')), {
+      toast(getUserFacingErrorMessage(err, t('reviews.deleteError'), t), {
         variant: 'error',
       });
     }

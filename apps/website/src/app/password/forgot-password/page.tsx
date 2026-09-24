@@ -61,7 +61,7 @@ export default function ForgotPasswordPage() {
       }
     } catch (err) {
       logErrorForDev(err);
-      const msg = getUserFacingErrorMessage(err, t('password.requestFailed'));
+      const msg = getUserFacingErrorMessage(err, t('password.requestFailed'), t);
       setError(msg);
       toast(msg, { title: t('password.requestFailed'), variant: 'error' });
     }

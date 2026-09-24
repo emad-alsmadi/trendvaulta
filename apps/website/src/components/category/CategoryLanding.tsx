@@ -72,7 +72,7 @@ export async function CategoryLanding({
       <JsonLd data={breadcrumbJsonLd} />
 
       <div className='mx-auto max-w-[1400px] px-4 py-8 sm:px-6 lg:px-8'>
-        <nav aria-label='Breadcrumb' className='mb-4'>
+        <nav aria-label={t('nav.breadcrumb')} className='mb-4'>
           <ol className='flex flex-wrap items-center gap-1 text-sm text-stone-500'>
             {crumbs.map((crumb, index) => {
               const isLast = index === crumbs.length - 1;

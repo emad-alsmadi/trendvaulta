@@ -274,6 +274,7 @@ export default function CheckoutPage() {
         getUserFacingErrorMessage(
           err,
           t('checkoutPage.toast.couponValidateFailed'),
+          t,
         ),
         { variant: 'error' },
       );
@@ -389,6 +390,7 @@ export default function CheckoutPage() {
               const msg = getUserFacingErrorMessage(
                 stripeErr,
                 t('checkoutPage.toast.couldNotStartCheckout'),
+                t,
               );
               toast(msg, {
                 title: t('checkoutPage.toast.checkoutFailed'),
@@ -421,6 +423,7 @@ export default function CheckoutPage() {
       const msg = getUserFacingErrorMessage(
         err,
         t('checkoutPage.toast.checkoutFailed'),
+        t,
       );
       toast(msg, {
         title: t('checkoutPage.toast.checkoutFailed'),
@@ -975,6 +978,7 @@ export default function CheckoutPage() {
                     {getUserFacingErrorMessage(
                       couponMutation.error,
                       t('checkoutPage.summary.invalidCoupon'),
+                      t,
                     )}
                   </div>
                 )}

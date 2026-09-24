@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle2, Info, AlertTriangle, X } from 'lucide-react';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { cn } from '@/lib/utils';
 
 type ToastVariant = 'success' | 'error' | 'info';
@@ -39,6 +40,8 @@ function uid() {
 }
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
+  // `t` is the toast item in the render below, so the translator is renamed.
+  const { t: translate } = useTranslation();
   const [items, setItems] = useState<ToastItem[]>([]);
   const timersRef = useRef<Record<string, number>>({});
 
@@ -135,7 +138,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                   type='button'
                   onClick={() => remove(t.id)}
                   className='inline-flex h-8 w-8 items-center justify-center rounded-xl text-indigo-950/70 transition hover:bg-indigo-900/10 hover:text-indigo-950'
-                  aria-label='Dismiss'
+                  aria-label={translate('confirmDialog.close')}
                 >
                   <X className='h-4 w-4' />
                 </button>

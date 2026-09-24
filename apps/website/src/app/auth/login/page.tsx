@@ -55,7 +55,7 @@ export default function LoginPage() {
       router.push(returnTo || '/');
     } catch (err) {
       logErrorForDev(err);
-      const msg = getUserFacingErrorMessage(err, t('auth.loginFailed'));
+      const msg = getUserFacingErrorMessage(err, t('auth.loginFailed'), t);
       toast(msg, { title: t('auth.loginFailed'), variant: 'error' });
     }
   });
@@ -192,6 +192,7 @@ export default function LoginPage() {
                 {getUserFacingErrorMessage(
                   loginMutation.error,
                   t('auth.loginFailed'),
+                  t,
                 )}
               </motion.div>
             )}

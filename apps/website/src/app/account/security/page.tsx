@@ -61,7 +61,7 @@ export default function SecurityPage() {
       toast(t('security.toast.updated'), { variant: 'success' });
       reset();
     } catch (err: unknown) {
-      toast(getUserFacingErrorMessage(err, t('security.toast.updateFailed')), {
+      toast(getUserFacingErrorMessage(err, t('security.toast.updateFailed'), t), {
         variant: 'error',
       });
     }
