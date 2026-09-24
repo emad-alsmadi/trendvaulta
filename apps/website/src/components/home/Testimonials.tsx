@@ -4,29 +4,27 @@ import { motion } from 'framer-motion';
 import { useTestimonials } from '@/hooks/storefront/testimonialsQuery';
 import { useTranslation } from '@/contexts/TranslationContext';
 
+/** `role`/`quote` are message keys, resolved with t() at render. */
 const FALLBACK = [
   {
     id: 'sara',
     name: 'Sara Alami',
-    role: 'Beauty enthusiast',
-    quote:
-      'TrendVaulta makes finding skincare and everyday glam so much easier. Clear prices, fast browsing, and products that feel curated.',
+    role: 'home.testimonials.fallback.sara.role',
+    quote: 'home.testimonials.fallback.sara.quote',
     rating: 5,
   },
   {
     id: 'omar',
     name: 'Omar Nasser',
-    role: 'Style shopper',
-    quote:
-      'I love how clean the shopping flow feels. From discovery to checkout, it is polished without being overwhelming.',
+    role: 'home.testimonials.fallback.omar.role',
+    quote: 'home.testimonials.fallback.omar.quote',
     rating: 5,
   },
   {
     id: 'layla',
     name: 'Layla Habib',
-    role: 'Gift buyer',
-    quote:
-      'Great for thoughtful gifts and lifestyle pieces. Support was helpful when I needed a quick order update.',
+    role: 'home.testimonials.fallback.layla.role',
+    quote: 'home.testimonials.fallback.layla.quote',
     rating: 5,
   },
 ];
@@ -43,8 +41,8 @@ function initials(name: string) {
 export function Testimonials() {
   const { t } = useTranslation();
   const q = useTestimonials();
-  const testimonials =
-    q.data && q.data.length > 0 ? q.data : FALLBACK;
+  const usingFallback = !q.data || q.data.length === 0;
+  const testimonials = usingFallback ? FALLBACK : q.data;
 
   return (
     <div className='bg-slate-50 py-20'>
@@ -80,7 +78,7 @@ export function Testimonials() {
                   ))}
                 </div>
                 <p className='text-gray-700 mb-6 leading-relaxed'>
-                  {testimonial.quote}
+                  {usingFallback ? t(testimonial.quote) : testimonial.quote}
                 </p>
                 <div className='flex items-center gap-3'>
                   <div className='inline-flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-fuchsia-600 via-indigo-600 to-cyan-500 text-white font-bold'>
@@ -92,7 +90,7 @@ export function Testimonials() {
                     </div>
                     {testimonial.role && (
                       <div className='text-sm text-gray-500'>
-                        {testimonial.role}
+                        {usingFallback ? t(testimonial.role) : testimonial.role}
                       </div>
                     )}
                   </div>

@@ -1001,7 +1001,9 @@
     "subtitle": "Questions about orders, products, or returns? Send a message — the TrendVaulta care team usually replies within 24 hours.",
     "info": {
       "title": "Contact Information",
-      "studio": "Studio"
+      "studio": "Studio",
+      "addressLine1": "120 Market Avenue",
+      "addressLine2": "Retail District, NY 10001"
     },
     "helpFaster": {
       "title": "Need help faster?",
@@ -1302,7 +1304,21 @@
     },
     "testimonials": {
       "title": "What our customers say",
-      "subtitle": "Shoppers who trust TrendVaulta for beauty, fashion, and lifestyle"
+      "subtitle": "Shoppers who trust TrendVaulta for beauty, fashion, and lifestyle",
+      "fallback": {
+        "sara": {
+          "role": "Beauty enthusiast",
+          "quote": "TrendVaulta makes finding skincare and everyday glam so much easier. Clear prices, fast browsing, and products that feel curated."
+        },
+        "omar": {
+          "role": "Style shopper",
+          "quote": "I love how clean the shopping flow feels. From discovery to checkout, it is polished without being overwhelming."
+        },
+        "layla": {
+          "role": "Gift buyer",
+          "quote": "Great for thoughtful gifts and lifestyle pieces. Support was helpful when I needed a quick order update."
+        }
+      }
     },
     "trust": {
       "ariaLabel": "Shopping benefits",

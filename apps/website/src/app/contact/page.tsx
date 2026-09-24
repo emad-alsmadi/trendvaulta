@@ -178,9 +178,9 @@ export default function ContactPage() {
                       {t('contact.info.studio')}
                     </div>
                     <div className='text-sm text-gray-600'>
-                      120 Market Avenue
+                      {t('contact.info.addressLine1')}
                       <br />
-                      Retail District, NY 10001
+                      {t('contact.info.addressLine2')}
                     </div>
                   </div>
                 </div>
