@@ -38,17 +38,27 @@ const nextConfig: NextConfig = {
         : []),
     ],
   },
-  // The old /orders pages duplicated the account area in English only; the
-  // account pages are the translated, maintained ones. Kept as redirects so
-  // links in past emails and bookmarks still land somewhere useful.
+  // The account area lives under /user (no username in the URL: every page
+  // shows the signed-in user). Older URLs — /orders, /account/* and
+  // /user/<name>/* — are kept as redirects for emails and bookmarks.
   async redirects() {
+    // Section names are excluded so /user/orders etc. are not taken for a
+    // legacy /user/<name> URL.
+    const legacyName =
+      ':name((?!(?:orders|addresses|security|profile|reviews|wishlist)(?:/|$))[^/]+)';
     return [
-      { source: '/orders', destination: '/account/orders', permanent: true },
-      { source: '/orders/:id', destination: '/account/orders/:id', permanent: true },
-      // Same for the old per-user profile and order list; edit, settings,
-      // reviews and wishlist under /user/:username have no account twin yet.
-      { source: '/user/:username', destination: '/account', permanent: true },
-      { source: '/user/:username/orders', destination: '/account/orders', permanent: true },
+      { source: '/orders', destination: '/user/orders', permanent: true },
+      { source: '/orders/:id', destination: '/user/orders/:id', permanent: true },
+      { source: '/account', destination: '/user', permanent: true },
+      { source: '/account/:path*', destination: '/user/:path*', permanent: true },
+      { source: `/user/${legacyName}`, destination: '/user', permanent: true },
+      { source: `/user/${legacyName}/edit`, destination: '/user/profile', permanent: true },
+      { source: `/user/${legacyName}/settings`, destination: '/user/profile', permanent: true },
+      {
+        source: `/user/${legacyName}/:section(orders|reviews|wishlist)`,
+        destination: '/user/:section',
+        permanent: true,
+      },
     ];
   },
   async rewrites() {

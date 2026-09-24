@@ -5,7 +5,7 @@
 
 ### Context for the Agent
 
-You are a Senior Full-Stack Engineer (30+ years frontend, 40+ years software engineering). Implement the **remaining unimplemented items** from `/home/user/Desktop/trendvaulta/docs/FULL_SYSTEM_ANALYSIS.md`.
+You are a Senior Full-Stack Engineer (30+ years frontend, 40+ years software engineering). Implement the **remaining unimplemented items** from `/home/user/Desktop/trendvaulta/docs/archive/FULL_SYSTEM_ANALYSIS.md`.
 
 **Current State:** All Critical Blockers (C1–C6), Payment/Inventory/Security fixes (P1–P5, S1–S9), and most Storefront/Dashboard fixes (W1–W8, D1–D10) are **done**. Infrastructure basics (lockfiles, CI, seeders, render.yaml) are **done**.
 

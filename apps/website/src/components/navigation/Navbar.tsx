@@ -119,15 +119,6 @@ export function Navbar() {
   const initials = getInitials(user?.username || user?.email);
   const avatarStyle = pickAvatarStyle(avatarKey);
 
-  // Extract username from email (everything before @)
-  const getUsernameFromEmail = (email: string) => {
-    if (!email) return '';
-    return email.split('@')[0];
-  };
-
-  const currentUsername =
-    user?.username || getUsernameFromEmail(user?.email || '');
-
   const categories = CATEGORIES.map((category) => ({
     name: categoryLabel(category, t),
     href: categoryHref(category.slug),
@@ -150,9 +141,7 @@ export function Navbar() {
       },
     });
 
-  const wishlistHref = currentUsername
-    ? `/user/${currentUsername}/wishlist`
-    : '/auth/login';
+  const wishlistHref = user ? '/user/wishlist' : '/auth/login';
 
   const handleNavSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -213,7 +202,7 @@ export function Navbar() {
             </Link>
             {user ? (
               <Link
-                href='/account/orders'
+                href='/user/orders'
                 className='hover:text-stone-900'
               >
                 {t('nav.orders')}
@@ -416,12 +405,16 @@ export function Navbar() {
               {/* Cart */}
               <Link
                 href='/cart'
-                aria-label={t('common.cart')}
+                aria-label={
+                  cart.count > 0
+                    ? t('nav.cartWithCount', { count: cart.count })
+                    : t('common.cart')
+                }
                 className='relative p-2 text-gray-700 transition-colors hover:text-gray-900'
               >
                 <ShoppingCart className='w-5 h-5' />
                 {cart.count > 0 && (
-                  <span className='flex absolute -top-1 -end-1 justify-center items-center w-5 h-5 text-xs font-bold text-white bg-indigo-600 rounded-full'>
+                  <span aria-hidden className='flex absolute -top-1 -end-1 justify-center items-center w-5 h-5 text-xs font-bold text-white bg-indigo-600 rounded-full'>
                     {cart.count}
                   </span>
                 )}
@@ -481,7 +474,7 @@ export function Navbar() {
 
                       <DropdownMenu.Item asChild>
                         <Link
-                          href='/account'
+                          href='/user'
                           className='flex gap-2 items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100'
                         >
                           <User className='w-4 h-4' />
@@ -491,7 +484,7 @@ export function Navbar() {
 
                       <DropdownMenu.Item asChild>
                         <Link
-                          href='/account/orders'
+                          href='/user/orders'
                           className='flex gap-2 items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100'
                         >
                           <Receipt className='w-4 h-4' />
@@ -500,7 +493,7 @@ export function Navbar() {
                       </DropdownMenu.Item>
                       <DropdownMenu.Item asChild>
                         <Link
-                          href={`/user/${currentUsername}/reviews`}
+                          href='/user/reviews'
                           className='flex gap-2 items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100'
                         >
                           <MessageSquare className='w-4 h-4' />
@@ -510,7 +503,7 @@ export function Navbar() {
 
                       <DropdownMenu.Item asChild>
                         <Link
-                          href={`/user/${currentUsername}/wishlist`}
+                          href='/user/wishlist'
                           className='flex gap-2 items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100'
                         >
                           <Heart className='w-4 h-4' />
@@ -741,25 +734,25 @@ export function Navbar() {
             ) : (
               <nav className='pt-4 space-y-2 border-t border-gray-200'>
                 <Link
-                  href='/account'
+                  href='/user'
                   className='block px-4 py-2 text-gray-700 rounded-lg text-medium hover:bg-gray-100'
                 >
                   {t('nav.account')}
                 </Link>
                 <Link
-                  href='/account/orders'
+                  href='/user/orders'
                   className='block px-4 py-2 text-gray-700 rounded-lg text-medium hover:bg-gray-100'
                 >
                   {t('nav.orders')}
                 </Link>
                 <Link
-                  href={`/user/${currentUsername}/reviews`}
+                  href='/user/reviews'
                   className='block px-4 py-2 text-gray-700 rounded-lg text-medium hover:bg-gray-100'
                 >
                   {t('nav.myReviews')}
                 </Link>
                 <Link
-                  href={`/user/${currentUsername}/wishlist`}
+                  href='/user/wishlist'
                   className='block px-4 py-2 text-gray-700 rounded-lg text-medium hover:bg-gray-100'
                 >
                   {t('nav.wishlist')}

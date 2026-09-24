@@ -105,45 +105,54 @@ export default function SignupPage() {
             className='mt-6 space-y-4'
           >
             <div>
-              <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+              <label htmlFor='signup-username' className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
                 {t('auth.username')}
               </label>
               <Input
+                id='signup-username'
+                aria-invalid={errors.username ? true : undefined}
+                aria-describedby={errors.username ? 'signup-username-error' : undefined}
                 placeholder={t('auth.usernamePlaceholder')}
                 {...register('username')}
               />
               {errors.username?.message && (
-                <div className='mt-2 text-sm font-semibold text-rose-700'>
+                <div id='signup-username-error' role='alert' className='mt-2 text-sm font-semibold text-rose-700'>
                   {t(errors.username.message)}
                 </div>
               )}
             </div>
             <div>
-              <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+              <label htmlFor='signup-email' className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
                 {t('auth.email')}
               </label>
               <Input
+                id='signup-email'
+                aria-invalid={errors.email ? true : undefined}
+                aria-describedby={errors.email ? 'signup-email-error' : undefined}
                 type='email'
                 placeholder='you@example.com'
                 {...register('email')}
               />
               {errors.email?.message && (
-                <div className='mt-2 text-sm font-semibold text-rose-700'>
+                <div id='signup-email-error' role='alert' className='mt-2 text-sm font-semibold text-rose-700'>
                   {t(errors.email.message)}
                 </div>
               )}
             </div>
             <div>
-              <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+              <label htmlFor='signup-password' className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
                 {t('auth.password')}
               </label>
               <Input
+                id='signup-password'
+                aria-invalid={errors.password ? true : undefined}
+                aria-describedby={errors.password ? 'signup-password-error' : undefined}
                 type='password'
                 placeholder='••••••••'
                 {...register('password')}
               />
               {errors.password?.message && (
-                <div className='mt-2 text-sm font-semibold text-rose-700'>
+                <div id='signup-password-error' role='alert' className='mt-2 text-sm font-semibold text-rose-700'>
                   {t(errors.password.message)}
                 </div>
               )}

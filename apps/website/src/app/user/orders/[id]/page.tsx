@@ -162,7 +162,7 @@ export default function OrderDetailPage() {
         className='rounded-3xl border border-white/40 bg-white/55 p-6 shadow-sm backdrop-blur-xl'
       >
         <Link
-          href='/account/orders'
+          href='/user/orders'
           className='mb-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400'
         >
           <ArrowLeft className='h-4 w-4 rtl:-scale-x-100' />

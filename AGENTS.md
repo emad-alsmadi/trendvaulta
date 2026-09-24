@@ -45,11 +45,14 @@ CI order: **lint → typecheck → test → build** (see `.github/workflows/ci.y
 
 After code changes: provide a short **manual** validation command only. Do not execute it.
 
+Chain commands with `;` — never `&&`.
+
 Examples:
 ```bash
-cd apps/website && npx tsc --noEmit
-cd apps/dashboard && npx tsc --noEmit
-cd apps/api && npm test
+cd apps/website ; npx tsc --noEmit
+cd apps/dashboard ; npx tsc --noEmit
+cd apps/api ; npm test
+cd apps/website ; npx tsc --noEmit ; npm run lint ; npm run build
 ```
 
 If validation required: ask "Should I run the validation, or will you run it manually?"
@@ -58,17 +61,16 @@ If validation required: ask "Should I run the validation, or will you run it man
 
 ## Commit Message Policy
 
-After completed work: suggest **one** conventional English commit message. Do not run git.
+After completed work: suggest **one** conventional English commit message, written as a ready-to-run `git commit -m "..."` command (never the bare message). Do not run git.
 
-```
-Suggested commit:
-fix(scope): short description
+```bash
+git commit -m "fix(scope): short description"
 ```
 
 Examples:
-- `feat(storefront): wire featured brands to brands API`
-- `fix(api): send order confirmation email on paid`
-- `refactor(dashboard): align reviews page with admin reviews API`
+- `git commit -m "feat(storefront): wire featured brands to brands API"`
+- `git commit -m "fix(api): send order confirmation email on paid"`
+- `git commit -m "refactor(dashboard): align reviews page with admin reviews API"`
 
 ---
 
@@ -171,12 +173,12 @@ Files:
 
 Validation command:
 ```bash
-cd apps/website && npx tsc --noEmit
+cd apps/website ; npx tsc --noEmit
 ```
 
 Suggested commit:
-```text
-fix(scope): short description
+```bash
+git commit -m "fix(scope): short description"
 ```
 
 Notes:

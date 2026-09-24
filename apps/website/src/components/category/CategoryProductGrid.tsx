@@ -101,7 +101,7 @@ export function CategoryProductGrid({ category, subcategory }: Props) {
   return (
     <div>
       <div className='mb-4 flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center'>
-        <div className='flex flex-wrap items-center gap-2 text-sm text-stone-600'>
+        <div role='status' className='flex flex-wrap items-center gap-2 text-sm text-stone-600'>
           {isLoading && !response ? (
             <span>{t('catalog.loading')}</span>
           ) : error && !response ? (

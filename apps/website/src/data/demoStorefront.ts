@@ -1,6 +1,6 @@
 /**
  * DEMO / MOCK storefront merchandising data.
- * Easy to replace with API hooks later (see docs/STOREFRONT_BACKEND_BACKLOG.md).
+ * Easy to replace with API hooks later (see docs/archive/STOREFRONT_BACKEND_BACKLOG.md).
  *
  * TODO(api): GET /api/storefront/home ✓ (layout + hero/trust inline)
  * TODO(api): GET /api/offers

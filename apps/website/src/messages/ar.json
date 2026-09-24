@@ -52,7 +52,8 @@
       "confirm": "تسجيل الخروج",
       "cancel": "البقاء مسجّلًا"
     },
-    "breadcrumb": "مسار التنقل"
+    "breadcrumb": "مسار التنقل",
+    "cartWithCount": "السلة، عدد المنتجات: {count}"
   },
   "footer": {
     "newsletter": "احصل على العروض في بريدك",
@@ -502,61 +503,6 @@
       "manageAddresses": "إدارة العناوين",
       "securityDescription": "حدِّث كلمة المرور وأدِر أمان حسابك.",
       "securitySettings": "إعدادات الأمان"
-    },
-    "addressBook": {
-      "title": "العناوين المحفوظة",
-      "countOf": "{count} من {max} محفوظة",
-      "atCap": " — احذف عنوانًا لإضافة آخر",
-      "addAddress": "إضافة عنوان",
-      "addNewTitle": "إضافة عنوان جديد",
-      "saveAddress": "حفظ العنوان",
-      "editTitle": "تعديل العنوان",
-      "saveChanges": "حفظ التغييرات",
-      "closeForm": "إغلاق نموذج العنوان",
-      "emptyTitle": "لا توجد عناوين محفوظة بعد",
-      "emptyDescription": "احفظ عنوانًا لاستخدامه لاحقًا عند إتمام الطلب.",
-      "homeLabel": "المنزل",
-      "default": "افتراضي",
-      "setDefault": "تعيين كافتراضي",
-      "edit": "تعديل",
-      "delete": "حذف",
-      "cancel": "إلغاء",
-      "tryAgain": "إعادة المحاولة",
-      "useAsDefault": "استخدام كعنوان افتراضي",
-      "alwaysOneDefault": "يحتفظ دفتر العناوين دائمًا بعنوان افتراضي واحد.",
-      "loadFailed": "تعذّر تحميل عناوينك المحفوظة",
-      "defaultUpdated": "تم تحديث العنوان الافتراضي",
-      "defaultUpdateFailed": "تعذّر تحديث العنوان الافتراضي",
-      "updateFailedTitle": "فشل التحديث",
-      "deleteConfirmTitle": "حذف هذا العنوان؟",
-      "deleteConfirmDescription": "سيتم حذف \"{label}\" من دفتر عناوينك. لا يمكن التراجع عن هذا الإجراء.",
-      "deleteConfirmLabel": "حذف العنوان",
-      "addressDeleted": "تم حذف العنوان",
-      "deleteFailed": "تعذّر حذف العنوان",
-      "deleteFailedTitle": "فشل الحذف",
-      "addressSaved": "تم حفظ العنوان",
-      "saveFailed": "تعذّر حفظ العنوان",
-      "saveFailedTitle": "فشل الحفظ",
-      "addressUpdated": "تم تحديث العنوان",
-      "updateFailed": "تعذّر تحديث العنوان",
-      "field": {
-        "label": "التسمية",
-        "labelPlaceholder": "المنزل، العمل…",
-        "fullName": "الاسم الكامل",
-        "fullNamePlaceholder": "اسمك",
-        "phone": "الهاتف",
-        "phonePlaceholder": "رقم الهاتف",
-        "city": "المدينة",
-        "address": "العنوان",
-        "addressPlaceholder": "الشارع، المبنى، الشقة",
-        "zip": "الرمز البريدي",
-        "country": "الدولة",
-        "countryPlaceholder": "الدولة (اختياري)"
-      },
-      "validation": {
-        "maxChars": "الحد الأقصى {count} حرفًا",
-        "minChars": "استخدم {count} أحرف على الأقل"
-      }
     }
   },
   "orders": {
@@ -1438,9 +1384,6 @@
       "updateFailedTitle": "فشل التحديث",
       "save": "حفظ التغييرات"
     },
-    "settings": {
-      "title": "إعدادات الحساب"
-    },
     "reviews": {
       "title": "تقييماتي",
       "deleteConfirm": "هل تريد حذف هذا التقييم بالتأكيد؟",
@@ -1459,6 +1402,14 @@
       "title": "قائمة أمنياتي",
       "loadError": "تعذّر تحميل قائمة الأمنيات",
       "savedCount": "المنتجات المحفوظة: {count}"
+    },
+    "nav": {
+      "overview": "نظرة عامة"
+    },
+    "overview": {
+      "wishlistDescription": "المنتجات التي حفظتها لوقت لاحق.",
+      "reviewsDescription": "تقييماتك التي كتبتها، لتعديلها أو حذفها.",
+      "profileDescription": "اسم المستخدم والبريد الإلكتروني."
     }
   },
   "demo": {

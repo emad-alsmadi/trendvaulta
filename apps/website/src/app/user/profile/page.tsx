@@ -22,6 +22,7 @@ type ProfileUser = NonNullable<MeResponse['user']>;
 export default function EditProfilePage() {
   const router = useRouter();
   const pathname = usePathname();
+  const { t } = useTranslation();
   const meQuery = useMe();
   const user = meQuery.data?.user || null;
 
@@ -31,7 +32,7 @@ export default function EditProfilePage() {
 
   if (meQuery.isLoading || (!user && getAuthToken())) {
     return (
-      <div className='animate-pulse'>
+      <div role='status' aria-label={t('common.loading')} className='animate-pulse'>
         <div className='mb-8 h-8 w-48 rounded bg-gray-200' />
         <div className='h-64 rounded bg-gray-200' />
       </div>
@@ -86,7 +87,7 @@ function EditProfileForm({ user }: { user: ProfileUser }) {
         title: t('userArea.edit.savedTitle'),
         variant: 'success',
       });
-      router.push('/account');
+      router.push('/user');
     } catch (err) {
       logErrorForDev(err);
       toast(getUserFacingErrorMessage(err, t('userArea.edit.updateError'), t), {
@@ -96,17 +97,17 @@ function EditProfileForm({ user }: { user: ProfileUser }) {
     }
   };
 
-  const backHref = '/account';
+  const backHref = '/user';
 
   return (
     <>
-      <h1 className='mb-6 text-2xl font-bold text-gray-900'>
+      <h1 className='mb-6 text-2xl font-extrabold tracking-tight text-indigo-950'>
         {t('userArea.edit.title')}
       </h1>
 
       <form
         onSubmit={onSubmit}
-        className='rounded-lg border border-gray-200 bg-white p-6'
+        className='rounded-3xl border border-white/40 bg-white/55 p-6 shadow-sm backdrop-blur-xl'
         noValidate
       >
         <div className='grid gap-6 md:grid-cols-2'>

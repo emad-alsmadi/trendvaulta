@@ -120,7 +120,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <>
                     <DropdownMenu.Item asChild>
                       <Link
-                        href='/account'
+                        href='/user'
                         className='flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 outline-none transition hover:bg-gray-100'
                       >
                         <User className='h-4 w-4 text-gray-600' />
@@ -129,7 +129,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     </DropdownMenu.Item>
                     <DropdownMenu.Item asChild>
                       <Link
-                        href='/account/orders'
+                        href='/user/orders'
                         className='flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 outline-none transition hover:bg-gray-100'
                       >
                         {t('nav.orders')}

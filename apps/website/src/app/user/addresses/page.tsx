@@ -158,7 +158,7 @@ export default function AddressesPage() {
       </motion.div>
 
       {addressesQuery.isLoading && (
-        <div className='flex items-center justify-center py-12'>
+        <div role='status' aria-label={t('common.loading')} className='flex items-center justify-center py-12'>
           <div className='h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent' />
         </div>
       )}
@@ -210,11 +210,17 @@ export default function AddressesPage() {
                 <form onSubmit={handleSubmit((d) => onSubmitEdit(d, addr._id))} className='space-y-3'>
                   <div className='grid gap-2 sm:grid-cols-2'>
                     <Input
+                      id='addr-edit-label'
+                      aria-label={t('addresses.labelPlaceholder')}
                       placeholder={t('addresses.labelPlaceholder')}
                       {...register('label')}
                       defaultValue={addr.label || 'Home'}
                     />
                     <Input
+                      id='addr-edit-country'
+                      aria-invalid={errors.country ? true : undefined}
+                      aria-describedby={errors.country ? 'addr-edit-country-error' : undefined}
+                      aria-label={t('addresses.countryPlaceholder')}
                       placeholder={t('addresses.countryPlaceholder')}
                       {...register('country', {
                         maxLength: { value: 2, message: t('addresses.validation.countryCode') },
@@ -223,44 +229,67 @@ export default function AddressesPage() {
                       defaultValue={addr.country || 'US'}
                     />
                   </div>
+                  {errors.country && (
+                    <p id='addr-edit-country-error' role='alert' className='text-sm text-rose-600'>{errors.country.message}</p>
+                  )}
                   <Input
+                    id='addr-edit-name'
+                    aria-label={t('checkoutPage.form.fullName')}
+                    aria-invalid={errors.name ? true : undefined}
+                    aria-describedby={errors.name ? 'addr-edit-name-error' : undefined}
                     placeholder={t('checkoutPage.form.fullName')}
                     {...register('name', { required: t('checkoutPage.validation.nameRequired') })}
                     defaultValue={addr.name}
                   />
                   {errors.name && (
-                    <p className='text-sm text-rose-600'>{errors.name.message}</p>
+                    <p id='addr-edit-name-error' role='alert' className='text-sm text-rose-600'>{errors.name.message}</p>
                   )}
                   <Input
+                    id='addr-edit-phone'
+                    aria-label={t('checkout.phone')}
+                    aria-invalid={errors.phone ? true : undefined}
+                    aria-describedby={errors.phone ? 'addr-edit-phone-error' : undefined}
                     placeholder={t('checkout.phone')}
                     {...register('phone', { required: t('checkoutPage.validation.phoneRequired') })}
                     defaultValue={addr.phone}
                   />
                   {errors.phone && (
-                    <p className='text-sm text-rose-600'>{errors.phone.message}</p>
+                    <p id='addr-edit-phone-error' role='alert' className='text-sm text-rose-600'>{errors.phone.message}</p>
                   )}
                   <Input
+                    id='addr-edit-address'
+                    aria-label={t('checkoutPage.form.streetAddress')}
+                    aria-invalid={errors.address ? true : undefined}
+                    aria-describedby={errors.address ? 'addr-edit-address-error' : undefined}
                     placeholder={t('checkoutPage.form.streetAddress')}
                     {...register('address', { required: t('checkoutPage.validation.addressRequired') })}
                     defaultValue={addr.address}
                   />
                   {errors.address && (
-                    <p className='text-sm text-rose-600'>{errors.address.message}</p>
+                    <p id='addr-edit-address-error' role='alert' className='text-sm text-rose-600'>{errors.address.message}</p>
                   )}
                   <div className='grid gap-2 sm:grid-cols-2'>
                     <Input
+                      id='addr-edit-city'
+                      aria-label={t('checkout.city')}
+                      aria-invalid={errors.city ? true : undefined}
+                      aria-describedby={errors.city ? 'addr-edit-city-error' : undefined}
                       placeholder={t('checkout.city')}
                       {...register('city', { required: t('checkoutPage.validation.cityRequired') })}
                       defaultValue={addr.city}
                     />
                     <Input
+                      id='addr-edit-zip'
+                      aria-label={t('checkoutPage.form.zipLabel')}
+                      aria-invalid={errors.zip ? true : undefined}
+                      aria-describedby={errors.zip ? 'addr-edit-zip-error' : undefined}
                       placeholder={t('checkoutPage.form.zipPlaceholder')}
                       {...register('zip', { required: t('checkoutPage.validation.zipRequired') })}
                       defaultValue={addr.zip}
                     />
                   </div>
-                  {errors.city && <p className='text-sm text-rose-600'>{errors.city.message}</p>}
-                  {errors.zip && <p className='text-sm text-rose-600'>{errors.zip.message}</p>}
+                  {errors.city && <p id='addr-edit-city-error' role='alert' className='text-sm text-rose-600'>{errors.city.message}</p>}
+                  {errors.zip && <p id='addr-edit-zip-error' role='alert' className='text-sm text-rose-600'>{errors.zip.message}</p>}
 
                   <div className='flex gap-2'>
                     <Button type='submit' className='flex-1'>
@@ -352,10 +381,16 @@ export default function AddressesPage() {
 
             <div className='grid gap-2 sm:grid-cols-2'>
               <Input
+                id='addr-new-label'
+                aria-label={t('addresses.labelPlaceholder')}
                 placeholder={t('addresses.labelPlaceholderExample')}
                 {...register('label')}
               />
               <Input
+                id='addr-new-country'
+                aria-invalid={errors.country ? true : undefined}
+                aria-describedby={errors.country ? 'addr-new-country-error' : undefined}
+                aria-label={t('addresses.countryPlaceholder')}
                 placeholder={t('addresses.countryPlaceholderExample')}
                 {...register('country', {
                   maxLength: { value: 2, message: t('addresses.validation.countryCode') },
@@ -363,36 +398,59 @@ export default function AddressesPage() {
                 })}
               />
             </div>
+            {errors.country && (
+              <p id='addr-new-country-error' role='alert' className='text-sm text-rose-600'>{errors.country.message}</p>
+            )}
             <Input
+              id='addr-new-name'
+              aria-label={t('checkoutPage.form.fullName')}
+              aria-invalid={errors.name ? true : undefined}
+              aria-describedby={errors.name ? 'addr-new-name-error' : undefined}
               placeholder={t('checkoutPage.form.fullName')}
               {...register('name', { required: t('checkoutPage.validation.nameRequired'), minLength: { value: 2, message: t('addresses.validation.minChars', { count: 2 }) } })}
             />
-            {errors.name && <p className='text-sm text-rose-600'>{errors.name.message}</p>}
+            {errors.name && <p id='addr-new-name-error' role='alert' className='text-sm text-rose-600'>{errors.name.message}</p>}
 
             <Input
+              id='addr-new-phone'
+              aria-label={t('checkout.phone')}
+              aria-invalid={errors.phone ? true : undefined}
+              aria-describedby={errors.phone ? 'addr-new-phone-error' : undefined}
               placeholder={t('checkout.phone')}
               {...register('phone', { required: t('checkoutPage.validation.phoneRequired'), minLength: { value: 6, message: t('addresses.validation.minChars', { count: 6 }) } })}
             />
-            {errors.phone && <p className='text-sm text-rose-600'>{errors.phone.message}</p>}
+            {errors.phone && <p id='addr-new-phone-error' role='alert' className='text-sm text-rose-600'>{errors.phone.message}</p>}
 
             <Input
+              id='addr-new-address'
+              aria-label={t('checkoutPage.form.streetAddress')}
+              aria-invalid={errors.address ? true : undefined}
+              aria-describedby={errors.address ? 'addr-new-address-error' : undefined}
               placeholder={t('checkoutPage.form.streetPlaceholder')}
               {...register('address', { required: t('checkoutPage.validation.addressRequired'), minLength: { value: 5, message: t('addresses.validation.minChars', { count: 5 }) } })}
             />
-            {errors.address && <p className='text-sm text-rose-600'>{errors.address.message}</p>}
+            {errors.address && <p id='addr-new-address-error' role='alert' className='text-sm text-rose-600'>{errors.address.message}</p>}
 
             <div className='grid gap-2 sm:grid-cols-2'>
               <Input
+                id='addr-new-city'
+                aria-label={t('checkout.city')}
+                aria-invalid={errors.city ? true : undefined}
+                aria-describedby={errors.city ? 'addr-new-city-error' : undefined}
                 placeholder={t('checkout.city')}
                 {...register('city', { required: t('checkoutPage.validation.cityRequired'), minLength: { value: 2, message: t('addresses.validation.minChars', { count: 2 }) } })}
               />
               <Input
+                id='addr-new-zip'
+                aria-label={t('checkoutPage.form.zipLabel')}
+                aria-invalid={errors.zip ? true : undefined}
+                aria-describedby={errors.zip ? 'addr-new-zip-error' : undefined}
                 placeholder={t('addresses.zipPostalPlaceholder')}
                 {...register('zip', { required: t('checkoutPage.validation.zipRequired'), minLength: { value: 2, message: t('addresses.validation.minChars', { count: 2 }) } })}
               />
             </div>
-            {errors.city && <p className='text-sm text-rose-600'>{errors.city.message}</p>}
-            {errors.zip && <p className='text-sm text-rose-600'>{errors.zip.message}</p>}
+            {errors.city && <p id='addr-new-city-error' role='alert' className='text-sm text-rose-600'>{errors.city.message}</p>}
+            {errors.zip && <p id='addr-new-zip-error' role='alert' className='text-sm text-rose-600'>{errors.zip.message}</p>}
 
             <div className='flex gap-2'>
               <Button type='submit' disabled={createAddress.isPending} className='flex-1'>

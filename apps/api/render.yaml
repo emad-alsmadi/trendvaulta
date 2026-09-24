@@ -72,6 +72,20 @@ services:
         sync: false
       - key: AUTO_REFUND_ON_CANCEL
         value: "true"
+      # Uploads (services/storage.service.js). Render's disk is wiped on every
+      # deploy, so images must go to Cloudinary; the API refuses to start with
+      # STORAGE_DRIVER=cloudinary and missing credentials.
+      - key: STORAGE_DRIVER
+        value: cloudinary
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      # Contact-form notifications (utils/mail.js); falls back to SMTP_USER
+      - key: CONTACT_INBOX_EMAIL
+        sync: false
 
 # TrendVaulta notes:
 # - Liveness:  GET /api/trendvaulta (no DB)

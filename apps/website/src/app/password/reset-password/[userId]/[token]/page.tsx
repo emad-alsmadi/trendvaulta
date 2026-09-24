@@ -105,34 +105,40 @@ export default function ResetPasswordPage() {
               className='space-y-4'
             >
               <div>
-                <label className='block text-sm font-bold text-gray-900 mb-2'>
+                <label htmlFor='reset-password' className='block text-sm font-bold text-gray-900 mb-2'>
                   {t('security.newPassword')}
                 </label>
                 <div className='relative'>
                   <Lock className='pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' />
                   <Input
+                    id='reset-password'
+                    aria-invalid={errors.password ? true : undefined}
+                    aria-describedby={errors.password ? 'reset-password-error' : undefined}
                     className='ps-10'
                     type='password'
                     {...register('password')}
                   />
                 </div>
                 {errors.password?.message && (
-                  <div className='mt-2 text-sm font-semibold text-rose-700'>
+                  <div id='reset-password-error' role='alert' className='mt-2 text-sm font-semibold text-rose-700'>
                     {t(errors.password.message)}
                   </div>
                 )}
               </div>
 
               <div>
-                <label className='block text-sm font-bold text-gray-900 mb-2'>
+                <label htmlFor='reset-confirmPassword' className='block text-sm font-bold text-gray-900 mb-2'>
                   {t('password.confirmPassword')}
                 </label>
                 <Input
+                  id='reset-confirmPassword'
+                  aria-invalid={errors.confirmPassword ? true : undefined}
+                  aria-describedby={errors.confirmPassword ? 'reset-confirmPassword-error' : undefined}
                   type='password'
                   {...register('confirmPassword')}
                 />
                 {errors.confirmPassword?.message && (
-                  <div className='mt-2 text-sm font-semibold text-rose-700'>
+                  <div id='reset-confirmPassword-error' role='alert' className='mt-2 text-sm font-semibold text-rose-700'>
                     {t(errors.confirmPassword.message)}
                   </div>
                 )}

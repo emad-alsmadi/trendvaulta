@@ -245,6 +245,8 @@ export default function ContactPage() {
                       <input
                         type='text'
                         id='name'
+                        aria-invalid={fieldErrors.name ? true : undefined}
+                        aria-describedby={fieldErrors.name ? 'name-error' : undefined}
                         name='name'
                         value={formData.name}
                         onChange={handleChange}
@@ -253,7 +255,7 @@ export default function ContactPage() {
                         placeholder={t('checkoutPage.form.namePlaceholder')}
                       />
                       {fieldErrors.name && (
-                        <p className='mt-1 text-sm text-rose-600'>
+                        <p id='name-error' role='alert' className='mt-1 text-sm text-rose-600'>
                           {t(fieldErrors.name)}
                         </p>
                       )}
@@ -268,6 +270,8 @@ export default function ContactPage() {
                       <input
                         type='email'
                         id='email'
+                        aria-invalid={fieldErrors.email ? true : undefined}
+                        aria-describedby={fieldErrors.email ? 'email-error' : undefined}
                         name='email'
                         value={formData.email}
                         onChange={handleChange}
@@ -276,7 +280,7 @@ export default function ContactPage() {
                         placeholder='your@email.com'
                       />
                       {fieldErrors.email && (
-                        <p className='mt-1 text-sm text-rose-600'>
+                        <p id='email-error' role='alert' className='mt-1 text-sm text-rose-600'>
                           {t(fieldErrors.email)}
                         </p>
                       )}
@@ -292,6 +296,8 @@ export default function ContactPage() {
                     </label>
                     <select
                       id='subject'
+                      aria-invalid={fieldErrors.subject ? true : undefined}
+                      aria-describedby={fieldErrors.subject ? 'subject-error' : undefined}
                       name='subject'
                       value={formData.subject}
                       onChange={handleChange}
@@ -310,7 +316,7 @@ export default function ContactPage() {
                       <option value='other'>{t('contact.form.subjects.other')}</option>
                     </select>
                     {fieldErrors.subject && (
-                      <p className='mt-1 text-sm text-rose-600'>
+                      <p id='subject-error' role='alert' className='mt-1 text-sm text-rose-600'>
                         {t(fieldErrors.subject)}
                       </p>
                     )}
@@ -325,6 +331,8 @@ export default function ContactPage() {
                     </label>
                     <textarea
                       id='message'
+                      aria-invalid={fieldErrors.message ? true : undefined}
+                      aria-describedby={fieldErrors.message ? 'message-error' : undefined}
                       name='message'
                       value={formData.message}
                       onChange={handleChange}
@@ -335,7 +343,7 @@ export default function ContactPage() {
                       maxLength={2000}
                     />
                     {fieldErrors.message && (
-                      <p className='mt-1 text-sm text-rose-600'>
+                      <p id='message-error' role='alert' className='mt-1 text-sm text-rose-600'>
                         {t(fieldErrors.message)}
                       </p>
                     )}

@@ -13,9 +13,9 @@ export default function BrandsPage() {
 
   if (isLoading) {
     return (
-      <div className='min-h-screen flex items-center justify-center'>
+      <div role='status' className='min-h-screen flex items-center justify-center'>
         <div className='text-center'>
-          <Loader2 className='h-12 w-12 animate-spin text-fuchsia-600 mx-auto' />
+          <Loader2 className='h-12 w-12 animate-spin text-fuchsia-600 mx-auto' aria-hidden />
           <p className='mt-4 text-gray-600'>{t('brandsPage.loading')}</p>
         </div>
       </div>

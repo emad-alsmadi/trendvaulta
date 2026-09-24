@@ -13,9 +13,10 @@ export function proxy(request: NextRequest) {
 
   const protectedPaths: Array<{ path: string; role: string | string[] }> = [
     { path: '/profile', role: ['user', 'admin', 'moderator'] },
-    // /orders now redirects here (next.config.ts); redirects run before
-    // this proxy, so the guard has to sit on the destination.
-    { path: '/account', role: ['user', 'admin', 'moderator'] },
+    // The whole account area. Old /orders and /account URLs redirect here
+    // (next.config.ts); redirects run before this proxy, so the guard sits
+    // on the destination.
+    { path: '/user', role: ['user', 'admin', 'moderator'] },
     { path: '/checkout', role: ['user', 'admin', 'moderator'] },
   ];
 

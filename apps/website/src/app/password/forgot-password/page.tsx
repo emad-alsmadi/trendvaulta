@@ -100,12 +100,15 @@ export default function ForgotPasswordPage() {
               className='space-y-4'
             >
               <div>
-                <label className='block text-sm font-bold text-gray-900 mb-2'>
+                <label htmlFor='forgot-email' className='block text-sm font-bold text-gray-900 mb-2'>
                   {t('password.emailAddress')}
                 </label>
                 <div className='relative'>
                   <Mail className='pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' />
                   <Input
+                    id='forgot-email'
+                    aria-invalid={errors.email ? true : undefined}
+                    aria-describedby={errors.email ? 'forgot-email-error' : undefined}
                     className='ps-10'
                     type='email'
                     placeholder='you@example.com'
@@ -113,7 +116,7 @@ export default function ForgotPasswordPage() {
                   />
                 </div>
                 {errors.email?.message && (
-                  <div className='mt-2 text-sm font-semibold text-rose-700'>
+                  <div id='forgot-email-error' role='alert' className='mt-2 text-sm font-semibold text-rose-700'>
                     {t(errors.email.message)}
                   </div>
                 )}

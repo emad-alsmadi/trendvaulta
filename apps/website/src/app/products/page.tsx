@@ -485,7 +485,10 @@ export default function ProductsPage() {
               </ul>
             )}
 
-            <div className='mb-6 flex flex-wrap items-center gap-2 text-sm text-stone-600'>
+            <div
+              // Announces the result count after filtering, sorting or paging.
+              role='status'
+              className='mb-6 flex flex-wrap items-center gap-2 text-sm text-stone-600'>
               {isLoading && !response ? (
                 <span>{t('catalog.loading')}</span>
               ) : error ? (

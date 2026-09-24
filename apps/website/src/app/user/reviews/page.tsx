@@ -44,6 +44,11 @@ export default function UserReviewsPage() {
     return typeof product === 'string' ? product : product._id || '';
   };
 
+  const getProductTitle = (product: unknown): string => {
+    const title = (product as { title?: unknown } | null)?.title;
+    return typeof title === 'string' && title ? title : t('userArea.reviews.product');
+  };
+
   const handleDelete = async (reviewId: string, productId: string) => {
     if (confirm(t('userArea.reviews.deleteConfirm'))) {
       setDeletingId(reviewId);
@@ -78,7 +83,7 @@ export default function UserReviewsPage() {
 
   if (isLoading) {
     return (
-      <div className='animate-pulse'>
+      <div role='status' aria-label={t('common.loading')} className='animate-pulse'>
         <div className='h-8 bg-gray-200 rounded w-48 mb-8'></div>
         <div className='h-64 bg-gray-200 rounded'></div>
       </div>
@@ -96,10 +101,10 @@ export default function UserReviewsPage() {
   if (!reviews || reviews.length === 0) {
     return (
       <>
-        <h1 className='text-2xl font-bold text-gray-900 mb-8'>
+        <h1 className='mb-6 text-2xl font-extrabold tracking-tight text-indigo-950'>
           {t('userArea.reviews.title')}
         </h1>
-        <div className='bg-white rounded-lg border border-gray-200 p-12 text-center'>
+        <div className='rounded-3xl border border-white/40 bg-white/55 p-12 text-center shadow-sm backdrop-blur-xl'>
           <MessageSquare className='w-16 h-16 text-gray-400 mx-auto mb-4' />
           <h2 className='text-xl font-semibold text-gray-900 mb-2'>
             {t('userArea.reviews.emptyTitle')}
@@ -120,18 +125,18 @@ export default function UserReviewsPage() {
 
   return (
     <>
-      <div className='flex items-center justify-between mb-6'>
-        <h1 className='text-2xl font-bold text-gray-900'>
+      <div className='mb-6 flex flex-wrap items-center justify-between gap-2'>
+        <h1 className='text-2xl font-extrabold tracking-tight text-indigo-950'>
           {t('userArea.reviews.title')}
         </h1>
-        <div className='text-sm text-gray-600'>
+        <div className='text-sm font-semibold text-indigo-950/70'>
           {t('userArea.reviews.count', { count: reviews.length })}
         </div>
       </div>
 
-      <div className='bg-white rounded-lg border border-gray-200 overflow-hidden'>
-        <table className='w-full'>
-          <thead className='bg-gray-50 border-b border-gray-200'>
+      <div className='overflow-x-auto rounded-3xl border border-white/40 bg-white/55 shadow-sm backdrop-blur-xl'>
+        <table className='w-full min-w-[42rem]'>
+          <thead className='border-b border-white/40 bg-white/40'>
             <tr>
               <th className='px-6 py-4 text-start text-xs font-bold text-gray-600 uppercase tracking-wider'>
                 {t('userArea.reviews.product')}
@@ -154,14 +159,14 @@ export default function UserReviewsPage() {
             {reviews.map((review) => (
               <tr
                 key={review._id}
-                className='hover:bg-gray-50 transition'
+                className='transition hover:bg-white/50'
               >
                 <td className='px-6 py-4'>
                   <Link
                     href={`/products/${getProductId(review.product)}`}
                     className='font-semibold text-gray-900 hover:text-fuchsia-600 transition'
                   >
-                    {t('userArea.reviews.product')}
+                    {getProductTitle(review.product)}
                   </Link>
                 </td>
                 <td className='px-6 py-4'>
@@ -212,7 +217,7 @@ export default function UserReviewsPage() {
       </div>
 
       {/* Help Section */}
-      <div className='mt-8 bg-gradient-to-br from-fuchsia-600 via-purple-600 to-cyan-500 rounded-lg p-6 text-white'>
+      <div className='mt-8 rounded-3xl bg-gradient-to-br from-fuchsia-600 via-purple-600 to-cyan-500 p-6 text-white'>
         <h3 className='font-bold mb-2'>
           {t('userArea.reviews.helpTitle')}
         </h3>

@@ -111,11 +111,14 @@ export default function SecurityPage() {
 
             <div className='space-y-4'>
               <div>
-                <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+                <label htmlFor='security-currentPassword' className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
                   {t('security.currentPassword')}
                 </label>
                 <div className='relative'>
                   <Input
+                    id='security-currentPassword'
+                    aria-invalid={errors.currentPassword ? true : undefined}
+                    aria-describedby={errors.currentPassword ? 'security-currentPassword-error' : undefined}
                     type={showCurrent ? 'text' : 'password'}
                     placeholder={t('security.currentPasswordPlaceholder')}
                     autoComplete='current-password'
@@ -126,6 +129,7 @@ export default function SecurityPage() {
                   <button
                     type='button'
                     onClick={() => setShowCurrent(!showCurrent)}
+                    aria-pressed={showCurrent}
                     className='absolute end-3 top-1/2 -translate-y-1/2 text-indigo-950/50 hover:text-indigo-950'
                     aria-label={showCurrent ? t('security.hidePassword') : t('security.showPassword')}
                   >
@@ -133,16 +137,19 @@ export default function SecurityPage() {
                   </button>
                 </div>
                 {errors.currentPassword && (
-                  <p className='mt-1 text-sm font-semibold text-rose-600'>{errors.currentPassword.message}</p>
+                  <p id='security-currentPassword-error' role='alert' className='mt-1 text-sm font-semibold text-rose-600'>{errors.currentPassword.message}</p>
                 )}
               </div>
 
               <div>
-                <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+                <label htmlFor='security-newPassword' className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
                   {t('security.newPassword')}
                 </label>
                 <div className='relative'>
                   <Input
+                    id='security-newPassword'
+                    aria-invalid={errors.newPassword ? true : undefined}
+                    aria-describedby={errors.newPassword ? 'security-newPassword-error' : undefined}
                     type={showNew ? 'text' : 'password'}
                     placeholder={t('security.newPasswordPlaceholder')}
                     autoComplete='new-password'
@@ -157,6 +164,7 @@ export default function SecurityPage() {
                   <button
                     type='button'
                     onClick={() => setShowNew(!showNew)}
+                    aria-pressed={showNew}
                     className='absolute end-3 top-1/2 -translate-y-1/2 text-indigo-950/50 hover:text-indigo-950'
                     aria-label={showNew ? t('security.hidePassword') : t('security.showPassword')}
                   >
@@ -164,7 +172,7 @@ export default function SecurityPage() {
                   </button>
                 </div>
                 {errors.newPassword && (
-                  <p className='mt-1 text-sm font-semibold text-rose-600'>{errors.newPassword.message}</p>
+                  <p id='security-newPassword-error' role='alert' className='mt-1 text-sm font-semibold text-rose-600'>{errors.newPassword.message}</p>
                 )}
 
                 {newPassword && (
@@ -199,11 +207,14 @@ export default function SecurityPage() {
               </div>
 
               <div>
-                <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+                <label htmlFor='security-confirmPassword' className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
                   {t('security.confirmPassword')}
                 </label>
                 <div className='relative'>
                   <Input
+                    id='security-confirmPassword'
+                    aria-invalid={errors.confirmPassword ? true : undefined}
+                    aria-describedby={errors.confirmPassword ? 'security-confirmPassword-error' : undefined}
                     type={showConfirm ? 'text' : 'password'}
                     placeholder={t('security.confirmPasswordPlaceholder')}
                     autoComplete='new-password'
@@ -216,6 +227,7 @@ export default function SecurityPage() {
                   <button
                     type='button'
                     onClick={() => setShowConfirm(!showConfirm)}
+                    aria-pressed={showConfirm}
                     className='absolute end-3 top-1/2 -translate-y-1/2 text-indigo-950/50 hover:text-indigo-950'
                     aria-label={showConfirm ? t('security.hidePassword') : t('security.showPassword')}
                   >
@@ -223,7 +235,7 @@ export default function SecurityPage() {
                   </button>
                 </div>
                 {errors.confirmPassword && (
-                  <p className='mt-1 text-sm font-semibold text-rose-600'>{errors.confirmPassword.message}</p>
+                  <p id='security-confirmPassword-error' role='alert' className='mt-1 text-sm font-semibold text-rose-600'>{errors.confirmPassword.message}</p>
                 )}
               </div>
             </div>

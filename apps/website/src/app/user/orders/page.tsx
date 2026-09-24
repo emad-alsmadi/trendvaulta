@@ -112,7 +112,7 @@ export default function OrdersPage() {
       </motion.div>
 
       {ordersQuery.isLoading && (
-        <div className='flex items-center justify-center py-12'>
+        <div role='status' aria-label={t('common.loading')} className='flex items-center justify-center py-12'>
           <div className='h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent' />
         </div>
       )}
@@ -199,7 +199,7 @@ export default function OrdersPage() {
                   <tr key={order._id} className='hover:bg-indigo-950/5 transition-colors'>
                     <td className='px-4 py-4'>
                       <Link
-                        href={`/account/orders/${order._id}`}
+                        href={`/user/orders/${order._id}`}
                         className='font-mono text-sm font-semibold text-indigo-950 hover:underline'
                       >
                         #{order._id.slice(-8).toUpperCase()}
@@ -246,7 +246,7 @@ export default function OrdersPage() {
                     </td>
                     <td className='px-4 py-4 text-end'>
                       <Link
-                        href={`/account/orders/${order._id}`}
+                        href={`/user/orders/${order._id}`}
                         className='inline-flex items-center gap-1 text-sm font-semibold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300'
                       >
                         {t('orders.view')}

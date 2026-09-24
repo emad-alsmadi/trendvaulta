@@ -2,7 +2,7 @@
 
 **Document Version:** 2.1  
 **Date:** 2026-09-23  
-**Based on:** FULL_SYSTEM_ANALYSIS.md  
+**Based on:** [FULL_SYSTEM_ANALYSIS.md](archive/FULL_SYSTEM_ANALYSIS.md)  
 **Scope:** Complete system stabilization and feature implementation roadmap  
 **Status:** In execution — see Execution Status below
 
@@ -20,9 +20,9 @@ in the dashboard (Phase 5) and i18n.
 | 1 — Security | **Complete** | P1-P5, S1-S9. Two real gaps found and closed: production 5xx leaked `err.message`, and `resetPassword` had no validation on its params. |
 | 2 — Store & dashboard workflows | **Complete** | W1-W8, D5-D10. Two deliberate deviations from the plan's wording: W7 always requires a validated address (delivery itself is optional), and guest *checkout* sits under Feature 5. |
 | 3 — Revenue features | **Complete** | F8 cancel + returns, F9 Cloudinary storage. |
-| 4 — Arabic & growth | **Mostly complete** | F12: foundation done (server lang/dir, RTL-safe classes, USD only); **text translation of the purchase path is next**. |
+| 4 — Arabic & growth | **Mostly complete** | F12: foundation done (server lang/dir, RTL-safe classes, USD only); storefront text translated end to end, incl. footer, legal pages and `demoStorefront.ts` fallback copy; static RTL audit clean. Open: manual Arabic QA in the browser. |
 | 5 — Dashboard | **Complete** | Done: F19 product form, F20 order detail, F21 low stock, F22 server-side tables, F23 analytics, F24 categories and review replies, F25 customer management. |
-| 6 — Infrastructure | **Partial** | Done: I3 seeders, `/health`, pino + request IDs, graceful shutdown, Dependabot. Open: I1 deploy jobs and e2e, Sentry, I4 dashboard README and guides, I5 `packages/types` is built but unused. |
+| 6 — Infrastructure | **Partial** | Done: I3 seeders, `/health`, pino + request IDs, graceful shutdown, Dependabot. Done also: I4 docs (per-app READMEs, setup and deployment guides, archive). Open: I1 deploy jobs and e2e, Sentry, I5 `packages/types` is built but unused. |
 | 7 — Tech debt | **Partial** | T3 indexes done. T1 (178 `express-async-handler` wraps) and T2 (response contracts) remain, both low priority. |
 
 Checkboxes below are ticked only where the behaviour was verified, not merely
@@ -1668,8 +1668,8 @@ module.exports = {
 - [x] i18n configured — decisions 2026-09-23: locale in a `tv_locale` cookie read by the root layout (no /ar routes), so `<html lang dir>` is correct on first paint; existing TranslationProvider kept (no next-intl), English fallback for missing Arabic keys; IBM Plex Sans Arabic via next/font
 - [x] RTL layout functional — 102 physical classes converted to logical (ms/me/ps/pe/start/end/text-start/border-s…), centering pairs left alone; 24 directional icons mirror with `rtl:-scale-x-100`; language switch added to the mobile menu
 - [x] Currency switchable — **replaced by decision: USD only.** The switcher only swapped the symbol (would have shown $10 as ر.س10). Prices are USD, formatted per locale with Latin digits
-- [ ] All text translated — next: product page, cart, checkout, order success; then account, home rails, content pages
-- [ ] Arabic tested
+- [x] All text translated — **done:** header/mobile bar (fixed raw keys shown in the bottom bar), purchase path, product page, account area, auth + password (zod schemas carry message keys), home rails, catalog filters/pagination/category names (`categoryLabel`/`subcategoryLabel` in `lib/categories.ts`), brands, offers, content, policy shells, error pages, legacy user area (edit/settings/reviews/wishlist); account area consolidated under `/user/*` (2026-09-24; one layout, no username in URLs); `/orders*`, `/account/*` and `/user/<name>/*` redirect there; 1047 keys with en/ar parity, placeholder and call-site checks. `data/demoStorefront.ts` fallback copy as `demo.*` keys; 1305 keys total; footer, toast and confirm-dialog labels done in the audit pass. Legal pages (terms/privacy/cookies) translated too; CMS/API content (incl. admin-edited category names) is shown as sent
+- [ ] Arabic tested — static audit done 2026-09-24: no physical direction classes left (one centering pair), all directional icons flip, no hard-coded English JSX outside the aria-hidden honeypot. **Still needed:** manual pass in a browser (home, PLP + filters, PDP, cart, checkout, /account, phone width).
 
 ---
 
@@ -2107,7 +2107,7 @@ very order being edited.
 **Effort:** Medium (2-3 days)  
 **Files:** README files, docs
 
-**Current State:** Outdated documentation
+**Current State:** Done 2026-09-24. Also restored `apps/website/.env.example` and `apps/dashboard/.env.example` (deleted in `76e65fc`), added 9 undocumented variables to `apps/api/.env.example`, and set `STORAGE_DRIVER=cloudinary` in `render.yaml` (local uploads are wiped on each Render deploy).
 
 **Implementation:**
 
@@ -2120,12 +2120,12 @@ very order being edited.
 
 **Acceptance Criteria:**
 
-- [ ] API README updated
-- [ ] Website README updated
-- [ ] Dashboard README updated
-- [ ] Old docs archived
-- [ ] Setup guide
-- [ ] Deployment guide
+- [x] API README updated — Node 20.9+, full env table, all routers incl. uploads/shipping/settings/contact/newsletter/categories, returns/cancel/reply endpoints
+- [x] Website README updated — full env list, languages/RTL section, current routes
+- [x] Dashboard README updated — new file: screens with permissions, env, layout, conventions
+- [x] Old docs archived — 9 superseded audits/backlogs moved to `docs/archive/` with an index; links fixed
+- [x] Setup guide — `docs/SETUP.md` (env, seeding an admin, Stripe CLI, troubleshooting)
+- [x] Deployment guide — `docs/DEPLOYMENT.md` (Atlas → Render → Vercel ×2 → Stripe webhook, startup guards, smoke test, rollback)
 
 ---
 

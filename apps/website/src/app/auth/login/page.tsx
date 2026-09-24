@@ -139,26 +139,32 @@ export default function LoginPage() {
             className='mt-6 space-y-4'
           >
             <div>
-              <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+              <label htmlFor='login-email' className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
                 {t('auth.email')}
               </label>
               <Input
+                id='login-email'
+                aria-invalid={errors.email ? true : undefined}
+                aria-describedby={errors.email ? 'login-email-error' : undefined}
                 type='email'
                 placeholder='you@example.com'
                 {...register('email')}
               />
               {errors.email?.message && (
-                <div className='mt-2 text-sm font-semibold text-rose-700'>
+                <div id='login-email-error' role='alert' className='mt-2 text-sm font-semibold text-rose-700'>
                   {t(errors.email.message)}
                 </div>
               )}
             </div>
             <div className='relative'>
-              <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+              <label htmlFor='login-password' className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
                 {t('auth.password')}
               </label>
               <div className='relative'>
                 <Input
+                  id='login-password'
+                  aria-invalid={errors.password ? true : undefined}
+                  aria-describedby={errors.password ? 'login-password-error' : undefined}
                   type={`${showPassword ? 'text' : 'password'}`}
                   placeholder='••••••••'
                   {...register('password')}
@@ -167,6 +173,8 @@ export default function LoginPage() {
                 <button
                   type='button'
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? t('security.hidePassword') : t('security.showPassword')}
+                  aria-pressed={showPassword}
                   className='absolute end-3 top-1/2 -translate-y-1/2 text-indigo-950/60 hover:text-indigo-950 transition-colors duration-200'
                 >
                   {showPassword ? (
@@ -177,7 +185,7 @@ export default function LoginPage() {
                 </button>
               </div>
               {errors.password?.message && (
-                <div className='mt-2 text-sm font-semibold text-rose-700'>
+                <div id='login-password-error' role='alert' className='mt-2 text-sm font-semibold text-rose-700'>
                   {t(errors.password.message)}
                 </div>
               )}

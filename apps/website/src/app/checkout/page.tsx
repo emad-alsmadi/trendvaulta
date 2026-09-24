@@ -417,7 +417,7 @@ export default function CheckoutPage() {
         title: t('checkoutPage.toast.devCheckoutTitle'),
         variant: 'info',
       });
-      router.push(`/account/orders/${order._id}`);
+      router.push(`/user/orders/${order._id}`);
     } catch (err: unknown) {
       logErrorForDev(err);
       const msg = getUserFacingErrorMessage(
@@ -552,10 +552,13 @@ export default function CheckoutPage() {
             )}
 
             <div>
-              <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+              <label htmlFor='checkout-name' className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
                 {t('checkoutPage.form.fullName')}
               </label>
               <Input
+                id='checkout-name'
+                aria-invalid={errors.name ? true : undefined}
+                aria-describedby={errors.name ? 'checkout-name-error' : undefined}
                 placeholder={t('checkoutPage.form.namePlaceholder')}
                 {...register('name', {
                   required: t('checkoutPage.validation.nameRequired'),
@@ -574,17 +577,20 @@ export default function CheckoutPage() {
                 })}
               />
               {errors.name?.message && (
-                <div className='mt-2 text-sm font-semibold text-rose-700'>
+                <div id='checkout-name-error' role='alert' className='mt-2 text-sm font-semibold text-rose-700'>
                   {errors.name.message}
                 </div>
               )}
             </div>
 
             <div>
-              <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+              <label htmlFor='checkout-phone' className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
                 {t('checkout.phone')}
               </label>
               <Input
+                id='checkout-phone'
+                aria-invalid={errors.phone ? true : undefined}
+                aria-describedby={errors.phone ? 'checkout-phone-error' : undefined}
                 placeholder='+1 555 555 555'
                 {...register('phone', {
                   required: t('checkoutPage.validation.phoneRequired'),
@@ -603,7 +609,7 @@ export default function CheckoutPage() {
                 })}
               />
               {errors.phone?.message && (
-                <div className='mt-2 text-sm font-semibold text-rose-700'>
+                <div id='checkout-phone-error' role='alert' className='mt-2 text-sm font-semibold text-rose-700'>
                   {errors.phone.message}
                 </div>
               )}
@@ -681,10 +687,13 @@ export default function CheckoutPage() {
             )}
 
             <div>
-              <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+              <label htmlFor='checkout-address' className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
                 {t('checkoutPage.form.streetAddress')}
               </label>
               <Input
+                id='checkout-address'
+                aria-invalid={errors.address ? true : undefined}
+                aria-describedby={errors.address ? 'checkout-address-error' : undefined}
                 placeholder={t('checkoutPage.form.streetPlaceholder')}
                 {...register('address', {
                   validate: (v) =>
@@ -699,7 +708,7 @@ export default function CheckoutPage() {
                 })}
               />
               {errors.address?.message && (
-                <div className='mt-2 text-sm font-semibold text-rose-700'>
+                <div id='checkout-address-error' role='alert' className='mt-2 text-sm font-semibold text-rose-700'>
                   {errors.address.message}
                 </div>
               )}
@@ -707,10 +716,13 @@ export default function CheckoutPage() {
 
             <div className='grid gap-4 sm:grid-cols-3'>
               <div>
-                <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+                <label htmlFor='checkout-city' className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
                   {t('checkout.city')}
                 </label>
                 <Input
+                  id='checkout-city'
+                  aria-invalid={errors.city ? true : undefined}
+                  aria-describedby={errors.city ? 'checkout-city-error' : undefined}
                   placeholder={t('checkout.city')}
                   {...register('city', {
                     validate: (v) =>
@@ -725,16 +737,19 @@ export default function CheckoutPage() {
                   })}
                 />
                 {errors.city?.message && (
-                  <div className='mt-2 text-sm font-semibold text-rose-700'>
+                  <div id='checkout-city-error' role='alert' className='mt-2 text-sm font-semibold text-rose-700'>
                     {errors.city.message}
                   </div>
                 )}
               </div>
               <div>
-                <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+                <label htmlFor='checkout-zip' className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
                   {t('checkoutPage.form.zipLabel')}
                 </label>
                 <Input
+                  id='checkout-zip'
+                  aria-invalid={errors.zip ? true : undefined}
+                  aria-describedby={errors.zip ? 'checkout-zip-error' : undefined}
                   placeholder={t('checkoutPage.form.zipPlaceholder')}
                   {...register('zip', {
                     validate: (v) =>
@@ -749,16 +764,19 @@ export default function CheckoutPage() {
                   })}
                 />
                 {errors.zip?.message && (
-                  <div className='mt-2 text-sm font-semibold text-rose-700'>
+                  <div id='checkout-zip-error' role='alert' className='mt-2 text-sm font-semibold text-rose-700'>
                     {errors.zip.message}
                   </div>
                 )}
               </div>
               <div>
-                <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+                <label htmlFor='checkout-country' className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
                   {t('checkout.country')}
                 </label>
                 <Input
+                  id='checkout-country'
+                  aria-invalid={errors.country ? true : undefined}
+                  aria-describedby={errors.country ? 'checkout-country-error' : undefined}
                   placeholder='US'
                   {...register('country', {
                     validate: (v) =>
@@ -773,7 +791,7 @@ export default function CheckoutPage() {
                   })}
                 />
                 {errors.country?.message && (
-                  <div className='mt-2 text-sm font-semibold text-rose-700'>
+                  <div id='checkout-country-error' role='alert' className='mt-2 text-sm font-semibold text-rose-700'>
                     {errors.country.message}
                   </div>
                 )}
@@ -781,10 +799,11 @@ export default function CheckoutPage() {
             </div>
 
             <div>
-              <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+              <label htmlFor='checkout-notes' className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
                 {t('checkoutPage.form.notesLabel')}
               </label>
               <Input
+                id='checkout-notes'
                 placeholder={t('checkoutPage.form.notesPlaceholder')}
                 {...register('notes', {
                   maxLength: {
@@ -953,6 +972,7 @@ export default function CheckoutPage() {
               <div className='space-y-2'>
                 <div className='flex gap-2'>
                   <Input
+                    aria-label={t('checkoutPage.summary.couponPlaceholder')}
                     placeholder={t('checkoutPage.summary.couponPlaceholder')}
                     value={couponCode}
                     onChange={(e) =>

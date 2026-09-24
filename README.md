@@ -9,19 +9,25 @@ Retail e-commerce monorepo for beauty, fashion, and lifestyle products. Buyers s
 | Dashboard | `apps/dashboard` | **3002** | Vite + React admin |
 
 Package manager: **npm workspaces** (root `package.json`, `apps/*`). Each app
-keeps its own API client and types — there is no shared `packages/` workspace.
+keeps its own API client and types. `packages/types` exists but no app imports
+it yet (plan item I5).
+
+**New here?** Follow [`docs/SETUP.md`](docs/SETUP.md) (local setup) and
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) (production).
 
 ---
 
 ## Features
 
-- JWT auth (login, register, profile, password reset email)
+- English and Arabic storefront (RTL), USD pricing
+- JWT auth with refresh tokens (login, register, profile, password reset email)
 - Product catalog with brands, filters, badges, and sorting (e.g. bestselling)
-- Client cart + Stripe Checkout
-- Orders, wishlist, reviews
+- Client cart + Stripe Checkout, shipping zones, tax
+- Orders with cancellation, returns and Stripe refunds; wishlist, reviews with staff replies
 - Coupons and offers
 - Storefront rails (recommendations, bundles, recently viewed, gift finder, lookbooks, trust, testimonials, why-choose-us)
-- Admin dashboard for products, brands, orders, users, coupons, offers, reviews, and stats
+- Admin dashboard for products (variants, galleries), categories, brands, orders, returns, customers, coupons, offers, reviews, CMS, analytics and settings
+- Image uploads to local disk or Cloudinary
 
 Catalog domain is **products and brands**.
 
@@ -33,7 +39,7 @@ Catalog domain is **products and brands**.
 
 **Dashboard** — Vite, React 19, TypeScript, React Router, TanStack Query, Tailwind CSS
 
-**API** — Node.js 18+, Express 5, Mongoose, Joi, JWT, bcryptjs, Stripe, Nodemailer
+**API** — Node.js 20.9+, Express 5, Mongoose, Joi, JWT, bcryptjs, Stripe, Nodemailer
 
 ---
 
@@ -46,9 +52,8 @@ trendvaulta/
 │   ├── website/             # Next.js storefront (port 3001)
 │   └── dashboard/           # Vite admin (port 3002; proxies /api → :3000)
 ├── packages/
-│   ├── types/
-│   └── api-client/
-├── docs/                    # Status, audits, backlogs
+│   └── types/               # unused so far (plan item I5)
+├── docs/                    # Plan, setup/deploy guides, reference docs; docs/archive/ for old audits
 ├── package.json             # npm workspaces + scripts
 └── AGENTS.md                # AI agent instructions
 ```
@@ -59,9 +64,12 @@ trendvaulta/
 
 ### Prerequisites
 
-- Node.js 18+ and npm 9+
+- Node.js 20.9+ and npm 10+
 - MongoDB (local or Atlas)
 - Stripe keys for checkout (optional for non-payment work)
+
+The step-by-step version, with seeding an admin and Stripe webhooks, is in
+[`docs/SETUP.md`](docs/SETUP.md).
 
 ### Install
 
@@ -79,7 +87,8 @@ cp apps/website/.env.example apps/website/.env.local
 cp apps/dashboard/.env.example apps/dashboard/.env
 ```
 
-See `apps/api/.env.example` for the full API list. Mail uses `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` (with `EMAIL_USER` / `EMAIL_PASS` / `FROM_EMAIL` fallbacks). Storefront: `NEXT_PUBLIC_API_URL`. Dashboard (optional): `VITE_API_URL`.
+Only `MONGO_URL` and `JWT_SECRET_KEY` are required to start the API. Each
+`.env.example` documents its variables inline.
 
 ### Run locally
 
@@ -156,11 +165,10 @@ The storefront persists the JWT with client-readable cookies (`js-cookie`). Trea
 
 ## Deployment
 
-- API deploys as a Node web service via `apps/api/render.yaml` (Render Blueprint, `rootDir: apps/api`, health check `GET /api/ready`).
-- Dashboard deploys as a static Vite SPA via `apps/dashboard/vercel.json`; storefront via `apps/website/vercel.json`.
-- Prefer MongoDB Atlas for production data.
-- Configure Stripe webhook to `POST /api/webhooks/stripe` with the signing secret.
-- Set `FRONTEND_URL`, `DASHBOARD_URL`, and CORS allowlists for production origins.
+API on Render (`apps/api/render.yaml`), storefront and dashboard on Vercel
+(`vercel.json` in each app), MongoDB Atlas, Cloudinary for images, and the
+Stripe webhook at `POST /api/webhooks/stripe`. The order, the variables and a
+smoke-test checklist are in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 ---
 
@@ -170,7 +178,11 @@ The storefront persists the JWT with client-readable cookies (`js-cookie`). Trea
 |---|---|
 | `AGENTS.md` | Instructions for AI agents |
 | `.cursor/rules/` | Cursor rules (session, API, frontend) |
-| `docs/` | Audits, gap analysis, remediation notes |
+| `docs/IMPLEMENTATION_PLAN.md` | Current plan and status |
+| `docs/SETUP.md`, `docs/DEPLOYMENT.md` | Local setup, production deployment |
+| `docs/API_CONTRACT.md`, `BUSINESS_RULES.md`, `DATA_MODEL.md`, `SECURITY_MODEL.md`, `CI.md` | Reference |
+| `docs/archive/` | Superseded audits and backlogs (history only) |
+| `apps/*/README.md` | Per-app run, env, structure, conventions |
 
 ---
 

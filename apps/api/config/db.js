@@ -5,14 +5,16 @@ function withDbName(mongoUrl, dbName) {
   if (!dbName) return mongoUrl;
 
   const [base, query] = mongoUrl.split('?');
-  const idx = base.lastIndexOf('/');
-  if (idx === -1) return mongoUrl;
+  const schemeEnd = base.indexOf('://');
+  if (schemeEnd === -1) return mongoUrl;
 
-  const prefix = base.slice(0, idx + 1);
-  const currentDb = base.slice(idx + 1);
+  // The path (db name) starts at the first '/' after the "scheme://host[:port]"
+  // segment, so a bare "mongodb://host:port" (no trailing slash) is treated
+  // as having no db name rather than mistaking the "//" for it.
+  const idx = base.indexOf('/', schemeEnd + 3);
+  const prefix = idx === -1 ? `${base}/` : base.slice(0, idx + 1);
 
-  // If no db part (ends with '/'), append db name
-  const nextBase = currentDb ? `${prefix}${dbName}` : `${base}${dbName}`;
+  const nextBase = `${prefix}${dbName}`;
   return query ? `${nextBase}?${query}` : nextBase;
 }
 
