@@ -310,6 +310,18 @@ export const authApi = {
     return data;
   },
 
+  /** Verifies the current password; the API then revokes every session. */
+  changePassword: async (payload: {
+    currentPassword: string;
+    newPassword: string;
+  }): Promise<{ message: string }> => {
+    const { data } = await api.post<{ message: string }>(
+      '/password/change',
+      payload,
+    );
+    return data;
+  },
+
   logout: async (refreshToken?: string) => {
     try {
       await api.post('/auth/logout', { refreshToken });

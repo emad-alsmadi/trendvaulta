@@ -4,11 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Save, Shield, Palette, User, LogOut, Loader2, Store } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
-import {
-  adminUsersApi,
-  authApi,
-  errorMessage,
-} from '../lib/api';
+import { authApi, errorMessage } from '../lib/api';
 import { clearAuthSession, getAuthRole, getRefreshToken } from '../lib/auth';
 import { viteEnv } from '../lib/viteEnv';
 import { usePermissions } from '../hooks/usePermissions';
@@ -24,9 +20,9 @@ export default function Settings() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { theme, toggleTheme } = useTheme();
-  const { role } = usePermissions();
+  const { can } = usePermissions();
   const toast = useToast();
-  const isAdmin = role === 'admin';
+  const canEditStoreSettings = can('settings:write');
 
   const profileQ = useQuery({
     queryKey: PROFILE_KEY,
@@ -43,6 +39,7 @@ export default function Settings() {
   const [profileMsg, setProfileMsg] = useState<string | null>(null);
   const [profileErr, setProfileErr] = useState<string | null>(null);
 
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordSaving, setPasswordSaving] = useState(false);
@@ -121,8 +118,8 @@ export default function Settings() {
     setPasswordMsg(null);
     setPasswordErr(null);
 
-    if (!user?._id) {
-      setPasswordErr('Profile not loaded yet.');
+    if (!currentPassword) {
+      setPasswordErr('Enter your current password.');
       return;
     }
     if (newPassword.length < 8) {
@@ -136,19 +133,15 @@ export default function Settings() {
 
     setPasswordSaving(true);
     try {
-      // Uses admin users update (requires users:write). No current-password check on API.
-      await adminUsersApi.updateUser(user._id, { password: newPassword });
-      setNewPassword('');
-      setConfirmPassword('');
-      setPasswordMsg('Password updated.');
+      await authApi.changePassword({ currentPassword, newPassword });
+      // The API revokes every session (this one included), so sign in again
+      // now instead of being logged out silently at the next token refresh.
+      clearAuthSession();
+      qc.clear();
+      toast.success('Password updated. Please sign in with your new password.');
+      navigate('/login');
     } catch (err) {
-      setPasswordErr(
-        errorMessage(
-          err,
-          'Could not update password (needs users:write permission)',
-        ),
-      );
-    } finally {
+      setPasswordErr(errorMessage(err, 'Could not update password'));
       setPasswordSaving(false);
     }
   }
@@ -276,8 +269,8 @@ export default function Settings() {
           </div>
         </section>
 
-        {/* Store settings (shipping/tax) — admin only */}
-        {isAdmin && (
+        {/* Store settings (shipping/tax) — settings:write (admin only) */}
+        {canEditStoreSettings && (
           <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <div className="mb-4 flex items-center">
               <Store className="mr-2 h-5 w-5 text-blue-500" />
@@ -400,10 +393,22 @@ export default function Settings() {
             </h2>
           </div>
           <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
-            Updates via admin users API. API does not verify the current
-            password.
+            Changing your password signs you out of every device, including
+            this one.
           </p>
           <form onSubmit={savePassword} className="space-y-4">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Current password
+              </label>
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              />
+            </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 New password
