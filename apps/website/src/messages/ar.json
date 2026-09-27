@@ -671,6 +671,8 @@
     "retry": "إعادة المحاولة",
     "form": {
       "ratingLabel": "التقييم",
+      "starLabel": "{count} من 5 نجوم",
+      "ratingRequired": "يرجى اختيار تقييم.",
       "commentLabel": "تعليقك",
       "commentPlaceholder": "شاركنا تجربتك مع هذا المنتج...",
       "charCount": "عدد الأحرف: {count}/{max}",

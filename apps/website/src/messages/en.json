@@ -671,6 +671,8 @@
     "retry": "Retry",
     "form": {
       "ratingLabel": "Rating",
+      "starLabel": "{count} out of 5 stars",
+      "ratingRequired": "Please choose a rating.",
       "commentLabel": "Your Review",
       "commentPlaceholder": "Share your experience with this product...",
       "charCount": "{count}/{max} characters",
