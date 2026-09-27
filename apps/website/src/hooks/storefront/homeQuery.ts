@@ -9,6 +9,7 @@ import {
 } from '@/lib/api';
 import { useStorefrontModules } from './storefrontModulesQuery';
 import type { DemoHeroSlide } from '@/data/demoStorefront';
+import type { Locale } from '@/lib/locale';
 
 export const FALLBACK_HOME_MODULE_KEYS = [
   'hero',
@@ -43,6 +44,7 @@ export function pickActiveHomeModules(
 
 export function getHeroSlidesFromHome(
   modules: StorefrontHomeModule[] | undefined,
+  locale: Locale = 'en',
 ): DemoHeroSlide[] | undefined {
   const hero = modules?.find((mod) => mod.key === 'hero');
   const slides = hero?.slides;
@@ -51,16 +53,21 @@ export function getHeroSlidesFromHome(
   return slides
     .map((slide, index) => {
       const href = slide.ctaHref?.trim() || slide.href?.trim() || '/products';
-      const title = slide.title?.trim() ?? '';
+      // Each field falls back to English on its own, so a half-translated
+      // slide still reads as a whole slide.
+      const local = locale === 'en' ? undefined : slide.translations?.[locale];
+      const text = (field: 'eyebrow' | 'title' | 'subtitle' | 'ctaLabel') =>
+        local?.[field]?.trim() || slide[field]?.trim() || '';
+      const title = text('title');
       if (!title) return null;
 
       return {
         id: slide.id?.trim() || `hero-slide-${index}`,
-        eyebrow: slide.eyebrow?.trim() ?? '',
+        eyebrow: text('eyebrow'),
         title,
-        subtitle: slide.subtitle?.trim() ?? '',
+        subtitle: text('subtitle'),
         // Message key — HeroPromoCarousel renders ctaLabel with t()
-        ctaLabel: slide.ctaLabel?.trim() || 'demo.hero.shopNow',
+        ctaLabel: text('ctaLabel') || 'demo.hero.shopNow',
         href,
         imageUrl: slide.imageUrl?.trim() || '/images/1.jpeg',
         tone: slide.tone ?? 'rose',

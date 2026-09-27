@@ -887,6 +887,14 @@ const STOREFRONT_MODULES = [
         ctaHref: '/c/skincare',
         imageUrl: '/images/1.webp',
         tone: 'rose',
+        translations: {
+          ar: {
+            eyebrow: 'مختارات الجمال',
+            title: 'أساسيات الإشراقة الناعمة لكل روتين',
+            subtitle: 'مختارات للعناية بالبشرة والمكياج بأسعار واضحة.',
+            ctaLabel: 'تسوّق العناية بالبشرة',
+          },
+        },
         active: true,
         sortOrder: 0,
       },
@@ -899,6 +907,14 @@ const STOREFRONT_MODULES = [
         ctaHref: '/c/clothing',
         imageUrl: '/images/2.webp',
         tone: 'indigo',
+        translations: {
+          ar: {
+            eyebrow: 'خزانة الملابس',
+            title: 'قطع يومية بلمسة راقية',
+            subtitle: 'إطلالات سهلة التنسيق بلا مبالغة.',
+            ctaLabel: 'تسوّق الملابس',
+          },
+        },
         active: true,
         sortOrder: 1,
       },
@@ -911,6 +927,14 @@ const STOREFRONT_MODULES = [
         ctaHref: '/offers',
         imageUrl: '/images/3.webp',
         tone: 'teal',
+        translations: {
+          ar: {
+            eyebrow: 'عروض اليوم',
+            title: 'مختارات محدودة تستحق نظرة ثانية',
+            subtitle: 'عروض موسمية منتقاة لمتسوّقي TrendVaulta.',
+            ctaLabel: 'شاهد العروض',
+          },
+        },
         active: true,
         sortOrder: 2,
       },

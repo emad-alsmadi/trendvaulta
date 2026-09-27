@@ -1191,6 +1191,10 @@ export type StorefrontHeroSlide = {
   href?: string;
   imageUrl?: string;
   tone?: 'rose' | 'stone' | 'teal' | 'indigo';
+  /** Per-language copy entered in the dashboard; missing fields fall back to English. */
+  translations?: {
+    ar?: Partial<Pick<StorefrontHeroSlide, 'eyebrow' | 'title' | 'subtitle' | 'ctaLabel'>>;
+  };
 };
 
 export type StorefrontHomeModule = {

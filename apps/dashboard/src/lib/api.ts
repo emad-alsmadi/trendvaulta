@@ -1072,6 +1072,10 @@ export type HeroSlide = {
   href?: string;
   imageUrl?: string;
   tone?: 'rose' | 'stone' | 'teal' | 'indigo';
+  /** Arabic copy; the storefront falls back to the English field when one is empty. */
+  translations?: {
+    ar?: Partial<Pick<HeroSlide, 'eyebrow' | 'title' | 'subtitle' | 'ctaLabel'>>;
+  };
   active?: boolean;
   sortOrder?: number;
 };

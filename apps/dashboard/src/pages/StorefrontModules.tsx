@@ -16,6 +16,8 @@ import {
 import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
+import { HeroSlidesEditor } from '../components/storefront/HeroSlidesEditor';
+import { validateHeroSlides } from '../lib/heroSlides';
 
 const MODULE_TYPES: StorefrontModuleType[] = [
   'hero_carousel',
@@ -100,8 +102,19 @@ export default function StorefrontModules() {
       return;
     }
 
+    const isHero = form.type === 'hero_carousel';
+    const slideError = isHero ? validateHeroSlides(form.slides || []) : null;
+    if (slideError) {
+      toast.error(slideError);
+      return;
+    }
+
     const payload: StorefrontModulePayload = {
       ...form,
+      // Order in the editor is the display order.
+      slides: isHero
+        ? (form.slides || []).map((slide, index) => ({ ...slide, sortOrder: index }))
+        : form.slides,
       key: form.key.trim(),
       title: (form.title || '').trim(),
       active: !!form.active,
@@ -281,7 +294,7 @@ export default function StorefrontModules() {
 
       {open && (
         <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4'>
-          <div className='max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800' role='dialog' aria-modal='true'>
+          <div className='max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800' role='dialog' aria-modal='true'>
             <div className='mb-4 flex items-center justify-between'>
               <h2 className='text-xl font-bold text-gray-900 dark:text-white'>
                 {editing ? 'Edit module' : 'Create module'}
@@ -376,6 +389,12 @@ export default function StorefrontModules() {
                 />
                 Active
               </label>
+              {form.type === 'hero_carousel' && (
+                <HeroSlidesEditor
+                  value={form.slides || []}
+                  onChange={(slides) => setForm((f) => ({ ...f, slides }))}
+                />
+              )}
               <div className='flex justify-end gap-2 pt-2'>
                 <button
                   type='button'

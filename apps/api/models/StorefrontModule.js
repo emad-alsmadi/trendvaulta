@@ -44,6 +44,16 @@ const StorefrontModuleSchema = new mongoose.Schema(
       href: { type: String, trim: true },
       imageUrl: { type: String, trim: true },
       tone: { type: String, enum: ['rose', 'stone', 'teal', 'indigo'], default: 'stone' },
+      // Per-language copy; the storefront falls back to the fields above
+      // when a translation (or one of its fields) is missing.
+      translations: {
+        ar: {
+          eyebrow: { type: String, trim: true },
+          title: { type: String, trim: true },
+          subtitle: { type: String, trim: true },
+          ctaLabel: { type: String, trim: true },
+        },
+      },
       active: { type: Boolean, default: true },
       sortOrder: { type: Number, default: 0 },
     }],

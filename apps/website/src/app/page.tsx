@@ -23,9 +23,11 @@ import { EditorialLookbookSection } from '@/components/home/EditorialLookbookSec
 import { WhyChooseUs } from '@/components/home/WhyChooseUs';
 import { Testimonials } from '@/components/home/Testimonials';
 import { CTASection } from '@/components/home/CTASection';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function HomePage() {
   const router = useRouter();
+  const { locale } = useTranslation();
   const [query] = useState<ProductsQuery>({
     page: 1,
     limit: 8,
@@ -54,8 +56,8 @@ export default function HomePage() {
   }, [homeModules]);
 
   const heroSlides = useMemo(
-    () => getHeroSlidesFromHome(homeModules),
-    [homeModules],
+    () => getHeroSlidesFromHome(homeModules, locale),
+    [homeModules, locale],
   );
 
   const handleSearch = (e: React.FormEvent) => {

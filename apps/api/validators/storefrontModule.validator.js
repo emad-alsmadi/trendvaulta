@@ -1,5 +1,12 @@
 const Joi = require('joi');
 
+const slideTextSchema = Joi.object({
+  eyebrow: Joi.string().allow('', null).max(100),
+  title: Joi.string().allow('', null).max(200),
+  subtitle: Joi.string().allow('', null).max(300),
+  ctaLabel: Joi.string().allow('', null).max(60),
+});
+
 const slideSchema = Joi.object({
   id: Joi.string().required(),
   eyebrow: Joi.string().allow('', null),
@@ -10,6 +17,7 @@ const slideSchema = Joi.object({
   href: Joi.string().allow('', null),
   imageUrl: Joi.string().allow('', null),
   tone: Joi.string().valid('rose', 'stone', 'teal', 'indigo').default('stone'),
+  translations: Joi.object({ ar: slideTextSchema }).default({}),
   active: Joi.boolean().default(true),
   sortOrder: Joi.number().default(0),
 });

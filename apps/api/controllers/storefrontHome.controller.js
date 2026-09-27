@@ -15,6 +15,14 @@ const DEFAULT_HERO_SLIDES = [
     ctaHref: '/products?category=beauty',
     imageUrl: '/images/1.webp',
     tone: 'rose',
+    translations: {
+      ar: {
+        eyebrow: 'مختارات الجمال',
+        title: 'أساسيات الإشراقة الناعمة لكل روتين',
+        subtitle: 'مختارات للعناية بالبشرة والمكياج بأسعار واضحة.',
+        ctaLabel: 'تسوّق الجمال',
+      },
+    },
   },
   {
     id: 'hero-fashion',
@@ -25,6 +33,14 @@ const DEFAULT_HERO_SLIDES = [
     ctaHref: '/products?category=fashion',
     imageUrl: '/images/2.webp',
     tone: 'indigo',
+    translations: {
+      ar: {
+        eyebrow: 'الأزياء',
+        title: 'قطع يومية بلمسة راقية',
+        subtitle: 'إطلالات سهلة التنسيق بلا مبالغة.',
+        ctaLabel: 'تسوّق الأزياء',
+      },
+    },
   },
   {
     id: 'hero-offers',
@@ -35,6 +51,14 @@ const DEFAULT_HERO_SLIDES = [
     ctaHref: '/offers',
     imageUrl: '/images/3.webp',
     tone: 'teal',
+    translations: {
+      ar: {
+        eyebrow: 'عروض اليوم',
+        title: 'مختارات محدودة تستحق نظرة ثانية',
+        subtitle: 'عروض موسمية منتقاة لمتسوّقي TrendVaulta.',
+        ctaLabel: 'شاهد العروض',
+      },
+    },
   },
   {
     id: 'hero-lifestyle',
@@ -45,6 +69,14 @@ const DEFAULT_HERO_SLIDES = [
     ctaHref: '/products?category=lifestyle',
     imageUrl: '/images/4.webp',
     tone: 'stone',
+    translations: {
+      ar: {
+        eyebrow: 'أسلوب الحياة',
+        title: 'منزل وعناية ذاتية تناسب إيقاعك',
+        subtitle: 'تفاصيل مدروسة لأيام هادئة وأنيقة.',
+        ctaLabel: 'استكشف أسلوب الحياة',
+      },
+    },
   },
 ];
 
