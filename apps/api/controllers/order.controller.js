@@ -5,6 +5,7 @@ const { Product } = require('../models/Product');
 const { serializeOrder, serializeOrders } = require('../utils/serializeOrder');
 const {
   buildNormalizedOrderLines,
+  resolveFulfillment,
   resolveShippingPrice,
   resolveTaxPrice,
   loadValidCouponByCode,
@@ -64,8 +65,9 @@ const createOrder = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: error.details[0].message });
   }
 
-  const { items, shippingAddress, couponCode, delivery, shippingMethod } =
-    value;
+  const { items, shippingAddress, couponCode } = value;
+  // Priced AND stored from the same normalised values (pickup = 'none').
+  const fulfillment = resolveFulfillment(value);
 
   const { normalizedItems, itemsPrice } = await buildNormalizedOrderLines(
     Product,
@@ -87,8 +89,7 @@ const createOrder = asyncHandler(async (req, res) => {
   }
 
   const shippingPrice = await resolveShippingPrice({
-    delivery,
-    shippingMethod,
+    ...fulfillment,
     itemsPrice,
     country: shippingAddress.country,
     zip: shippingAddress.zip,
@@ -108,6 +109,8 @@ const createOrder = asyncHandler(async (req, res) => {
       notes: shippingAddress.notes || '',
     },
     status: 'pending',
+    delivery: fulfillment.delivery,
+    shippingMethod: fulfillment.shippingMethod,
     itemsPrice,
     shippingPrice,
     taxPrice,

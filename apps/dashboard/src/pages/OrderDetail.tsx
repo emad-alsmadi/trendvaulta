@@ -83,6 +83,15 @@ export default function OrderDetail() {
   const { can } = usePermissions();
   const orderQ = useAdminOrderById(id);
   const order = orderQ.data;
+  // Pickup orders carry an address (checkout requires one) but must not be
+  // shipped — make that obvious next to the address.
+  const isPickup =
+    order?.delivery === false || order?.shippingMethod === 'none';
+  const fulfilmentLabel = isPickup
+    ? 'Store pickup — do not ship'
+    : order?.shippingMethod
+      ? `Delivery — ${order.shippingMethod}`
+      : 'Not recorded (order placed before fulfilment was saved)';
   const hasTracking = Boolean(
     order &&
       (order.trackingNumber ||
@@ -303,6 +312,20 @@ export default function OrderDetail() {
                   Shipping address
                 </h2>
                 <dl className='grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2'>
+                  <div className='sm:col-span-2'>
+                    <dt className='text-gray-500 dark:text-gray-400'>
+                      Fulfilment
+                    </dt>
+                    <dd
+                      className={
+                        isPickup
+                          ? 'font-semibold text-amber-700 dark:text-amber-400'
+                          : 'font-medium text-gray-900 dark:text-white'
+                      }
+                    >
+                      {fulfilmentLabel}
+                    </dd>
+                  </div>
                   <div>
                     <dt className='text-gray-500 dark:text-gray-400'>Name</dt>
                     <dd className='font-medium text-gray-900 dark:text-white'>
@@ -323,6 +346,9 @@ export default function OrderDetail() {
                       {order.shippingAddress?.address || '—'},{' '}
                       {order.shippingAddress?.city || '—'}{' '}
                       {order.shippingAddress?.zip || ''}
+                      {order.shippingAddress?.country
+                        ? `, ${order.shippingAddress.country}`
+                        : ''}
                     </dd>
                   </div>
                   {order.shippingAddress?.notes && (

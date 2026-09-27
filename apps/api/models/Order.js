@@ -130,6 +130,17 @@ const OrderSchema = new mongoose.Schema(
       ],
       default: '',
     },
+    // Fulfilment chosen at checkout (see resolveFulfillment): delivery=false
+    // / shippingMethod 'none' = store pickup, otherwise the zone/method
+    // handle that was priced. No defaults, so older orders read as unknown.
+    delivery: {
+      type: Boolean,
+    },
+    shippingMethod: {
+      type: String,
+      trim: true,
+      maxlength: 50,
+    },
     itemsPrice: {
       type: Number,
       required: true,

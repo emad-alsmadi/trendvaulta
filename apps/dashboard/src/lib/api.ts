@@ -137,6 +137,12 @@ export type AdminOrderAttentionReason =
 export type AdminOrder = {
   _id: string;
   status: AdminOrderStatus | string;
+  /**
+   * Fulfilment chosen at checkout: false / shippingMethod 'none' = store
+   * pickup. Both are absent on orders created before they were recorded.
+   */
+  delivery?: boolean;
+  shippingMethod?: string;
   paymentStatus?: AdminOrderPaymentStatus | string;
   totalPrice?: number;
   createdAt?: string;
@@ -178,6 +184,8 @@ export type AdminOrderShippingAddress = {
   address: string;
   city: string;
   zip: string;
+  /** ISO 3166-1 alpha-2; drives shipping-zone pricing. */
+  country?: string;
   notes?: string;
 };
 

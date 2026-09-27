@@ -76,6 +76,24 @@ function resolveAvailableStock(product, matchedVariant) {
 }
 
 /**
+ * Normalise the checkout's fulfilment intent so the price charged and the
+ * method stored on the order always agree. `delivery: false` or method
+ * 'none' means store pickup ($0 shipping, not shipped); anything else is a
+ * delivery using the given zone/method handle, defaulting to 'standard'.
+ * @returns {{ delivery: boolean, shippingMethod: string }}
+ */
+function resolveFulfillment({ delivery, shippingMethod } = {}) {
+  const method = typeof shippingMethod === 'string' ? shippingMethod.trim() : '';
+  if (delivery === false || method === 'none') {
+    return { delivery: false, shippingMethod: 'none' };
+  }
+  if (delivery === true || method) {
+    return { delivery: true, shippingMethod: method || 'standard' };
+  }
+  return { delivery: false, shippingMethod: 'none' };
+}
+
+/**
  * Resolve the shipping charge from ShippingZone model (falling back to
  * StoreSettings/env-based flat rate when no zone matches). `itemsPrice`
  * is optional and, when provided, zeroes the rate once it meets the
@@ -564,6 +582,7 @@ module.exports = {
   matchVariant,
   resolveUnitPrice,
   resolveAvailableStock,
+  resolveFulfillment,
   resolveShippingPrice,
   resolveTaxPrice,
   invalidateStoreSettingsCache,

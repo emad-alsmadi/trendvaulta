@@ -13,6 +13,7 @@ const {
 const {
   buildNormalizedOrderLines,
   quoteOrderLines,
+  resolveFulfillment,
   resolveShippingPrice,
   resolveTaxPrice,
   loadValidCouponByCode,
@@ -53,7 +54,9 @@ const quoteOrder = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: error.details[0].message });
   }
 
-  const { items, couponCode, delivery, shippingMethod, shippingAddress } = value;
+  const { items, couponCode, shippingAddress } = value;
+  // Same normalisation as checkout, so the quote matches what is charged.
+  const fulfillment = resolveFulfillment(value);
   const { lines, itemsPrice, warnings } = await quoteOrderLines(Product, items);
 
   let discountAmount = 0;
@@ -68,8 +71,7 @@ const quoteOrder = asyncHandler(async (req, res) => {
   }
 
   const shippingPrice = await resolveShippingPrice({
-    delivery,
-    shippingMethod,
+    ...fulfillment,
     itemsPrice,
     country: shippingAddress?.country,
     zip: shippingAddress?.zip,
@@ -117,8 +119,9 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: error.details[0].message });
   }
 
-  const { items, shippingAddress, couponCode, delivery, shippingMethod } =
-    value;
+  const { items, shippingAddress, couponCode } = value;
+  // Priced AND stored from the same normalised values (pickup = 'none').
+  const fulfillment = resolveFulfillment(value);
 
   let normalizedItems;
   let itemsPrice;
@@ -148,8 +151,7 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
   }
 
   const shippingPrice = await resolveShippingPrice({
-    delivery,
-    shippingMethod,
+    ...fulfillment,
     itemsPrice,
     country: shippingAddress.country,
     zip: shippingAddress.zip,
@@ -169,6 +171,8 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
       notes: shippingAddress.notes || '',
     },
     status: 'pending',
+    delivery: fulfillment.delivery,
+    shippingMethod: fulfillment.shippingMethod,
     itemsPrice,
     shippingPrice,
     taxPrice,
