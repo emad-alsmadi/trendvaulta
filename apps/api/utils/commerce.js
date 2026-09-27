@@ -218,7 +218,9 @@ async function loadValidCouponByCode(code) {
  * Never trusts client price/title/cover.
  */
 async function buildNormalizedOrderLines(Product, items) {
-  const productIds = items.map((i) => i.productId);
+  // One order can hold several lines of the same product (different variants),
+  // so compare against unique ids — find() returns each document once.
+  const productIds = [...new Set(items.map((i) => String(i.productId)))];
   const products = await Product.find({ _id: { $in: productIds } });
   if (products.length !== productIds.length) {
     const err = new Error('One or more products not found');
