@@ -4,9 +4,8 @@ import { useRouter } from 'next/navigation';
 import type { ProductsQuery } from '@/types';
 import { useProducts } from '@/hooks/products/productsQuery';
 import {
-  FALLBACK_HOME_MODULE_KEYS,
   getHeroSlidesFromHome,
-  pickActiveHomeModules,
+  resolveHomeLayout,
   useStorefrontHome,
   type HomeModuleKey,
 } from '@/hooks/storefront/homeQuery';
@@ -46,14 +45,10 @@ export default function HomePage() {
 
   const homeModules = homeQ.data?.modules;
 
-  const moduleKeys = useMemo<HomeModuleKey[]>(() => {
-    if (homeModules?.length) {
-      return pickActiveHomeModules(homeModules).map(
-        (mod) => mod.key as HomeModuleKey,
-      );
-    }
-    return [...FALLBACK_HOME_MODULE_KEYS];
-  }, [homeModules]);
+  const moduleKeys = useMemo<HomeModuleKey[]>(
+    () => resolveHomeLayout(homeModules),
+    [homeModules],
+  );
 
   const heroSlides = useMemo(
     () => getHeroSlidesFromHome(homeModules, locale),

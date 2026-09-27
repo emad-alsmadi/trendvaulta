@@ -42,11 +42,80 @@ export function pickActiveHomeModules(
     .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 }
 
+/**
+ * StorefrontModule `type` (the dashboard selector) → homepage section.
+ * `key` is free text in the dashboard, so it only decides the section for
+ * legacy /storefront/home modules that carry no known type.
+ */
+const MODULE_TYPE_TO_HOME_KEY: Record<string, HomeModuleKey> = {
+  hero_carousel: 'hero',
+  trust_strip: 'trust',
+  categories: 'categories',
+  deals_rail: 'deals',
+  bestsellers: 'featured_products',
+  // No dedicated new-arrivals rail yet — reuse the product rail.
+  new_arrivals: 'featured_products',
+  featured_brands: 'featured_brands',
+  lookbooks: 'lookbook',
+  testimonials: 'testimonials',
+  why_choose_us: 'why_choose_us',
+};
+
+/** Sections a CMS module can switch on/off (and reorder). */
+const CMS_MANAGED_HOME_KEYS = new Set<HomeModuleKey>(
+  Object.values(MODULE_TYPE_TO_HOME_KEY),
+);
+
+export function resolveHomeModuleKey(
+  mod: Pick<StorefrontHomeModule, 'key' | 'type'>,
+): HomeModuleKey | null {
+  const byType = mod.type ? MODULE_TYPE_TO_HOME_KEY[mod.type] : undefined;
+  if (byType) return byType;
+  return (FALLBACK_HOME_MODULE_KEYS as readonly string[]).includes(mod.key)
+    ? (mod.key as HomeModuleKey)
+    : null;
+}
+
+/**
+ * Homepage section order. CMS-managed sections follow the active modules
+ * exactly (order + on/off); sections the module enum cannot express
+ * (gift finder, recently viewed, inspired, CTA) are always kept, each placed
+ * after its nearest preceding default section — so one CMS module no longer
+ * wipes out the rest of the page.
+ */
+export function resolveHomeLayout(
+  modules: StorefrontHomeModule[] | undefined,
+): HomeModuleKey[] {
+  const active = pickActiveHomeModules(modules);
+  if (!active.length) return [...FALLBACK_HOME_MODULE_KEYS];
+
+  const layout: HomeModuleKey[] = [];
+  for (const mod of active) {
+    const key = resolveHomeModuleKey(mod);
+    if (key && !layout.includes(key)) layout.push(key);
+  }
+
+  FALLBACK_HOME_MODULE_KEYS.forEach((key, index) => {
+    if (CMS_MANAGED_HOME_KEYS.has(key) || layout.includes(key)) return;
+    let insertAt = 0;
+    for (let i = index - 1; i >= 0; i -= 1) {
+      const anchor = layout.indexOf(FALLBACK_HOME_MODULE_KEYS[i]);
+      if (anchor !== -1) {
+        insertAt = anchor + 1;
+        break;
+      }
+    }
+    layout.splice(insertAt, 0, key);
+  });
+
+  return layout;
+}
+
 export function getHeroSlidesFromHome(
   modules: StorefrontHomeModule[] | undefined,
   locale: Locale = 'en',
 ): DemoHeroSlide[] | undefined {
-  const hero = modules?.find((mod) => mod.key === 'hero');
+  const hero = modules?.find((mod) => resolveHomeModuleKey(mod) === 'hero');
   const slides = hero?.slides;
   if (!slides?.length) return undefined;
 
