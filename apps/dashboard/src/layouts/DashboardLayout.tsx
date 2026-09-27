@@ -6,6 +6,7 @@ import {
   useNavigate,
 } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   LayoutDashboard,
   ChartColumn,
@@ -68,6 +69,7 @@ const sidebarItems = [
 export default function DashboardLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { theme, toggleTheme } = useTheme();
   // Desktop: collapsible rail. Mobile (<md): off-canvas drawer.
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -178,6 +180,9 @@ export default function DashboardLayout() {
             onClick={() => {
               authApi.logout(getRefreshToken());
               clearAuthSession();
+              // Every cached admin query is staff data — the next sign-in on
+              // this tab must not see it.
+              queryClient.clear();
               navigate('/login');
             }}
             className='flex items-center w-full px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 mt-2'

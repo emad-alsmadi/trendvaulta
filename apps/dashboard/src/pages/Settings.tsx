@@ -149,6 +149,7 @@ export default function Settings() {
   async function handleLogout() {
     await authApi.logout(getRefreshToken());
     clearAuthSession();
+    qc.clear();
     navigate('/login');
   }
 
