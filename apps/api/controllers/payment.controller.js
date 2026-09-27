@@ -284,6 +284,17 @@ function extractOrderId(obj) {
   return obj?.metadata?.orderId || obj?.client_reference_id || null;
 }
 
+/**
+ * Funds actually captured. Delayed methods (ACH, SEPA…) complete the session
+ * with payment_status 'unpaid' and settle later via async_payment_* events.
+ */
+function isSessionPaid(session) {
+  return (
+    session?.payment_status === 'paid' ||
+    session?.payment_status === 'no_payment_required'
+  );
+}
+
 function extractPaymentIntentId(obj) {
   const pi = obj?.payment_intent;
   return typeof pi === 'string' ? pi : pi?.id || '';
@@ -486,9 +497,17 @@ async function markOrderPaidFromSession(session) {
 
   const { status, attentionReason } = await applyPaidSideEffects(order);
 
-  if (previousStatus === 'pending' || status === 'needs_attention') {
+  // A concurrent caller that lost the stock lease computes 'paid' and may
+  // write pending → paid first, so the attention flag must also match 'paid'
+  // — otherwise an oversold order would stay plain 'paid'.
+  if (status === 'needs_attention') {
     await Order.updateOne(
-      { _id: order._id, status: previousStatus },
+      { _id: order._id, status: { $in: ['pending', 'paid'] } },
+      { $set: { status, attentionReason } },
+    );
+  } else if (previousStatus === 'pending') {
+    await Order.updateOne(
+      { _id: order._id, status: 'pending' },
       { $set: { status, attentionReason } },
     );
   }
@@ -501,8 +520,9 @@ async function markOrderPaidFromSession(session) {
 async function handleCheckoutSessionCompleted(session, stripe) {
   let orderId = extractOrderId(session);
   if (
-    session.metadata?.kind === 'order_payment' ||
-    session.mode === 'payment'
+    (session.metadata?.kind === 'order_payment' ||
+      session.mode === 'payment') &&
+    isSessionPaid(session)
   ) {
     const result = await markOrderPaidFromSession(session);
     orderId = result.orderId || orderId;
@@ -511,7 +531,10 @@ async function handleCheckoutSessionCompleted(session, stripe) {
   return orderId;
 }
 
-/** Session timed out (expires_at): fail a still-unpaid order. Stock is never reserved before payment. */
+/**
+ * Session timed out (expires_at) or a delayed payment failed: fail a
+ * still-unpaid order. Stock is never reserved before payment.
+ */
 async function handleCheckoutSessionExpired(session, stripe) {
   const orderId = extractOrderId(session);
   if (orderId) {
@@ -613,12 +636,14 @@ const stripeWebhook = asyncHandler(async (req, res) => {
   try {
     switch (event.type) {
       case 'checkout.session.completed':
+      case 'checkout.session.async_payment_succeeded':
         orderId = await handleCheckoutSessionCompleted(
           event.data.object,
           stripe,
         );
         break;
       case 'checkout.session.expired':
+      case 'checkout.session.async_payment_failed':
         orderId = await handleCheckoutSessionExpired(event.data.object, stripe);
         break;
       case 'payment_intent.payment_failed':
@@ -627,25 +652,10 @@ const stripeWebhook = asyncHandler(async (req, res) => {
       case 'charge.refunded':
         orderId = await handleChargeRefunded(event.data.object);
         break;
-      case 'payment_intent.succeeded':
-        // Payment intent succeeded - ensure order is marked as paid
-        const paymentIntent = event.data.object;
-        if (paymentIntent.metadata?.orderId) {
-          const order = await Order.findById(paymentIntent.metadata.orderId);
-          if (order && order.paymentStatus !== 'paid') {
-            await Order.updateOne(
-              { _id: order._id },
-              {
-                $set: {
-                  paymentStatus: 'paid',
-                  paidAt: new Date(),
-                  paymentIntentId: paymentIntent.id,
-                },
-              },
-            );
-          }
-        }
-        break;
+      // payment_intent.succeeded is deliberately ignored: writing 'paid' there
+      // skipped stock/coupon/email side-effects and the paid-after-cancel
+      // check. checkout.session.* events (and verify-payment) are the source
+      // of truth and go through markOrderPaidFromSession.
       default:
         break;
     }
@@ -701,7 +711,7 @@ const verifyPaymentStatus = asyncHandler(async (req, res) => {
       order.stripeSessionId,
     );
 
-    if (session.payment_status === 'paid' && session.status === 'complete') {
+    if (isSessionPaid(session) && session.status === 'complete') {
       await markOrderPaidFromSession(session);
       return res.status(200).json({ paymentStatus: 'paid', verified: true });
     }

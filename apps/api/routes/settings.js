@@ -15,7 +15,7 @@ router.get(
 router.put(
   '/admin/settings',
   verfiyToken,
-  checkRolePermission('content:write'),
+  checkRolePermission('settings:write'),
   updateSettings,
 );
 

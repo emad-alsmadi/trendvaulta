@@ -44,6 +44,8 @@ const ROLE_PERMISSIONS = {
     'content:*',
     'shipping:read',
     'shipping:write',
+    // Store settings drive tax/shipping on every order — admin only.
+    'settings:write',
   ],
 };
 

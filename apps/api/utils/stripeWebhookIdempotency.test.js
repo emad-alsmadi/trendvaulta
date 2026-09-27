@@ -41,6 +41,7 @@ describe('claimWebhookEvent', () => {
       create: mock.fn(async () => {
         throw err;
       }),
+      findOneAndUpdate: mock.fn(async () => null),
     };
     const result = await claimWebhookEvent(model, 'evt_1');
     assert.equal(result.duplicate, true);

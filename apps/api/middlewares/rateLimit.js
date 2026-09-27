@@ -84,16 +84,19 @@ function rateLimit(options = {}) {
     if (bucket.count > max) {
       // Log violation
       if (config.monitoring.logViolations) {
-        logger.warn('Rate limit exceeded', {
-          ip: req.ip,
-          userId: req.user?.id,
-          endpoint: keyPrefix,
-          count: bucket.count,
-          limit: max,
-          requestId: req.id,
-          method: req.method,
-          url: req.url,
-        });
+        logger.warn(
+          {
+            ip: req.ip,
+            userId: req.user?.id,
+            endpoint: keyPrefix,
+            count: bucket.count,
+            limit: max,
+            requestId: req.id,
+            method: req.method,
+            url: req.url,
+          },
+          'Rate limit exceeded',
+        );
       }
 
       return res.status(429).json({

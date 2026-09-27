@@ -96,11 +96,12 @@ module.exports = {
 ```javascript
 const logger = require('../utils/logger');
 
-// Log levels
-logger.error('Database connection failed', { error: err.message });
-logger.warn('Rate limit exceeded', { ip: req.ip, userId: req.user?.id });
-logger.info('User logged in', { userId: '123', email: 'user@example.com' });
-logger.debug('Processing request', { method: req.method, url: req.url });
+// Log levels — context object FIRST, message second.
+// logger.error('msg', { ... }) silently drops the object (pino treats it as printf args).
+logger.error({ err }, 'Database connection failed');
+logger.warn({ ip: req.ip, userId: req.user?.id }, 'Rate limit exceeded');
+logger.info({ userId: '123' }, 'User logged in');
+logger.debug({ method: req.method, url: req.url }, 'Processing request');
 ```
 
 ### Child Loggers (Context Propagation)
@@ -141,11 +142,10 @@ const logger = require('../utils/logger');
 try {
   // Some operation
 } catch (err) {
-  logger.error('Operation failed', {
-    error: err.message,
-    stack: err.stack,
-    context: { userId: req.user?.id },
-  });
+  logger.error(
+    { err, context: { userId: req.user?.id } },
+    'Operation failed',
+  );
   throw err;
 }
 ```
@@ -205,10 +205,13 @@ The logger automatically redacts sensitive fields from logs:
 
 **Example:**
 ```javascript
-logger.info('User login attempt', {
-  email: 'user@example.com',
-  password: 'secret123', // Will be redacted to [REDACTED]
-});
+logger.info(
+  {
+    email: 'user@example.com',
+    password: 'secret123', // Will be redacted to [REDACTED]
+  },
+  'User login attempt',
+);
 
 // Output:
 {
@@ -226,7 +229,7 @@ Each request gets a unique ID for tracing:
 req.id = 'req-1705327845123-abc123xyz'
 
 // Use in logs
-logger.info('Processing request', { requestId: req.id });
+logger.info({ requestId: req.id }, 'Processing request');
 ```
 
 ## Best Practices
@@ -369,8 +372,8 @@ console.error('Database error', err);
 ```javascript
 const logger = require('../utils/logger');
 
-logger.info('User logged in', { userId });
-logger.error('Database error', { error: err.message });
+logger.info({ userId }, 'User logged in');
+logger.error({ err }, 'Database error');
 ```
 
 ## Future Enhancements

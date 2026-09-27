@@ -10,23 +10,23 @@ const logger = require('../utils/logger');
  * Error handler middleware
  */
 const errorHandler = (err, req, res, next) => {
-  // Log error for debugging
-  logger.error('Request failed', {
-    error: {
-      message: err.message,
-      name: err.name,
-      code: err.code,
-      statusCode: err.statusCode,
+  // Pino takes the context object FIRST; a trailing object after the message
+  // is treated as printf args and silently dropped. `err` goes through the
+  // std serializer (message, type, stack, code, statusCode) — logs only,
+  // never the response.
+  logger.error(
+    {
+      err,
+      request: {
+        method: req.method,
+        url: req.url,
+        path: req.path,
+        userId: req.user?.id,
+        requestId: req.id,
+      },
     },
-    request: {
-      method: req.method,
-      url: req.url,
-      path: req.path,
-      userId: req.user?.id,
-      requestId: req.id,
-    },
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
-  });
+    'Request failed',
+  );
 
   // Default to 500 server error
   let statusCode = err.statusCode || 500;
@@ -97,13 +97,16 @@ const errorHandler = (err, req, res, next) => {
  * 404 Not Found handler
  */
 const notFoundHandler = (req, res) => {
-  logger.warn('Route not found', {
-    method: req.method,
-    url: req.url,
-    path: req.path,
-    userId: req.user?.id,
-    requestId: req.id,
-  });
+  logger.warn(
+    {
+      method: req.method,
+      url: req.url,
+      path: req.path,
+      userId: req.user?.id,
+      requestId: req.id,
+    },
+    'Route not found',
+  );
 
   res.status(404).json({
     success: false,

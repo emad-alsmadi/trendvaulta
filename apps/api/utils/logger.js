@@ -11,10 +11,11 @@
  * - Built-in serializers for common objects
  * - Child loggers for context propagation
  *
- * Usage:
+ * Usage (context object FIRST, message second — a trailing object after the
+ * message is treated as printf args and dropped):
  * const logger = require('../utils/logger');
- * logger.info('User logged in', { userId: '123', ip: '192.168.1.1' });
- * logger.error('Database connection failed', { error: err.message });
+ * logger.info({ userId: '123', ip: '192.168.1.1' }, 'User logged in');
+ * logger.error({ err }, 'Database connection failed');
  */
 
 const pino = require('pino');
