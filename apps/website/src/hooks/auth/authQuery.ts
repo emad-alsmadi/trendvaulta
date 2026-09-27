@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from '@tanstack/react-query';
 import { authApi } from '@/lib/api';
 import {
   clearAuthCookies,
@@ -52,6 +57,28 @@ function toCachedUser(payload: AuthResponse): MeResponse['user'] {
   };
 }
 
+/**
+ * Cache entries that belong to the signed-in user. Dropped on logout and on
+ * login so a shared device never serves the previous user's orders,
+ * addresses or wishlist (['auth','me'] is handled separately by callers).
+ */
+const USER_SCOPED_QUERY_KEYS = [
+  ['auth', 'profile'],
+  ['orders'],
+  ['wishlist'],
+  ['profile'],
+  ['reviews', 'my'],
+  ['recentlyViewed'],
+] as const;
+
+function removeUserScopedQueries(qc: QueryClient) {
+  // remove, not reset: reset would refetch still-mounted queries without a
+  // token and bounce through the 401 → forced-logout path.
+  for (const queryKey of USER_SCOPED_QUERY_KEYS) {
+    qc.removeQueries({ queryKey });
+  }
+}
+
 export function useMe() {
   const token = getAuthToken();
 
@@ -82,6 +109,7 @@ export function useLoginMutation() {
       if (token) {
         setAuthCookies({ token, role: role || 'user' });
       }
+      removeUserScopedQueries(qc);
       qc.setQueryData(AUTH_ME_QUERY_KEY, {
         user: toCachedUser(payload),
         permissions: [],
@@ -110,6 +138,7 @@ export function useRegisterMutation() {
       if (token && role) {
         setAuthCookies({ token, role });
       }
+      removeUserScopedQueries(qc);
       qc.setQueryData(AUTH_ME_QUERY_KEY, {
         user: toCachedUser(payload),
         permissions: [],
@@ -146,6 +175,7 @@ export function useLogout() {
     // Next handler reads + clears the httpOnly refresh cookie itself.
     await authApi.logout();
     clearAuthCookies();
+    removeUserScopedQueries(qc);
     qc.setQueryData(AUTH_ME_QUERY_KEY, {
       user: null,
       permissions: [],

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { Loader2, ArrowLeft, Mail, Sparkles, Copy, Check } from 'lucide-react';
+import { Loader2, ArrowLeft, Mail, Sparkles } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -25,8 +25,6 @@ export default function ForgotPasswordPage() {
   const { toast } = useToast();
   const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
-  const [resetLink, setResetLink] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
 
   const forgotMutation = useForgotPasswordMutation();
 
@@ -44,10 +42,8 @@ export default function ForgotPasswordPage() {
 
   const onSubmit = handleSubmit(async (values) => {
     setError(null);
-    setResetLink(null);
-    setCopied(false);
     try {
-      const res = await forgotMutation.mutateAsync(values.email);
+      await forgotMutation.mutateAsync(values.email);
       toast(t('password.linkGeneratedToast'), {
         title: t('common.success'),
         variant: 'success',
@@ -55,10 +51,6 @@ export default function ForgotPasswordPage() {
       router.push(
         `/password/check-email?email=${encodeURIComponent(values.email)}`,
       );
-
-      if (res?.resetPasswordLink) {
-        setResetLink(String(res.resetPasswordLink));
-      }
     } catch (err) {
       logErrorForDev(err);
       const msg = getUserFacingErrorMessage(err, t('password.requestFailed'), t);
@@ -125,60 +117,6 @@ export default function ForgotPasswordPage() {
               {error && (
                 <div className='rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-900'>
                   {error}
-                </div>
-              )}
-
-              {resetLink && (
-                <div className='rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900'>
-                  <div className='font-bold mb-2'>
-                    {t('password.linkGenerated')}
-                  </div>
-                  <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
-                    <a
-                      className='min-w-0 break-all font-bold underline'
-                      href={resetLink}
-                    >
-                      {resetLink}
-                    </a>
-
-                    <Button
-                      type='button'
-                      size='sm'
-                      className='shrink-0'
-                      onClick={async () => {
-                        try {
-                          await navigator.clipboard.writeText(resetLink);
-                          setCopied(true);
-                          window.setTimeout(() => setCopied(false), 1800);
-                          toast(t('password.linkCopied'), {
-                            title: t('password.copied'),
-                            variant: 'success',
-                            durationMs: 2200,
-                          });
-                        } catch {
-                          setCopied(false);
-                          toast(t('password.copyFailedMessage'), {
-                            title: t('password.copyFailed'),
-                            variant: 'error',
-                          });
-                        }
-                      }}
-                    >
-                      <span className='inline-flex items-center gap-2'>
-                        {copied ? (
-                          <>
-                            <Check className='h-4 w-4' />
-                            {t('password.copied')}
-                          </>
-                        ) : (
-                          <>
-                            <Copy className='h-4 w-4' />
-                            {t('password.copy')}
-                          </>
-                        )}
-                      </span>
-                    </Button>
-                  </div>
                 </div>
               )}
 

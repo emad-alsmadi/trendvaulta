@@ -58,7 +58,11 @@ export function Testimonials() {
 
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'>
           {testimonials.map((testimonial) => {
-            const rating = testimonial.rating ?? 5;
+            // Array(4.5) throws — clamp older/odd data to whole 1–5 stars.
+            const rating = Math.min(
+              5,
+              Math.max(1, Math.round(Number(testimonial.rating ?? 5)) || 5),
+            );
             const avatar = initials(testimonial.name);
             return (
               <motion.div

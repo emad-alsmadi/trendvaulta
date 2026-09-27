@@ -229,7 +229,7 @@ export default function CheckoutPage() {
     items,
     couponCode: appliedCoupon?.code,
     delivery: deliverySelected,
-    shippingMethod: deliverySelected ? selectedShippingMethod : 'none',
+    shippingMethod,
   });
   const itemsPrice = quote?.itemsPrice ?? subtotal;
   const discountAmount =
@@ -306,8 +306,9 @@ export default function CheckoutPage() {
       },
       // Server computes shipping/tax/discount — send intent flags + coupon only
       delivery: Boolean(values.delivery),
+      // No zone match leaves selectedShippingMethod '' — the API rejects ''.
       shippingMethod: values.delivery
-        ? (selectedShippingMethod as 'standard' | 'express')
+        ? ((selectedShippingMethod || 'standard') as 'standard' | 'express')
         : ('none' as const),
       couponCode:
         appliedCoupon && !couponRejectedByServer

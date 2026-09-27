@@ -7,8 +7,17 @@ export const REDIRECT_PARAM = 'redirect';
 export function getSafeRedirectPath(value: string | null | undefined): string | null {
   if (!value) return null;
   const v = value.trim();
-  if (!v.startsWith('/') || v.startsWith('//') || v.startsWith('/\\')) return null;
-  if (/[\r\n]/.test(v)) return null;
+  if (!v.startsWith('/') || v.startsWith('//')) return null;
+  // URL parsers strip tabs/newlines and treat `\` as `/`, so "/\t/evil.example"
+  // or "/\\evil.example" would resolve to "//evil.example" (another origin).
+  if (/[\u0000-\u001F\u007F\s\\]/.test(v)) return null;
+  // Belt and braces: whatever survives must still resolve to our own origin.
+  const base = 'http://same-origin.invalid';
+  try {
+    if (new URL(v, base).origin !== base) return null;
+  } catch {
+    return null;
+  }
   if (v.startsWith('/auth/')) return null;
   return v;
 }
