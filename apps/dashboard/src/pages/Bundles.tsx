@@ -26,6 +26,11 @@ const emptyForm: BundlePayload = {
   active: true,
 };
 
+/** Products are hard-deleted, so a populated primaryProduct can be null. */
+function primaryTitle(bundle: AdminBundle) {
+  return bundle.primaryProduct?.title || 'Deleted product';
+}
+
 export default function Bundles() {
   const { can } = usePermissions();
   const toast = useToast();
@@ -60,11 +65,15 @@ export default function Bundles() {
   function openEdit(bundle: AdminBundle) {
     setEditing(bundle);
     setForm({
-      primaryProduct: bundle.primaryProduct._id,
+      // A deleted product populates as null — leave the field empty so the
+      // admin picks a replacement instead of the page crashing.
+      primaryProduct: bundle.primaryProduct?._id ?? '',
       // Admin list populates items[].product; the form works with ids.
       items: bundle.items.map((item) => ({
         product:
-          typeof item.product === 'string' ? item.product : item.product._id,
+          typeof item.product === 'string'
+            ? item.product
+            : (item.product?._id ?? ''),
         quantity: item.quantity,
       })),
       bundlePrice: bundle.bundlePrice,
@@ -138,7 +147,7 @@ export default function Bundles() {
   }
 
   async function handleDelete(bundle: AdminBundle) {
-    const ok = await confirm({ message: `Deactivate bundle for "${bundle.primaryProduct.title}"?`, danger: true, confirmLabel: 'Delete' });
+    const ok = await confirm({ message: `Deactivate bundle for "${primaryTitle(bundle)}"?`, danger: true, confirmLabel: 'Delete' });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(bundle._id);
@@ -249,7 +258,7 @@ export default function Bundles() {
                       className='hover:bg-gray-50 dark:hover:bg-gray-700/60'
                     >
                       <td className='px-4 py-3 text-sm text-gray-900 dark:text-white'>
-                        {bundle.primaryProduct.title}
+                        {primaryTitle(bundle)}
                       </td>
                       <td className='px-4 py-3 text-sm text-gray-600 dark:text-gray-400'>
                         {bundle.items.length} items
@@ -278,7 +287,7 @@ export default function Bundles() {
                               type='button'
                               onClick={() => openEdit(bundle)}
                               className='rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600'
-                              aria-label={`Edit ${bundle.primaryProduct.title}`}
+                              aria-label={`Edit ${primaryTitle(bundle)}`}
                             >
                               <Pencil className='h-4 w-4 text-gray-500' />
                             </button>
@@ -289,7 +298,7 @@ export default function Bundles() {
                               onClick={() => void handleDelete(bundle)}
                               disabled={deleteMut.isPending}
                               className='rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40'
-                              aria-label={`Delete ${bundle.primaryProduct.title}`}
+                              aria-label={`Delete ${primaryTitle(bundle)}`}
                             >
                               <Trash2 className='h-4 w-4 text-red-500' />
                             </button>

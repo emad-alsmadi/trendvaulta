@@ -184,7 +184,8 @@ export default function ProductQA() {
                 <div className='mb-4 flex items-start justify-between gap-4'>
                   <div className='flex-1'>
                     <p className='text-sm text-gray-600 dark:text-gray-400'>
-                      {qa.product.title}
+                      {/* Products are hard-deleted — product can be null. */}
+                      {qa.product?.title || 'Deleted product'}
                     </p>
                     <p className='mt-2 font-medium text-gray-900 dark:text-white'>
                       Q: {qa.question}
@@ -287,7 +288,7 @@ export default function ProductQA() {
             <div className='space-y-4'>
               <div>
                 <p className='text-sm text-gray-600 dark:text-gray-400'>
-                  {editing.product.title}
+                  {editing.product?.title || 'Deleted product'}
                 </p>
                 <p className='mt-2 font-medium text-gray-900 dark:text-white'>
                   Q: {editing.question}

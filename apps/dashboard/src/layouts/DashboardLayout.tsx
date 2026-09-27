@@ -7,6 +7,7 @@ import {
 } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import {
   LayoutDashboard,
   ChartColumn,
@@ -221,7 +222,9 @@ export default function DashboardLayout() {
         </header>
 
         <div className='p-4 sm:p-6'>
-          <Outlet />
+          <ErrorBoundary key={location.pathname}>
+            <Outlet />
+          </ErrorBoundary>
         </div>
       </main>
     </div>
