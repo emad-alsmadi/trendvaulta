@@ -299,6 +299,8 @@ const updateOrderTracking = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: 'Order not found' });
   }
 
+  const hadTrackingNumber = Boolean(order.trackingNumber);
+
   // Update basic tracking fields
   if (value.trackingNumber !== undefined)
     order.trackingNumber = value.trackingNumber;
@@ -317,6 +319,24 @@ const updateOrderTracking = asyncHandler(async (req, res) => {
   }
 
   await order.save();
+
+  // The status change only emails "shipped" when a tracking number already
+  // exists; if it is added afterwards, send it now (once: first number only).
+  if (
+    order.status === 'shipped' &&
+    !hadTrackingNumber &&
+    order.trackingNumber
+  ) {
+    await order.populate('user', 'email');
+    if (order.user?.email) {
+      await sendOrderShippedEmail({
+        to: order.user.email,
+        orderId: order._id,
+        trackingNumber: order.trackingNumber,
+        trackingCarrier: order.trackingCarrier,
+      }).catch(() => {});
+    }
+  }
 
   const serialized = serializeOrder(order);
   res.status(200).json({

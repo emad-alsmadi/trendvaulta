@@ -16,6 +16,16 @@ const getStorefrontModules = asyncHandler(async (req, res) => {
     .sort({ sortOrder: 1, createdAt: -1 })
     .lean();
 
+  // Hero slides carry their own active/sortOrder (dashboard toggle); the
+  // public payload must honour them, not the raw array order.
+  for (const mod of modules) {
+    if (Array.isArray(mod.slides)) {
+      mod.slides = mod.slides
+        .filter((slide) => slide.active !== false)
+        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    }
+  }
+
   res.status(200).json({
     message: 'ok',
     modules,

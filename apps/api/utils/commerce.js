@@ -99,9 +99,15 @@ async function resolveShippingPrice({
 
   let rate = 0;
   let freeThreshold = 0;
+  // null = no zone method matched. Kept apart from the rate so a zone
+  // method priced at $0 (free) doesn't fall through to the flat rate.
+  let zoneRate = null;
 
   if (country) {
-    const { ShippingZone } = require('../models/ShippingZone');
+    const {
+      ShippingZone,
+      zoneMatchesAddress,
+    } = require('../models/ShippingZone');
     const countryCode = String(country).toUpperCase();
     const zones = await ShippingZone.find({
       isActive: true,
@@ -111,33 +117,23 @@ async function resolveShippingPrice({
       ],
     }).sort({ sortOrder: 1 }).lean();
 
-    let matchedZone = null;
-    for (const zone of zones) {
-      if (zone.countries.length === 0 || zone.countries.includes(countryCode)) {
-        if (zone.regionPattern) {
-          const regex = new RegExp(zone.regionPattern, 'i');
-          if (region && !regex.test(region)) continue;
-        }
-        if (zone.postalCodePattern) {
-          const regex = new RegExp(zone.postalCodePattern, 'i');
-          if (zip && !regex.test(zip)) continue;
-        }
-        matchedZone = zone;
-        break;
-      }
-    }
+    const matchedZone = zones.find(
+      (zone) =>
+        (zone.countries.length === 0 || zone.countries.includes(countryCode)) &&
+        zoneMatchesAddress(zone, { region, zip }),
+    );
 
     if (matchedZone) {
       const method = matchedZone.methods.find(
         (m) => m.handle === shippingMethod && m.isActive,
       );
       if (method) {
-        rate = method.priceUsd;
+        zoneRate = Number(method.priceUsd) || 0;
       }
     }
   }
 
-  if (rate === 0) {
+  if (zoneRate === null) {
     const settings = await getStoreSettings();
     const standardRate = Number.isFinite(Number(settings?.shipping?.standardRateUsd))
       ? Number(settings.shipping.standardRateUsd)
@@ -148,6 +144,7 @@ async function resolveShippingPrice({
     freeThreshold = Number(settings?.shipping?.freeShippingThresholdUsd) || 0;
     rate = isExpress ? expressRate : standardRate;
   } else {
+    rate = zoneRate;
     const settings = await getStoreSettings();
     freeThreshold = Number(settings?.shipping?.freeShippingThresholdUsd) || 0;
   }

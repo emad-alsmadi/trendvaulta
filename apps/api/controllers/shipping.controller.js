@@ -1,5 +1,10 @@
 const asyncHandler = require('express-async-handler');
-const { ShippingZone, validateShippingZone, validateShippingMethod } = require('../models/ShippingZone');
+const {
+  ShippingZone,
+  validateShippingZone,
+  validateShippingMethod,
+  zoneMatchesAddress,
+} = require('../models/ShippingZone');
 const { invalidateStoreSettingsCache } = require('../utils/commerce');
 
 const getShippingZones = asyncHandler(async (_req, res) => {
@@ -169,21 +174,11 @@ const getShippingMethodsForAddress = asyncHandler(async (req, res) => {
     ],
   }).sort({ sortOrder: 1 }).lean();
 
-  let matchedZone = null;
-  for (const zone of zones) {
-    if (zone.countries.length === 0 || zone.countries.includes(countryCode)) {
-      if (zone.regionPattern) {
-        const regex = new RegExp(zone.regionPattern, 'i');
-        if (region && !regex.test(region)) continue;
-      }
-      if (zone.postalCodePattern) {
-        const regex = new RegExp(zone.postalCodePattern, 'i');
-        if (zip && !regex.test(zip)) continue;
-      }
-      matchedZone = zone;
-      break;
-    }
-  }
+  const matchedZone = zones.find(
+    (zone) =>
+      (zone.countries.length === 0 || zone.countries.includes(countryCode)) &&
+      zoneMatchesAddress(zone, { region, zip }),
+  );
 
   if (!matchedZone) {
     return res.status(200).json({ message: 'ok', data: [] });

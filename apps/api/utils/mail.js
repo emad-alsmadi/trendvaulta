@@ -38,6 +38,12 @@ function getFromAddress() {
   );
 }
 
+/** Storefront order page (the account area lives under /user/*). */
+function orderPageUrl(orderId) {
+  const frontend = process.env.FRONTEND_URL || 'http://localhost:3001';
+  return `${frontend}/user/orders/${orderId}`;
+}
+
 /**
  * Send order confirmation email. Fail-soft: logs and returns false on error.
  * @param {{ to: string, orderId: string, totalPrice: number, items?: Array<{ title?: string, qty?: number }> }} opts
@@ -60,7 +66,6 @@ async function sendOrderConfirmationEmail(opts) {
     .map((it) => `- ${it.title || 'Item'} × ${it.qty || 1}`)
     .join('\n');
 
-  const frontend = process.env.FRONTEND_URL || 'http://localhost:3001';
   const text = [
     'Thank you for your TrendVaulta order!',
     '',
@@ -69,7 +74,7 @@ async function sendOrderConfirmationEmail(opts) {
     '',
     lines ? `Items:\n${lines}` : '',
     '',
-    `View your orders: ${frontend}/profile`,
+    `View your order: ${orderPageUrl(orderId)}`,
   ]
     .filter(Boolean)
     .join('\n');
@@ -160,7 +165,6 @@ async function sendOrderShippedEmail(opts) {
     return false;
   }
 
-  const frontend = process.env.FRONTEND_URL || 'http://localhost:3001';
   const text = [
     'Your TrendVaulta order has been shipped!',
     '',
@@ -168,7 +172,7 @@ async function sendOrderShippedEmail(opts) {
     trackingNumber ? `Tracking Number: ${trackingNumber}` : '',
     trackingCarrier ? `Carrier: ${trackingCarrier}` : '',
     '',
-    `Track your order: ${frontend}/orders`,
+    `Track your order: ${orderPageUrl(orderId)}`,
   ]
     .filter(Boolean)
     .join('\n');
@@ -208,13 +212,12 @@ async function sendOrderDeliveredEmail(opts) {
     return false;
   }
 
-  const frontend = process.env.FRONTEND_URL || 'http://localhost:3001';
   const text = [
     'Your TrendVaulta order has been delivered!',
     '',
     `Order ID: ${orderId}`,
     '',
-    `View your orders: ${frontend}/orders`,
+    `View your order: ${orderPageUrl(orderId)}`,
     '',
     'Thank you for shopping with us!',
   ].join('\n');
@@ -254,7 +257,6 @@ async function sendOrderCanceledEmail(opts) {
     return false;
   }
 
-  const frontend = process.env.FRONTEND_URL || 'http://localhost:3001';
   const text = [
     'Your TrendVaulta order has been canceled.',
     '',
@@ -262,7 +264,7 @@ async function sendOrderCanceledEmail(opts) {
     '',
     'If you have any questions, please contact our support team.',
     '',
-    `View your orders: ${frontend}/orders`,
+    `View your order: ${orderPageUrl(orderId)}`,
   ].join('\n');
 
   try {
@@ -303,7 +305,6 @@ async function sendOrderRefundedEmail(opts) {
   const amountText = refundAmount
     ? `Refund amount: $${Number(refundAmount).toFixed(2)}`
     : '';
-  const frontend = process.env.FRONTEND_URL || 'http://localhost:3001';
   const text = [
     'Your TrendVaulta order has been refunded.',
     '',
@@ -312,7 +313,7 @@ async function sendOrderRefundedEmail(opts) {
     '',
     'The refund has been processed to your original payment method.',
     '',
-    `View your orders: ${frontend}/orders`,
+    `View your order: ${orderPageUrl(orderId)}`,
   ]
     .filter(Boolean)
     .join('\n');

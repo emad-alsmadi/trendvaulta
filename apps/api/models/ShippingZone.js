@@ -107,12 +107,58 @@ const shippingMethodSchema = Joi.object({
   sortOrder: Joi.number().integer().optional(),
 });
 
+const MAX_PATTERN_LENGTH = 200;
+const MAX_MATCH_INPUT_LENGTH = 100;
+
+// Patterns run against shopper input on every quote/checkout, so reject
+// anything that doesn't compile (it would otherwise 500 every request).
+const zonePatternSchema = Joi.string()
+  .trim()
+  .allow('')
+  .max(MAX_PATTERN_LENGTH)
+  .custom((value, helpers) => {
+    if (!value) return value;
+    try {
+      new RegExp(value, 'i');
+      return value;
+    } catch {
+      return helpers.message('{{#label}} must be a valid regular expression');
+    }
+  })
+  .optional();
+
+/**
+ * Does an address fall inside a zone's region/postal patterns? A pattern
+ * that doesn't compile (legacy data saved before validation) makes the zone
+ * not match instead of throwing. Input is length-capped to limit regex cost.
+ */
+function zoneMatchesAddress(zone, { region, zip } = {}) {
+  const checks = [
+    [zone.regionPattern, region],
+    [zone.postalCodePattern, zip],
+  ];
+  for (const [pattern, input] of checks) {
+    if (!pattern || !input) continue;
+    let regex;
+    try {
+      regex = new RegExp(pattern, 'i');
+    } catch {
+      console.error(`ShippingZone ${zone._id}: invalid pattern "${pattern}"`);
+      return false;
+    }
+    if (!regex.test(String(input).slice(0, MAX_MATCH_INPUT_LENGTH))) {
+      return false;
+    }
+  }
+  return true;
+}
+
 const validateShippingZone = (obj) => {
   const schema = Joi.object({
     name: Joi.string().trim().min(1).max(200).required(),
     countries: Joi.array().items(Joi.string().length(2).uppercase()).optional(),
-    regionPattern: Joi.string().trim().allow('').optional(),
-    postalCodePattern: Joi.string().trim().allow('').optional(),
+    regionPattern: zonePatternSchema,
+    postalCodePattern: zonePatternSchema,
     methods: Joi.array().items(shippingMethodSchema).optional(),
     isActive: Joi.boolean().optional(),
     sortOrder: Joi.number().integer().optional(),
@@ -129,5 +175,6 @@ module.exports = {
   ShippingZone,
   validateShippingZone,
   validateShippingMethod,
+  zoneMatchesAddress,
   ShippingMethodSchema,
 };

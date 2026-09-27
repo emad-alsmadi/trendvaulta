@@ -314,7 +314,9 @@ async function deleteTemporaryCoupon(stripe, couponId) {
 }
 
 async function sendConfirmationEmailOnce(order) {
-  if (order.confirmationEmailSent) return;
+  // Lease the flag BEFORE sending (like the other side-effects) so a
+  // concurrent webhook + verify-payment can't both email the customer.
+  if (!(await leaseOrderFlag(order._id, 'confirmationEmailSent'))) return;
   try {
     const user = await User.findById(order.user).select('email').lean();
     const sent = await sendOrderConfirmationEmail({
@@ -323,13 +325,9 @@ async function sendConfirmationEmailOnce(order) {
       totalPrice: order.totalPrice,
       items: order.items,
     });
-    if (sent) {
-      await Order.updateOne(
-        { _id: order._id, confirmationEmailSent: false },
-        { $set: { confirmationEmailSent: true } },
-      );
-    }
+    if (!sent) await releaseOrderFlag(order._id, 'confirmationEmailSent');
   } catch (mailErr) {
+    await releaseOrderFlag(order._id, 'confirmationEmailSent');
     console.error(
       'Order confirmation email error (payment still paid):',
       mailErr?.message || mailErr,
@@ -512,7 +510,12 @@ async function markOrderPaidFromSession(session) {
     );
   }
 
-  await sendConfirmationEmailOnce(order);
+  // Re-read: a concurrent caller may have flagged the order. An oversold
+  // (needs_attention) order must not get an "Order confirmed" email.
+  const current = await Order.findById(order._id).select('status').lean();
+  if (current?.status !== 'needs_attention') {
+    await sendConfirmationEmailOnce(order);
+  }
 
   return { claimed, status, orderId: String(order._id) };
 }

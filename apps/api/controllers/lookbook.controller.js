@@ -12,12 +12,10 @@ const {
  * Public endpoint
  */
 const getLookbooks = asyncHandler(async (req, res) => {
-  const { active } = req.query;
-  const query = {};
-  if (active === 'true') query.active = true;
-  else if (active === 'false') query.active = false;
-
-  const lookbooks = await Lookbook.find(query)
+  // Public: always active only. DELETE is a soft deactivate, so honouring
+  // ?active=false (or no filter) would keep "deleted" lookbooks live. Staff
+  // lists go through /lookbooks/admin.
+  const lookbooks = await Lookbook.find({ active: true })
     .sort({ sortOrder: 1, createdAt: -1 })
     .select(
       '-_id id eyebrow title body ctaLabel ctaHref imageUrl tone active sortOrder',

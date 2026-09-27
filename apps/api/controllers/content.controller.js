@@ -131,18 +131,41 @@ const createContent = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: errors[0] });
   }
 
-  // Deactivate any existing active content of the same type
-  await Content.updateMany({ type: data.type, active: true }, { active: false });
-
   const content = new Content({
     type: data.type,
     title: data.title,
     body: data.body,
     active: data.active !== undefined ? data.active : true,
   });
+  // Fail on bad input (e.g. title > 200) before touching the live page.
+  await content.validate();
 
-  const result = await content.save();
-  res.status(201).json(result);
+  // Only an active doc replaces the live one; a draft must not unpublish it.
+  // The {type, active} partial unique index means the old doc has to be
+  // switched off first, so switch it back on if the save still fails.
+  let replacedIds = [];
+  if (content.active) {
+    const live = await Content.find({ type: data.type, active: true })
+      .select('_id')
+      .lean();
+    replacedIds = live.map((doc) => doc._id);
+    if (replacedIds.length) {
+      await Content.updateMany({ _id: { $in: replacedIds } }, { active: false });
+    }
+  }
+
+  try {
+    const result = await content.save();
+    res.status(201).json(result);
+  } catch (err) {
+    if (replacedIds.length) {
+      await Content.updateMany(
+        { _id: { $in: replacedIds } },
+        { active: true },
+      ).catch(() => {});
+    }
+    throw err;
+  }
 });
 
 /**
