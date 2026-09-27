@@ -83,6 +83,13 @@ export default function OrderDetail() {
   const { can } = usePermissions();
   const orderQ = useAdminOrderById(id);
   const order = orderQ.data;
+  const hasTracking = Boolean(
+    order &&
+      (order.trackingNumber ||
+        order.trackingCarrier ||
+        order.trackingUrl ||
+        order.trackingEvents?.length),
+  );
   const updateTracking = useUpdateOrderTrackingMutation();
   const updateStatus = useUpdateOrderStatusMutation();
 
@@ -440,14 +447,18 @@ export default function OrderDetail() {
                 </section>
               )}
 
-              {(order.trackingNumber ||
-                order.trackingCarrier ||
-                order.trackingUrl ||
-                (order.trackingEvents && order.trackingEvents.length > 0)) && (
+              {/* Staff who can write orders always see the editor — tracking
+                  has to be addable to an order that has none yet. */}
+              {(hasTracking || can('orders:write')) && (
                 <section className='rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800'>
                   <h2 className='mb-4 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400'>
                     Tracking
                   </h2>
+                  {!hasTracking && (
+                    <p className='text-sm text-gray-500 dark:text-gray-400'>
+                      No tracking information yet.
+                    </p>
+                  )}
                   <dl className='space-y-2 text-sm'>
                     {order.trackingNumber && (
                       <div>
@@ -523,15 +534,21 @@ export default function OrderDetail() {
                       </ul>
                     </div>
                   )}
-                  <button
-                    type='button'
-                    onClick={() => setShowTrackingForm(!showTrackingForm)}
-                    className='mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:underline dark:text-blue-400'
-                  >
-                    <Plus className='h-4 w-4' />
-                    {showTrackingForm ? 'Cancel' : 'Update tracking'}
-                  </button>
-                  {showTrackingForm && (
+                  {can('orders:write') && (
+                    <button
+                      type='button'
+                      onClick={() => setShowTrackingForm(!showTrackingForm)}
+                      className='mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:underline dark:text-blue-400'
+                    >
+                      <Plus className='h-4 w-4' />
+                      {showTrackingForm
+                        ? 'Cancel'
+                        : hasTracking
+                          ? 'Update tracking'
+                          : 'Add tracking'}
+                    </button>
+                  )}
+                  {can('orders:write') && showTrackingForm && (
                     <form
                       onSubmit={handleUpdateTracking}
                       className='mt-4 space-y-3'

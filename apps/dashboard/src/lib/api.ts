@@ -1314,10 +1314,14 @@ export const adminTestimonialsApi = {
 };
 
 export type BundleItem = {
-  /** Product id; admin list responses populate this into an object. */
+  /**
+   * Product id; admin list responses populate this into an object, or null
+   * when the product was deleted (products are hard-deleted).
+   */
   product:
     | string
-    | { _id: string; title?: string; price?: number; cover?: string };
+    | { _id: string; title?: string; price?: number; cover?: string }
+    | null;
   quantity: number;
 };
 
@@ -1328,12 +1332,13 @@ export type BundleItemInput = {
 
 export type AdminBundle = {
   _id: string;
+  /** null when the product was deleted after the bundle was created. */
   primaryProduct: {
     _id: string;
     title: string;
     price: number;
     cover: string;
-  };
+  } | null;
   items: BundleItem[];
   bundlePrice: number;
   savings: number;
@@ -1468,10 +1473,11 @@ export const adminGiftFinderConfigApi = {
 
 export type AdminProductQA = {
   _id: string;
+  /** null when the product was deleted after the question was asked. */
   product: {
     _id: string;
     title: string;
-  };
+  } | null;
   question: string;
   answer?: string;
   askedBy?: {
