@@ -108,14 +108,14 @@ const sendForgotPasswordLink = asyncHandler(async (req, res) => {
       await transporter.sendMail(mailOptions);
       return res.status(200).json({ message: FORGOT_PASSWORD_MESSAGE });
     } catch (error) {
-      console.log(error);
-      if (process.env.NODE_ENV !== 'production') {
-        return res.status(200).json({
-          message: 'Reset link generated (email delivery failed in dev)',
-          resetPasswordLink: link,
-        });
+      // Never return the link: anyone can request a reset for any email, so
+      // echoing it (even outside production) hands over the account. Same
+      // generic 200 as an unknown email, so failures don't reveal accounts.
+      console.error('Password reset email failed:', error?.message || error);
+      if (process.env.NODE_ENV === 'development') {
+        console.info(`[dev] Password reset link for ${user.email}: ${link}`);
       }
-      return res.status(500).json({ message: 'Failed to send email' });
+      return res.status(200).json({ message: FORGOT_PASSWORD_MESSAGE });
     }
   } catch (error) {
     console.log(error);

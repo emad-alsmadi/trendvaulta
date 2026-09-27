@@ -7,12 +7,10 @@ const { NotFoundError, ValidationError } = require('../utils/errors');
  * Public endpoint
  */
 const getTestimonials = asyncHandler(async (req, res) => {
-  const { active } = req.query;
-  const query = {};
-  if (active === 'true') query.active = true;
-  else if (active === 'false') query.active = false;
-
-  const testimonials = await Testimonial.find(query)
+  // Public: always active only. DELETE is a soft deactivate, so honouring
+  // ?active=false (or no filter) would keep "deleted" quotes live. Staff
+  // lists go through /testimonials/admin.
+  const testimonials = await Testimonial.find({ active: true })
     .sort({ sortOrder: 1, createdAt: -1 })
     .select('-_id id name role quote rating active sortOrder')
     .lean();
