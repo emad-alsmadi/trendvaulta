@@ -26,6 +26,7 @@ const emptyForm: CouponPayload = {
   discountValue: 10,
   expirationDate: '',
   usageLimit: null,
+  perCustomerLimit: null,
   minimumOrderAmount: 0,
   isActive: true,
   description: '',
@@ -75,6 +76,7 @@ export default function Coupons() {
       discountValue: coupon.discountValue,
       expirationDate: toDateInput(coupon.expirationDate),
       usageLimit: coupon.usageLimit,
+      perCustomerLimit: coupon.perCustomerLimit ?? null,
       minimumOrderAmount: coupon.minimumOrderAmount,
       isActive: coupon.isActive,
       description: coupon.description || '',
@@ -88,6 +90,10 @@ export default function Coupons() {
       toast.error('Code, discount value, and expiration date are required.');
       return;
     }
+    if (form.discountType === 'percentage' && Number(form.discountValue) > 100) {
+      toast.error('A percentage discount cannot exceed 100.');
+      return;
+    }
 
     const payload: CouponPayload = {
       ...form,
@@ -96,6 +102,10 @@ export default function Coupons() {
         form.usageLimit === null || form.usageLimit === undefined
           ? null
           : Number(form.usageLimit),
+      perCustomerLimit:
+        form.perCustomerLimit === null || form.perCustomerLimit === undefined
+          ? null
+          : Number(form.perCustomerLimit),
       minimumOrderAmount: Number(form.minimumOrderAmount || 0),
       discountValue: Number(form.discountValue),
     };
@@ -363,6 +373,7 @@ export default function Coupons() {
                   <input
                     type="number"
                     min={0}
+                    max={form.discountType === 'percentage' ? 100 : undefined}
                     step="0.01"
                     required
                     value={form.discountValue}
@@ -400,7 +411,8 @@ export default function Coupons() {
                   </span>
                   <input
                     type="number"
-                    min={0}
+                    min={1}
+                    step={1}
                     placeholder="Unlimited"
                     value={form.usageLimit ?? ''}
                     onChange={(e) =>
@@ -434,6 +446,30 @@ export default function Coupons() {
                   />
                 </label>
               </div>
+              <label className="block text-sm">
+                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                  Uses per customer
+                </span>
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  placeholder="Unlimited"
+                  value={form.perCustomerLimit ?? ''}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      perCustomerLimit:
+                        e.target.value === '' ? null : Number(e.target.value),
+                    }))
+                  }
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                />
+                <span className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
+                  Counts each customer&apos;s paid orders with this code. Empty =
+                  no per-customer limit.
+                </span>
+              </label>
               <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                 <input
                   type="checkbox"

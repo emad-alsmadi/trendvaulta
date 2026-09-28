@@ -43,6 +43,8 @@ export const ROLE_PERMISSIONS: Record<string, readonly string[]> = {
     'content:read',
     'content:write',
     'content:delete',
+    'shipping:read',
+    'shipping:write',
     'settings:write',
   ],
 };

@@ -11,6 +11,11 @@ const {
   validateUpdateCoupon,
   validateCouponCode,
 } = require('../models/Coupon');
+const {
+  calculateCouponDiscount,
+  checkCouponUsage,
+  loadValidCouponByCode,
+} = require('../utils/commerce');
 
 /**
  * Get all coupons with pagination.
@@ -95,7 +100,14 @@ const getCouponById = asyncHandler(async (req, res) => {
 const getCouponByCode = asyncHandler(async (req, res) => {
   const { code } = req.params;
 
-  const coupon = await Coupon.findOne({ code: code.toUpperCase() });
+  // Public: only what a shopper needs — never usage counts or limits, and
+  // nothing for inactive codes.
+  const coupon = await Coupon.findOne({
+    code: code.trim().toUpperCase(),
+    isActive: true,
+  })
+    .select('-_id code discountType discountValue minimumOrderAmount expirationDate')
+    .lean();
 
   if (!coupon) {
     return res.status(404).json({ message: 'Coupon not found' });
@@ -124,7 +136,7 @@ const createCoupon = asyncHandler(async (req, res) => {
     code: req.body.code.toUpperCase(),
   });
   if (existingCoupon) {
-    return res.status(400).json({ message: 'Coupon code already exists' });
+    return res.status(409).json({ message: 'Coupon code already exists' });
   }
 
   const coupon = new Coupon({
@@ -133,6 +145,7 @@ const createCoupon = asyncHandler(async (req, res) => {
     discountValue: req.body.discountValue,
     expirationDate: req.body.expirationDate,
     usageLimit: req.body.usageLimit,
+    perCustomerLimit: req.body.perCustomerLimit ?? null,
     minimumOrderAmount: req.body.minimumOrderAmount || 0,
     isActive: req.body.isActive !== undefined ? req.body.isActive : true,
     description: req.body.description,
@@ -164,7 +177,25 @@ const updateCoupon = asyncHandler(async (req, res) => {
       _id: { $ne: req.params.id },
     });
     if (existingCoupon) {
-      return res.status(400).json({ message: 'Coupon code already exists' });
+      return res.status(409).json({ message: 'Coupon code already exists' });
+    }
+  }
+
+  // A percentage over 100 would discount more than the order; the check
+  // needs the stored type when only one of type/value is being changed.
+  if (req.body.discountType !== undefined || req.body.discountValue !== undefined) {
+    const current = await Coupon.findById(req.params.id)
+      .select('discountType discountValue')
+      .lean();
+    if (!current) {
+      return res.status(404).json({ message: 'Coupon not found' });
+    }
+    const type = req.body.discountType ?? current.discountType;
+    const value = req.body.discountValue ?? current.discountValue;
+    if (type === 'percentage' && Number(value) > 100) {
+      return res
+        .status(400)
+        .json({ message: 'A percentage discount cannot exceed 100' });
     }
   }
 
@@ -179,6 +210,9 @@ const updateCoupon = asyncHandler(async (req, res) => {
       ...(req.body.expirationDate && { expirationDate: req.body.expirationDate }),
       ...(req.body.usageLimit !== undefined && {
         usageLimit: req.body.usageLimit,
+      }),
+      ...(req.body.perCustomerLimit !== undefined && {
+        perCustomerLimit: req.body.perCustomerLimit,
       }),
       ...(req.body.minimumOrderAmount !== undefined && {
         minimumOrderAmount: req.body.minimumOrderAmount,
@@ -238,7 +272,9 @@ const validateCoupon = asyncHandler(async (req, res) => {
 
   const { code, orderAmount } = req.body;
 
-  const coupon = await Coupon.findOne({ code: code.toUpperCase() });
+  // Same lookup + maths as checkout (trimmed code, cent rounding, limits),
+  // so a code accepted here is never rejected at payment and vice versa.
+  const coupon = await loadValidCouponByCode(code);
 
   if (!coupon) {
     return res.status(404).json({
@@ -247,48 +283,18 @@ const validateCoupon = asyncHandler(async (req, res) => {
     });
   }
 
-  // Check if coupon is active
-  if (!coupon.isActive) {
-    return res.status(400).json({
-      valid: false,
-      message: 'Coupon is inactive',
-    });
+  const result = calculateCouponDiscount(coupon, orderAmount);
+  if (!result.valid) {
+    return res.status(400).json({ valid: false, message: result.message });
   }
 
-  // Check if coupon is expired
-  if (new Date(coupon.expirationDate) < new Date()) {
-    return res.status(400).json({
-      valid: false,
-      message: 'Coupon has expired',
-    });
+  const userId = req.user?.id ?? req.user?._id;
+  const usage = await checkCouponUsage(coupon, userId);
+  if (!usage.valid) {
+    return res.status(400).json({ valid: false, message: usage.message });
   }
 
-  // Check if usage limit has been reached
-  if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
-    return res.status(400).json({
-      valid: false,
-      message: 'Coupon usage limit has been reached',
-    });
-  }
-
-  // Check minimum order amount
-  if (orderAmount < coupon.minimumOrderAmount) {
-    return res.status(400).json({
-      valid: false,
-      message: `Minimum order amount of $${coupon.minimumOrderAmount} required`,
-    });
-  }
-
-  // Calculate discount
-  let discountAmount = 0;
-  if (coupon.discountType === 'percentage') {
-    discountAmount = (orderAmount * coupon.discountValue) / 100;
-  } else {
-    discountAmount = coupon.discountValue;
-  }
-
-  // Ensure discount doesn't exceed order amount
-  discountAmount = Math.min(discountAmount, orderAmount);
+  const { discountAmount } = result;
 
   res.status(200).json({
     valid: true,

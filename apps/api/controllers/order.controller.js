@@ -11,6 +11,7 @@ const {
   resolveTaxPrice,
   loadValidCouponByCode,
   calculateCouponDiscount,
+  checkCouponUsage,
   decrementStockForPaidOrder,
   restoreStockOnce,
 } = require('../utils/commerce');
@@ -83,6 +84,10 @@ const createOrder = asyncHandler(async (req, res) => {
     const result = calculateCouponDiscount(coupon, itemsPrice);
     if (!result.valid) {
       return res.status(400).json({ message: result.message });
+    }
+    const usage = await checkCouponUsage(coupon, userId);
+    if (!usage.valid) {
+      return res.status(400).json({ message: usage.message });
     }
     discountAmount = result.discountAmount;
     couponId = coupon._id;

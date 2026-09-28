@@ -240,6 +240,49 @@ function calculateCouponDiscount(coupon, orderAmount) {
   return { discountAmount, valid: true };
 }
 
+// A Stripe Checkout session lives 30 min (payment.controller); a pending
+// order younger than this is an open checkout holding a coupon use.
+const OPEN_CHECKOUT_WINDOW_MS = 31 * 60 * 1000;
+
+/**
+ * Usage limits that need order history (calculateCouponDiscount only sees
+ * the coupon). Global: paid uses + other shoppers' open checkouts must stay
+ * under usageLimit, so concurrent sessions can't all redeem the last use.
+ * Per customer: only this customer's PAID orders count, so returning from
+ * Stripe to retry isn't blocked by their own abandoned checkout.
+ * @returns {Promise<{ valid: boolean, message?: string }>}
+ */
+async function checkCouponUsage(coupon, userId) {
+  if (!coupon) return { valid: false, message: 'Coupon not found' };
+  const { Order } = require('../models/Order');
+
+  if (coupon.usageLimit) {
+    const openFilter = {
+      couponId: coupon._id,
+      paymentStatus: 'pending',
+      createdAt: { $gte: new Date(Date.now() - OPEN_CHECKOUT_WINDOW_MS) },
+    };
+    if (userId) openFilter.user = { $ne: userId };
+    const openCheckouts = await Order.countDocuments(openFilter);
+    if (Number(coupon.usedCount || 0) + openCheckouts >= coupon.usageLimit) {
+      return { valid: false, message: 'Coupon usage limit has been reached' };
+    }
+  }
+
+  if (coupon.perCustomerLimit && userId) {
+    const usedByCustomer = await Order.countDocuments({
+      couponId: coupon._id,
+      user: userId,
+      paymentStatus: 'paid',
+    });
+    if (usedByCustomer >= coupon.perCustomerLimit) {
+      return { valid: false, message: 'You have already used this coupon' };
+    }
+  }
+
+  return { valid: true };
+}
+
 async function loadValidCouponByCode(code) {
   if (!code || typeof code !== 'string') return null;
   return Coupon.findOne({ code: code.trim().toUpperCase() });
@@ -607,6 +650,7 @@ module.exports = {
   resolveTaxPrice,
   invalidateStoreSettingsCache,
   calculateCouponDiscount,
+  checkCouponUsage,
   loadValidCouponByCode,
   buildNormalizedOrderLines,
   quoteOrderLines,

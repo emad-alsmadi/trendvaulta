@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { verfiyToken } = require('../middlewares/verfiyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
+const { optionalVerifyToken } = require('../middlewares/optionalVerifyToken');
 const { couponValidateRateLimit } = require('../middlewares/rateLimit');
 
 const {
@@ -16,7 +17,14 @@ const {
 } = require('../controllers/coupon.controller');
 
 // Public routes
-router.post('/coupons/validate', couponValidateRateLimit, validateCoupon);
+// Optional auth: a signed-in shopper also gets their per-customer limit
+// checked when applying the code, not only at payment.
+router.post(
+  '/coupons/validate',
+  couponValidateRateLimit,
+  optionalVerifyToken,
+  validateCoupon,
+);
 router.get('/coupons/code/:code', couponValidateRateLimit, getCouponByCode);
 
 // Admin routes

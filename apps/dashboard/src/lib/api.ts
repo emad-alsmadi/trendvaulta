@@ -789,6 +789,8 @@ export type AdminCoupon = {
   expirationDate: string;
   usageLimit: number | null;
   usedCount: number;
+  /** Max paid orders per customer; null = unlimited. */
+  perCustomerLimit?: number | null;
   minimumOrderAmount: number;
   isActive: boolean;
   description: string | null;
@@ -801,6 +803,7 @@ export type CouponPayload = {
   discountValue: number;
   expirationDate: string;
   usageLimit?: number | null;
+  perCustomerLimit?: number | null;
   minimumOrderAmount?: number;
   isActive?: boolean;
   description?: string;
@@ -1011,6 +1014,85 @@ export const adminHelpTopicsApi = {
   deleteHelpTopic: async (id: string): Promise<{ message: string }> => {
     const { data } = await api.delete<{ message: string }>(
       `/help-topics/${id}`,
+    );
+    return data;
+  },
+};
+
+export type ShippingZoneMethod = {
+  _id?: string;
+  name: string;
+  /** Matched against the checkout's shippingMethod (lowercased by the API). */
+  handle: string;
+  description?: string;
+  priceUsd: number;
+  estimatedDaysMin?: number;
+  estimatedDaysMax?: number;
+  isActive?: boolean;
+  sortOrder?: number;
+};
+
+export type AdminShippingZone = {
+  _id: string;
+  name: string;
+  /** ISO 3166-1 alpha-2 codes; empty = every country. */
+  countries: string[];
+  regionPattern?: string;
+  postalCodePattern?: string;
+  methods: ShippingZoneMethod[];
+  isActive: boolean;
+  sortOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type ShippingZonePayload = {
+  name: string;
+  countries: string[];
+  regionPattern: string;
+  postalCodePattern: string;
+  methods: Omit<ShippingZoneMethod, '_id'>[];
+  isActive: boolean;
+  sortOrder: number;
+};
+
+export const adminShippingZonesApi = {
+  getZones: async (
+    params: { page?: number; limit?: number } = {},
+  ): Promise<PaginatedList<AdminShippingZone>> => {
+    const { data } = await api.get<PaginatedList<AdminShippingZone>>(
+      '/admin/shipping/zones',
+      { params: { limit: 100, ...params } },
+    );
+    return data;
+  },
+
+  /** PUT replaces the zone, including its whole methods array. */
+  createZone: async (
+    payload: ShippingZonePayload,
+  ): Promise<AdminShippingZone> => {
+    const { data } = await api.post<{ message: string; data: AdminShippingZone }>(
+      '/admin/shipping/zones',
+      payload,
+    );
+    return data.data;
+  },
+
+  updateZone: async (
+    id: string,
+    payload: ShippingZonePayload,
+  ): Promise<AdminShippingZone> => {
+    const { data } = await api.put<{ message: string; data: AdminShippingZone }>(
+      `/admin/shipping/zones/${id}`,
+      payload,
+    );
+    return data.data;
+  },
+
+  /** Hard delete (the API has no soft delete for zones). */
+  deleteZone: async (id: string): Promise<{ message: string }> => {
+    const { data } = await api.delete<{ message: string }>(
+      `/admin/shipping/zones/${id}`,
     );
     return data;
   },
