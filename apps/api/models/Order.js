@@ -146,6 +146,12 @@ const OrderSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
+    // Amount Stripe captured (session.amount_total / 100), set when paid.
+    // Refund caps use this; absent on unpaid and older orders.
+    amountPaid: {
+      type: Number,
+      min: 0,
+    },
     shippingPrice: {
       type: Number,
       required: true,

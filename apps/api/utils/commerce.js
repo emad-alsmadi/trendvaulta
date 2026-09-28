@@ -56,15 +56,32 @@ function matchVariant(product, variant) {
   );
 }
 
+/**
+ * Round a dollar amount to whole cents. Every money value the server stores
+ * or sends to Stripe goes through this, so the order total always equals
+ * what Stripe charges (Stripe works in integer cents per unit/line).
+ */
+function roundMoney(amount) {
+  const n = Number(amount) || 0;
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
+/** Order total from already-rounded parts (never negative). */
+function computeOrderTotal({ itemsPrice, discountAmount, shippingPrice, taxPrice }) {
+  return roundMoney(
+    Math.max(0, itemsPrice - discountAmount + shippingPrice + taxPrice),
+  );
+}
+
 function resolveUnitPrice(product, matchedVariant) {
   if (
     matchedVariant &&
     matchedVariant.price != null &&
     Number.isFinite(Number(matchedVariant.price))
   ) {
-    return Number(matchedVariant.price);
+    return roundMoney(matchedVariant.price);
   }
-  return Number(product.price);
+  return roundMoney(product.price);
 }
 
 function resolveAvailableStock(product, matchedVariant) {
@@ -170,7 +187,7 @@ async function resolveShippingPrice({
   if (freeThreshold > 0 && Number(itemsPrice) >= freeThreshold) {
     return 0;
   }
-  return rate;
+  return roundMoney(rate);
 }
 
 /**
@@ -218,7 +235,7 @@ function calculateCouponDiscount(coupon, orderAmount) {
   } else {
     discountAmount = Number(coupon.discountValue);
   }
-  discountAmount = Math.min(Math.max(0, discountAmount), amount);
+  discountAmount = roundMoney(Math.min(Math.max(0, discountAmount), amount));
 
   return { discountAmount, valid: true };
 }
@@ -301,9 +318,8 @@ async function buildNormalizedOrderLines(Product, items) {
     });
   }
 
-  const itemsPrice = normalizedItems.reduce(
-    (sum, it) => sum + it.price * it.qty,
-    0,
+  const itemsPrice = roundMoney(
+    normalizedItems.reduce((sum, it) => sum + it.price * it.qty, 0),
   );
 
   return { normalizedItems, itemsPrice };
@@ -400,9 +416,11 @@ async function quoteOrderLines(Product, items) {
     });
   }
 
-  const itemsPrice = lines.reduce(
-    (sum, it) => sum + it.price * Math.min(it.qty, Math.max(0, it.available)),
-    0,
+  const itemsPrice = roundMoney(
+    lines.reduce(
+      (sum, it) => sum + it.price * Math.min(it.qty, Math.max(0, it.available)),
+      0,
+    ),
   );
 
   return { lines, itemsPrice, warnings };
@@ -580,6 +598,8 @@ async function restoreStockOnce(OrderModel, Product, order) {
 
 module.exports = {
   matchVariant,
+  roundMoney,
+  computeOrderTotal,
   resolveUnitPrice,
   resolveAvailableStock,
   resolveFulfillment,

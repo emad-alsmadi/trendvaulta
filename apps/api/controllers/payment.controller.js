@@ -12,6 +12,7 @@ const {
 } = require('../services/stripe.service');
 const {
   buildNormalizedOrderLines,
+  computeOrderTotal,
   quoteOrderLines,
   resolveFulfillment,
   resolveShippingPrice,
@@ -78,10 +79,12 @@ const quoteOrder = asyncHandler(async (req, res) => {
     region: shippingAddress?.city,
   });
   const taxPrice = await resolveTaxPrice(itemsPrice);
-  const totalPrice = Math.max(
-    0,
-    itemsPrice - discountAmount + shippingPrice + taxPrice,
-  );
+  const totalPrice = computeOrderTotal({
+    itemsPrice,
+    discountAmount,
+    shippingPrice,
+    taxPrice,
+  });
 
   res.status(200).json({
     lines,
@@ -158,10 +161,12 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
     region: shippingAddress.city,
   });
   const taxPrice = await resolveTaxPrice(itemsPrice);
-  const totalPrice = Math.max(
-    0,
-    itemsPrice - discountAmount + shippingPrice + taxPrice,
-  );
+  const totalPrice = computeOrderTotal({
+    itemsPrice,
+    discountAmount,
+    shippingPrice,
+    taxPrice,
+  });
 
   const order = await Order.create({
     user: userId,
@@ -433,6 +438,11 @@ async function markOrderPaidFromSession(session) {
   const $set = { paymentStatus: 'paid', paidAt: new Date() };
   if (paymentIntentId) $set.paymentIntentId = paymentIntentId;
   if (session.id) $set.stripeSessionId = session.id;
+  // What Stripe actually captured (integer cents) — the source of truth for
+  // refunds and reconciliation, independent of our own totalPrice.
+  if (Number.isInteger(session.amount_total)) {
+    $set.amountPaid = session.amount_total / 100;
+  }
 
   let order = await Order.findOneAndUpdate(
     { _id: orderId, paymentStatus: { $nin: ['paid', 'refunded'] } },
@@ -440,6 +450,16 @@ async function markOrderPaidFromSession(session) {
     { new: true },
   );
   let claimed = true;
+
+  if (
+    order &&
+    $set.amountPaid !== undefined &&
+    Math.round(order.totalPrice * 100) !== session.amount_total
+  ) {
+    console.warn(
+      `Order ${order._id}: Stripe charged ${$set.amountPaid} but totalPrice is ${order.totalPrice}`,
+    );
+  }
 
   if (!order) {
     // Already claimed (concurrent caller) or a Stripe retry after a transient

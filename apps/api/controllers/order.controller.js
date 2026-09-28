@@ -5,6 +5,7 @@ const { Product } = require('../models/Product');
 const { serializeOrder, serializeOrders } = require('../utils/serializeOrder');
 const {
   buildNormalizedOrderLines,
+  computeOrderTotal,
   resolveFulfillment,
   resolveShippingPrice,
   resolveTaxPrice,
@@ -96,10 +97,12 @@ const createOrder = asyncHandler(async (req, res) => {
     region: shippingAddress.city,
   });
   const taxPrice = await resolveTaxPrice(itemsPrice);
-  const totalPrice = Math.max(
-    0,
-    itemsPrice - discountAmount + shippingPrice + taxPrice,
-  );
+  const totalPrice = computeOrderTotal({
+    itemsPrice,
+    discountAmount,
+    shippingPrice,
+    taxPrice,
+  });
 
   const order = await Order.create({
     user: userId,

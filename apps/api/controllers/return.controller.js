@@ -243,7 +243,11 @@ async function refundReturn(req, res, order, value) {
     });
   }
 
-  const refundableCents = toCents(order.totalPrice) - toCents(order.refundAmount || 0);
+  // Cap at what Stripe captured; totalPrice is the fallback for orders paid
+  // before amountPaid was recorded.
+  const capturedAmount =
+    order.amountPaid != null ? order.amountPaid : order.totalPrice;
+  const refundableCents = toCents(capturedAmount) - toCents(order.refundAmount || 0);
   const amountCents = toCents(value.refundAmount);
   if (!amountCents) {
     return res.status(400).json({ message: 'Enter the amount to refund.' });
