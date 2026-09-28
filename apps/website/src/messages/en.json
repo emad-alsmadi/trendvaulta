@@ -433,6 +433,7 @@
     },
     "toast": {
       "updated": "Password updated successfully",
+      "signInAgain": "Password updated. Please sign in with your new password.",
       "updateFailed": "Failed to update password"
     }
   },

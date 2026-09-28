@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
 import { useForm } from 'react-hook-form';
 import { useChangePassword } from '@/hooks/auth/useChangePassword';
+import { useLogout } from '@/hooks/auth/authQuery';
 import { getAuthToken } from '@/lib/authCookies';
 import { getUserFacingErrorMessage } from '@/lib/userFacingError';
 import { useProfile } from '@/hooks/profile/useProfile';
@@ -26,6 +27,7 @@ export default function SecurityPage() {
   const { t } = useTranslation();
   const { data: profile } = useProfile();
   const changePassword = useChangePassword();
+  const logout = useLogout();
 
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
@@ -58,8 +60,13 @@ export default function SecurityPage() {
         currentPassword: data.currentPassword,
         newPassword: data.newPassword,
       });
-      toast(t('security.toast.updated'), { variant: 'success' });
+      // The API revokes every session, this one included — sign out now
+      // with a clear reason instead of a surprise logout at the next token
+      // refresh (~15 min later).
       reset();
+      await logout();
+      toast(t('security.toast.signInAgain'), { variant: 'success' });
+      router.push('/auth/login');
     } catch (err: unknown) {
       toast(getUserFacingErrorMessage(err, t('security.toast.updateFailed'), t), {
         variant: 'error',
