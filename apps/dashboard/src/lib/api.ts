@@ -319,9 +319,11 @@ export const authApi = {
     return data;
   },
 
+  /** `currentPassword` is required by the API only when the email changes. */
   updateProfile: async (payload: {
     username: string;
     email: string;
+    currentPassword?: string;
   }): Promise<{ message: string; user: ProfileUser }> => {
     const { data } = await api.put<{ message: string; user: ProfileUser }>(
       '/auth/profile',

@@ -35,6 +35,11 @@ export default function Settings() {
 
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
+  // Current password — the API requires it only when the email changes.
+  const [profilePassword, setProfilePassword] = useState('');
+  const emailChanged =
+    Boolean(user) &&
+    email.trim().toLowerCase() !== (user?.email || '').toLowerCase();
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileMsg, setProfileMsg] = useState<string | null>(null);
   const [profileErr, setProfileErr] = useState<string | null>(null);
@@ -98,13 +103,19 @@ export default function Settings() {
     e.preventDefault();
     setProfileMsg(null);
     setProfileErr(null);
+    if (emailChanged && !profilePassword) {
+      setProfileErr('Enter your current password to change your email.');
+      return;
+    }
     setProfileSaving(true);
     try {
       await authApi.updateProfile({
         username: username.trim(),
         email: email.trim(),
+        ...(emailChanged ? { currentPassword: profilePassword } : {}),
       });
       await qc.invalidateQueries({ queryKey: PROFILE_KEY });
+      setProfilePassword('');
       setProfileMsg('Profile updated.');
     } catch (err) {
       setProfileErr(errorMessage(err, 'Could not update profile'));
@@ -215,6 +226,20 @@ export default function Settings() {
                 className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
               />
             </div>
+            {emailChanged && (
+              <label className="block">
+                <span className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Current password (required to change your email)
+                </span>
+                <input
+                  type="password"
+                  autoComplete="current-password"
+                  value={profilePassword}
+                  onChange={(e) => setProfilePassword(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                />
+              </label>
+            )}
             {profileMsg && (
               <p className="text-sm text-green-700 dark:text-green-400">
                 {profileMsg}
