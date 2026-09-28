@@ -1,7 +1,9 @@
 const asyncHandler = require('express-async-handler');
 const Joi = require('joi');
 const { Order } = require('../models/Order');
+const { Product } = require('../models/Product');
 const { User } = require('../models/User');
+const { restoreStockForReturnedItems } = require('../utils/commerce');
 const {
   getStripeOrThrow,
   refundPaymentIntent,
@@ -218,6 +220,24 @@ const updateReturnRequest = asyncHandler(async (req, res) => {
     return res.status(409).json({
       message: 'This return was just updated by someone else. Refresh and try again.',
     });
+  }
+
+  // The parcel is back: put the returned lines (only those) into stock.
+  // Runs once — the 'received' step above is claimed conditionally. A
+  // failure is logged, not surfaced: the return itself is still received.
+  if (value.status === 'received' && updated.stockDecremented) {
+    try {
+      await restoreStockForReturnedItems(
+        Product,
+        updated,
+        updated.returnRequest?.items,
+      );
+    } catch (stockErr) {
+      console.error(
+        `Return received for order ${order._id} but restocking failed:`,
+        stockErr?.message || stockErr,
+      );
+    }
   }
 
   res.status(200).json({

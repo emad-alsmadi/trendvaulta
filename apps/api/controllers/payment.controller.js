@@ -25,7 +25,10 @@ const {
   incrementCouponUsedCount,
   incrementSalesCountForPaidOrder,
 } = require('../utils/commerce');
-const { canTransitionOrderStatus } = require('../utils/orderTransitions');
+const {
+  canTransitionOrderStatus,
+  hasOrderShipped,
+} = require('../utils/orderTransitions');
 const {
   claimWebhookEvent,
   markWebhookEventProcessed,
@@ -633,7 +636,9 @@ async function handleChargeRefunded(charge) {
 
   await Order.updateOne({ _id: order._id }, { $set });
 
-  if (fullyRefunded) {
+  // A refund on goods that already shipped (goodwill, or a return refund)
+  // must not restock them — returns restock on 'received' instead.
+  if (fullyRefunded && !hasOrderShipped(order)) {
     await restoreStockOnce(Order, Product, order);
   }
   return String(order._id);

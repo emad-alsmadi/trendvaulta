@@ -146,6 +146,11 @@ const OrderSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
+    // Set when staff mark the order shipped; refunds after this never
+    // restock (see hasOrderShipped). Absent on orders shipped before it.
+    shippedAt: {
+      type: Date,
+    },
     // Amount Stripe captured (session.amount_total / 100), set when paid.
     // Refund caps use this; absent on unpaid and older orders.
     amountPaid: {

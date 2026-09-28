@@ -30,6 +30,7 @@ const {
   canCustomerCancel,
   canTransitionOrderStatus,
   getAllowedNextStatuses,
+  hasOrderShipped,
 } = require('../utils/orderTransitions');
 const { buildSort } = require('../utils/sort');
 const { canCustomerReturn, RETURN_TRANSITIONS } = require('../utils/returns');
@@ -378,7 +379,8 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: error.details[0].message });
   }
 
-  const order = await Order.findById(req.params.id);
+  // Reassigned to the claimed (post-transition) document below.
+  let order = await Order.findById(req.params.id);
   if (!order) {
     return res.status(404).json({ message: 'Order not found' });
   }
@@ -413,17 +415,49 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     }
   }
 
+  // Claim the transition with a conditional update on the state validated
+  // above (same pattern as cancelOrder): a concurrent customer cancel or
+  // Stripe webhook makes this a 409 instead of both sides acting on a stale
+  // read (e.g. refunding + restocking an order that was just shipped).
+  const claimSet = { status: value.status };
   // Leaving needs_attention clears the reason unless a new one is set below
-  if (order.status === 'needs_attention') {
-    order.attentionReason = '';
+  if (order.status === 'needs_attention') claimSet.attentionReason = '';
+  if (value.status === 'shipped' && !order.shippedAt) claimSet.shippedAt = new Date();
+  if (value.status === 'delivered' && !order.deliveredAt) {
+    claimSet.deliveredAt = new Date();
+  }
+  const previous = order;
+  const claimed = await Order.findOneAndUpdate(
+    {
+      _id: previous._id,
+      status: previous.status,
+      paymentStatus: previous.paymentStatus,
+    },
+    { $set: claimSet },
+    { new: true },
+  );
+  if (!claimed) {
+    return res.status(409).json({
+      message: 'This order was just updated. Refresh and try again.',
+    });
   }
 
   // Resolving needs_attention → paid: inventory must actually be available now
-  if (value.status === 'paid' && !order.stockDecremented) {
+  if (value.status === 'paid' && !claimed.stockDecremented) {
     try {
-      await decrementStockForPaidOrder(Product, order);
-      order.stockDecremented = true;
+      await decrementStockForPaidOrder(Product, claimed);
+      claimed.stockDecremented = true;
     } catch (stockErr) {
+      // Undo the claim so the order stays flagged for staff
+      await Order.updateOne(
+        { _id: claimed._id, status: 'paid' },
+        {
+          $set: {
+            status: previous.status,
+            attentionReason: previous.attentionReason,
+          },
+        },
+      );
       if (stockErr?.statusCode !== 409) throw stockErr;
       return res.status(409).json({
         message: `${stockErr.message}. Restock the product or refund the order.`,
@@ -435,6 +469,21 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     value.status === 'canceled' || value.status === 'refunded';
   const autoRefund = process.env.AUTO_REFUND_ON_CANCEL !== 'false';
   let refundedNow = false;
+  order = claimed;
+
+  // Admin cancel of an unpaid order: close the open Checkout session so the
+  // customer can't pay for it afterwards (as the customer cancel does).
+  if (
+    value.status === 'canceled' &&
+    order.paymentStatus !== 'paid' &&
+    order.stripeSessionId
+  ) {
+    try {
+      await getStripeOrThrow().checkout.sessions.expire(order.stripeSessionId);
+    } catch {
+      // already expired/completed, or Stripe not configured
+    }
+  }
 
   if (releasesOrder && order.paymentStatus === 'paid') {
     if (!order.paymentIntentId || !autoRefund) {
@@ -467,16 +516,14 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     }
   }
 
+  // Restock only goods that never left the warehouse; a shipped/delivered
+  // order is restocked line by line when its return is received.
   let stockRestoredNow = false;
-  if (releasesOrder) {
+  if (releasesOrder && !hasOrderShipped(previous)) {
     stockRestoredNow = await restoreStockOnce(Order, Product, order);
     if (stockRestoredNow) order.stockRestored = true;
   }
 
-  order.status = value.status;
-  if (value.status === 'delivered' && !order.deliveredAt) {
-    order.deliveredAt = new Date();
-  }
   await order.save();
 
   // Send email notifications based on status change. (populate() resolves

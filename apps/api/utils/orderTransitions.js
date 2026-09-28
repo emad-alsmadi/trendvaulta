@@ -80,8 +80,24 @@ function canCustomerCancel(order) {
   };
 }
 
+/**
+ * Goods have left the warehouse, so a refund or cancel must NOT restock them
+ * — only a received return puts items back (return.controller). shippedAt /
+ * deliveredAt keep this true after the status moves on to 'refunded'.
+ * @param {{ status?: string, shippedAt?: Date, deliveredAt?: Date }} order
+ */
+function hasOrderShipped(order) {
+  return (
+    order?.status === 'shipped' ||
+    order?.status === 'delivered' ||
+    Boolean(order?.shippedAt) ||
+    Boolean(order?.deliveredAt)
+  );
+}
+
 module.exports = {
   canCustomerCancel,
+  hasOrderShipped,
   ORDER_STATUSES,
   ALLOWED_TRANSITIONS,
   getAllowedNextStatuses,

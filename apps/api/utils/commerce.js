@@ -583,34 +583,72 @@ async function incrementSalesCountForPaidOrder(Product, order) {
  * Idempotency is enforced by the caller via order.stockRestored
  * (see restoreStockOnce).
  */
+async function restoreStockLine(Product, it) {
+  const productId = it.productId;
+  const qty = Number(it.qty);
+  if (!productId || !(qty > 0)) return;
+
+  const product = await Product.findById(productId);
+  if (!product) return;
+
+  const hasVariants =
+    Array.isArray(product.variants) && product.variants.length > 0;
+
+  if (hasVariants && it.variant) {
+    const updated = await Product.findOneAndUpdate(
+      {
+        _id: productId,
+        variants: { $elemMatch: buildVariantMatch(it.variant) },
+      },
+      { $inc: { 'variants.$.stock': qty, stock: qty } },
+      { new: true },
+    );
+    if (updated) return;
+    // Variant no longer matches — restore against product-level stock
+  }
+
+  await Product.findByIdAndUpdate(productId, {
+    $inc: { stock: qty },
+  });
+}
+
+/**
+ * Put every line of `order` back in stock. On failure the thrown error
+ * carries `restoredLines` (lines already restocked) so the caller knows
+ * whether a retry would double-count.
+ */
 async function restoreStockForCanceledOrder(Product, order) {
+  let restoredLines = 0;
   for (const it of order.items || []) {
-    const productId = it.productId;
-    const qty = Number(it.qty);
-    if (!productId || !(qty > 0)) continue;
-
-    const product = await Product.findById(productId);
-    if (!product) continue;
-
-    const hasVariants =
-      Array.isArray(product.variants) && product.variants.length > 0;
-
-    if (hasVariants && it.variant) {
-      const updated = await Product.findOneAndUpdate(
-        {
-          _id: productId,
-          variants: { $elemMatch: buildVariantMatch(it.variant) },
-        },
-        { $inc: { 'variants.$.stock': qty, stock: qty } },
-        { new: true },
-      );
-      if (updated) continue;
-      // Variant no longer matches — restore against product-level stock
+    try {
+      await restoreStockLine(Product, it);
+    } catch (err) {
+      err.restoredLines = restoredLines;
+      throw err;
     }
+    restoredLines += 1;
+  }
+}
 
-    await Product.findByIdAndUpdate(productId, {
-      $inc: { stock: qty },
-    });
+/**
+ * Restock only the returned quantities (return.controller, on 'received').
+ * Return items are per product, so each quantity is spread over that
+ * product's order lines in order, keeping each line's variant.
+ */
+async function restoreStockForReturnedItems(Product, order, returnedItems) {
+  const remaining = new Map();
+  for (const item of returnedItems || []) {
+    const id = String(item.productId);
+    remaining.set(id, (remaining.get(id) || 0) + (Number(item.qty) || 0));
+  }
+  for (const line of order.items || []) {
+    const id = String(line.productId);
+    const left = remaining.get(id) || 0;
+    if (left <= 0) continue;
+    const qty = Math.min(left, Number(line.qty) || 0);
+    if (qty <= 0) continue;
+    await restoreStockLine(Product, { ...line, qty });
+    remaining.set(id, left - qty);
   }
 }
 
@@ -630,10 +668,18 @@ async function restoreStockOnce(OrderModel, Product, order) {
   try {
     await restoreStockForCanceledOrder(Product, claimed);
   } catch (err) {
-    await OrderModel.updateOne(
-      { _id: order._id },
-      { $set: { stockRestored: false } },
-    ).catch(() => {});
+    if (err?.restoredLines) {
+      // Some lines are already back in stock: releasing the claim would let
+      // a retry restock them twice. Keep it and leave the rest to staff.
+      console.error(
+        `Order ${order._id}: stock partly restored (${err.restoredLines} line(s)); fix the rest manually`,
+      );
+    } else {
+      await OrderModel.updateOne(
+        { _id: order._id },
+        { $set: { stockRestored: false } },
+      ).catch(() => {});
+    }
     throw err;
   }
   return true;
@@ -657,6 +703,7 @@ module.exports = {
   buildVariantMatch,
   decrementStockForPaidOrder,
   restoreStockForCanceledOrder,
+  restoreStockForReturnedItems,
   restoreStockOnce,
   incrementCouponUsedCount,
   incrementSalesCountForPaidOrder,
