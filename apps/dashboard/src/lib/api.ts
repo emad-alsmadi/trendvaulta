@@ -46,16 +46,23 @@ function forceLogoutRedirect() {
 // Share one in-flight refresh call across concurrent 401s — the refresh
 // token rotates server-side on every use, so firing it twice in parallel
 // would have the second call invalidate the first's brand-new token.
-let refreshPromise: Promise<string | null> | null = null;
+/**
+ * `sessionEnded` = the API rejected the refresh token (401/400), so signing
+ * out is right. A network error, 5xx or 429 is NOT a dead session — logging
+ * out then would throw away a still-valid refresh token over a blip.
+ */
+type RefreshOutcome = { token: string | null; sessionEnded: boolean };
 
-async function refreshAccessToken(): Promise<string | null> {
+let refreshPromise: Promise<RefreshOutcome> | null = null;
+
+async function refreshAccessToken(): Promise<RefreshOutcome> {
   const refreshToken = getRefreshToken();
-  if (!refreshToken) return null;
+  if (!refreshToken) return { token: null, sessionEnded: true };
 
   if (!refreshPromise) {
     refreshPromise = axios
       .post(`${API_BASE}/auth/refresh`, { refreshToken })
-      .then(({ data }) => {
+      .then(({ data }): RefreshOutcome => {
         const nextToken: string | null = data?.token || null;
         const nextRefreshToken: string | null = data?.refreshToken || null;
         if (nextToken) {
@@ -64,9 +71,12 @@ async function refreshAccessToken(): Promise<string | null> {
             refreshToken: nextRefreshToken || undefined,
           });
         }
-        return nextToken;
+        return { token: nextToken, sessionEnded: !nextToken };
       })
-      .catch(() => null)
+      .catch((err): RefreshOutcome => {
+        const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+        return { token: null, sessionEnded: status === 401 || status === 400 };
+      })
       .finally(() => {
         refreshPromise = null;
       });
@@ -87,13 +97,15 @@ api.interceptors.response.use(
       !isAuthBypassRequest(original)
     ) {
       original._retriedAfterRefresh = true;
-      const newToken = await refreshAccessToken();
+      const { token: newToken, sessionEnded } = await refreshAccessToken();
       if (newToken) {
         original.headers = original.headers || {};
         original.headers.Authorization = `Bearer ${newToken}`;
         return api(original);
       }
-      forceLogoutRedirect();
+      // Refresh endpoint unreachable/overloaded: keep the session; the
+      // request fails and the user can simply retry.
+      if (sessionEnded) forceLogoutRedirect();
       return Promise.reject(error);
     }
 

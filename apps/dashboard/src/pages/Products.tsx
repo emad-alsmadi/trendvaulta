@@ -280,12 +280,16 @@ export default function Products() {
   }
 
   async function handleDelete(product: AdminProduct) {
-    const ok = await confirm({ message: `Delete "${product.title}" permanently?`, danger: true, confirmLabel: 'Delete' });
+    const ok = await confirm({
+      message: `Deactivate "${product.title}"? It disappears from the storefront and can't be ordered; order history keeps it, and you can reactivate it later.`,
+      danger: true,
+      confirmLabel: 'Deactivate',
+    });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(product._id);
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not delete product'));
+      toast.error(errorMessage(err, 'Could not deactivate product'));
     }
   }
 

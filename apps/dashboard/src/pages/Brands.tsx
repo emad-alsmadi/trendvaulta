@@ -8,7 +8,6 @@ import {
   useUpdateBrandMutation,
 } from '../hooks/useAdminCatalog';
 import {
-  adminProductsApi,
   errorMessage,
   type AdminBrand,
   type BrandFormPayload,
@@ -124,26 +123,18 @@ export default function Brands() {
   }
 
   async function handleDelete(brand: AdminBrand) {
-    let hasProducts = false;
-    try {
-      const check = await adminProductsApi.getProducts({
-        brand: brand._id,
-        limit: 1,
-      });
-      hasProducts = (check.meta?.total ?? check.data.length) > 0;
-    } catch {
-      // If the check fails, fall back to the plain confirmation below.
-    }
-
-    const message = hasProducts
-      ? `Delete brand "${brand.name}" permanently? Products still assigned to this brand will be left without a valid brand reference.`
-      : `Delete brand "${brand.name}" permanently?`;
-    const ok = await confirm({ message, danger: true, confirmLabel: 'Delete' });
+    // The API deactivates (products keep their brand), so no product check
+    // is needed any more.
+    const ok = await confirm({
+      message: `Deactivate brand "${brand.name}"? It is hidden from the storefront brand pages; its products keep the brand, and you can reactivate it later.`,
+      danger: true,
+      confirmLabel: 'Deactivate',
+    });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(brand._id);
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not delete brand'));
+      toast.error(errorMessage(err, 'Could not deactivate brand'));
     }
   }
 

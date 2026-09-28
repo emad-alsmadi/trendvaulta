@@ -142,7 +142,11 @@ export default function Users() {
   }
 
   async function handleDelete(user: AdminUser) {
-    const ok = await confirm({ message: `Delete user "${user.email}" permanently? This cannot be undone.`, danger: true, confirmLabel: 'Delete' });
+    const ok = await confirm({
+      message: `Delete "${user.email}"? Their personal data (email, name, addresses, wishlist) is erased and they can never sign in again. Orders and reviews stay, attributed to "Deleted user". This cannot be undone — to block sign-in reversibly, disable the account instead.`,
+      danger: true,
+      confirmLabel: 'Delete',
+    });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(user._id);
