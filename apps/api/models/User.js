@@ -103,6 +103,19 @@ const UserSchema = new mongoose.Schema(
       type: [AddressSchema],
       default: [],
     },
+    // Per-account brute-force protection (auth.controller loginUser): after
+    // too many wrong passwords the account is locked until lockUntil. Kept
+    // in the DB so it holds across restarts/instances, unlike the IP limiter.
+    // select:false keeps them out of every other query.
+    failedLoginAttempts: {
+      type: Number,
+      default: 0,
+      select: false,
+    },
+    lockUntil: {
+      type: Date,
+      select: false,
+    },
     // Admin-disabled accounts keep their data and order history but cannot
     // sign in or refresh a session. Preferred over deleting a customer.
     disabled: {

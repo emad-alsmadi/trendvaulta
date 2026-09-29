@@ -212,13 +212,19 @@ const updateBrand = asyncHandler(async (req, res) => {
  * @returns {Promise<void>} JSON confirmation message
  */
 const deleteBrand = asyncHandler(async (req, res) => {
-  const brand = await Brand.findByIdAndDelete(req.params.id);
+  // Soft delete: products keep their brand reference (a hard delete left
+  // them with brand: null). Staff can reactivate the brand later.
+  const brand = await Brand.findByIdAndUpdate(
+    req.params.id,
+    { $set: { isActive: false } },
+    { new: true },
+  );
 
   if (!brand) {
     return res.status(404).json({ message: 'Brand not found' });
   }
 
-  res.status(200).json({ message: 'Brand has been deleted' });
+  res.status(200).json({ message: 'Brand has been deactivated' });
 });
 
 module.exports = {

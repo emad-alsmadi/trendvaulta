@@ -1,7 +1,11 @@
+const crypto = require('crypto');
 const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcryptjs');
 const { User, validateUpdateUser } = require('../models/User');
 const { RefreshToken } = require('../models/RefreshToken');
+const { Wishlist } = require('../models/Wishlist');
+const { RecentlyViewed } = require('../models/RecentlyViewed');
+const { Subscriber } = require('../models/Subscriber');
 const { revokeAllForUser } = require('../utils/refreshTokens');
 const { parsePagination } = require('../utils/pagination');
 const { normalizeSearchTerm } = require('../utils/search');
@@ -11,6 +15,19 @@ const APP_ROLES = ['user', 'admin', 'moderator'];
 
 /** Columns the admin user table may sort on. */
 const USER_SORT_FIELDS = ['createdAt', 'username', 'email'];
+
+/**
+ * True when no OTHER enabled admin exists — removing admin rights from (or
+ * disabling/deleting) `userId` would lock the store out of the dashboard.
+ */
+async function isLastAdmin(userId) {
+  const otherAdmins = await User.countDocuments({
+    _id: { $ne: userId },
+    roles: 'admin',
+    disabled: { $ne: true },
+  });
+  return otherAdmins === 0;
+}
 
 /**
  * Get users, paginated.
@@ -106,6 +123,27 @@ const updateUser = asyncHandler(async (req, res) => {
     update.disabled = req.body.disabled;
   }
 
+  // Taking admin rights away (role change or disable) must never leave the
+  // store without an admin, and an admin cannot demote themselves.
+  const losesAdmin =
+    (update.roles !== undefined && !update.roles.includes('admin')) ||
+    update.disabled === true;
+  if (losesAdmin) {
+    const target = await User.findById(req.params.id).select('roles').lean();
+    if (target?.roles?.includes('admin')) {
+      if (String(req.params.id) === String(req.user?.id)) {
+        return res
+          .status(400)
+          .json({ message: 'You cannot remove your own admin role' });
+      }
+      if (await isLastAdmin(req.params.id)) {
+        return res.status(400).json({
+          message: 'This is the last active admin. Make someone else an admin first.',
+        });
+      }
+    }
+  }
+
   if (req.body.password) {
     const salt = await bcrypt.genSalt(10);
     update.password = await bcrypt.hash(req.body.password, salt);
@@ -121,10 +159,10 @@ const updateUser = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: 'User not found' });
   }
 
-  // Disabling ends every session now: refresh tokens are revoked here, and
-  // the stateless access token dies within its 15-minute TTL (refresh is
-  // also refused for disabled users, so it cannot be renewed).
-  if (update.password || update.disabled) {
+  // Disabling, a new password or a role change ends every session now:
+  // refresh tokens are revoked here, and the stateless access token (which
+  // carries the old roles) dies within its 15-minute TTL.
+  if (update.password || update.disabled || update.roles !== undefined) {
     await revokeAllForUser(RefreshToken, updatedUser._id);
   }
 
@@ -141,12 +179,51 @@ const updateUser = asyncHandler(async (req, res) => {
  * @returns {Promise<void>} JSON confirmation message
  */
 const deleteUser = asyncHandler(async (req, res) => {
-  const user = await User.findByIdAndDelete(req.params.id);
-  if (user) {
-    res.status(200).json({ message: 'User has been deleted' });
-  } else {
-    res.status(404).json({ message: 'User not found' });
+  if (String(req.params.id) === String(req.user?.id)) {
+    return res.status(400).json({ message: 'You cannot delete your own account' });
   }
+
+  const user = await User.findById(req.params.id).select('email roles').lean();
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+  if (user.roles?.includes('admin') && (await isLastAdmin(user._id))) {
+    return res.status(400).json({
+      message: 'This is the last active admin. Make someone else an admin first.',
+    });
+  }
+
+  // Anonymise instead of deleting: orders, reviews and refunds keep a valid
+  // user reference (a hard delete orphaned them), while the personal data
+  // is erased and the account can never sign in again. Order shipping
+  // addresses are kept as part of the sales record.
+  const unusablePassword = await bcrypt.hash(
+    crypto.randomBytes(32).toString('hex'),
+    10,
+  );
+  await User.updateOne(
+    { _id: user._id },
+    {
+      $set: {
+        email: `deleted-${user._id}@deleted.invalid`,
+        username: 'Deleted user',
+        password: unusablePassword,
+        roles: ['user'],
+        addresses: [],
+        stripeCustomerId: '',
+        adminNotes: '',
+        disabled: true,
+      },
+    },
+  );
+  await revokeAllForUser(RefreshToken, user._id);
+  await Promise.all([
+    Wishlist.deleteMany({ user: user._id }),
+    RecentlyViewed.deleteMany({ user: user._id }),
+    Subscriber.deleteMany({ email: user.email }),
+  ]);
+
+  res.status(200).json({ message: 'User has been deleted (personal data erased)' });
 });
 
 module.exports = {

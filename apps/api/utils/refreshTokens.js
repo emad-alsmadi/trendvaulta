@@ -2,6 +2,12 @@ const { hashToken, generatePlaintextToken } = require('../models/RefreshToken');
 
 const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days — matches prior single-JWT UX
 
+// Two tabs whose access tokens expire together both present the same refresh
+// token within moments. Inside this window a just-rotated token gets its own
+// successor instead of tripping reuse detection (which would log the user out
+// on every device). Tokens revoked by logout/password change never qualify.
+const ROTATION_GRACE_MS = 30 * 1000;
+
 /**
  * Issue a brand-new refresh token for a user (login/register).
  * @param {import('mongoose').Model} RefreshToken
@@ -49,6 +55,9 @@ async function rotateRefreshToken(RefreshToken, presentedPlaintext) {
   }
 
   if (existing.revokedAt) {
+    if (wasJustRotated(existing)) {
+      return issueSuccessor(RefreshToken, existing);
+    }
     // Already used once before — treat as compromised and kill every
     // active session for this user.
     await revokeAllForUser(RefreshToken, existing.user);
@@ -59,15 +68,42 @@ async function rotateRefreshToken(RefreshToken, presentedPlaintext) {
     return { status: 'expired' };
   }
 
-  const { plaintext, doc: next } = await issueRefreshToken(
-    RefreshToken,
-    existing.user,
+  // Claim the rotation atomically: of two simultaneous requests only one
+  // flips revokedAt; the other falls into the grace path above instead of
+  // both minting successors unnoticed.
+  const plaintext = generatePlaintextToken();
+  const nextHash = hashToken(plaintext);
+  const claimed = await RefreshToken.findOneAndUpdate(
+    { _id: existing._id, revokedAt: null },
+    { $set: { revokedAt: new Date(), replacedByHash: nextHash } },
+    { new: true },
   );
-  existing.revokedAt = new Date();
-  existing.replacedByHash = next.tokenHash;
-  await existing.save();
+  if (!claimed) {
+    return issueSuccessor(RefreshToken, existing);
+  }
+
+  await RefreshToken.create({
+    user: existing.user,
+    tokenHash: nextHash,
+    expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
+  });
 
   return { status: 'ok', userId: String(existing.user), plaintext };
+}
+
+/** Rotated (not logged out / revoked) within the grace window. */
+function wasJustRotated(doc) {
+  return (
+    Boolean(doc.replacedByHash) &&
+    doc.revokedAt instanceof Date &&
+    Date.now() - doc.revokedAt.getTime() < ROTATION_GRACE_MS
+  );
+}
+
+/** Grace path: a fresh session token for a concurrent refresh. */
+async function issueSuccessor(RefreshToken, doc) {
+  const { plaintext } = await issueRefreshToken(RefreshToken, doc.user);
+  return { status: 'ok', userId: String(doc.user), plaintext };
 }
 
 /**
@@ -95,6 +131,7 @@ async function revokeAllForUser(RefreshToken, userId) {
 
 module.exports = {
   REFRESH_TOKEN_TTL_MS,
+  ROTATION_GRACE_MS,
   issueRefreshToken,
   rotateRefreshToken,
   revokeRefreshToken,

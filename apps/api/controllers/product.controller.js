@@ -244,13 +244,21 @@ const updateProduct = asyncHandler(async (req, res) => {
  * @returns {Promise<void>} JSON confirmation message
  */
 const deleteProduct = asyncHandler(async (req, res) => {
-  const product = await Product.findByIdAndDelete(req.params.id);
+  // Soft delete: orders, bundles, reviews, Q&A and wishlists keep pointing
+  // at the product (a hard delete left them populating as null, which
+  // crashed dashboard pages). Inactive products are hidden from the
+  // storefront and rejected at checkout; staff can reactivate them.
+  const product = await Product.findByIdAndUpdate(
+    req.params.id,
+    { $set: { isActive: false } },
+    { new: true },
+  );
 
   if (!product) {
     return res.status(404).json({ message: 'Product not found' });
   }
 
-  res.status(200).json({ message: 'Product has been deleted' });
+  res.status(200).json({ message: 'Product has been deactivated' });
 });
 
 module.exports = {

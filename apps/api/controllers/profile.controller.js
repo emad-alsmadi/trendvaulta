@@ -6,7 +6,21 @@ const {
   validateUpdateAddress,
 } = require('../models/User');
 const bcrypt = require('bcryptjs');
+const Joi = require('joi');
 const { getUserPermissions } = require('../middlewares/rolePermissions');
+const {
+  LOCKED_RESPONSE,
+  isAccountLocked,
+  recordFailedPassword,
+  clearFailedPasswords,
+} = require('../utils/loginLockout');
+
+const updateProfileSchema = Joi.object({
+  username: Joi.string().trim().min(3).max(200).required(),
+  email: Joi.string().trim().lowercase().email().max(100).required(),
+  // Required (checked in the controller) only when the email changes.
+  currentPassword: Joi.string().max(128).allow('').optional(),
+});
 const {
   MAX_ADDRESSES,
   shouldBecomeDefault,
@@ -51,32 +65,59 @@ const updateProfile = asyncHandler(async (req, res) => {
     return res.status(401).json({ message: 'Token is not valid!' });
   }
 
-  const { username, email } = req.body;
+  const { error, value } = updateProfileSchema.validate(req.body || {});
+  if (error) {
+    return res.status(400).json({ message: error.details[0].message });
+  }
+  const trimmedUsername = value.username;
+  const trimmedEmail = value.email;
 
-  // Basic validation
-  if (!username || typeof username !== 'string' || username.trim().length < 3) {
-    return res
-      .status(400)
-      .json({ message: 'Username must be at least 3 characters long' });
+  const current = await User.findById(userId).select(
+    '+failedLoginAttempts +lockUntil',
+  );
+  if (!current) {
+    return res.status(404).json({ message: 'User not found' });
   }
 
-  if (!email || typeof email !== 'string' || !email.includes('@')) {
-    return res.status(400).json({ message: 'Valid email is required' });
+  // Changing the email is an account takeover step (new email → reset the
+  // password), so it needs the current password, not just an access token.
+  const emailChanged = trimmedEmail !== current.email;
+  if (emailChanged) {
+    if (!value.currentPassword) {
+      return res.status(400).json({
+        message: 'Enter your current password to change your email',
+        code: 'CURRENT_PASSWORD_REQUIRED',
+      });
+    }
+    if (isAccountLocked(current)) {
+      return res.status(429).json(LOCKED_RESPONSE);
+    }
+    const passwordOk = await bcrypt.compare(value.currentPassword, current.password);
+    if (!passwordOk) {
+      await recordFailedPassword(User, current._id);
+      return res.status(400).json({
+        message: 'Current password is incorrect',
+        code: 'CURRENT_PASSWORD_INCORRECT',
+      });
+    }
+    await clearFailedPasswords(User, current);
   }
 
-  // Trim inputs
-  const trimmedUsername = username.trim();
-  const trimmedEmail = email.trim().toLowerCase();
-
-  // Check if username/email already taken by another user
-  const existingUser = await User.findOne({
-    _id: { $ne: userId },
-    $or: [{ username: trimmedUsername }, { email: trimmedEmail }],
-  }).lean();
+  // Uniqueness only for fields that actually change: registration allows
+  // duplicate usernames, so an unchanged one must not block an email edit.
+  const usernameChanged = trimmedUsername !== current.username;
+  const taken = [];
+  if (usernameChanged) taken.push({ username: trimmedUsername });
+  if (emailChanged) taken.push({ email: trimmedEmail });
+  const existingUser = taken.length
+    ? await User.findOne({ _id: { $ne: userId }, $or: taken }).lean()
+    : null;
 
   if (existingUser) {
     const field =
-      existingUser.username === trimmedUsername ? 'username' : 'email';
+      usernameChanged && existingUser.username === trimmedUsername
+        ? 'username'
+        : 'email';
     return res.status(409).json({ message: `${field} already taken` });
   }
 

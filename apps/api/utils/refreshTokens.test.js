@@ -83,6 +83,11 @@ describe('rotateRefreshToken', () => {
     const createdNext = {};
     const RefreshToken = {
       findOne: mock.fn(async () => doc),
+      // Atomic claim: only matches while the token is still unrevoked.
+      findOneAndUpdate: mock.fn(async (_filter, update) => {
+        Object.assign(doc, update.$set);
+        return doc;
+      }),
       create: mock.fn(async (data) => {
         Object.assign(createdNext, data);
         return { ...data };
@@ -96,7 +101,11 @@ describe('rotateRefreshToken', () => {
     assert.ok(result.plaintext);
     assert.ok(doc.revokedAt instanceof Date);
     assert.equal(doc.replacedByHash, createdNext.tokenHash);
-    assert.equal(doc.save.mock.callCount(), 1);
+    assert.equal(RefreshToken.findOneAndUpdate.mock.callCount(), 1);
+    assert.equal(
+      RefreshToken.findOneAndUpdate.mock.calls[0].arguments[0].revokedAt,
+      null,
+    );
   });
 });
 

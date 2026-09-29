@@ -7,10 +7,19 @@ const {
 } = require('../models/User');
 const { RefreshToken } = require('../models/RefreshToken');
 const {
+  LOCKED_RESPONSE,
+  isAccountLocked,
+  recordFailedPassword,
+  clearFailedPasswords,
+} = require('../utils/loginLockout');
+const {
   issueRefreshToken,
   rotateRefreshToken,
   revokeRefreshToken,
 } = require('../utils/refreshTokens');
+
+// Hash compared against for unknown emails (timing parity with real ones).
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync('not-a-real-account-password', 10);
 
 /** Fields safe to return to the client after login/register. */
 function toPublicUser(user) {
@@ -88,9 +97,19 @@ const loginUser = asyncHandler(async (req, res) => {
   if (error) {
     return res.status(400).json({ message: error.details[0].message });
   }
-  let user = await User.findOne({ email: normalizeEmail(req.body.email) });
+  const user = await User.findOne({
+    email: normalizeEmail(req.body.email),
+  }).select('+failedLoginAttempts +lockUntil');
   if (!user) {
+    // Same bcrypt cost as a real account, so timing doesn't reveal which
+    // emails are registered.
+    await bcrypt.compare(req.body.password, DUMMY_PASSWORD_HASH);
     return res.status(400).json({ message: 'invalid email or password' });
+  }
+
+  // Locked accounts don't even test the password, so guessing stops here.
+  if (isAccountLocked(user)) {
+    return res.status(429).json(LOCKED_RESPONSE);
   }
 
   const isPasswordMatch = await bcrypt.compare(
@@ -98,8 +117,11 @@ const loginUser = asyncHandler(async (req, res) => {
     user.password,
   );
   if (!isPasswordMatch) {
+    await recordFailedPassword(User, user._id);
     return res.status(400).json({ message: 'invalid email or password' });
   }
+
+  await clearFailedPasswords(User, user);
   // Checked only after the password matches, so this response can't be used
   // to learn which emails belong to disabled accounts.
   if (user.disabled) {
