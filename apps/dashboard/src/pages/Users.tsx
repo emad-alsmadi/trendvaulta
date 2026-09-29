@@ -20,6 +20,7 @@ import { useTableQuery } from '../hooks/useTableQuery';
 import { SortableHeader } from '../components/ui/SortableHeader';
 import { TablePagination } from '../components/ui/TablePagination';
 import { FormDialog } from '../components/ui/FormDialog';
+import { useT } from '../i18n/I18nProvider';
 
 const ROLES: AppRole[] = ['user', 'moderator', 'admin'];
 
@@ -42,6 +43,7 @@ export default function Users() {
   const { can } = usePermissions();
   const toast = useToast();
   const confirm = useConfirm();
+  const { t, tv, formatDate } = useT();
   const table = useTableQuery({ limit: 25, sort: 'createdAt', order: 'desc' });
   const { resetPage } = table;
   const [search, setSearch] = useState('');
@@ -96,7 +98,7 @@ export default function Users() {
     e.preventDefault();
     if (!editing) return;
     if (!form.email.trim() || !form.username.trim()) {
-      toast.error('Email and username are required.');
+      toast.error(t('users.required'));
       return;
     }
 
@@ -115,7 +117,7 @@ export default function Users() {
       setOpen(false);
       setEditing(null);
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not update user'));
+      toast.error(errorMessage(err, t('users.updateFailed')));
     }
   }
 
@@ -125,10 +127,10 @@ export default function Users() {
     const disabling = !user.disabled;
     const ok = await confirm({
       message: disabling
-        ? `Disable "${user.email}"? They will be signed out and unable to sign in until re-enabled. Their orders are kept.`
-        : `Re-enable "${user.email}"? They will be able to sign in again.`,
+        ? t('users.confirmDisable', { email: user.email })
+        : t('users.confirmEnable', { email: user.email }),
       danger: disabling,
-      confirmLabel: disabling ? 'Disable' : 'Enable',
+      confirmLabel: disabling ? t('users.disable') : t('users.enable'),
     });
     if (!ok) return;
     try {
@@ -136,23 +138,23 @@ export default function Users() {
         id: user._id,
         payload: { disabled: disabling },
       });
-      toast.success(disabling ? 'Account disabled' : 'Account enabled');
+      toast.success(disabling ? t('users.disabled') : t('users.enabled'));
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not update account'));
+      toast.error(errorMessage(err, t('users.accountFailed')));
     }
   }
 
   async function handleDelete(user: AdminUser) {
     const ok = await confirm({
-      message: `Delete "${user.email}"? Their personal data (email, name, addresses, wishlist) is erased and they can never sign in again. Orders and reviews stay, attributed to "Deleted user". This cannot be undone — to block sign-in reversibly, disable the account instead.`,
+      message: t('users.confirmDelete', { email: user.email }),
       danger: true,
-      confirmLabel: 'Delete',
+      confirmLabel: t('users.delete'),
     });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(user._id);
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not delete user'));
+      toast.error(errorMessage(err, t('users.deleteFailed')));
     }
   }
 
@@ -165,11 +167,10 @@ export default function Users() {
       <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Users
+            {t('users.title')}
           </h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Live accounts from the API. New users register via the storefront —
-            admins can edit roles here.
+            {t('users.subtitle')}
           </p>
         </div>
       </div>
@@ -183,13 +184,13 @@ export default function Users() {
             resetPage();
           }}
         >
-          <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+          <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" aria-hidden />
           <input
             type="search"
-            aria-label="Search by email or username"
+            aria-label={t('users.searchLabel')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by email or username…"
+            placeholder={t('users.searchPlaceholder')}
             className="w-full rounded-lg border border-gray-300 bg-white py-2 ps-10 pe-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
           />
         </form>
@@ -199,23 +200,25 @@ export default function Users() {
             setRoleFilter(e.target.value as AppRole | '');
             resetPage();
           }}
-          aria-label="Filter by role"
+          aria-label={t('users.filterRole')}
           className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
         >
-          <option value="">All roles</option>
-          <option value="user">User</option>
-          <option value="moderator">Moderator</option>
-          <option value="admin">Admin</option>
+          <option value="">{t('users.allRoles')}</option>
+          {ROLES.map((role) => (
+            <option key={role} value={role}>
+              {tv('role', role)}
+            </option>
+          ))}
         </select>
       </div>
 
       {usersQ.isLoading && (
-        <p className="py-10 text-center text-sm text-gray-500">Loading users…</p>
+        <p className="py-10 text-center text-sm text-gray-500">{t('users.loading')}</p>
       )}
 
       {usersQ.isError && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-          {errorMessage(usersQ.error, 'Failed to load users')}
+          {errorMessage(usersQ.error, t('users.loadFailed'))}
         </div>
       )}
 
@@ -231,7 +234,7 @@ export default function Users() {
                     order={table.order}
                     onSort={table.toggleSort}
                   >
-                    Username
+                    {t('users.columns.username')}
                   </SortableHeader>
                   <SortableHeader
                     field="email"
@@ -239,18 +242,18 @@ export default function Users() {
                     order={table.order}
                     onSort={table.toggleSort}
                   >
-                    Email
+                    {t('users.columns.email')}
                   </SortableHeader>
-                  <th scope="col">Roles</th>
+                  <th scope="col">{t('users.columns.roles')}</th>
                   <SortableHeader
                     field="createdAt"
                     active={table.sort}
                     order={table.order}
                     onSort={table.toggleSort}
                   >
-                    Joined
+                    {t('users.columns.joined')}
                   </SortableHeader>
-                  <th scope="col">Actions</th>
+                  <th scope="col">{t('users.columns.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -260,7 +263,7 @@ export default function Users() {
                       colSpan={5}
                       className="px-4 py-10 text-center text-sm text-gray-500"
                     >
-                      No users match this search.
+                      {t('users.empty')}
                     </td>
                   </tr>
                 ) : (
@@ -270,11 +273,11 @@ export default function Users() {
                       className="hover:bg-gray-50 dark:hover:bg-gray-700/60"
                     >
                       <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
-                        <span className="inline-flex items-center gap-2">
+                        <span className="inline-flex items-center gap-2" dir="auto">
                           {user.username}
                           {user.disabled && (
                             <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/50 dark:text-red-200">
-                              Disabled
+                              {t('users.disabledBadge')}
                             </span>
                           )}
                         </span>
@@ -293,9 +296,9 @@ export default function Users() {
                         {user.emailVerifiedAt === null && (
                           <span
                             className="ms-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200"
-                            title="The customer has not opened the confirmation link yet. Reviews and returns stay blocked until they do."
+                            title={t('users.unconfirmedHint')}
                           >
-                            Unconfirmed
+                            {t('users.unconfirmed')}
                           </span>
                         )}
                       </td>
@@ -309,15 +312,13 @@ export default function Users() {
                               key={role}
                               className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                             >
-                              {role}
+                              {tv('role', role)}
                             </span>
                           ))}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                        {user.createdAt
-                          ? new Date(user.createdAt).toLocaleDateString()
-                          : '—'}
+                        {user.createdAt ? formatDate(user.createdAt) : '—'}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1">
@@ -325,10 +326,10 @@ export default function Users() {
                             <Link
                               to={`/orders?user=${user._id}`}
                               className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600"
-                              aria-label={`Orders of ${user.username}`}
-                              title="Order history"
+                              aria-label={t('users.ordersOf', { name: user.username })}
+                              title={t('users.orderHistory')}
                             >
-                              <Receipt className="h-4 w-4 text-gray-500" />
+                              <Receipt className="h-4 w-4 text-gray-500" aria-hidden />
                             </Link>
                           )}
                           {can('users:write') && (
@@ -337,13 +338,17 @@ export default function Users() {
                               onClick={() => void handleToggleDisabled(user)}
                               disabled={updateMut.isPending}
                               className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600"
-                              aria-label={`${user.disabled ? 'Enable' : 'Disable'} ${user.username}`}
-                              title={user.disabled ? 'Enable account' : 'Disable account'}
+                              aria-label={
+                                user.disabled
+                                  ? t('users.enableUser', { name: user.username })
+                                  : t('users.disableUser', { name: user.username })
+                              }
+                              title={user.disabled ? t('users.enableAccount') : t('users.disableAccount')}
                             >
                               {user.disabled ? (
-                                <CircleCheck className="h-4 w-4 text-green-600" />
+                                <CircleCheck className="h-4 w-4 text-green-600" aria-hidden />
                               ) : (
-                                <Ban className="h-4 w-4 text-amber-600" />
+                                <Ban className="h-4 w-4 text-amber-600" aria-hidden />
                               )}
                             </button>
                           )}
@@ -352,9 +357,9 @@ export default function Users() {
                               type="button"
                               onClick={() => openEdit(user)}
                               className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600"
-                              aria-label={`Edit ${user.username}`}
+                              aria-label={t('users.editUser', { name: user.username })}
                             >
-                              <Pencil className="h-4 w-4 text-gray-500" />
+                              <Pencil className="h-4 w-4 text-gray-500" aria-hidden />
                             </button>
                           )}
                           {can('users:delete') && (
@@ -363,9 +368,9 @@ export default function Users() {
                               onClick={() => void handleDelete(user)}
                               disabled={deleteMut.isPending}
                               className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
-                              aria-label={`Delete ${user.username}`}
+                              aria-label={t('users.deleteUser', { name: user.username })}
                             >
-                              <Trash2 className="h-4 w-4 text-red-500" />
+                              <Trash2 className="h-4 w-4 text-red-500" aria-hidden />
                             </button>
                           )}
                         </div>
@@ -390,14 +395,14 @@ export default function Users() {
       {open && editing && (
         <FormDialog
           onClose={() => setOpen(false)}
-          title="Edit user"
+          title={t('users.form.title')}
           busy={saving}
           maxWidthClass="max-w-lg"
         >
           <form onSubmit={handleSubmit} className="space-y-3">
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Username
+                {t('users.form.username')}
               </span>
               <input
                 required
@@ -410,10 +415,11 @@ export default function Users() {
             </label>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Email
+                {t('users.form.email')}
               </span>
               <input
                 type="email"
+                dir="ltr"
                 required
                 value={form.email}
                 onChange={(e) =>
@@ -424,7 +430,7 @@ export default function Users() {
             </label>
             <fieldset>
               <legend className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                Roles
+                {t('users.form.roles')}
               </legend>
               <div className="flex flex-wrap gap-2">
                 {ROLES.map((role) => {
@@ -441,7 +447,7 @@ export default function Users() {
                           : 'border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300'
                       }`}
                     >
-                      {role}
+                      {tv('role', role)}
                     </button>
                   );
                 })}
@@ -449,7 +455,7 @@ export default function Users() {
             </fieldset>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                New password (optional)
+                {t('users.form.password')}
               </span>
               <input
                 type="password"
@@ -459,22 +465,23 @@ export default function Users() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, password: e.target.value }))
                 }
-                placeholder="Leave blank to keep current"
+                placeholder={t('users.form.passwordPlaceholder')}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
               />
             </label>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Staff notes
+                {t('users.form.notes')}
               </span>
               <textarea
                 rows={3}
                 maxLength={2000}
                 value={form.adminNotes}
+                dir="auto"
                 onChange={(e) =>
                   setForm((f) => ({ ...f, adminNotes: e.target.value }))
                 }
-                placeholder="Internal only — never shown to the customer"
+                placeholder={t('users.form.notesPlaceholder')}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
               />
             </label>
@@ -485,14 +492,14 @@ export default function Users() {
                 onClick={() => setOpen(false)}
                 className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={saving}
                 className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
               >
-                {saving ? 'Saving…' : 'Save'}
+                {saving ? t('users.form.saving') : t('users.form.save')}
               </button>
             </div>
           </form>
