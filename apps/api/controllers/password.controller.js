@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler');
+const logger = require('../utils/logger');
 const nodemailer = require('nodemailer');
 const Joi = require('joi');
 const { User } = require('../models/User');
@@ -111,14 +112,14 @@ const sendForgotPasswordLink = asyncHandler(async (req, res) => {
       // Never return the link: anyone can request a reset for any email, so
       // echoing it (even outside production) hands over the account. Same
       // generic 200 as an unknown email, so failures don't reveal accounts.
-      console.error('Password reset email failed:', error?.message || error);
+      logger.error({ err: error }, 'Password reset email failed');
       if (process.env.NODE_ENV === 'development') {
-        console.info(`[dev] Password reset link for ${user.email}: ${link}`);
+        logger.info(`[dev] Password reset link for ${user.email}: ${link}`);
       }
       return res.status(200).json({ message: FORGOT_PASSWORD_MESSAGE });
     }
   } catch (error) {
-    console.log(error);
+    logger.error({ err: error }, 'Forgot-password request failed');
     if (process.env.NODE_ENV !== 'production') {
       return res.status(500).json({ message: 'Failed to generate reset link' });
     }
@@ -168,7 +169,7 @@ const resetPassword = asyncHandler(async (req, res) => {
 
   // Every existing session must re-authenticate with the new password
   await revokeAllForUser(RefreshToken, user._id).catch((revokeErr) => {
-    console.error('Failed to revoke sessions after password reset:', revokeErr);
+    logger.error({ err: revokeErr }, 'Failed to revoke sessions after password reset');
   });
 
   return res.status(200).json({ message: 'Password updated successfully' });
@@ -214,7 +215,7 @@ const changePassword = asyncHandler(async (req, res) => {
   await user.save();
 
   await revokeAllForUser(RefreshToken, user._id).catch((revokeErr) => {
-    console.error('Failed to revoke sessions after password change:', revokeErr);
+    logger.error({ err: revokeErr }, 'Failed to revoke sessions after password change');
   });
 
   return res.status(200).json({ message: 'Password updated successfully' });

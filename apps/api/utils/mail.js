@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const logger = require('./logger');
 
 function createTransporter() {
   const transportOptions = process.env.SMTP_HOST
@@ -55,7 +56,7 @@ async function sendOrderConfirmationEmail(opts) {
   const hasCreds =
     process.env.SMTP_HOST || process.env.EMAIL_USER || process.env.SMTP_USER;
   if (!hasCreds) {
-    console.warn(
+    logger.warn(
       '[mail] Skipping order confirmation — SMTP/EMAIL credentials not configured',
     );
     return false;
@@ -89,7 +90,7 @@ async function sendOrderConfirmationEmail(opts) {
     });
     return true;
   } catch (err) {
-    console.error('[mail] Order confirmation failed:', err?.message || err);
+    logger.error({ err }, '[mail] Order confirmation failed');
     return false;
   }
 }
@@ -107,7 +108,7 @@ async function sendContactNotificationEmail(opts) {
     process.env.SMTP_USER ||
     process.env.EMAIL_USER;
   if (!inbox) {
-    console.warn(
+    logger.warn(
       '[mail] Skipping contact notification — no CONTACT_INBOX_EMAIL/SMTP_USER/EMAIL_USER configured',
     );
     return false;
@@ -116,7 +117,7 @@ async function sendContactNotificationEmail(opts) {
   const hasCreds =
     process.env.SMTP_HOST || process.env.EMAIL_USER || process.env.SMTP_USER;
   if (!hasCreds) {
-    console.warn(
+    logger.warn(
       '[mail] Skipping contact notification — SMTP/EMAIL credentials not configured',
     );
     return false;
@@ -143,7 +144,7 @@ async function sendContactNotificationEmail(opts) {
     });
     return true;
   } catch (err) {
-    console.error('[mail] Contact notification failed:', err?.message || err);
+    logger.error({ err }, '[mail] Contact notification failed');
     return false;
   }
 }
@@ -159,7 +160,7 @@ async function sendOrderShippedEmail(opts) {
   const hasCreds =
     process.env.SMTP_HOST || process.env.EMAIL_USER || process.env.SMTP_USER;
   if (!hasCreds) {
-    console.warn(
+    logger.warn(
       '[mail] Skipping order shipped notification — SMTP/EMAIL credentials not configured',
     );
     return false;
@@ -187,9 +188,9 @@ async function sendOrderShippedEmail(opts) {
     });
     return true;
   } catch (err) {
-    console.error(
-      '[mail] Order shipped notification failed:',
-      err?.message || err,
+    logger.error(
+      { err },
+      '[mail] Order shipped notification failed',
     );
     return false;
   }
@@ -206,7 +207,7 @@ async function sendOrderDeliveredEmail(opts) {
   const hasCreds =
     process.env.SMTP_HOST || process.env.EMAIL_USER || process.env.SMTP_USER;
   if (!hasCreds) {
-    console.warn(
+    logger.warn(
       '[mail] Skipping order delivered notification — SMTP/EMAIL credentials not configured',
     );
     return false;
@@ -232,9 +233,9 @@ async function sendOrderDeliveredEmail(opts) {
     });
     return true;
   } catch (err) {
-    console.error(
-      '[mail] Order delivered notification failed:',
-      err?.message || err,
+    logger.error(
+      { err },
+      '[mail] Order delivered notification failed',
     );
     return false;
   }
@@ -251,7 +252,7 @@ async function sendOrderCanceledEmail(opts) {
   const hasCreds =
     process.env.SMTP_HOST || process.env.EMAIL_USER || process.env.SMTP_USER;
   if (!hasCreds) {
-    console.warn(
+    logger.warn(
       '[mail] Skipping order canceled notification — SMTP/EMAIL credentials not configured',
     );
     return false;
@@ -277,9 +278,9 @@ async function sendOrderCanceledEmail(opts) {
     });
     return true;
   } catch (err) {
-    console.error(
-      '[mail] Order canceled notification failed:',
-      err?.message || err,
+    logger.error(
+      { err },
+      '[mail] Order canceled notification failed',
     );
     return false;
   }
@@ -296,7 +297,7 @@ async function sendOrderRefundedEmail(opts) {
   const hasCreds =
     process.env.SMTP_HOST || process.env.EMAIL_USER || process.env.SMTP_USER;
   if (!hasCreds) {
-    console.warn(
+    logger.warn(
       '[mail] Skipping order refunded notification — SMTP/EMAIL credentials not configured',
     );
     return false;
@@ -328,9 +329,9 @@ async function sendOrderRefundedEmail(opts) {
     });
     return true;
   } catch (err) {
-    console.error(
-      '[mail] Order refunded notification failed:',
-      err?.message || err,
+    logger.error(
+      { err },
+      '[mail] Order refunded notification failed',
     );
     return false;
   }

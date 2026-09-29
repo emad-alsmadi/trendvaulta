@@ -89,6 +89,8 @@ const errorHandler = (err, req, res, next) => {
     message,
     code,
     ...(details && { details }),
+    // Lets support match a customer's error report to the logged failure.
+    ...(req.id && { requestId: req.id }),
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 };

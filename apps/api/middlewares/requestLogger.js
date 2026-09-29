@@ -12,6 +12,7 @@
  * - Response time tracking
  */
 
+const crypto = require('crypto');
 const pinoHttp = require('pino-http');
 const logger = require('../utils/logger');
 const config = require('../config/logging.config');
@@ -44,9 +45,17 @@ const requestLogger = pinoHttp({
   logger: logger.raw,
   // Use custom serializers
   serializers,
-  // Add request ID for tracing
-  genReqId: (req) => {
-    req.id = req.headers['x-request-id'] || generateRequestId();
+  // Request ID for tracing. An incoming X-Request-Id (e.g. from Vercel/
+  // Render) is reused only if it looks like an id — never trust an arbitrary
+  // client string into every log line. The id is echoed back so a customer
+  // or support can quote it and find the matching logs.
+  genReqId: (req, res) => {
+    const incoming = req.headers['x-request-id'];
+    req.id =
+      typeof incoming === 'string' && REQUEST_ID_PATTERN.test(incoming)
+        ? incoming
+        : generateRequestId();
+    if (res && !res.headersSent) res.setHeader('X-Request-Id', req.id);
     return req.id;
   },
   // Custom log message. pino-http v10 calls these hooks as
@@ -66,17 +75,17 @@ const requestLogger = pinoHttp({
   customErrorMessage: (req, res, err) => {
     return `${req.method} ${req.url} failed: ${err?.message || 'error'}`;
   },
-  // Include response time
-  customProps: (req, res) => ({
-    responseTime: res.responseTime,
-  }),
+  // (pino-http already logs `responseTime`; the old customProps read an
+  // undefined res.responseTime.)
 });
+
+const REQUEST_ID_PATTERN = /^[A-Za-z0-9._-]{8,100}$/;
 
 /**
  * Generate a unique request ID
  */
 function generateRequestId() {
-  return `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  return `req-${crypto.randomUUID()}`;
 }
 
 module.exports = requestLogger;

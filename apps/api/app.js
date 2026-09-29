@@ -20,6 +20,11 @@ const app = express();
 // req.ip reflects the client and cannot be spoofed via X-Forwarded-For.
 app.set('trust proxy', 1);
 
+// Request logging + X-Request-Id first, so the Stripe webhook below is
+// logged and traceable too (it doesn't read the body, so raw parsing is
+// unaffected).
+app.use(requestLogger);
+
 app.post(
   '/api/webhooks/stripe',
   express.raw({ type: 'application/json' }),
@@ -39,9 +44,6 @@ app.use(
 // no HTML views, so a content policy has nothing to protect and would only
 // risk breaking Swagger/API-doc tooling if added later).
 app.use(helmet({ contentSecurityPolicy: false }));
-
-// Apply request logging middleware
-app.use(requestLogger);
 
 // Locally-stored product/brand upload images (see services/storage.service.js).
 // Files are content-addressed by uuid, so a hard, long-lived cache is safe.

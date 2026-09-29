@@ -1,4 +1,5 @@
 const { Coupon } = require('../models/Coupon');
+const logger = require('./logger');
 
 const FLAT_SHIPPING_USD = () => {
   const n = Number(process.env.SHIPPING_FLAT_USD);
@@ -671,7 +672,7 @@ async function restoreStockOnce(OrderModel, Product, order) {
     if (err?.restoredLines) {
       // Some lines are already back in stock: releasing the claim would let
       // a retry restock them twice. Keep it and leave the rest to staff.
-      console.error(
+      logger.error(
         `Order ${order._id}: stock partly restored (${err.restoredLines} line(s)); fix the rest manually`,
       );
     } else {

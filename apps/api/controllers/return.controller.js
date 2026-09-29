@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler');
+const logger = require('../utils/logger');
 const Joi = require('joi');
 const { Order } = require('../models/Order');
 const { Product } = require('../models/Product');
@@ -233,9 +234,9 @@ const updateReturnRequest = asyncHandler(async (req, res) => {
         updated.returnRequest?.items,
       );
     } catch (stockErr) {
-      console.error(
-        `Return received for order ${order._id} but restocking failed:`,
-        stockErr?.message || stockErr,
+      logger.error(
+        { err: stockErr },
+        `Return received for order ${order._id} but restocking failed`,
       );
     }
   }
@@ -306,9 +307,9 @@ async function refundReturn(req, res, order, value) {
       idempotencyKey: `return:${order._id}:${amountCents}`,
     });
   } catch (refundErr) {
-    console.error(
-      `Return refund failed for order ${order._id}:`,
-      refundErr?.message || refundErr,
+    logger.error(
+      { err: refundErr },
+      `Return refund failed for order ${order._id}`,
     );
     await Order.updateOne(
       { _id: order._id, 'returnRequest.status': 'refunded' },

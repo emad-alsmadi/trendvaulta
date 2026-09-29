@@ -1,4 +1,5 @@
 const fs = require('node:fs/promises');
+const logger = require('../utils/logger');
 const path = require('node:path');
 const crypto = require('node:crypto');
 
@@ -135,7 +136,10 @@ const uploadToCloudinary = async (fileBuffer, info) => {
   const body = await res.json().catch(() => ({}));
   if (!res.ok || !body.secure_url) {
     // Provider detail goes to the log, not to the client.
-    console.error('Cloudinary upload failed:', res.status, body?.error?.message);
+    logger.error(
+      { status: res.status, detail: body?.error?.message },
+      'Cloudinary upload failed',
+    );
     throw storageError('Image storage rejected the upload. Please try again.');
   }
   return { fileName: body.public_id, publicPath: body.secure_url, url: body.secure_url };

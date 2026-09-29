@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler');
+const logger = require('../utils/logger');
 const {
   Order,
   validateCreateOrder,
@@ -323,9 +324,9 @@ async function deleteTemporaryCoupon(stripe, couponId) {
   try {
     await stripe.coupons.del(couponId);
   } catch (couponErr) {
-    console.warn(
-      `Could not delete temporary Stripe coupon ${couponId}:`,
-      couponErr?.message || couponErr,
+    logger.warn(
+      { err: couponErr },
+      `Could not delete temporary Stripe coupon ${couponId}`,
     );
   }
 }
@@ -345,9 +346,9 @@ async function sendConfirmationEmailOnce(order) {
     if (!sent) await releaseOrderFlag(order._id, 'confirmationEmailSent');
   } catch (mailErr) {
     await releaseOrderFlag(order._id, 'confirmationEmailSent');
-    console.error(
-      'Order confirmation email error (payment still paid):',
-      mailErr?.message || mailErr,
+    logger.error(
+      { err: mailErr },
+      'Order confirmation email error (payment still paid)',
     );
   }
 }
@@ -407,9 +408,9 @@ async function applyPaidSideEffects(order) {
       if (stockErr?.statusCode !== 409) throw stockErr;
       status = 'needs_attention';
       attentionReason = 'insufficient_stock';
-      console.error(
-        `Order ${order._id} paid but stock is insufficient:`,
-        stockErr.message,
+      logger.error(
+        { err: stockErr },
+        `Order ${order._id} paid but stock is insufficient`,
       );
     }
   }
@@ -464,7 +465,7 @@ async function markOrderPaidFromSession(session) {
     $set.amountPaid !== undefined &&
     Math.round(order.totalPrice * 100) !== session.amount_total
   ) {
-    console.warn(
+    logger.warn(
       `Order ${order._id}: Stripe charged ${$set.amountPaid} but totalPrice is ${order.totalPrice}`,
     );
   }
@@ -508,7 +509,7 @@ async function markOrderPaidFromSession(session) {
           },
         },
       );
-      console.warn(
+      logger.warn(
         `Order ${order._id} was paid after cancellation; flagged needs_attention`,
       );
       return {
@@ -698,7 +699,7 @@ const stripeWebhook = asyncHandler(async (req, res) => {
     }
   } catch (procErr) {
     await releaseWebhookEvent(StripeWebhookEvent, event.id);
-    console.error('Stripe webhook processing error:', procErr);
+    logger.error({ err: procErr }, 'Stripe webhook processing error');
     return res.status(500).json({ message: 'Webhook handler failed' });
   }
 
@@ -759,7 +760,7 @@ const verifyPaymentStatus = asyncHandler(async (req, res) => {
       verified: false,
     });
   } catch (stripeErr) {
-    console.error('Stripe session retrieval error:', stripeErr);
+    logger.error({ err: stripeErr }, 'Stripe session retrieval error');
     return res
       .status(500)
       .json({ message: 'Failed to verify payment status with Stripe' });

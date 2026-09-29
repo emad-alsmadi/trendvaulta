@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const logger = require('../utils/logger');
 const Joi = require('joi');
 
 const ShippingMethodSchema = new mongoose.Schema(
@@ -143,7 +144,10 @@ function zoneMatchesAddress(zone, { region, zip } = {}) {
     try {
       regex = new RegExp(pattern, 'i');
     } catch {
-      console.error(`ShippingZone ${zone._id}: invalid pattern "${pattern}"`);
+      logger.error(
+        { zoneId: String(zone._id), pattern },
+        'ShippingZone has an invalid pattern; zone skipped',
+      );
       return false;
     }
     if (!regex.test(String(input).slice(0, MAX_MATCH_INPUT_LENGTH))) {

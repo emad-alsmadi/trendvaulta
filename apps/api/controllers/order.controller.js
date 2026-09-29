@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler');
+const logger = require('../utils/logger');
 const Joi = require('joi');
 const { Order, validateCreateOrder } = require('../models/Order');
 const { Product } = require('../models/Product');
@@ -500,9 +501,9 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
         // Persist the refund trail before any further step can fail
         await order.save();
       } catch (refundErr) {
-        console.error(
-          `Stripe refund failed for order ${order._id}:`,
-          refundErr?.message || refundErr,
+        logger.error(
+          { err: refundErr },
+          `Stripe refund failed for order ${order._id}`,
         );
         order.status = 'needs_attention';
         order.attentionReason = 'refund_failed';
@@ -655,9 +656,9 @@ const cancelOrder = asyncHandler(async (req, res) => {
         claimed.refundAmount = Number(refund?.amount || 0) / 100;
         refundedNow = true;
       } catch (refundErr) {
-        console.error(
-          `Stripe refund failed for order ${claimed._id}:`,
-          refundErr?.message || refundErr,
+        logger.error(
+          { err: refundErr },
+          `Stripe refund failed for order ${claimed._id}`,
         );
         claimed.status = 'needs_attention';
         claimed.attentionReason = 'refund_failed';
