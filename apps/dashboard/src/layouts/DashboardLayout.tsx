@@ -21,6 +21,7 @@ import {
   TicketPercent,
   Percent,
   Star,
+  Inbox,
   HelpCircle,
   FileText,
   Layers,
@@ -43,6 +44,7 @@ import {
   getRefreshToken,
 } from '../lib/auth';
 import { isStaffRole, roleHasPermission } from '../lib/permissions';
+import { useUnreadContactCount } from '../hooks/useAdminContactMessages';
 
 /** `permission` is the read permission the page needs; omitted = any staff. */
 const sidebarItems = [
@@ -58,6 +60,7 @@ const sidebarItems = [
   { icon: TicketPercent, label: 'Coupons', path: '/coupons', permission: 'coupons:read' },
   { icon: Percent, label: 'Offers', path: '/offers', permission: 'offers:read' },
   { icon: Star, label: 'Reviews', path: '/reviews', permission: 'reviews:read' },
+  { icon: Inbox, label: 'Messages', path: '/messages', permission: 'content:read' },
   { icon: HelpCircle, label: 'Help Topics', path: '/help-topics', permission: 'content:read' },
   { icon: FileText, label: 'Content', path: '/content', permission: 'content:read' },
   { icon: Layers, label: 'Storefront Modules', path: '/storefront-modules', permission: 'content:read' },
@@ -78,6 +81,11 @@ export default function DashboardLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const role = getAuthRole();
+  // Before the auth redirects below: hooks must run on every render.
+  const unreadMessages =
+    useUnreadContactCount(
+      Boolean(getAuthToken()) && roleHasPermission(role, 'content:read'),
+    ).data ?? 0;
 
   // Close the drawer after navigating on small screens.
   useEffect(() => {
@@ -150,13 +158,14 @@ export default function DashboardLayout() {
           {visibleItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
+            const badge = item.path === '/messages' ? unreadMessages : 0;
 
             return (
               <Link
                 key={item.path}
                 to={item.path}
                 aria-current={isActive ? 'page' : undefined}
-                className={`flex items-center px-4 py-3 mx-2 rounded-lg transition-colors ${
+                className={`relative flex items-center px-4 py-3 mx-2 rounded-lg transition-colors ${
                   isActive
                     ? 'bg-blue-500 text-white'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -164,6 +173,18 @@ export default function DashboardLayout() {
               >
                 <Icon className='w-5 h-5' />
                 {showLabels && <span className='ml-3'>{item.label}</span>}
+                {badge > 0 &&
+                  (showLabels ? (
+                    <span className='ml-auto rounded-full bg-red-500 px-2 py-0.5 text-xs font-semibold text-white'>
+                      {badge > 99 ? '99+' : badge}
+                      <span className='sr-only'> unread</span>
+                    </span>
+                  ) : (
+                    // Collapsed rail: a dot, with the count for screen readers
+                    <span className='absolute right-3 top-2 h-2.5 w-2.5 rounded-full bg-red-500'>
+                      <span className='sr-only'>{badge} unread</span>
+                    </span>
+                  ))}
               </Link>
             );
           })}

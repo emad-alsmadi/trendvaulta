@@ -1014,6 +1014,61 @@ export const adminReviewsApi = {
   },
 };
 
+export type ContactMessageStatus = 'new' | 'read' | 'closed';
+
+/** A storefront contact-form enquiry (apps/api/models/ContactMessage.js). */
+export type AdminContactMessage = {
+  _id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  status: ContactMessageStatus;
+  /** Internal only; never shown to the sender. */
+  staffNote?: string;
+  handledBy?: { _id: string; username?: string; email?: string } | null;
+  handledAt?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+};
+
+export type AdminContactMessagesQuery = {
+  page?: number;
+  limit?: number;
+  status?: ContactMessageStatus;
+  /** Sender name, email or subject. */
+  q?: string;
+  sort?: string;
+  order?: 'asc' | 'desc';
+};
+
+export type AdminContactMessagesList = PaginatedList<AdminContactMessage> & {
+  /** Whole-inbox totals per status, whatever the filter. */
+  counts?: Record<ContactMessageStatus, number>;
+};
+
+export const adminContactApi = {
+  getMessages: async (
+    params: AdminContactMessagesQuery = {},
+  ): Promise<AdminContactMessagesList> => {
+    const { data } = await api.get<AdminContactMessagesList>('/contact/admin', {
+      params: { limit: 25, ...params },
+    });
+    return data;
+  },
+
+  updateMessage: async (
+    id: string,
+    body: { status?: ContactMessageStatus; staffNote?: string },
+  ): Promise<AdminContactMessage> => {
+    const { data } = await api.patch<{ data: AdminContactMessage }>(
+      `/contact/admin/${id}`,
+      body,
+    );
+    return data.data;
+  },
+};
+
 export type AdminHelpTopic = {
   _id: string;
   id: string;

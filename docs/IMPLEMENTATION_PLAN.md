@@ -687,7 +687,7 @@ Each item needs its own short design note before it gets a task ID:
 | P0-01 | Stock reservation at checkout | P0 | M | P0-00 | — | ✅ (no Mongo lease: all reconciler writes are conditional, so multi-instance safe without one) | 2026-09-29 | |
 | P0-02 | Email verification | P0 | M | — | D5 | ⬜ | | |
 | P0-03 | Guest checkout | P0 | L | P0-01 | D2 | ⬜ | | |
-| P0-04 | Messages inbox in dashboard | P0 | S | — | — | ⬜ | | |
+| P0-04 | Messages inbox in dashboard | P0 | S | — | — | ✅ (checked in a browser at 1024/1536 px incl. Arabic messages) | 2026-09-29 | |
 | P0-05 | Invoices and receipts | P0 | M | — | — | ⬜ | | |
 | P0-06 | Error tracking and alerting | P0 | M | — | D8 | ⬜ | | |
 | P0-07 | Durable media storage | P0 | S | — | — | ⬜ | | |

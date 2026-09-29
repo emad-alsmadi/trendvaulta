@@ -335,6 +335,15 @@ No server cart API — client cart only (`cartStore.ts`). Commerce entry point i
 | `PUT/DELETE /reviews/:reviewId` | private + ownership |
 | `GET /reviews/my/:productId`, `GET /reviews/my` | private |
 
+### Contact messages
+| Route | Access | Notes |
+|---|---|---|
+| `POST /contact` | public, rate-limited | `{ name, email, subject, message }` + hidden `website` honeypot; always answers `201 { message }` |
+| `GET /contact/admin` | `content:read` | `page, limit, status (new\|read\|closed), q (name/email/subject), sort (createdAt\|status), order` → `{ data, meta, counts }`; `counts` covers the whole inbox, whatever the filter (sidebar badge) |
+| `PATCH /contact/admin/:id` | `content:write` | `{ status?, staffNote? }` (at least one; note ≤ 1000 chars, internal only); a status change records `handledBy` / `handledAt` |
+
+Dashboard → **Messages** (`/messages`) is the inbox. Opening an unread message marks it read, and "Reply by email" opens the staff member's mail client. The sidebar badge counts `new` messages and refreshes every minute.
+
 ### Users (admin)
 | Route | Permission |
 |---|---|

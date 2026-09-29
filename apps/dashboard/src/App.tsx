@@ -16,6 +16,7 @@ import OrderDetail from './pages/OrderDetail';
 import Coupons from './pages/Coupons';
 import Offers from './pages/Offers';
 import Reviews from './pages/Reviews';
+import Messages from './pages/Messages';
 import HelpTopics from './pages/HelpTopics';
 import Content from './pages/Content';
 import StorefrontModules from './pages/StorefrontModules';
@@ -100,6 +101,10 @@ function App() {
               <Route
                 path='reviews'
                 element={<Reviews />}
+              />
+              <Route
+                path='messages'
+                element={<Messages />}
               />
               <Route
                 path='help-topics'
