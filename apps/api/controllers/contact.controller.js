@@ -1,10 +1,15 @@
 const asyncHandler = require('express-async-handler');
+const mongoose = require('mongoose');
 const {
   ContactMessage,
+  CONTACT_STATUSES,
   validateContactMessage,
+  validateUpdateContactMessage,
 } = require('../models/ContactMessage');
 const { sendContactNotificationEmail } = require('../utils/mail');
 const { parsePagination } = require('../utils/pagination');
+const { buildSort } = require('../utils/sort');
+const { normalizeSearchTerm } = require('../utils/search');
 
 /** Body shown to the sender on success — identical for real and trapped posts. */
 const CONTACT_SUCCESS_MESSAGE = 'Thanks, we will get back to you shortly.';
@@ -66,33 +71,54 @@ const createContactMessage = asyncHandler(async (req, res) => {
   res.status(201).json({ message: CONTACT_SUCCESS_MESSAGE });
 });
 
+/** Columns the inbox may sort on; both are indexed (models/ContactMessage.js). */
+const CONTACT_SORT_FIELDS = ['createdAt', 'status'];
+
 /**
- * Admin: list contact messages (paginated, newest first).
+ * Admin: list contact messages (paginated, newest first by default).
+ *
+ * Query: `page`, `limit`, `status` (new | read | closed), `q` (sender name,
+ * email or subject), `sort` (createdAt | status), `order`.
+ * `counts` is per status for the whole inbox, not only this page, so the
+ * dashboard can badge unread messages from the same call.
  *
  * @route GET /api/contact/admin
  * @access Private (content:read)
  * @param {import('express').Request} req
  * @param {import('express').Response} res
- * @returns {Promise<void>} JSON `{ data, meta }`
+ * @returns {Promise<void>} JSON `{ data, meta, counts }`
  */
 const getAdminContactMessages = asyncHandler(async (req, res) => {
   const { page, limit, skip } = parsePagination(req.query, {
     defaultLimit: 50,
   });
+  const sort = buildSort(req.query.sort, req.query.order, CONTACT_SORT_FIELDS);
 
   const filter = {};
-  if (['new', 'read', 'closed'].includes(req.query.status)) {
+  if (CONTACT_STATUSES.includes(req.query.status)) {
     filter.status = req.query.status;
   }
+  const term = normalizeSearchTerm(req.query.q);
+  if (term) {
+    const pattern = { $regex: term, $options: 'i' };
+    filter.$or = [{ name: pattern }, { email: pattern }, { subject: pattern }];
+  }
 
-  const [data, total] = await Promise.all([
+  const [data, total, byStatus] = await Promise.all([
     ContactMessage.find(filter)
-      .sort({ createdAt: -1 })
+      .populate('handledBy', 'username email')
+      .sort(sort)
       .skip(skip)
       .limit(limit)
       .lean(),
     ContactMessage.countDocuments(filter),
+    ContactMessage.aggregate([{ $group: { _id: '$status', n: { $sum: 1 } } }]),
   ]);
+
+  const counts = Object.fromEntries(CONTACT_STATUSES.map((s) => [s, 0]));
+  for (const { _id, n } of byStatus) {
+    if (_id in counts) counts[_id] = n;
+  }
 
   res.status(200).json({
     data,
@@ -102,11 +128,55 @@ const getAdminContactMessages = asyncHandler(async (req, res) => {
       pages: Math.ceil(total / limit) || 1,
       limit,
     },
+    counts,
   });
+});
+
+/**
+ * Admin: change a message's status and/or its internal staff note.
+ * A status change records who made it and when.
+ *
+ * @route PATCH /api/contact/admin/:id
+ * @access Private (content:write)
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<void>} JSON `{ data }` (the updated message)
+ */
+const updateContactMessage = asyncHandler(async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return res.status(404).json({ message: 'Message not found' });
+  }
+
+  const { error, value } = validateUpdateContactMessage(req.body || {});
+  if (error) {
+    return res.status(400).json({ message: error.details[0].message });
+  }
+
+  const $set = {};
+  if (value.staffNote !== undefined) $set.staffNote = value.staffNote;
+  if (value.status !== undefined) {
+    $set.status = value.status;
+    $set.handledBy = req.user.id;
+    $set.handledAt = new Date();
+  }
+
+  const data = await ContactMessage.findByIdAndUpdate(
+    req.params.id,
+    { $set },
+    { new: true, runValidators: true },
+  )
+    .populate('handledBy', 'username email')
+    .lean();
+  if (!data) {
+    return res.status(404).json({ message: 'Message not found' });
+  }
+
+  res.status(200).json({ data });
 });
 
 module.exports = {
   createContactMessage,
   getAdminContactMessages,
+  updateContactMessage,
   CONTACT_SUCCESS_MESSAGE,
 };

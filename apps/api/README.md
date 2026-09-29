@@ -101,7 +101,7 @@ Derived from `routes/*.js` (all prefixed with `/api`). "admin" = JWT + role perm
 | `uploads.js` | `POST /uploads` (JWT + `products:write` or `brands:write`; image files only) |
 | `shipping.js` | `GET /shipping/zones`, `GET /shipping/methods` (JWT); `/admin/shipping/zones[/:id[/methods/:methodId]]` CRUD (admin `shipping:*`) |
 | `settings.js` | `GET /admin/settings`, `PUT /admin/settings` (admin `content:*`) |
-| `contact.js` | `POST /contact`; `GET /contact/admin` (admin `content:read`) |
+| `contact.js` | `POST /contact`; `GET /contact/admin` (admin `content:read`); `PATCH /contact/admin/:id` (admin `content:write`) |
 | `newsletter.js` | `POST /newsletter`, `POST /newsletter/unsubscribe`; `GET /newsletter/admin` (admin `content:read`) |
 | `storefrontTrust.js` | `GET /storefront/trust` |
 | `storefrontWhyChooseUs.js` | `GET /storefront/why-choose-us` |
