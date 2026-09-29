@@ -16,13 +16,10 @@ import { useTableQuery } from '../hooks/useTableQuery';
 import { SortableHeader } from '../components/ui/SortableHeader';
 import { TablePagination } from '../components/ui/TablePagination';
 import { FormDialog } from '../components/ui/FormDialog';
+import { intlLocale, useT } from '../i18n/I18nProvider';
 
-const STATUS_FILTERS: { value: '' | ContactMessageStatus; label: string }[] = [
-  { value: '', label: 'All' },
-  { value: 'new', label: 'New' },
-  { value: 'read', label: 'Read' },
-  { value: 'closed', label: 'Closed' },
-];
+// '' = all; labels come from t('messages.all') / tv('contactStatus', …).
+const STATUS_FILTERS: Array<'' | ContactMessageStatus> = ['', 'new', 'read', 'closed'];
 
 const STATUS_BADGE: Record<ContactMessageStatus, string> = {
   new: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
@@ -31,24 +28,21 @@ const STATUS_BADGE: Record<ContactMessageStatus, string> = {
 };
 
 function StatusBadge({ status }: { status: ContactMessageStatus }) {
+  const { tv } = useT();
   return (
     <span
-      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium capitalize ${STATUS_BADGE[status]}`}
+      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[status]}`}
     >
-      {status}
+      {tv('contactStatus', status)}
     </span>
   );
 }
 
-function formatDate(value?: string | null) {
-  return value ? new Date(value).toLocaleString() : '—';
-}
-
 /** Compact table form, e.g. "Sep 29, 6:35 PM" (year only when not this year). */
-function formatShortDate(value?: string | null) {
+function formatShortDate(value: string | null | undefined, tag: string) {
   if (!value) return '—';
   const date = new Date(value);
-  return date.toLocaleString(undefined, {
+  return date.toLocaleString(tag, {
     month: 'short',
     day: 'numeric',
     ...(date.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}),
@@ -57,7 +51,10 @@ function formatShortDate(value?: string | null) {
   });
 }
 
-/** Opens the staff member's mail client with the enquiry quoted. */
+/**
+ * Opens the staff member's mail client with the enquiry quoted. The draft goes
+ * to the customer, so it stays in the store's customer-facing language.
+ */
 function replyHref(message: AdminContactMessage) {
   const subject = /^re:/i.test(message.subject)
     ? message.subject
@@ -74,6 +71,9 @@ export default function Messages() {
   const { can } = usePermissions();
   const canWrite = can('content:write');
   const toast = useToast();
+  const { t, tv, locale, formatDateTime, formatNumber } = useT();
+  const tag = intlLocale(locale);
+  const formatDate = (value?: string | null) => (value ? formatDateTime(value) : '—');
   const table = useTableQuery({ limit: 25, sort: 'createdAt', order: 'desc' });
   const { resetPage } = table;
   const [search, setSearch] = useState('');
@@ -114,13 +114,13 @@ export default function Messages() {
       setViewing(updated);
       toast.success(
         status === 'closed'
-          ? 'Message closed'
+          ? t('messages.closed')
           : status === 'new'
-            ? 'Marked as unread'
-            : 'Message reopened',
+            ? t('messages.markedUnread')
+            : t('messages.reopened'),
       );
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not update the message'));
+      toast.error(errorMessage(err, t('messages.updateFailed')));
     }
   }
 
@@ -134,9 +134,9 @@ export default function Messages() {
       });
       setViewing(updated);
       setNote(updated.staffNote || '');
-      toast.success('Note saved');
+      toast.success(t('messages.noteSaved'));
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not save the note'));
+      toast.error(errorMessage(err, t('messages.noteFailed')));
     }
   }
 
@@ -150,29 +150,29 @@ export default function Messages() {
     >
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Messages
+          {t('messages.title')}
         </h1>
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Enquiries sent from the storefront contact form.
+          {t('messages.subtitle')}
         </p>
       </div>
 
       <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center">
         <div
           role="group"
-          aria-label="Filter by status"
+          aria-label={t('messages.filterStatus')}
           className="flex flex-wrap gap-2"
         >
-          {STATUS_FILTERS.map((f) => {
-            const active = statusFilter === f.value;
-            const count = f.value && counts ? counts[f.value] : undefined;
+          {STATUS_FILTERS.map((value) => {
+            const active = statusFilter === value;
+            const count = value && counts ? counts[value] : undefined;
             return (
               <button
-                key={f.value || 'all'}
+                key={value || 'all'}
                 type="button"
                 aria-pressed={active}
                 onClick={() => {
-                  setStatusFilter(f.value);
+                  setStatusFilter(value);
                   resetPage();
                 }}
                 className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
@@ -181,8 +181,8 @@ export default function Messages() {
                     : 'bg-white text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-200 dark:ring-gray-600 dark:hover:bg-gray-700'
                 }`}
               >
-                {f.label}
-                {count !== undefined && <span className="ms-1.5 opacity-80">{count}</span>}
+                {value ? tv('contactStatus', value) : t('messages.all')}
+                {count !== undefined && <span className="ms-1.5 opacity-80">{formatNumber(count)}</span>}
               </button>
             );
           })}
@@ -195,13 +195,13 @@ export default function Messages() {
             resetPage();
           }}
         >
-          <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+          <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" aria-hidden />
           <input
             type="search"
-            aria-label="Search messages by sender or subject"
+            aria-label={t('messages.searchLabel')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search name, email or subject…"
+            placeholder={t('messages.searchPlaceholder')}
             className="w-full rounded-lg border border-gray-300 bg-white py-2 ps-10 pe-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
           />
         </form>
@@ -209,13 +209,13 @@ export default function Messages() {
 
       {messagesQ.isLoading && (
         <p className="py-10 text-center text-sm text-gray-500">
-          Loading messages…
+          {t('messages.loading')}
         </p>
       )}
 
       {messagesQ.isError && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-          {errorMessage(messagesQ.error, 'Failed to load messages')}
+          {errorMessage(messagesQ.error, t('messages.loadFailed'))}
         </div>
       )}
 
@@ -225,15 +225,15 @@ export default function Messages() {
             <table className="w-full min-w-[640px]">
               <thead className="bg-gray-50 text-xs uppercase tracking-wider dark:bg-gray-700">
                 <tr className="[&>th]:px-4 [&>th]:py-3 [&>th]:text-start [&>th]:font-medium [&>th]:text-gray-500 dark:[&>th]:text-gray-300">
-                  <th scope="col">From</th>
-                  <th scope="col">Subject</th>
+                  <th scope="col">{t('messages.columns.from')}</th>
+                  <th scope="col">{t('messages.columns.subject')}</th>
                   <SortableHeader
                     field="createdAt"
                     active={table.sort}
                     order={table.order}
                     onSort={table.toggleSort}
                   >
-                    Received
+                    {t('messages.columns.received')}
                   </SortableHeader>
                   <SortableHeader
                     field="status"
@@ -241,7 +241,7 @@ export default function Messages() {
                     order={table.order}
                     onSort={table.toggleSort}
                   >
-                    Status
+                    {t('messages.columns.status')}
                   </SortableHeader>
                 </tr>
               </thead>
@@ -249,7 +249,7 @@ export default function Messages() {
                 {messages.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-4 py-10 text-center text-sm text-gray-500">
-                      {appliedQ || statusFilter ? 'No messages match.' : 'No messages yet.'}
+                      {appliedQ || statusFilter ? t('messages.noMatch') : t('messages.none')}
                     </td>
                   </tr>
                 ) : (
@@ -266,7 +266,7 @@ export default function Messages() {
                         <p dir="auto" className="truncate text-gray-900 dark:text-white">
                           {m.name}
                         </p>
-                        <p className="truncate text-xs font-normal text-gray-500">{m.email}</p>
+                        <p className="truncate text-xs font-normal text-gray-500" dir="ltr">{m.email}</p>
                       </td>
                       <td className="max-w-[18rem] px-4 py-3 text-sm">
                         {/* The subject opens the message: a real button, so
@@ -284,7 +284,7 @@ export default function Messages() {
                         </p>
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-sm font-normal text-gray-500">
-                        {formatShortDate(m.createdAt)}
+                        {formatShortDate(m.createdAt, tag)}
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadge status={m.status} />
@@ -312,19 +312,21 @@ export default function Messages() {
           maxWidthClass="max-w-2xl"
         >
           <dl className="mb-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-            <dt className="text-gray-500">From</dt>
+            <dt className="text-gray-500">{t('messages.columns.from')}</dt>
             <dd className="text-gray-900 dark:text-white">
-              <bdi>{viewing.name}</bdi> &lt;{viewing.email}&gt;
+              <bdi>{viewing.name}</bdi> <bdi>&lt;{viewing.email}&gt;</bdi>
             </dd>
-            <dt className="text-gray-500">Received</dt>
+            <dt className="text-gray-500">{t('messages.columns.received')}</dt>
             <dd className="text-gray-900 dark:text-white">{formatDate(viewing.createdAt)}</dd>
-            <dt className="text-gray-500">Status</dt>
+            <dt className="text-gray-500">{t('messages.columns.status')}</dt>
             <dd>
               <StatusBadge status={viewing.status} />
               {viewing.handledAt && (
                 <span className="ms-2 text-xs text-gray-500">
-                  by {viewing.handledBy?.username || viewing.handledBy?.email || 'staff'},{' '}
-                  {formatDate(viewing.handledAt)}
+                  {t('messages.handledBy', {
+                    name: viewing.handledBy?.username || viewing.handledBy?.email || t('messages.staffFallback'),
+                    date: formatDate(viewing.handledAt),
+                  })}
                 </span>
               )}
             </dd>
@@ -343,7 +345,7 @@ export default function Messages() {
                 htmlFor="staff-note"
                 className="mb-1 block font-medium text-gray-700 dark:text-gray-300"
               >
-                Staff note
+                {t('messages.staffNote')}
               </label>
               <textarea
                 id="staff-note"
@@ -356,20 +358,22 @@ export default function Messages() {
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
               />
               <span id="note-help" className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
-                Internal only, never sent to the customer. {note.length}/1000
+                {t('messages.noteHint')}{' '}
+                <span dir="ltr">{formatNumber(note.length)}/1000</span>
               </span>
               <button
                 type="submit"
                 disabled={!noteChanged || updateMut.isPending}
                 className="mt-2 rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-800 hover:bg-gray-200 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
               >
-                Save note
+                {t('messages.saveNote')}
               </button>
             </form>
           ) : (
             viewing.staffNote && (
               <p className="mb-5 text-sm text-gray-600 dark:text-gray-400">
-                <span className="font-medium">Staff note:</span> {viewing.staffNote}
+                <span className="font-medium">{t('messages.staffNote')}:</span>{' '}
+                <bdi>{viewing.staffNote}</bdi>
               </p>
             )
           )}
@@ -380,7 +384,7 @@ export default function Messages() {
               className="inline-flex items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600"
             >
               <Mail className="h-4 w-4" aria-hidden="true" />
-              Reply by email
+              {t('messages.replyByEmail')}
             </a>
             {canWrite && (
               <div className="flex gap-2">
@@ -391,7 +395,7 @@ export default function Messages() {
                     onClick={() => void setStatus('new')}
                     className="rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-60 dark:text-gray-300 dark:hover:bg-gray-700"
                   >
-                    Mark unread
+                    {t('messages.markUnread')}
                   </button>
                 )}
                 {viewing.status === 'closed' ? (
@@ -401,7 +405,7 @@ export default function Messages() {
                     onClick={() => void setStatus('read')}
                     className="rounded-lg px-3 py-2 text-sm font-medium text-gray-800 ring-1 ring-gray-300 hover:bg-gray-50 disabled:opacity-60 dark:text-gray-100 dark:ring-gray-600 dark:hover:bg-gray-700"
                   >
-                    Reopen
+                    {t('messages.reopen')}
                   </button>
                 ) : (
                   <button
@@ -411,7 +415,7 @@ export default function Messages() {
                     className="rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
                   >
                     {/* Not just "Close": that is the dialog's own ✕ button */}
-                    Close message
+                    {t('messages.closeMessage')}
                   </button>
                 )}
               </div>

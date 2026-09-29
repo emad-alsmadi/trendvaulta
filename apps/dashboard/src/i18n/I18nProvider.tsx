@@ -48,7 +48,8 @@ type ValueGroup =
   | 'attentionReason'
   | 'trackingEvent'
   | 'productCategory'
-  | 'role';
+  | 'role'
+  | 'contactStatus';
 
 type I18n = {
   locale: Locale;
