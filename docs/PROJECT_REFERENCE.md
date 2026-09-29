@@ -210,9 +210,23 @@ The API **refuses to start** in production when:
 - `JWT_SECRET_KEY` is shorter than 32 characters
 - a Stripe key is set without `STRIPE_WEBHOOK_SECRET`
 - `STORAGE_DRIVER=cloudinary` is set without its credentials
+- storage is local (`STORAGE_DRIVER` unset or `local`): local uploads are wiped on every Render deploy. `ALLOW_LOCAL_STORAGE=true` overrides this, only for a persistent volume mounted at `apps/api/uploads`, and then logs a warning
 - `CORS_RELAXED`, `DEV_ALLOW_DIRECT_ORDERS`, or `ALLOW_DIRECT_ORDERS` is `true`
 
-It **warns** at startup when storage is local or no mail is configured — treat both as blockers: local uploads are wiped on every Render deploy, and without mail there are no password resets or order emails.
+It **warns** at startup when no mail is configured. Treat that as a blocker too: without mail there are no password resets or order emails.
+
+**Moving existing local images to Cloudinary.** Run this on a machine that still has the `apps/api/uploads` folder, with `MONGO_URL`/`DB_NAME` pointing at the target database and the `CLOUDINARY_*` variables set:
+
+```bash
+cd apps/api
+npm run migrate:uploads              # dry run: lists every reference, changes nothing
+npm run migrate:uploads -- --apply   # uploads each file once, rewrites the references
+```
+
+- **What it scans:** every collection, generically: product covers and galleries, brand logos, category and CMS images, and the cover copies in order lines.
+- **What it rewrites:** only links whose file really exists in the folder. Links whose file is missing are listed and left unchanged.
+- **Re-running is safe:** a file already on Cloudinary is not uploaded twice, and links that were already rewritten no longer match.
+- **Concurrent edits:** a document edited during the run is skipped, and the next run picks it up.
 
 ### Storefront on Vercel
 1. New project → import repo → **Root Directory `apps/website`**. Vercel installs from the monorepo root automatically.

@@ -104,14 +104,19 @@ const storageError = (message, cause) => {
 /**
  * Upload to Cloudinary over its REST API (Node's global fetch/FormData, so
  * no SDK dependency). Returns the CDN URL.
+ *
+ * `options.publicId` pins the asset id and turns overwriting off, so
+ * uploading the same id again returns the existing asset instead of a
+ * duplicate. The migration script relies on that to be re-runnable.
  */
-const uploadToCloudinary = async (fileBuffer, info) => {
+const uploadToCloudinary = async (fileBuffer, info, options = {}) => {
   const { cloudName, apiKey, apiSecret, folder } = cloudinaryConfig();
-  const publicId = crypto.randomUUID();
+  const publicId = options.publicId || crypto.randomUUID();
   const params = {
     folder,
     public_id: publicId,
     timestamp: Math.floor(Date.now() / 1000),
+    ...(options.publicId ? { overwrite: 'false' } : {}),
   };
 
   const form = new FormData();
@@ -230,6 +235,7 @@ module.exports = {
   resolveExtension,
   buildFileName,
   saveUploadedFile,
+  uploadToCloudinary,
   deleteUploadedFile,
   matchesImageSignature,
   signCloudinaryParams,
