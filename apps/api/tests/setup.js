@@ -26,9 +26,20 @@ process.env.LOG_LEVEL ||= 'silent';
 // raise it so suites cannot trip it. Rate-limit tests assert relative
 // bucket movement, not the absolute ceiling.
 process.env.RATE_LIMIT_CHECKOUT_MAX ||= '1000';
-// Never let a stray .env send real mail from the test run
-for (const key of ['SMTP_HOST', 'SMTP_USER', 'EMAIL_USER']) {
-  delete process.env[key];
+// Never let a stray .env send real mail from the test run. Blank rather than
+// delete: app.js runs dotenv after this file, and dotenv only fills keys that
+// are absent, so a deleted key would come straight back from a local .env
+// (every mail then tries a real SMTP server and stalls a test ~60 s).
+for (const key of [
+  'SMTP_HOST',
+  'SMTP_USER',
+  'SMTP_PASS',
+  'EMAIL_USER',
+  'EMAIL_PASSWORD',
+  'EMAIL_PASS',
+  'FROM_EMAIL',
+]) {
+  process.env[key] = '';
 }
 delete process.env.AUTO_REFUND_ON_CANCEL;
 delete process.env.SHIPPING_FLAT_USD;
