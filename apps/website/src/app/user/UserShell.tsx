@@ -14,6 +14,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { VerifyEmailBanner } from '@/components/account/VerifyEmailBanner';
 import { useConfirm } from '@/components/confirm/ConfirmProvider';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useLogout, useMe } from '@/hooks/auth/authQuery';
@@ -98,6 +99,11 @@ export function UserShell({ children }: { children: ReactNode }) {
           {t('account.signOut')}
         </Button>
       </section>
+
+      {/* Strictly false: older accounts (no flag) count as confirmed */}
+      {user?.emailVerified === false && user.email && (
+        <VerifyEmailBanner email={user.email} />
+      )}
 
       <div className='grid gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]'>
         <nav aria-label={t('account.sectionsLabel')} className='lg:sticky lg:top-40 lg:self-start'>

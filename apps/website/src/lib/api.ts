@@ -280,6 +280,16 @@ export const authApi = {
   logout: async () => {
     await api.post(endpoints.auth.logout).catch(() => {});
   },
+  /** Confirm an email address with the token from the emailed link (public). */
+  verifyEmail: async (token: string): Promise<{ emailVerified: boolean }> => {
+    const { data } = await api.post(endpoints.auth.verifyEmail, { token });
+    return data;
+  },
+  /** Email a new confirmation link to the signed-in user (1 per minute). */
+  resendVerification: async (): Promise<{ emailVerified: boolean }> => {
+    const { data } = await api.post(endpoints.auth.resendVerification);
+    return data;
+  },
 };
 
 /**

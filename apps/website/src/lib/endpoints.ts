@@ -14,6 +14,8 @@ export const endpoints = {
     refresh: '/auth/refresh',
     logout: '/auth/logout',
     profile: '/auth/profile',
+    verifyEmail: '/auth/verify-email',
+    resendVerification: '/auth/verify-email/resend',
   },
   addresses: {
     list: '/auth/addresses',

@@ -7,6 +7,18 @@ function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === 'object' && value !== null;
 }
 
+/**
+ * API error codes with a translated message. Checked before the API's own
+ * (English) `message`, so these read in the shopper's language. Add a code
+ * here, with keys in both dictionaries, when the API gains one.
+ */
+const API_ERROR_CODE_KEYS: Record<string, string> = {
+  EMAIL_NOT_VERIFIED: 'errors.emailNotVerified',
+  VERIFICATION_LINK_INVALID: 'errors.verificationLinkInvalid',
+  VERIFICATION_RESEND_TOO_SOON: 'errors.verificationResendTooSoon',
+  MAIL_UNAVAILABLE: 'errors.mailUnavailable',
+};
+
 function sanitizeMessage(msg: string): string {
   return msg.replace(/request failed with status code\s*\d+/gi, '').trim();
 }
@@ -34,6 +46,18 @@ export function getUserFacingErrorMessage(
   if (axios.isAxiosError(error)) {
     const status = error.response?.status;
     const data = error.response?.data;
+
+    const codeKey =
+      t && isRecord(data) && typeof data.code === 'string'
+        ? API_ERROR_CODE_KEYS[data.code]
+        : undefined;
+    if (t && codeKey) {
+      const seconds =
+        isRecord(data) && typeof data.retryAfterSeconds === 'number'
+          ? data.retryAfterSeconds
+          : 60;
+      return t(codeKey, { seconds });
+    }
 
     const apiMessage = (() => {
       if (typeof data === 'string') return data;

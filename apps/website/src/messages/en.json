@@ -140,8 +140,19 @@
     "signupSubtitle": "Join TrendVaulta to shop beauty, fashion, and lifestyle.",
     "username": "Username",
     "usernamePlaceholder": "Your name",
-    "signupSuccess": "Account created successfully.",
+    "signupSuccess": "Account created. We've sent a confirmation link to your email.",
     "signupFailed": "Signup failed",
+    "verifyEmail": {
+      "title": "Confirm your email",
+      "verifying": "Confirming your email address…",
+      "successTitle": "Email confirmed",
+      "success": "Thank you! Your email address is confirmed.",
+      "failedTitle": "This link didn't work",
+      "failed": "The confirmation link is invalid, already used, or expired. Sign in and request a new one from your account.",
+      "missingToken": "This page needs the link from your confirmation email.",
+      "toAccount": "Go to my account",
+      "toShop": "Continue shopping"
+    },
     "creating": "Creating...",
     "hasAccountPrompt": "Already have an account? {link}",
     "newHere": "New here",
@@ -501,6 +512,13 @@
     }
   },
   "account": {
+    "verifyBanner": {
+      "title": "Please confirm your email",
+      "body": "We sent a link to {email}. Confirm it to write reviews and request returns.",
+      "resend": "Send a new link",
+      "sending": "Sending…",
+      "sent": "A new confirmation link is on its way."
+    },
     "welcomeBack": "Welcome back, {name}",
     "customerFallback": "Customer",
     "subtitle": "Manage your orders, addresses, and account settings.",
@@ -1122,6 +1140,10 @@
     "notFoundGeneric": "We could not find what you requested.",
     "serverError": "Something went wrong on our side. Please try again later.",
     "networkError": "Unable to reach the server. Please check your connection and try again.",
+    "emailNotVerified": "Please confirm your email address first. You can request a new link from your account.",
+    "verificationLinkInvalid": "The confirmation link is invalid or has expired.",
+    "verificationResendTooSoon": "Please wait {seconds} seconds before requesting another link.",
+    "mailUnavailable": "We could not send the email right now. Please try again later.",
     "notFound": {
       "title": "Page not found",
       "description": "That page doesn't exist — try the catalog, today's offers, or the Help Center.",
