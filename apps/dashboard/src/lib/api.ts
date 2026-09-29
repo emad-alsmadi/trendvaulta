@@ -809,6 +809,8 @@ export type AdminUser = {
   disabled?: boolean;
   /** Internal staff notes; only ever returned by the admin endpoints. */
   adminNotes?: string;
+  /** null = confirmation link not opened yet; absent = older, confirmed account. */
+  emailVerifiedAt?: string | null;
   createdAt?: string;
 };
 

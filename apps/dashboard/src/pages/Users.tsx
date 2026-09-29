@@ -289,6 +289,15 @@ export default function Users() {
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
                         {user.email}
+                        {/* null = link not opened yet; no field = older, confirmed account */}
+                        {user.emailVerifiedAt === null && (
+                          <span
+                            className="ml-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200"
+                            title="The customer has not opened the confirmation link yet. Reviews and returns stay blocked until they do."
+                          >
+                            Unconfirmed
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
