@@ -27,12 +27,24 @@ function normalizeBrandsList(payload: unknown): Brand[] {
   return [];
 }
 
+// The API caps a page at 50 (default 20); /brands and the filter sidebar need
+// every brand, so walk the pages. The cap only guards against a runaway loop.
+const BRANDS_PAGE_SIZE = 50;
+const MAX_BRAND_PAGES = 20;
+
 export function useBrands() {
   return useQuery({
     queryKey: brandsKey(),
     queryFn: async () => {
-      const res = await brandsApi.getBrands();
-      return normalizeBrandsList(res);
+      const all: Brand[] = [];
+      for (let page = 1; page <= MAX_BRAND_PAGES; page += 1) {
+        const res = await brandsApi.getBrands({ limit: BRANDS_PAGE_SIZE, page });
+        const batch = normalizeBrandsList(res);
+        all.push(...batch);
+        const pages = Array.isArray(res) ? 1 : (res.meta?.pages ?? 1);
+        if (page >= pages || batch.length < BRANDS_PAGE_SIZE) break;
+      }
+      return all;
     },
     staleTime: 60_000,
     retry: 1,

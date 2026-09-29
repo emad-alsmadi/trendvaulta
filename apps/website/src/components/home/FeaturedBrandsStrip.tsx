@@ -1,7 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { DEMO_FEATURED_BRANDS, type DemoBrand } from '@/data/demoStorefront';
+import {
+  DEMO_FALLBACK_ENABLED,
+  DEMO_FEATURED_BRANDS,
+  type DemoBrand,
+} from '@/data/demoStorefront';
 import { useFeaturedBrands } from '@/hooks/brands/brandsQuery';
 import type { Brand } from '@/types';
 import { useTranslation } from '@/contexts/TranslationContext';
@@ -60,6 +64,10 @@ export function FeaturedBrandsStrip({ brands: brandsProp }: Props) {
   const brands =
     brandsProp ?? (fromApi.length > 0 ? fromApi : DEMO_FEATURED_BRANDS);
   const usingDemo = !brandsProp && fromApi.length === 0;
+
+  // The demo brands are invented houses: development only. In production no
+  // featured brands (or still loading) → no section.
+  if (usingDemo && !DEMO_FALLBACK_ENABLED) return null;
 
   return (
     <section

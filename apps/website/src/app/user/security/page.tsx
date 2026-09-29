@@ -10,7 +10,6 @@ import { useToast } from '@/components/ui/Toast';
 import { useForm } from 'react-hook-form';
 import { useChangePassword } from '@/hooks/auth/useChangePassword';
 import { useLogout } from '@/hooks/auth/authQuery';
-import { getAuthToken } from '@/lib/authCookies';
 import { getUserFacingErrorMessage } from '@/lib/userFacingError';
 import { useProfile } from '@/hooks/profile/useProfile';
 import { useTranslation } from '@/contexts/TranslationContext';
@@ -73,11 +72,6 @@ export default function SecurityPage() {
       });
     }
   };
-
-  if (!getAuthToken()) {
-    router.push('/auth/login');
-    return null;
-  }
 
   return (
     <div className='space-y-6'>

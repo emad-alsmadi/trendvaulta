@@ -1,15 +1,17 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
-import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
 import {
   DEMO_HERO_SLIDES,
   type DemoHeroSlide,
 } from '@/data/demoStorefront';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/contexts/TranslationContext';
+
+const noopSubscribe = () => () => {};
 
 const TONE_OVERLAY: Record<DemoHeroSlide['tone'], string> = {
   rose: 'from-rose-950/70 via-rose-900/35 to-transparent',
@@ -37,6 +39,18 @@ export function HeroPromoCarousel({
   const { t } = useTranslation();
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
+  // WCAG 2.2.2: moving content needs a user control, and nothing should
+  // move on its own for people who asked the OS to reduce motion.
+  const prefersReducedMotion = useReducedMotion();
+  const [stopped, setStopped] = useState(false);
+  const autoplay = !stopped && !prefersReducedMotion;
+  // The OS motion preference is only known in the browser: render the
+  // pause control after hydration so server and client HTML match.
+  const isClient = useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
+  );
   const count = slides.length;
   const slide = slides[index] ?? slides[0];
 
@@ -49,10 +63,10 @@ export function HeroPromoCarousel({
   );
 
   useEffect(() => {
-    if (paused || intervalMs <= 0 || count <= 1) return;
+    if (!autoplay || paused || intervalMs <= 0 || count <= 1) return;
     const id = window.setInterval(() => go(1), intervalMs);
     return () => window.clearInterval(id);
-  }, [paused, intervalMs, count, go]);
+  }, [autoplay, paused, intervalMs, count, go]);
 
   if (!slide || count === 0) return null;
 
@@ -146,15 +160,28 @@ export function HeroPromoCarousel({
       {count > 1 && (
         <div
           className='flex items-center justify-center gap-1.5 bg-white/90 px-3 py-2'
-          role='tablist'
+          role='group'
           aria-label={t('home.promo.slidesLabel')}
         >
+          {isClient && !prefersReducedMotion && intervalMs > 0 && (
+            <button
+              type='button'
+              onClick={() => setStopped((v) => !v)}
+              aria-label={stopped ? t('home.promo.play') : t('home.promo.pause')}
+              className='me-1 rounded-full p-1 text-stone-600 hover:bg-stone-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500'
+            >
+              {stopped ? (
+                <Play className='h-3.5 w-3.5' aria-hidden />
+              ) : (
+                <Pause className='h-3.5 w-3.5' aria-hidden />
+              )}
+            </button>
+          )}
           {slides.map((s, i) => (
             <button
               key={s.id}
               type='button'
-              role='tab'
-              aria-selected={i === index}
+              aria-current={i === index ? 'true' : undefined}
               aria-label={t('home.promo.showSlide', {
                 number: i + 1,
                 label: t(s.eyebrow),

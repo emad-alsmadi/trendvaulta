@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { addressesApi } from '@/lib/api';
-import { getAuthToken } from '@/lib/authCookies';
 import type { Address, AddressPayload } from '@/types';
+import { useHasAuthToken } from '@/hooks/auth/useHasAuthToken';
 
 export const ADDRESSES_QUERY_KEY = ['profile', 'addresses'] as const;
 
@@ -13,7 +13,7 @@ export const MAX_ADDRESSES = 10;
  * signed-out visitors (e.g. guest checkout) never fire a 401.
  */
 export function useAddresses() {
-  const token = getAuthToken();
+  const token = useHasAuthToken();
 
   return useQuery<Address[]>({
     queryKey: ADDRESSES_QUERY_KEY,

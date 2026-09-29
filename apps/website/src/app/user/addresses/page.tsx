@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Edit, Trash2, MapPin, Check } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
@@ -17,11 +16,9 @@ import {
   MAX_ADDRESSES,
 } from '@/hooks/profile/addressesQuery';
 import type { Address, AddressPayload } from '@/types';
-import { getAuthToken } from '@/lib/authCookies';
 import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function AddressesPage() {
-  const router = useRouter();
   const { toast } = useToast();
   const { t } = useTranslation();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -115,11 +112,6 @@ export default function AddressesPage() {
     setEditingId(null);
     reset();
   };
-
-  if (!getAuthToken()) {
-    router.push('/auth/login');
-    return null;
-  }
 
   return (
     <div className='space-y-6'>

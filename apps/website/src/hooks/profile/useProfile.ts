@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { authApi } from '@/lib/api';
-import { getAuthToken } from '@/lib/authCookies';
+import { useHasAuthToken } from '@/hooks/auth/useHasAuthToken';
 
 export const PROFILE_KEY = ['auth', 'profile'] as const;
 
 export function useProfile() {
-  const token = getAuthToken();
+  const token = useHasAuthToken();
 
   return useQuery({
     queryKey: PROFILE_KEY,

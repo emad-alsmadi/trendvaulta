@@ -4,7 +4,10 @@ import { Search, Sparkles, Shirt, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { HeroPromoCarousel } from '@/components/home/HeroPromoCarousel';
-import type { DemoHeroSlide } from '@/data/demoStorefront';
+import {
+  DEMO_FALLBACK_ENABLED,
+  type DemoHeroSlide,
+} from '@/data/demoStorefront';
 import { useTranslation } from '@/contexts/TranslationContext';
 
 interface HeroSectionProps {
@@ -119,15 +122,18 @@ export function HeroSection({
             </motion.div>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, delay: 0.12, ease: 'easeOut' }}
-            className='w-full'
-          >
-            {/* Live hero slides from GET /api/storefront/home; demo fallback in carousel */}
-            <HeroPromoCarousel slides={heroSlides} />
-          </motion.div>
+          {/* Live CMS slides; the carousel's built-in demo promos are for
+              development only — without slides production shows no carousel. */}
+          {(heroSlides?.length || DEMO_FALLBACK_ENABLED) && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55, delay: 0.12, ease: 'easeOut' }}
+              className='w-full'
+            >
+              <HeroPromoCarousel slides={heroSlides} />
+            </motion.div>
+          )}
         </div>
       </div>
     </div>

@@ -3,12 +3,12 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { recentlyViewedApi } from '@/lib/api';
-import { getAuthToken } from '@/lib/authCookies';
 import {
   getRecentlyViewed,
   productToRecentlyViewedItem,
   type RecentlyViewedItem,
 } from '@/lib/recentlyViewed';
+import { useHasAuthToken } from '@/hooks/auth/useHasAuthToken';
 
 export const RECENTLY_VIEWED_KEY = ['recentlyViewed', 'me'] as const;
 
@@ -17,8 +17,7 @@ export const RECENTLY_VIEWED_KEY = ['recentlyViewed', 'me'] as const;
  * Anonymous: localStorage demo/local fallback.
  */
 export function useRecentlyViewed() {
-  const isAuthenticated =
-    typeof window !== 'undefined' && !!getAuthToken();
+  const isAuthenticated = useHasAuthToken();
 
   const query = useQuery({
     queryKey: RECENTLY_VIEWED_KEY,

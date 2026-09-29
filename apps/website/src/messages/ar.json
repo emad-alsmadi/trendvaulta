@@ -22,6 +22,11 @@
     "currency": "العملة"
   },
   "nav": {
+    "skipToContent": "انتقل إلى المحتوى الرئيسي",
+    "mainNav": "التنقل الرئيسي",
+    "mobileNav": "قائمة الجوال",
+    "accountNav": "الحساب",
+    "bottomNav": "شريط التنقل",
     "shop": "تسوق",
     "categories": "الفئات",
     "deals": "العروض",
@@ -626,18 +631,13 @@
   "bundle": {
     "loading": "جارٍ تحميل اقتراحات الباقات…",
     "frequentlyBoughtTogether": "يُشترى معًا عادةً",
-    "demoFrequentlyBoughtTogether": "تجريبي · يُشترى معًا عادةً",
     "title": "منتجات تُشترى معه",
-    "apiDescription": "منتجات مقترحة تُكمّل هذا المنتج. التوفير في الباقة للعرض فقط — تُحتسب الأسعار الفعلية للمنتجات عند إتمام الطلب.",
-    "demoDescription": "اختيارات مكمّلة من الكتالوج. التوفير في الباقة تجريبي فقط — تُحتسب الأسعار الفعلية للمنتجات عند إتمام الطلب.",
-    "saveAmount": "توفير {amount}",
-    "demoSaveAmount": "توفير تجريبي {amount}",
+    "description": "منتجات مقترحة تُكمّل هذا المنتج. يُحتسب كل منتج بسعره الخاص.",
     "thisProductLabel": "{title} (هذا المنتج)",
     "selectProduct": "تحديد {title}",
     "thisItem": "هذا المنتج",
     "selectCompanion": "يُرجى اختيار منتج مكمّل لتكوين باقة",
-    "itemsDisplayTotal": "مقابل {count} من المنتجات (إجمالي استرشادي)",
-    "itemsDemoTotal": "مقابل {count} من المنتجات (إجمالي تجريبي)",
+    "itemsTotal": "مقابل {count} من المنتجات",
     "addCountToCart": "إضافة {count} إلى سلة التسوق"
   },
   "wishlist": {
@@ -883,6 +883,7 @@
     }
   },
   "productCard": {
+    "ratingSummary": "التقييم {rating} من 5، عدد المراجعات {count}",
     "discount": "خصم {percent}%",
     "add": "أضف",
     "badges": {
@@ -1147,7 +1148,9 @@
       "previous": "العرض السابق",
       "next": "العرض التالي",
       "slidesLabel": "شرائح العروض",
-      "showSlide": "عرض الشريحة {number}: {label}"
+      "showSlide": "عرض الشريحة {number}: {label}",
+      "pause": "إيقاف العرض التلقائي",
+      "play": "تشغيل العرض التلقائي"
     },
     "categories": {
       "browseTitle": "تصفّح حسب الفئة",
@@ -1385,7 +1388,12 @@
       "savedTitle": "تم الحفظ",
       "updateError": "تعذّر تحديث ملفك الشخصي",
       "updateFailedTitle": "فشل التحديث",
-      "save": "حفظ التغييرات"
+      "save": "حفظ التغييرات",
+      "currentPasswordLabel": "كلمة المرور الحالية",
+      "currentPasswordHint": "مطلوبة لتغيير بريدك الإلكتروني.",
+      "currentPasswordRequired": "أدخل كلمة المرور الحالية لتغيير بريدك الإلكتروني.",
+      "currentPasswordIncorrect": "كلمة المرور الحالية غير صحيحة.",
+      "accountLocked": "محاولات خاطئة كثيرة لإدخال كلمة المرور. يرجى المحاولة بعد 15 دقيقة."
     },
     "reviews": {
       "title": "تقييماتي",

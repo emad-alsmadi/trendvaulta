@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import {
   storefrontHomeApi,
   type StorefrontHomeModule,
@@ -172,18 +172,23 @@ export function useStorefrontHome() {
   const modulesQ = useStorefrontModules();
 
   return useQuery({
-    queryKey: storefrontHomeKey(),
+    // The modules result is part of the key: the queryFn depends on it, so
+    // a modules refetch must produce a new layout instead of a stale one.
+    queryKey: [...storefrontHomeKey(), modulesQ.dataUpdatedAt] as const,
     queryFn: async () => {
       // Try new CMS modules API first
       if (modulesQ.data && modulesQ.data.length > 0) {
         const legacyModules = modulesQ.data.map(convertModuleToLegacy);
         return { message: 'ok', modules: legacyModules };
       }
-      // Fallback to old endpoint
+      // No modules — or the modules request failed: use the legacy layout
       return storefrontHomeApi.getHome();
     },
     staleTime: 60_000,
     retry: 1,
-    enabled: modulesQ.data !== undefined,
+    // Wait for modules to settle either way (success OR error); before, an
+    // error left this disabled forever and the page silently used demo keys.
+    enabled: !modulesQ.isPending,
+    placeholderData: keepPreviousData,
   });
 }

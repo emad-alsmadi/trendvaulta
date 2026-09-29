@@ -23,7 +23,6 @@ import {
 import { normalizeRemoteImageSrc, remoteCoverLoader } from '@/lib/utils';
 import { useConfirm } from '@/components/confirm/ConfirmProvider';
 import { TrustServiceStrip } from '@/components/home/TrustServiceStrip';
-import { DEMO_TRUST_ITEMS } from '@/data/demoStorefront';
 import { useState } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 
@@ -163,8 +162,8 @@ export default function CartPage() {
               </Link>
             </div>
           </div>
-          {/* DEMO trust cues — swap via TrustServiceStrip API later */}
-          <TrustServiceStrip items={DEMO_TRUST_ITEMS} />
+          {/* Live trust cues (GET /api/storefront/trust); hidden if unavailable */}
+          <TrustServiceStrip />
         </div>
       ) : (
         <div className='grid gap-6 lg:grid-cols-[1.1fr_0.9fr]'>

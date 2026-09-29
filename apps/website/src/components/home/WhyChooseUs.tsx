@@ -8,6 +8,7 @@ import {
   RotateCcw,
   type LucideIcon,
 } from 'lucide-react';
+import { DEMO_FALLBACK_ENABLED } from '@/data/demoStorefront';
 import { useWhyChooseUs } from '@/hooks/storefront/whyChooseUsQuery';
 import { useTranslation } from '@/contexts/TranslationContext';
 
@@ -48,6 +49,9 @@ const FALLBACK = [
 export function WhyChooseUs() {
   const { t } = useTranslation();
   const q = useWhyChooseUs();
+  const hasLive = Boolean(q.data && q.data.length > 0);
+  // Production: no live data (or still loading) → no section.
+  if (!hasLive && (q.isLoading || !DEMO_FALLBACK_ENABLED)) return null;
   const features =
     q.data && q.data.length > 0
       ? q.data

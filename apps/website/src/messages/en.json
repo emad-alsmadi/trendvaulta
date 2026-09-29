@@ -22,6 +22,11 @@
     "currency": "Currency"
   },
   "nav": {
+    "skipToContent": "Skip to main content",
+    "mainNav": "Main",
+    "mobileNav": "Mobile menu",
+    "accountNav": "Account",
+    "bottomNav": "App navigation",
     "shop": "Shop",
     "categories": "Categories",
     "deals": "Deals",
@@ -626,18 +631,13 @@
   "bundle": {
     "loading": "Loading bundle suggestions…",
     "frequentlyBoughtTogether": "Frequently bought together",
-    "demoFrequentlyBoughtTogether": "Demo · frequently bought together",
     "title": "Buy it with",
-    "apiDescription": "Suggested companions for this product. Bundle savings are display-only — checkout still uses real product prices.",
-    "demoDescription": "Companion picks from the catalog. Bundle savings are demo-only — checkout still uses real product prices.",
-    "saveAmount": "Save {amount}",
-    "demoSaveAmount": "Demo save {amount}",
+    "description": "Suggested companions for this product. Each item is charged at its own price.",
     "thisProductLabel": "{title} (this product)",
     "selectProduct": "Select {title}",
     "thisItem": "This item",
     "selectCompanion": "Select a companion to build a bundle",
-    "itemsDisplayTotal": "for {count} items (display total)",
-    "itemsDemoTotal": "for {count} items (demo total)",
+    "itemsTotal": "for {count} items",
     "addCountToCart": "Add {count} to cart"
   },
   "wishlist": {
@@ -883,6 +883,7 @@
     }
   },
   "productCard": {
+    "ratingSummary": "Rated {rating} out of 5, {count} reviews",
     "discount": "-{percent}%",
     "add": "Add",
     "badges": {
@@ -1147,7 +1148,9 @@
       "previous": "Previous promo",
       "next": "Next promo",
       "slidesLabel": "Promo slides",
-      "showSlide": "Show slide {number}: {label}"
+      "showSlide": "Show slide {number}: {label}",
+      "pause": "Pause slideshow",
+      "play": "Play slideshow"
     },
     "categories": {
       "browseTitle": "Browse by category",
@@ -1385,7 +1388,12 @@
       "savedTitle": "Saved",
       "updateError": "Could not update your profile",
       "updateFailedTitle": "Update failed",
-      "save": "Save changes"
+      "save": "Save changes",
+      "currentPasswordLabel": "Current password",
+      "currentPasswordHint": "Required to change your email.",
+      "currentPasswordRequired": "Enter your current password to change your email.",
+      "currentPasswordIncorrect": "Current password is incorrect.",
+      "accountLocked": "Too many failed password attempts. Please try again in 15 minutes."
     },
     "reviews": {
       "title": "My Reviews",

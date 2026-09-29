@@ -1,7 +1,11 @@
 'use client';
 
 import { Truck, RefreshCw, ShieldCheck, Headphones } from 'lucide-react';
-import { DEMO_TRUST_ITEMS, type DemoTrustItem } from '@/data/demoStorefront';
+import {
+  DEMO_FALLBACK_ENABLED,
+  DEMO_TRUST_ITEMS,
+  type DemoTrustItem,
+} from '@/data/demoStorefront';
 import { useStorefrontTrust } from '@/hooks/storefront/trustQuery';
 import { useTranslation } from '@/contexts/TranslationContext';
 
@@ -24,8 +28,13 @@ export function TrustServiceStrip({ items: itemsProp }: Props) {
 
   const liveItems = data && data.length > 0 ? data : null;
   const items =
-    itemsProp ?? liveItems ?? (!isLoading ? DEMO_TRUST_ITEMS : null);
+    itemsProp ??
+    liveItems ??
+    (!isLoading && DEMO_FALLBACK_ENABLED ? DEMO_TRUST_ITEMS : null);
   const usingFallback = !itemsProp && !liveItems && !isLoading;
+
+  // Production: no data → no strip (never demo promises).
+  if (!isLoading && !items) return null;
 
   return (
     <section

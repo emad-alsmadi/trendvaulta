@@ -12,7 +12,10 @@ import {
   Sun,
   ShoppingBag,
 } from 'lucide-react';
-import { DEMO_CATEGORY_SHORTCUTS } from '@/data/demoStorefront';
+import {
+  DEMO_CATEGORY_SHORTCUTS,
+  DEMO_FALLBACK_ENABLED,
+} from '@/data/demoStorefront';
 import { useStorefrontCategories } from '@/hooks/storefront/categoriesQuery';
 import { useTranslation } from '@/contexts/TranslationContext';
 
@@ -34,8 +37,12 @@ export function PopularCategories() {
 
   const liveCategories = data && data.length > 0 ? data : null;
   const categories =
-    liveCategories ?? (!isLoading ? DEMO_CATEGORY_SHORTCUTS : null);
+    liveCategories ??
+    (!isLoading && DEMO_FALLBACK_ENABLED ? DEMO_CATEGORY_SHORTCUTS : null);
   const usingFallback = !liveCategories && !isLoading;
+
+  // Production: no data → no section (never demo shortcuts).
+  if (!isLoading && !categories) return null;
 
   return (
     <motion.section

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { ShoppingCart, Star, Eye } from 'lucide-react';
+import { ShoppingCart, Star } from 'lucide-react';
 import { WishlistButton } from '@/components/page/wishlist/WishlistButton';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
@@ -111,27 +111,6 @@ export function ProductCard({ product, badges = [] }: ProductCardProps) {
             </div>
           )}
 
-          <div className='absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2'>
-            <Button
-              size='sm'
-              onClick={(e) => {
-                e.preventDefault();
-                handleAddToCart();
-              }}
-              disabled={!inStock}
-              className='bg-white text-gray-900 hover:bg-gray-100 shadow-lg'
-            >
-              <ShoppingCart className='h-4 w-4 me-1' />
-              {t('product.addToCart')}
-            </Button>
-            <Button
-              size='sm'
-              variant='outline'
-              className='bg-white/90 hover:bg-white shadow-lg'
-            >
-              <Eye className='h-4 w-4' />
-            </Button>
-          </div>
         </div>
       </Link>
 
@@ -152,7 +131,13 @@ export function ProductCard({ product, badges = [] }: ProductCardProps) {
         </Link>
 
         <div className='flex items-center gap-2 mb-3'>
-          <div className='flex items-center'>
+          <span className='sr-only'>
+            {t('productCard.ratingSummary', {
+              rating: Number(product.averageRating || 0).toFixed(1),
+              count: product.reviewCount || 0,
+            })}
+          </span>
+          <div className='flex items-center' aria-hidden>
             {[...Array(5)].map((_, i) => (
               <Star
                 key={i}
@@ -164,7 +149,7 @@ export function ProductCard({ product, badges = [] }: ProductCardProps) {
               />
             ))}
           </div>
-          <span className='text-xs text-gray-500'>
+          <span className='text-xs text-gray-500' aria-hidden>
             ({product.reviewCount || 0})
           </span>
         </div>

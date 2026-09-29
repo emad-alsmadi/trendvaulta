@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Gift } from 'lucide-react';
 import {
+  DEMO_FALLBACK_ENABLED,
   DEMO_GIFT_FINDER,
   buildGiftFinderHref,
   type DemoGiftFinderConfig,
@@ -94,6 +95,10 @@ export function GiftFinderSection({ config: configProp }: Props) {
     () => buildGiftFinderHref({ occasionId, recipientId, budgetId }, config),
     [occasionId, recipientId, budgetId, config],
   );
+
+  // Production: no live config → no section (after all hooks, so the hook
+  // order stays stable when the real config arrives).
+  if (usingFallback && !DEMO_FALLBACK_ENABLED) return null;
 
   return (
     <section

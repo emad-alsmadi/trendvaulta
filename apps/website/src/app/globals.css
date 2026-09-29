@@ -143,6 +143,17 @@ html {
   }
 }
 
+/* Toast countdown bar (components/ui/Toast.tsx). A CSS animation so it can
+   pause with animation-play-state while the toast timer is paused. */
+@keyframes toast-countdown {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;

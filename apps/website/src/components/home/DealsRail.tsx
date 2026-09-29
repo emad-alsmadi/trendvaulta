@@ -3,7 +3,11 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { DEMO_DEALS, type DemoDeal } from '@/data/demoStorefront';
+import {
+  DEMO_DEALS,
+  DEMO_FALLBACK_ENABLED,
+  type DemoDeal,
+} from '@/data/demoStorefront';
 import { useActiveOffers } from '@/hooks/storefront/offersQuery';
 import { useTranslation } from '@/contexts/TranslationContext';
 
@@ -17,8 +21,14 @@ export function DealsRail({ deals: dealsProp }: Props) {
   const { data, isLoading, isError } = useActiveOffers(12);
 
   const liveDeals = data && data.length > 0 ? data : null;
-  const deals = dealsProp ?? liveDeals ?? (!isLoading ? DEMO_DEALS : null);
+  const deals =
+    dealsProp ??
+    liveDeals ??
+    (!isLoading && DEMO_FALLBACK_ENABLED ? DEMO_DEALS : null);
   const usingFallback = !dealsProp && !liveDeals && !isLoading;
+
+  // Production: no data → no section (never demo promos).
+  if (!isLoading && !deals) return null;
 
   return (
     <section

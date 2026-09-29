@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import {
+  DEMO_FALLBACK_ENABLED,
   DEMO_LOOKBOOK_STORIES,
   type DemoLookbookStory,
 } from '@/data/demoStorefront';
@@ -28,7 +29,9 @@ export function EditorialLookbookSection({ stories: storiesProp }: Props) {
 
   const liveStories = data && data.length > 0 ? data : null;
   const stories =
-    storiesProp ?? liveStories ?? (!isLoading ? DEMO_LOOKBOOK_STORIES : null);
+    storiesProp ??
+    liveStories ??
+    (!isLoading && DEMO_FALLBACK_ENABLED ? DEMO_LOOKBOOK_STORIES : null);
   const usingFallback = !storiesProp && !liveStories && !isLoading;
 
   if (!isLoading && (!stories || stories.length === 0)) return null;

@@ -4,26 +4,11 @@ import { useMyWishlist } from '@/hooks/wishlist/wishlistQuery';
 import { WishlistGrid } from '@/components/page/wishlist/WishlistGrid';
 import { WishlistEmptyState } from '@/components/page/wishlist/WishlistEmptyState';
 import { Heart } from 'lucide-react';
-import { getAuthToken } from '@/lib/authCookies';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function UserWishlistPage() {
-  const router = useRouter();
   const { t } = useTranslation();
-  const isAuthenticated = !!getAuthToken();
   const { data: wishlist, isLoading, error } = useMyWishlist();
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/auth/login');
-    }
-  }, [isAuthenticated, router]);
-
-  if (!isAuthenticated) {
-    return null;
-  }
 
   if (isLoading) {
     return (

@@ -1,16 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import axios from 'axios';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Loader2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useMe, useUpdateProfile, type MeResponse } from '@/hooks/auth/authQuery';
-import { getAuthToken } from '@/lib/authCookies';
-import { buildLoginUrl } from '@/lib/safeRedirect';
+import { useHasAuthToken } from '@/hooks/auth/useHasAuthToken';
 import {
   getUserFacingErrorMessage,
   logErrorForDev,
@@ -20,17 +20,13 @@ import {
 type ProfileUser = NonNullable<MeResponse['user']>;
 
 export default function EditProfilePage() {
-  const router = useRouter();
-  const pathname = usePathname();
   const { t } = useTranslation();
   const meQuery = useMe();
+  const hasToken = useHasAuthToken();
   const user = meQuery.data?.user || null;
 
-  useEffect(() => {
-    if (!getAuthToken()) router.replace(buildLoginUrl(pathname));
-  }, [router, pathname]);
-
-  if (meQuery.isLoading || (!user && getAuthToken())) {
+  // No token: UserShell redirects to login (proxy.ts guards /user too).
+  if (meQuery.isPending && hasToken) {
     return (
       <div role='status' aria-label={t('common.loading')} className='animate-pulse'>
         <div className='mb-8 h-8 w-48 rounded bg-gray-200' />
@@ -53,9 +49,14 @@ function EditProfileForm({ user }: { user: ProfileUser }) {
 
   const [username, setUsername] = useState(user.username || '');
   const [email, setEmail] = useState(user.email || '');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const trimmedUsername = username.trim();
   const trimmedEmail = email.trim();
+  // The API asks for the current password only when the email changes.
+  const emailChanged =
+    trimmedEmail.toLowerCase() !== (user.email || '').toLowerCase();
   const usernameError =
     trimmedUsername.length > 0 && trimmedUsername.length < 3
       ? 'userArea.edit.usernameMin'
@@ -78,10 +79,16 @@ function EditProfileForm({ user }: { user: ProfileUser }) {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSave) return;
+    setPasswordError(null);
+    if (emailChanged && !currentPassword) {
+      setPasswordError('userArea.edit.currentPasswordRequired');
+      return;
+    }
     try {
       await updateProfile.mutateAsync({
         username: trimmedUsername,
         email: trimmedEmail,
+        ...(emailChanged ? { currentPassword } : {}),
       });
       toast(t('userArea.edit.updated'), {
         title: t('userArea.edit.savedTitle'),
@@ -90,6 +97,22 @@ function EditProfileForm({ user }: { user: ProfileUser }) {
       router.push('/user');
     } catch (err) {
       logErrorForDev(err);
+      // Known API codes get a translated inline message by the field.
+      const code = axios.isAxiosError(err)
+        ? (err.response?.data as { code?: string } | undefined)?.code
+        : undefined;
+      const inlineKey =
+        code === 'CURRENT_PASSWORD_INCORRECT'
+          ? 'userArea.edit.currentPasswordIncorrect'
+          : code === 'CURRENT_PASSWORD_REQUIRED'
+            ? 'userArea.edit.currentPasswordRequired'
+            : code === 'ACCOUNT_LOCKED'
+              ? 'userArea.edit.accountLocked'
+              : null;
+      if (inlineKey) {
+        setPasswordError(inlineKey);
+        return;
+      }
       toast(getUserFacingErrorMessage(err, t('userArea.edit.updateError'), t), {
         title: t('userArea.edit.updateFailedTitle'),
         variant: 'error',
@@ -155,6 +178,51 @@ function EditProfileForm({ user }: { user: ProfileUser }) {
               </p>
             )}
           </div>
+
+          {emailChanged && (
+            <div>
+              <label
+                htmlFor='profile-current-password'
+                className='mb-1 block text-xs font-bold uppercase tracking-wider text-gray-500'
+              >
+                {t('userArea.edit.currentPasswordLabel')}
+              </label>
+              <Input
+                id='profile-current-password'
+                type='password'
+                value={currentPassword}
+                onChange={(e) => {
+                  setCurrentPassword(e.target.value);
+                  setPasswordError(null);
+                }}
+                autoComplete='current-password'
+                maxLength={128}
+                disabled={updateProfile.isPending}
+                aria-invalid={passwordError ? true : undefined}
+                aria-describedby={
+                  passwordError
+                    ? 'profile-current-password-error'
+                    : 'profile-current-password-hint'
+                }
+              />
+              {passwordError ? (
+                <p
+                  id='profile-current-password-error'
+                  role='alert'
+                  className='mt-2 text-sm font-semibold text-rose-700'
+                >
+                  {t(passwordError)}
+                </p>
+              ) : (
+                <p
+                  id='profile-current-password-hint'
+                  className='mt-2 text-xs text-gray-500'
+                >
+                  {t('userArea.edit.currentPasswordHint')}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         <div className='mt-6 flex flex-wrap items-center gap-3'>

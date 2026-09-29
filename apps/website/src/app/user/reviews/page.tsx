@@ -15,29 +15,14 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
-import { getAuthToken } from '@/lib/authCookies';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { intlLocale } from '@/lib/locale';
 
 export default function UserReviewsPage() {
-  const router = useRouter();
   const { t, locale } = useTranslation();
-  const isAuthenticated = !!getAuthToken();
   const { data: reviews, isLoading, error } = useMyReviews();
   const deleteReview = useDeleteReviewMutation();
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/auth/login');
-    }
-  }, [isAuthenticated, router]);
-
-  if (!isAuthenticated) {
-    return null;
-  }
 
   const getProductId = (product: string | { _id?: string } | null | undefined): string => {
     if (!product) return '';

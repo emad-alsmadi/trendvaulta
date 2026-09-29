@@ -264,7 +264,12 @@ export const authApi = {
    * @param payload - Profile update data (username, email)
    * @returns Updated user profile
    */
-  updateProfile: async (payload: { username: string; email: string }) => {
+  /** `currentPassword` is required by the API only when the email changes. */
+  updateProfile: async (payload: {
+    username: string;
+    email: string;
+    currentPassword?: string;
+  }) => {
     const { data } = await api.put(endpoints.auth.profile, payload);
     return data;
   },

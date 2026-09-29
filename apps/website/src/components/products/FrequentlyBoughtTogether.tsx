@@ -10,10 +10,7 @@ import {
   useProductBundles,
   useProducts,
 } from '@/hooks/products/productsQuery';
-import {
-  getDemoBundlePricing,
-  pickBundleCompanions,
-} from '@/data/demoStorefront';
+import { pickBundleCompanions } from '@/data/demoStorefront';
 import { useTranslation } from '@/contexts/TranslationContext';
 
 type BundleProduct = {
@@ -23,7 +20,13 @@ type BundleProduct = {
   cover: string;
   category?: string;
   stock?: number;
+  variants?: unknown[];
 };
+
+/** One click can't pick a size/colour — such products must be added from their page. */
+function hasVariants(product: BundleProduct) {
+  return Array.isArray(product.variants) && product.variants.length > 0;
+}
 
 type Props = {
   primary: BundleProduct;
@@ -31,8 +34,9 @@ type Props = {
 
 /**
  * Frequently-bought-together module (PDP).
- * Prefers GET /api/products/:id/bundles; falls back to demo companion picks.
- * Cart add uses real product prices; API savings are display-only.
+ * Prefers GET /api/products/:id/bundles; falls back to same-category picks.
+ * Shows real prices only: checkout applies no bundle discount, so no
+ * savings are displayed (they would promise a price that isn't charged).
  */
 export function FrequentlyBoughtTogether({ primary }: Props) {
   const { t, formatPrice } = useTranslation();
@@ -72,7 +76,10 @@ export function FrequentlyBoughtTogether({ primary }: Props) {
     [catalog, primary._id, primary.category],
   );
 
-  const companions = useApi ? apiItems : demoCompanions;
+  const companions = useMemo(
+    () => (useApi ? apiItems : demoCompanions).filter((p) => !hasVariants(p)),
+    [useApi, apiItems, demoCompanions],
+  );
 
   const [selected, setSelected] = useState<Record<string, boolean>>({});
 
@@ -91,44 +98,9 @@ export function FrequentlyBoughtTogether({ primary }: Props) {
 
   const selectedItems = allItems.filter((p) => effectiveSelected[p._id]);
 
-  const pricing = useMemo(() => {
-    const prices = selectedItems.map((p) => p.price);
-    const demo = getDemoBundlePricing(prices);
-    const fullApiSelection =
-      useApi &&
-      selectedItems.length === allItems.length &&
-      selectedItems.length > 1;
-    const apiSavings = bundlesQuery.data?.savings;
-    const apiBundlePrice = bundlesQuery.data?.bundlePrice;
-
-    if (
-      fullApiSelection &&
-      typeof apiSavings === 'number' &&
-      typeof apiBundlePrice === 'number'
-    ) {
-      return {
-        subtotal: demo.subtotal,
-        bundleTotal: apiBundlePrice,
-        savings: apiSavings,
-      };
-    }
-
-    if (useApi) {
-      return {
-        subtotal: demo.subtotal,
-        bundleTotal: demo.subtotal,
-        savings: 0,
-      };
-    }
-
-    return demo;
-  }, [
-    allItems.length,
-    bundlesQuery.data?.bundlePrice,
-    bundlesQuery.data?.savings,
-    selectedItems,
-    useApi,
-  ]);
+  // What the cart will actually charge for the selected items.
+  const subtotal =
+    Math.round(selectedItems.reduce((sum, p) => sum + p.price, 0) * 100) / 100;
 
   const toggle = (id: string) => {
     // Primary stays selected — FBT always includes the viewed product
@@ -179,6 +151,8 @@ export function FrequentlyBoughtTogether({ primary }: Props) {
 
   if (useFallback && (catalogError || companions.length === 0)) return null;
   if (!useFallback && companions.length === 0) return null;
+  // Adding the viewed product needs its size/colour, chosen on the page.
+  if (hasVariants(primary)) return null;
 
   return (
     <section
@@ -188,9 +162,7 @@ export function FrequentlyBoughtTogether({ primary }: Props) {
       <div className='mb-5 flex flex-wrap items-start justify-between gap-3'>
         <div>
           <p className='text-xs font-medium uppercase tracking-wider text-stone-500'>
-            {useApi
-              ? t('bundle.frequentlyBoughtTogether')
-              : t('bundle.demoFrequentlyBoughtTogether')}
+            {t('bundle.frequentlyBoughtTogether')}
           </p>
           <h2
             id='fbt-heading'
@@ -199,20 +171,9 @@ export function FrequentlyBoughtTogether({ primary }: Props) {
             {t('bundle.title')}
           </h2>
           <p className='mt-1 text-sm text-stone-600'>
-            {useApi
-              ? t('bundle.apiDescription')
-              : t('bundle.demoDescription')}
+            {t('bundle.description')}
           </p>
         </div>
-        {pricing.savings > 0 && selectedItems.length > 1 && (
-          <span className='rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900'>
-            {useApi
-              ? t('bundle.saveAmount', { amount: formatPrice(pricing.savings) })
-              : t('bundle.demoSaveAmount', {
-                  amount: formatPrice(pricing.savings),
-                })}
-          </span>
-        )}
       </div>
 
       <ul className='flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-stretch'>
@@ -310,20 +271,11 @@ export function FrequentlyBoughtTogether({ primary }: Props) {
             <span>{t('bundle.selectCompanion')}</span>
           ) : (
             <>
-              {pricing.savings > 0 && (
-                <span className='text-stone-500 line-through me-2'>
-                  {formatPrice(pricing.subtotal)}
-                </span>
-              )}
               <span className='font-semibold text-stone-900'>
-                {formatPrice(pricing.bundleTotal)}
+                {formatPrice(subtotal)}
               </span>
               <span className='ms-1 text-xs text-stone-500'>
-                {useApi
-                  ? t('bundle.itemsDisplayTotal', {
-                      count: selectedItems.length,
-                    })
-                  : t('bundle.itemsDemoTotal', { count: selectedItems.length })}
+                {t('bundle.itemsTotal', { count: selectedItems.length })}
               </span>
             </>
           )}

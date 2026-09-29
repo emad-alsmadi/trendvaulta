@@ -268,7 +268,10 @@ export function Navbar() {
             </form>
 
             {/* Navigation - Desktop */}
-            <nav className='hidden gap-5 items-center lg:flex shrink-0'>
+            <nav
+              aria-label={t('nav.mainNav')}
+              className='hidden gap-5 items-center lg:flex shrink-0'
+            >
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger asChild>
                   <button className='flex relative gap-1 items-center font-medium text-gray-700 transition-colors hover:text-gray-900 group'>
@@ -627,7 +630,7 @@ export function Navbar() {
             </form>
 
             {/* Mobile nav */}
-            <nav className='space-y-2'>
+            <nav aria-label={t('nav.mobileNav')} className='space-y-2'>
               {/* The utility strip holding the desktop switch is hidden on
                   small screens, so the language choice lives here too. */}
               <button
@@ -732,7 +735,10 @@ export function Navbar() {
                 {t('common.login')}
               </Link>
             ) : (
-              <nav className='pt-4 space-y-2 border-t border-gray-200'>
+              <nav
+                aria-label={t('nav.accountNav')}
+                className='pt-4 space-y-2 border-t border-gray-200'
+              >
                 <Link
                   href='/user'
                   className='block px-4 py-2 text-gray-700 rounded-lg text-medium hover:bg-gray-100'

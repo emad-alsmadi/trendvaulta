@@ -18,13 +18,13 @@ import {
   useMarkProductQAHelpful,
   useProductQA,
 } from '@/hooks/storefront/productQAQuery';
-import { getAuthToken } from '@/lib/authCookies';
 import { buildLoginUrl } from '@/lib/safeRedirect';
 import {
   getUserFacingErrorMessage,
   logErrorForDev,
 } from '@/lib/userFacingError';
 import type { ProductQAItem } from '@/lib/api';
+import { useHasAuthToken } from '@/hooks/auth/useHasAuthToken';
 
 type Props = {
   productId: string;
@@ -45,7 +45,7 @@ export function ProductQaSection({ productId }: Props) {
   const pathname = usePathname();
   const { toast } = useToast();
   const { t } = useTranslation();
-  const isAuthenticated = Boolean(getAuthToken());
+  const isAuthenticated = useHasAuthToken();
 
   const qaQuery = useProductQA(productId);
   const createQuestion = useCreateProductQuestion();

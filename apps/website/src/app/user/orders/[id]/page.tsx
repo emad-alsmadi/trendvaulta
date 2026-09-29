@@ -25,7 +25,6 @@ import {
 import { getUserFacingErrorMessage } from '@/lib/userFacingError';
 import { OrderReturnSection } from '@/components/orders/OrderReturnSection';
 import type { Order } from '@/types';
-import { getAuthToken } from '@/lib/authCookies';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { intlLocale } from '@/lib/locale';
 
@@ -148,10 +147,6 @@ export default function OrderDetailPage() {
       toast(t('orders.toast.copyFailed'), { variant: 'error' });
     }
   };
-
-  if (!getAuthToken()) {
-    return null;
-  }
 
   return (
     <div className='space-y-6'>

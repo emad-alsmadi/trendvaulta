@@ -23,16 +23,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className='min-h-screen bg-gray-50'>
+      {/* First focusable element: keyboard users can jump past the header. */}
+      <a
+        href='#main-content'
+        className='sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-[200] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:font-bold focus:text-indigo-950 focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-fuchsia-500'
+      >
+        {t('nav.skipToContent')}
+      </a>
       <Navbar />
       <div className='gap-6 py-6'>
-        <main className='min-w-0 px-4 pb-20 sm:px-6 md:pb-0 lg:px-20'>
+        <main
+          id='main-content'
+          tabIndex={-1}
+          className='min-w-0 px-4 pb-20 focus:outline-none sm:px-6 md:pb-0 lg:px-20'
+        >
           {/* No pathname-keyed AnimatePresence: it remounted every route
               and threw away layout/query state on each navigation. */}
           <div className='min-w-0'>{children}</div>
         </main>
       </div>
 
-      <nav className='fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 bg-white md:hidden'>
+      <nav
+        aria-label={t('nav.bottomNav')}
+        className='fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 bg-white md:hidden'
+      >
         <div className='mx-auto grid max-w-7xl grid-cols-5 items-stretch gap-1 px-1 py-2'>
           {navItems.slice(0, 4).map((item) => {
               const active = pathname === item.href;
@@ -41,6 +55,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-current={active ? 'page' : undefined}
                   className={cn(
                     'flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[11px] font-semibold',
                     active ? 'text-indigo-600' : 'text-gray-600',
@@ -80,7 +95,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <DropdownMenu.Item asChild>
                   <Link
                     href='/offers'
-                    className='flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 outline-none transition hover:bg-gray-100'
+                    className='flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 outline-none transition hover:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:ring-2 data-[highlighted]:ring-inset data-[highlighted]:ring-fuchsia-500'
                   >
                     {t('nav.deals')}
                   </Link>
@@ -89,7 +104,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <DropdownMenu.Item asChild>
                   <Link
                     href='/about'
-                    className='flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 outline-none transition hover:bg-gray-100'
+                    className='flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 outline-none transition hover:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:ring-2 data-[highlighted]:ring-inset data-[highlighted]:ring-fuchsia-500'
                   >
                     {t('common.about')}
                   </Link>
@@ -98,7 +113,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <DropdownMenu.Item asChild>
                   <Link
                     href='/help'
-                    className='flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 outline-none transition hover:bg-gray-100'
+                    className='flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 outline-none transition hover:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:ring-2 data-[highlighted]:ring-inset data-[highlighted]:ring-fuchsia-500'
                   >
                     {t('productQa.helpCenter')}
                   </Link>
@@ -110,7 +125,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <DropdownMenu.Item asChild>
                     <Link
                       href='/auth/login'
-                      className='flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 outline-none transition hover:bg-gray-100'
+                      className='flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 outline-none transition hover:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:ring-2 data-[highlighted]:ring-inset data-[highlighted]:ring-fuchsia-500'
                     >
                       <LogIn className='h-4 w-4 text-gray-600' />
                       {t('common.login')}
@@ -121,7 +136,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <DropdownMenu.Item asChild>
                       <Link
                         href='/user'
-                        className='flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 outline-none transition hover:bg-gray-100'
+                        className='flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 outline-none transition hover:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:ring-2 data-[highlighted]:ring-inset data-[highlighted]:ring-fuchsia-500'
                       >
                         <User className='h-4 w-4 text-gray-600' />
                         {t('nav.account')}
@@ -130,7 +145,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <DropdownMenu.Item asChild>
                       <Link
                         href='/user/orders'
-                        className='flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 outline-none transition hover:bg-gray-100'
+                        className='flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 outline-none transition hover:bg-gray-100 data-[highlighted]:bg-gray-100 data-[highlighted]:ring-2 data-[highlighted]:ring-inset data-[highlighted]:ring-fuchsia-500'
                       >
                         {t('nav.orders')}
                       </Link>
@@ -151,7 +166,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           },
                         });
                       }}
-                      className='flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-extrabold text-red-600 outline-none transition hover:bg-red-50'
+                      className='flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-extrabold text-red-600 outline-none transition hover:bg-red-50 data-[highlighted]:bg-red-50 data-[highlighted]:ring-2 data-[highlighted]:ring-inset data-[highlighted]:ring-red-500'
                     >
                       <LogOut className='h-4 w-4 text-red-600' />
                       {t('common.logout')}

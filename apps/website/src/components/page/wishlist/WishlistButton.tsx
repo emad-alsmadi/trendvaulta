@@ -6,10 +6,10 @@ import {
   useAddToWishlistMutation,
   useRemoveFromWishlistMutation,
 } from '@/hooks/wishlist/wishlistQuery';
-import { getAuthToken } from '@/lib/authCookies';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/Toast';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { useHasAuthToken } from '@/hooks/auth/useHasAuthToken';
 
 interface WishlistButtonProps {
   productId: string;
@@ -28,7 +28,7 @@ export function WishlistButton({
   const { t } = useTranslation();
   const router = useRouter();
   const { toast } = useToast();
-  const isAuthenticated = !!getAuthToken();
+  const isAuthenticated = useHasAuthToken();
   const { data: checkData, isLoading: checkLoading } = useCheckWishlist(
     isAuthenticated ? productId : undefined,
   );

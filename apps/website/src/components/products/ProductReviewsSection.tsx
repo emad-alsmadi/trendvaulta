@@ -19,13 +19,13 @@ import {
   useProductReviews,
   useUpdateReviewMutation,
 } from '@/hooks/reviews/reviewsQuery';
-import { getAuthToken } from '@/lib/authCookies';
 import { buildLoginUrl } from '@/lib/safeRedirect';
 import {
   getUserFacingErrorMessage,
   logErrorForDev,
 } from '@/lib/userFacingError';
 import type { Review, ReviewPayload, ReviewUpdatePayload } from '@/types';
+import { useHasAuthToken } from '@/hooks/auth/useHasAuthToken';
 
 type Props = {
   productId: string;
@@ -40,7 +40,7 @@ export function ProductReviewsSection({ productId }: Props) {
   const pathname = usePathname();
   const { toast } = useToast();
   const { t } = useTranslation();
-  const isAuthenticated = Boolean(getAuthToken());
+  const isAuthenticated = useHasAuthToken();
   const meQuery = useMe();
   const currentUserId = meQuery.data?.user?._id;
 

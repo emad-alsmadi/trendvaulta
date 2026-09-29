@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { DEMO_FALLBACK_ENABLED } from '@/data/demoStorefront';
 import { useTestimonials } from '@/hooks/storefront/testimonialsQuery';
 import { useTranslation } from '@/contexts/TranslationContext';
 
@@ -42,6 +43,9 @@ export function Testimonials() {
   const { t } = useTranslation();
   const q = useTestimonials();
   const usingFallback = !q.data || q.data.length === 0;
+  // The fallback quotes are invented customers: development only. In
+  // production no testimonials → no section.
+  if (usingFallback && (q.isLoading || !DEMO_FALLBACK_ENABLED)) return null;
   const testimonials = usingFallback ? FALLBACK : q.data;
 
   return (

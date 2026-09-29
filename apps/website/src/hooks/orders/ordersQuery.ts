@@ -6,7 +6,7 @@ import {
 } from '@tanstack/react-query';
 import { ordersApi, type OrderCheckoutPayload } from '@/lib/api';
 import type { Order, ReturnRequestPayload } from '@/types';
-import { getAuthToken } from '@/lib/authCookies';
+import { useHasAuthToken } from '@/hooks/auth/useHasAuthToken';
 
 export const ORDERS_MY_KEY = ['orders', 'my'] as const;
 
@@ -28,7 +28,7 @@ export function useCreateOrderMutation() {
 }
 
 export function useMyOrders() {
-  const isAuthenticated = typeof window !== 'undefined' && !!getAuthToken();
+  const isAuthenticated = useHasAuthToken();
 
   return useQuery<Order[]>({
     queryKey: ORDERS_MY_KEY,

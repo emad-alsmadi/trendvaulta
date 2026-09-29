@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { CategorySidebar } from '@/components/products/CategorySidebar';
@@ -19,6 +19,9 @@ type Props = {
 /**
  * Mobile / tablet PLP filters drawer.
  * Wraps CategorySidebar with sticky header + “Show results” footer.
+ * Radix Dialog (like ConfirmProvider) moves focus in, traps it, closes on
+ * Escape / outside click, locks page scroll and returns focus to the
+ * "Filters" button — the hand-rolled version only did Escape and scroll.
  */
 export function ProductFiltersDrawer({
   open,
@@ -28,78 +31,57 @@ export function ProductFiltersDrawer({
 }: Props) {
   const { t } = useTranslation();
 
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      document.body.style.overflow = prev;
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [open, onClose]);
-
-  if (!open) return null;
-
   return (
-    <div
-      className='fixed inset-0 z-50 lg:hidden'
-      role='dialog'
-      aria-modal='true'
-      aria-labelledby='plp-filters-title'
+    <Dialog.Root
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
     >
-      <button
-        type='button'
-        className='absolute inset-0 bg-stone-900/45'
-        aria-label={t('catalog.drawer.closeFilters')}
-        onClick={onClose}
-      />
-      <div className='absolute inset-y-0 start-0 flex w-[min(100%,22rem)] flex-col bg-white shadow-2xl'>
-        <div className='flex items-center justify-between border-b border-stone-200 px-4 py-3'>
-          <div>
-            <p
-              id='plp-filters-title'
-              className='font-extrabold text-stone-900'
-            >
-              {t('catalog.filters')}
-            </p>
-            <p className='text-[11px] font-semibold text-stone-500'>
-              {activeCount > 0
-                ? t('catalog.drawer.activeCount', { count: activeCount })
-                : t('catalog.drawer.hint')}
-            </p>
+      <Dialog.Portal>
+        <Dialog.Overlay className='fixed inset-0 z-50 bg-stone-900/45 lg:hidden' />
+        <Dialog.Content className='fixed inset-y-0 start-0 z-50 flex w-[min(100%,22rem)] flex-col bg-white shadow-2xl focus:outline-none lg:hidden'>
+          <div className='flex items-center justify-between border-b border-stone-200 px-4 py-3'>
+            <div>
+              <Dialog.Title className='font-extrabold text-stone-900'>
+                {t('catalog.filters')}
+              </Dialog.Title>
+              <Dialog.Description className='text-[11px] font-semibold text-stone-500'>
+                {activeCount > 0
+                  ? t('catalog.drawer.activeCount', { count: activeCount })
+                  : t('catalog.drawer.hint')}
+              </Dialog.Description>
+            </div>
+            <Dialog.Close asChild>
+              <button
+                type='button'
+                className='rounded-lg p-2 text-stone-600 hover:bg-stone-100'
+                aria-label={t('catalog.drawer.close')}
+              >
+                <X className='h-5 w-5' aria-hidden />
+              </button>
+            </Dialog.Close>
           </div>
-          <button
-            type='button'
-            onClick={onClose}
-            className='rounded-lg p-2 text-stone-600 hover:bg-stone-100'
-            aria-label={t('catalog.drawer.close')}
-          >
-            <X className='h-5 w-5' />
-          </button>
-        </div>
 
-        <div className='flex-1 overflow-y-auto p-3'>
-          <CategorySidebar
-            variant='drawer'
-            onAfterNavigate={onClose}
-            facets={facets}
-          />
-        </div>
+          <div className='flex-1 overflow-y-auto p-3'>
+            <CategorySidebar
+              variant='drawer'
+              onAfterNavigate={onClose}
+              facets={facets}
+            />
+          </div>
 
-        <div className='border-t border-stone-200 bg-white p-3'>
-          <Button
-            type='button'
-            className='w-full'
-            onClick={onClose}
-          >
-            {t('catalog.drawer.showResults')}
-          </Button>
-        </div>
-      </div>
-    </div>
+          <div className='border-t border-stone-200 bg-white p-3'>
+            <Button
+              type='button'
+              className='w-full'
+              onClick={onClose}
+            >
+              {t('catalog.drawer.showResults')}
+            </Button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

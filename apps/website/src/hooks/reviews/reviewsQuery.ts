@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { reviewsApi } from '@/lib/api';
 import type { Review, ReviewPayload, ReviewUpdatePayload } from '@/types';
-import { getAuthToken } from '@/lib/authCookies';
+import { useHasAuthToken } from '@/hooks/auth/useHasAuthToken';
 
 export const REVIEWS_PRODUCT_KEY = (productId: string) =>
   ['reviews', 'product', productId] as const;
@@ -32,7 +32,7 @@ export function useMyReview(productId: string) {
 }
 
 export function useMyReviews() {
-  const isAuthenticated = typeof window !== 'undefined' && !!getAuthToken();
+  const isAuthenticated = useHasAuthToken();
 
   return useQuery<Review[]>({
     queryKey: REVIEWS_MY_KEY,

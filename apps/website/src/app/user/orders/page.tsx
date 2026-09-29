@@ -3,12 +3,10 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Package, Truck, CheckCircle, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { useMyOrders } from '@/hooks/orders/ordersQuery';
 import type { Order } from '@/types';
-import { getAuthToken } from '@/lib/authCookies';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { intlLocale } from '@/lib/locale';
 
@@ -68,15 +66,9 @@ function formatDate(dateString: string | undefined, locale: string) {
 }
 
 export default function OrdersPage() {
-  const router = useRouter();
   const { toast } = useToast();
   const ordersQuery = useMyOrders();
   const { t, formatPrice, locale } = useTranslation();
-
-  if (!getAuthToken()) {
-    router.push('/auth/login');
-    return null;
-  }
 
   return (
     <div className='space-y-6'>

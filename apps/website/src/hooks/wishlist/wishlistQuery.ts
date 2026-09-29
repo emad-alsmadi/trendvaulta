@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { wishlistApi } from '@/lib/api';
 import type { WishlistItem } from '@/types';
-import { getAuthToken } from '@/lib/authCookies';
+import { useHasAuthToken } from '@/hooks/auth/useHasAuthToken';
 
 export const WISHLIST_MY_KEY = ['wishlist', 'my'] as const;
 
@@ -10,7 +10,7 @@ export function wishlistCheckKey(productId: string) {
 }
 
 export function useMyWishlist() {
-  const isAuthenticated = typeof window !== 'undefined' && !!getAuthToken();
+  const isAuthenticated = useHasAuthToken();
 
   return useQuery<WishlistItem[]>({
     queryKey: WISHLIST_MY_KEY,

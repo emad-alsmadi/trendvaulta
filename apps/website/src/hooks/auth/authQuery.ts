@@ -7,11 +7,11 @@ import {
 import { authApi } from '@/lib/api';
 import {
   clearAuthCookies,
-  getAuthToken,
   getUserRole,
   setAuthCookies,
   type UserRole,
 } from '@/lib/authCookies';
+import { useHasAuthToken } from '@/hooks/auth/useHasAuthToken';
 
 export const AUTH_ME_QUERY_KEY = ['auth', 'me'] as const;
 
@@ -80,7 +80,7 @@ function removeUserScopedQueries(qc: QueryClient) {
 }
 
 export function useMe() {
-  const token = getAuthToken();
+  const token = useHasAuthToken();
 
   return useQuery<MeResponse>({
     queryKey: AUTH_ME_QUERY_KEY,
@@ -152,7 +152,11 @@ export function useUpdateProfile() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async (payload: { username: string; email: string }) => {
+    mutationFn: async (payload: {
+      username: string;
+      email: string;
+      currentPassword?: string;
+    }) => {
       const res = await authApi.updateProfile(payload);
       return res as AuthResponse;
     },
