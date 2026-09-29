@@ -684,7 +684,7 @@ Each item needs its own short design note before it gets a task ID:
 | ID | Title | Pri | Effort | Depends | Decision | Status | Date | Commit |
 |---|---|---|---|---|---|---|---|---|
 | P0-00 | Windows test command, docs links, i18n parity CI | P0 | S | — | — | ✅ (`packages/types` removed with approval; stale lockfile entries pruned) | 2026-09-29 | `0c23ca5`…  |
-| P0-01 | Stock reservation at checkout | P0 | M | P0-00 | — | ⬜ | | |
+| P0-01 | Stock reservation at checkout | P0 | M | P0-00 | — | ✅ (no Mongo lease: all reconciler writes are conditional, so multi-instance safe without one) | 2026-09-29 | |
 | P0-02 | Email verification | P0 | M | — | D5 | ⬜ | | |
 | P0-03 | Guest checkout | P0 | L | P0-01 | D2 | ⬜ | | |
 | P0-04 | Messages inbox in dashboard | P0 | S | — | — | ⬜ | | |

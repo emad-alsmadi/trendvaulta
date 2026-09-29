@@ -54,10 +54,13 @@ const stripeMock = {
   sessions: null,
   /** Optional override: (sessionId) => session */
   retrieveImpl: null,
+  /** Optional override: (params) => session; throw to simulate a Stripe outage */
+  createImpl: null,
   reset() {
     this.calls = {
       sessionsCreate: [],
       sessionsRetrieve: [],
+      sessionsExpire: [],
       couponsCreate: [],
       couponsDel: [],
       refundsCreate: [],
@@ -65,6 +68,7 @@ const stripeMock = {
     };
     this.sessions = new Map();
     this.retrieveImpl = null;
+    this.createImpl = null;
   },
 };
 stripeMock.reset();
@@ -74,6 +78,7 @@ const fakeStripe = {
     sessions: {
       async create(params) {
         stripeMock.calls.sessionsCreate.push(params);
+        if (stripeMock.createImpl) return stripeMock.createImpl(params);
         seq += 1;
         const id = `cs_test_${seq}`;
         return { id, url: `https://checkout.stripe.test/${id}`, ...params };
@@ -88,6 +93,19 @@ const fakeStripe = {
           throw err;
         }
         return session;
+      },
+      /** Like Stripe: only an open session can be expired. */
+      async expire(id) {
+        stripeMock.calls.sessionsExpire.push(id);
+        const session = stripeMock.sessions.get(id);
+        if (!session || session.status !== 'open') {
+          const err = new Error(`Session ${id} is not open`);
+          err.statusCode = 400;
+          throw err;
+        }
+        const expired = { ...session, status: 'expired' };
+        stripeMock.sessions.set(id, expired);
+        return expired;
       },
     },
   },

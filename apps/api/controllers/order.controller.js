@@ -443,11 +443,16 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     });
   }
 
-  // Resolving needs_attention → paid: inventory must actually be available now
-  if (value.status === 'paid' && !claimed.stockDecremented) {
+  // Resolving needs_attention → paid: inventory must actually be available
+  // now. A checkout reservation that was released (canceled, then paid late)
+  // is stockDecremented AND stockRestored, and holds nothing.
+  const holdsStock = claimed.stockDecremented && !claimed.stockRestored;
+  if (value.status === 'paid' && !holdsStock) {
     try {
       await decrementStockForPaidOrder(Product, claimed);
       claimed.stockDecremented = true;
+      // Held again, so a later cancel/refund must be able to restock it
+      claimed.stockRestored = false;
     } catch (stockErr) {
       // Undo the claim so the order stays flagged for staff
       await Order.updateOne(

@@ -12,6 +12,10 @@ const logger = require('./utils/logger');
 const mongoose = require('mongoose');
 
 const paymentController = require('./controllers/payment.controller');
+const {
+  startCheckoutReconciler,
+  stopCheckoutReconciler,
+} = require('./services/checkoutReconciler');
 
 // Init App
 const app = express();
@@ -186,6 +190,8 @@ function registerGracefulShutdown(server) {
     // Don't let the timer itself keep the event loop alive.
     force.unref();
 
+    stopCheckoutReconciler();
+
     try {
       await new Promise((resolve, reject) => {
         server.close((err) => (err ? reject(err) : resolve()));
@@ -230,6 +236,7 @@ async function start() {
     });
 
     registerGracefulShutdown(server);
+    startCheckoutReconciler();
   } catch (err) {
     logger.error(
       { err },

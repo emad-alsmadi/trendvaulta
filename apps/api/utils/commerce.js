@@ -341,6 +341,8 @@ async function buildNormalizedOrderLines(Product, items) {
     if (qty > available) {
       const err = new Error(`Insufficient stock for ${p.title}`);
       err.statusCode = 400;
+      // Same code as a lost reservation race (409), so clients treat both alike
+      err.code = 'OUT_OF_STOCK';
       throw err;
     }
 
@@ -496,7 +498,10 @@ function insufficientStockError(title) {
 }
 
 /**
- * Atomically decrement stock for every paid line. Variant lines use a single
+ * Atomically decrement stock for every order line: when checkout reserves it
+ * (payment.controller createCheckoutSession), or at payment for orders that
+ * hold no reservation (older orders, direct/dev orders, staff resolving a
+ * needs_attention order). Variant lines use a single
  * conditional positional update (variant match + stock >= qty), so concurrent
  * orders can never oversell. On a shortfall, lines already decremented are
  * restored best-effort and a 409 error is thrown.

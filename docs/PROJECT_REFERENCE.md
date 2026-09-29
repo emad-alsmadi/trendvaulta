@@ -88,7 +88,7 @@ Run one app at a time with `npm run dev:api`, `npm run dev:website` or `npm run 
 
 ### Stripe webhooks (only for checkout work)
 
-The checkout success page confirms payment itself (`POST /api/payments/verify-payment`), so a basic purchase works without webhooks. Refunds made in Stripe, expired sessions, and shoppers who close the tab before the success page loads rely on the webhook:
+The checkout success page confirms payment itself (`POST /api/payments/verify-payment`), so a basic purchase works without webhooks. Refunds made in Stripe need the webhook. Expired sessions (which release reserved stock) and shoppers who close the tab before the success page loads are handled by the webhook right away, and otherwise by the checkout reconciler within about 45 min:
 
 ```bash
 stripe login ; stripe listen --forward-to localhost:3000/api/webhooks/stripe
@@ -308,7 +308,7 @@ No server cart API — client cart only (`cartStore.ts`). Commerce entry point i
 | Route | Access | Notes |
 |---|---|---|
 | `GET /payments/setup-status` | public | `{ ready: boolean }` |
-| `POST /payments/checkout-session` | private | creates pending Order + Stripe session, returns `{ url, orderId, sessionId }` |
+| `POST /payments/checkout-session` | private | reserves stock, creates pending Order + Stripe session, returns `{ url, orderId, sessionId }`; `400`/`409` `{ code: 'OUT_OF_STOCK' }` on a shortfall (see §8) |
 | `POST /payments/verify-payment` | private | `{ orderId }`, ownership-checked; may mark paid if Stripe session complete |
 | `POST /webhooks/stripe` | Stripe signature | raw body; idempotent event insert; marks paid on `checkout.session.completed` |
 
@@ -478,7 +478,11 @@ Hard rules: never trust client price/discount/stock/role/paymentStatus; never sk
 
 ### Stock & variants
 - If a product has variants, the selected variant's stock is authoritative; otherwise `product.stock` is.
-- Checkout should reject a quantity greater than available stock (enforce with an atomic conditional `$inc`, not a read-then-write).
+- **Checkout reserves the stock.** `POST /payments/checkout-session` decrements every line with an atomic conditional `$inc` before the Stripe session opens, and sets `stockDecremented`. A shortfall returns `OUT_OF_STOCK`: `400` when the read-time check already fails, `409` when a concurrent checkout won the last units. No order is kept. Payment then takes nothing more.
+- **The hold is released exactly once** (the `stockRestored` claim in `restoreStockOnce`) on `checkout.session.expired` / `async_payment_failed`, a customer or staff cancel, or a failure to open the Stripe session. The reservation lives as long as the session: 30 min.
+- **Reconciler** (`services/checkoutReconciler.js`, every `CHECKOUT_RECONCILE_INTERVAL_MS`, default 5 min): pending reserved orders older than the session TTL plus 10 min are checked against Stripe. A paid session is marked paid (missed webhook), an expired one is released, and an open one is expired first. A Stripe error or a still-settling async payment keeps the hold. All writes are conditional, so it is safe on several instances.
+- Orders without a reservation (created before reservations, direct/dev orders) still decrement at payment. If that fails, the order becomes `needs_attention / insufficient_stock` as before.
+- `stockDecremented && !stockRestored` means "this order holds stock". A released checkout that is paid late (`paid_after_cancel`) holds none, so staff resolving it to `paid` take the stock again.
 - A variant sent by the client must match an existing variant on that product; its price comes from `variant.price` if set, else `product.price`.
 
 ### Orders — state machine

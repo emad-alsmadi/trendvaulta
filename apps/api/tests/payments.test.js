@@ -73,7 +73,7 @@ describe('payments API', () => {
       assert.equal(order.itemsPrice, 50);
       assert.equal(order.totalPrice, 50);
       assert.equal(order.stripeSessionId, res.body.sessionId);
-      assert.equal(order.stockDecremented, false);
+      assert.equal(order.stockDecremented, true);
 
       // Stripe received the server price, in cents
       assert.equal(stripeMock.calls.sessionsCreate.length, 1);
@@ -84,8 +84,8 @@ describe('payments API', () => {
       assert.equal(params.line_items[0].price_data.unit_amount, 2500);
       assert.equal(params.line_items[0].quantity, 2);
 
-      // Stock is never reserved before payment
-      assert.equal((await reloadProduct(product._id)).stock, 10);
+      // The checkout reserves the stock before payment
+      assert.equal((await reloadProduct(product._id)).stock, 8);
     });
 
     dbIt('rejects a variant product ordered without a variant (400)', async () => {
@@ -118,6 +118,7 @@ describe('payments API', () => {
       );
 
       assert.equal(res.status, 400);
+      assert.equal(res.body.code, 'OUT_OF_STOCK');
       assert.match(res.body.message, /insufficient stock/i);
       assert.equal(await Order.countDocuments(), 0);
       assert.equal(stripeMock.calls.sessionsCreate.length, 0);
@@ -220,7 +221,9 @@ describe('payments API', () => {
   });
 
   // -------------------------------------------------------------------------
-  describe('oversell after payment', () => {
+  // Orders holding no checkout reservation (older/direct orders) still take
+  // stock at payment; stockReservation.test.js covers reserved checkouts.
+  describe('oversell after payment (unreserved orders)', () => {
     dbIt('two paid orders for the last unit: one paid, one needs_attention', async () => {
       const { user } = await createUser();
       const product = await createProduct({ stock: 1 });

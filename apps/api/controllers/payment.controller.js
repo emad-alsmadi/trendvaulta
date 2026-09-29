@@ -140,6 +140,8 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
     ));
   } catch (lineErr) {
     return res.status(lineErr.statusCode || 400).json({
+      // Only our own string codes (a Mongo error's numeric code stays private)
+      ...(typeof lineErr.code === 'string' ? { code: lineErr.code } : {}),
       message: lineErr.message || 'Unable to build order lines',
     });
   }
@@ -200,6 +202,22 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
     stockDecremented: false,
     salesCountIncremented: false,
   });
+
+  // Reserve the stock now rather than at payment, so two shoppers can't both
+  // pay for the last unit. The flag is raised only after the decrement: a
+  // crash in between loses the hold instead of inventing stock on release.
+  try {
+    await decrementStockForPaidOrder(Product, order);
+  } catch (stockErr) {
+    await Order.findByIdAndDelete(order._id);
+    if (stockErr?.statusCode !== 409) throw stockErr;
+    return res.status(409).json({
+      code: 'OUT_OF_STOCK',
+      message: stockErr.message,
+    });
+  }
+  await Order.updateOne({ _id: order._id }, { $set: { stockDecremented: true } });
+  order.stockDecremented = true;
 
   const lineItems = normalizedItems.map((it) => ({
     price_data: {
@@ -276,7 +294,17 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
 
     session = await stripe.checkout.sessions.create(sessionParams);
   } catch (stripeErr) {
-    await Order.findByIdAndDelete(order._id);
+    try {
+      await restoreStockOnce(Order, Product, order);
+      await Order.findByIdAndDelete(order._id);
+    } catch (restoreErr) {
+      // Keep the pending order: the checkout reconciler releases its hold
+      // once it is stale (no session id means nothing can pay for it).
+      logger.error(
+        { err: restoreErr },
+        `Order ${order._id}: could not release reserved stock after a Stripe error`,
+      );
+    }
     const raw =
       stripeErr && typeof stripeErr.message === 'string'
         ? stripeErr.message
@@ -568,23 +596,120 @@ async function handleCheckoutSessionCompleted(session, stripe) {
 }
 
 /**
+ * Cancel a still-unpaid checkout order and give its reserved stock back.
+ *
+ * The cancel is conditional (only a pending, unpaid order), and the restock
+ * is claimed separately by restoreStockOnce. So a webhook retry after a failed
+ * restock still releases the hold, and the webhook and the reconciler can run
+ * it concurrently without restocking twice.
+ * @returns {Promise<boolean>} true when this call released the stock
+ */
+async function releaseUnpaidCheckout(orderId) {
+  await Order.updateOne(
+    {
+      _id: orderId,
+      status: 'pending',
+      paymentStatus: { $nin: ['paid', 'refunded'] },
+    },
+    { $set: { paymentStatus: 'failed', status: 'canceled' } },
+  );
+  const order = await Order.findById(orderId);
+  if (
+    !order ||
+    order.status !== 'canceled' ||
+    ['paid', 'refunded'].includes(order.paymentStatus)
+  ) {
+    return false;
+  }
+  return restoreStockOnce(Order, Product, order);
+}
+
+/**
  * Session timed out (expires_at) or a delayed payment failed: fail a
- * still-unpaid order. Stock is never reserved before payment.
+ * still-unpaid order and release the stock reserved at checkout.
  */
 async function handleCheckoutSessionExpired(session, stripe) {
   const orderId = extractOrderId(session);
   if (orderId) {
-    await Order.updateOne(
-      {
-        _id: orderId,
-        status: 'pending',
-        paymentStatus: { $nin: ['paid', 'refunded'] },
-      },
-      { $set: { paymentStatus: 'failed', status: 'canceled' } },
-    );
+    await releaseUnpaidCheckout(orderId);
   }
   await deleteTemporaryCoupon(stripe, session.metadata?.stripeCouponId);
   return orderId;
+}
+
+// Stale = its Checkout session has certainly expired at Stripe (TTL plus
+// clock-skew/latency margin), so nothing can still pay for it.
+const STALE_CHECKOUT_GRACE_MS = 10 * 60 * 1000;
+
+/**
+ * Settle checkouts whose Stripe webhook never arrived: missed
+ * `checkout.session.completed` (marked paid) or `.expired` (stock released).
+ * Stripe is asked for the real session state before anything is released. A
+ * lookup failure, or an async payment that is still settling, leaves the
+ * order for the next run.
+ *
+ * Every write is claimed conditionally (markOrderPaidFromSession,
+ * releaseUnpaidCheckout), so concurrent runs on several API instances can't
+ * double-apply anything. No leader election is needed.
+ * @returns {Promise<{ paid: number, released: number, skipped: number }>}
+ */
+async function reconcileStaleCheckouts({ now = Date.now(), limit = 100 } = {}) {
+  const cutoff = new Date(
+    now - CHECKOUT_SESSION_TTL_SECONDS * 1000 - STALE_CHECKOUT_GRACE_MS,
+  );
+  const stale = await Order.find({
+    status: 'pending',
+    paymentStatus: { $in: ['pending', 'failed'] },
+    stockDecremented: true,
+    stockRestored: false,
+    createdAt: { $lt: cutoff },
+  })
+    .sort({ createdAt: 1 })
+    .limit(limit)
+    .select('_id stripeSessionId')
+    .lean();
+
+  const result = { paid: 0, released: 0, skipped: 0 };
+  if (stale.length === 0) return result;
+
+  let stripe = null;
+  try {
+    stripe = getStripeOrThrow();
+  } catch {
+    // Stripe no longer configured: no session can be paid, release on age.
+  }
+
+  for (const { _id, stripeSessionId } of stale) {
+    try {
+      if (stripe && stripeSessionId) {
+        let session = await stripe.checkout.sessions.retrieve(stripeSessionId);
+        if (session.status === 'open') {
+          // Past expires_at but not yet closed at Stripe: close it first, so
+          // it can't be paid after the stock goes back on sale.
+          session = await stripe.checkout.sessions.expire(stripeSessionId);
+        }
+        if (session.status === 'complete') {
+          if (isSessionPaid(session)) {
+            await markOrderPaidFromSession(session);
+            result.paid += 1;
+          } else {
+            // Delayed method still settling: async_payment_* will decide.
+            result.skipped += 1;
+          }
+          continue;
+        }
+      }
+      if (await releaseUnpaidCheckout(_id)) result.released += 1;
+    } catch (err) {
+      result.skipped += 1;
+      logger.error({ err }, `Checkout reconciliation failed for order ${_id}`);
+    }
+  }
+
+  if (result.paid || result.released) {
+    logger.info(result, 'Reconciled stale checkouts');
+  }
+  return result;
 }
 
 async function handlePaymentIntentFailed(paymentIntent) {
@@ -773,4 +898,5 @@ module.exports = {
   createCheckoutSession,
   stripeWebhook,
   verifyPaymentStatus,
+  reconcileStaleCheckouts,
 };
