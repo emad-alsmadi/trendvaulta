@@ -6,7 +6,94 @@
 | **Scope** | Whole monorepo (`apps/api`, `apps/website`, `apps/dashboard`, CI, deploy config, docs), **working tree** on `main` @ `6b79def` including uncommitted changes (storefront modules / hero slides `translations.ar`, dashboard `HeroSlidesEditor`) |
 | **Method** | Static, read-only reading of the code. The work was split into 7 parallel slices: API security, API commerce, API CMS, storefront contract, storefront i18n/a11y/state, dashboard, and delivery/ops. The results were then merged and de-duplicated, and the high-severity items were spot-checked a second time. The prompt is in [AUDIT_PROMPT.md](AUDIT_PROMPT.md). |
 | **Not done** | Nothing was run: no lint, typecheck, tests, build, `npm audit`, or live app/Stripe checks. Every finding comes from reading the code. See [Open questions](#8-open-questions). |
+| **Remediation status** | Updated 2026-09-29 — see [§0](#0-remediation-status-updated-2026-09-29) |
 | **Companion files** | [API_MATRIX.md](API_MATRIX.md) (158 endpoint rows), [FRONTEND_MAP.md](FRONTEND_MAP.md) (every page in both apps) |
+
+---
+
+## 0. Remediation status (updated 2026-09-29)
+
+Phases **A** (fix now) and **B** (next sprint) of the [roadmap](#7-remediation-roadmap) have been worked through. Every Critical and High finding is fixed. Each fixed or partly fixed finding carries a **Status** line (Critical/High/Medium) or a ✅ / 🟡 marker on its title (Low/Info) in [§5](#5-findings). Unmarked findings are still open.
+
+| Severity | Total | ✅ Fixed | 🟡 Partly fixed | ⬜ Open |
+|---|---|---|---|---|
+| Critical | 2 | 2 | 0 | 0 |
+| High | 13 | 13 | 0 | 0 |
+| Medium | 66 | 37 | 8 | 21 |
+| Low | 83 | 10 | 7 | 66 |
+| Info | 12 | 0 | 0 | 12 |
+| **Total** | **176** | **62** | **15** | **99** |
+
+### Validation (2026-09-29)
+
+All three apps were checked after the Phase A/B changes:
+
+| Check | Result |
+|---|---|
+| API tests (`node --test`, real in-memory MongoDB) | 227 passed, 0 failed, 0 skipped |
+| Website `tsc --noEmit` / lint | pass / 0 errors (28 older warnings, none new) |
+| Website vitest | 54 passed |
+| Dashboard `tsc --noEmit` / lint (`--max-warnings 0`) / jest | pass / pass / 31 passed |
+
+Regression tests for this work: `apps/api/tests/hardening.test.js`, new cases in `apps/api/utils/commerce.test.js` and `refreshTokens.test.js`, `apps/website/src/lib/safeRedirect.test.ts`, and `apps/dashboard/src/lib/errorMessage.test.ts`. Not run: the website production build (needed to check the new CSP) and a live Stripe test-mode run.
+
+### Decisions taken during remediation
+
+| Topic | Decision |
+|---|---|
+| Delivery unticked at checkout (Q2 / API-203) | **Store pickup**: $0 shipping, stored as `shippingMethod: 'none'`, shown as "do not ship" in the dashboard |
+| Per-customer coupon limits (API-204) | Configurable `perCustomerLimit` (paid orders count) |
+| Restocking (API-205) | Only unshipped orders restock on refund/cancel; returned lines restock when a return is marked received |
+| Deleting products/brands (API-212) | Always deactivate (soft delete) |
+| Deleting users (OPS-725) | Anonymise (PII erased, orders and reviews kept) |
+| Homepage sections without live data (WEB-406) | Hidden in production; demo content only under `next dev` |
+| Bundle savings (API-210, Q6) | Savings not shown; bundle pricing at checkout deferred |
+| Money storage (API-207) | Cent rounding at every step, still stored as dollars (no data migration) |
+
+### Waiting on you
+
+- **Stripe dashboard:** subscribe `checkout.session.async_payment_succeeded` and `checkout.session.async_payment_failed` (PAY-202).
+- **Q1, proxy hops Vercel → Render:** needed to fix `trust proxy` and the per-IP limits (SEC-108, OPS-710).
+- **Sentry:** approve the new dependencies and provide DSNs (OPS-702, B11).
+- **Render:** confirm `autoDeployTrigger: checksPass` and `npm ci` on the next deploy; decide on the free plan (OPS-703, OPS-710).
+- **Lockfile:** run `npm install --package-lock-only` once to refresh the `engines` metadata (OPS-708).
+- **`eslint-plugin-jsx-a11y`** (dashboard/storefront), if you want placeholder-only fields caught automatically (DASH-618).
+
+### Addressed findings by roadmap step
+
+| Step | Findings |
+|---|---|
+| A1 | API-201 ✅, API-202 ✅ |
+| A2 | PAY-201 ✅, PAY-202 ✅, PAY-203 ✅, PAY-204 ✅ |
+| A3 | SEC-101 ✅, SEC-105 ✅ |
+| A4 | OPS-701 ✅ |
+| A5 | DASH-627 ✅, WEB-522 ✅ |
+| A6 | OPS-712 🟡, SEC-104 ✅, SEC-106 ✅ |
+| A7 | API-302 ✅, API-303 ✅, API-310 ✅, API-313 ✅ |
+| A8 | API-301 ✅ |
+| A9 | API-213 🟡, DASH-602 ✅, PAY-205 ✅ |
+| A10 | DASH-603 ✅, DASH-620 ✅ |
+| A11 | API-208 🟡, API-209 ✅ |
+| A12 | WEB-509 ✅ |
+| B1 | API-203 ✅, DASH-609 🟡, DASH-621 🟡 |
+| B2 | API-207 ✅ |
+| B3 | API-204 ✅, API-215 ✅ |
+| B4 | API-205 ✅, API-206 ✅, API-225 ✅ |
+| B5 | DASH-605 ✅, DASH-606 ✅, SEC-102 ✅, SEC-110 ✅ |
+| B6 | API-212 ✅, OPS-725 ✅, SEC-111 🟡, SEC-113 ✅ |
+| B7 | SEC-108 🟡, SEC-109 🟡, SEC-112 🟡 |
+| B8 | API-102 ✅, SEC-107 ✅, WEB-501 🟡 |
+| B9 | API-312 ✅, WEB-406 ✅ |
+| B10 | API-210 ✅ |
+| B11 | OPS-702 🟡, OPS-713 ✅ |
+| B12 | OPS-703 ✅, OPS-708 ✅, OPS-710 🟡 |
+| B12/B13 | OPS-722 🟡 |
+| B13 | API-304 ✅, API-325 ✅ |
+| B14 | API-316 🟡, WEB-409 ✅, WEB-410 ✅, WEB-414 ✅ |
+| B15 | API-226 ✅, DASH-613 ✅, DASH-617 ✅, DASH-618 🟡 |
+| B16 | WEB-508 ✅, WEB-510 ✅, WEB-511 ✅, WEB-512 ✅, WEB-513 ✅, WEB-514 ✅, WEB-515 ✅, WEB-518 ✅ |
+
+Phase C (C1–C8) and every finding not listed above are still open.
 
 ---
 
@@ -45,18 +132,18 @@ About 30 cross-slice duplicates were merged. The surviving IDs keep their origin
 
 ### Top 10 risks
 
-| # | ID | Risk | Severity |
-|---|---|---|---|
-| 1 | API-201 | Checkout fails with 400 "One or more products not found" whenever the cart has **two variants of the same product** (e.g. size M and size L). | Critical |
-| 2 | API-202 | Ticking "delivery" at checkout sends `shippingMethod: ''`, which Joi rejects. No ShippingZone is seeded and the dashboard has **no shipping-zone UI** (DASH-609), so in practice the whole delivery path fails. | Critical |
-| 3 | PAY-201 / PAY-202 / PAY-203 | Stripe state-machine holes: `payment_intent.succeeded` marks orders paid **without side effects or cancel checks**; `checkout.session.completed` ignores `payment_status` (async methods); the webhook and verify-payment race can erase a `needs_attention` oversell flag. | High |
-| 4 | SEC-101 | **Moderators can change tax and shipping rates** through `PUT /api/admin/settings` (`content:write`), which re-prices every order. | High |
-| 5 | API-203 | The shipping charge is decided by the client's `delivery`/`shippingMethod` flags (default: $0), and the chosen method is **never stored on the order**, so fulfilment can't see it. | High |
-| 6 | API-301 / API-302 / API-303 | CMS ↔ storefront contract is broken: seeded or created modules **hide 6 homepage sections**; "deleted" testimonials and lookbooks **stay live**; creating a Content draft **unpublishes** the live Shipping/Returns page. | High |
-| 7 | OPS-701 | Every production 500 logs only `"Request failed"`: pino's argument order drops the error object. There is **no Sentry/APM** either (OPS-702). | High |
-| 8 | WEB-522 | Storefront logout keeps the previous user's orders, addresses and wishlist in the React Query cache, so they leak on shared devices. | High |
-| 9 | SEC-105 | The dashboard "Change password" form calls the admin `PUT /users/:id`. It **skips the current-password check**, always returns 403 for moderators, and silently logs the admin out. | High |
-| 10 | DASH-603 / API-212 | Products and brands are **hard-deleted** without a cascade: `/bundles` and `/product-qa` in the dashboard white-screen (there is no error boundary, DASH-620), and references are orphaned. | High |
+| # | ID | Risk | Severity | Status |
+|---|---|---|---|---|
+| 1 | API-201 | Checkout fails with 400 "One or more products not found" whenever the cart has **two variants of the same product** (e.g. size M and size L). | Critical | ✅ Fixed (A1) |
+| 2 | API-202 | Ticking "delivery" at checkout sends `shippingMethod: ''`, which Joi rejects. No ShippingZone is seeded and the dashboard has **no shipping-zone UI** (DASH-609), so in practice the whole delivery path fails. | Critical | ✅ Fixed (A1) |
+| 3 | PAY-201 / PAY-202 / PAY-203 | Stripe state-machine holes: `payment_intent.succeeded` marks orders paid **without side effects or cancel checks**; `checkout.session.completed` ignores `payment_status` (async methods); the webhook and verify-payment race can erase a `needs_attention` oversell flag. | High | ✅ Fixed (A2) |
+| 4 | SEC-101 | **Moderators can change tax and shipping rates** through `PUT /api/admin/settings` (`content:write`), which re-prices every order. | High | ✅ Fixed (A3) |
+| 5 | API-203 | The shipping charge is decided by the client's `delivery`/`shippingMethod` flags (default: $0), and the chosen method is **never stored on the order**, so fulfilment can't see it. | High | ✅ Fixed (B1) |
+| 6 | API-301 / API-302 / API-303 | CMS ↔ storefront contract is broken: seeded or created modules **hide 6 homepage sections**; "deleted" testimonials and lookbooks **stay live**; creating a Content draft **unpublishes** the live Shipping/Returns page. | High | ✅ Fixed (A7, A8) |
+| 7 | OPS-701 | Every production 500 logs only `"Request failed"`: pino's argument order drops the error object. There is **no Sentry/APM** either (OPS-702). | High | ✅ Fixed (A4) |
+| 8 | WEB-522 | Storefront logout keeps the previous user's orders, addresses and wishlist in the React Query cache, so they leak on shared devices. | High | ✅ Fixed (A5) |
+| 9 | SEC-105 | The dashboard "Change password" form calls the admin `PUT /users/:id`. It **skips the current-password check**, always returns 403 for moderators, and silently logs the admin out. | High | ✅ Fixed (A3) |
+| 10 | DASH-603 / API-212 | Products and brands are **hard-deleted** without a cascade: `/bundles` and `/product-qa` in the dashboard white-screen (there is no error boundary, DASH-620), and references are orphaned. | High | ✅ Fixed (A10, B6) |
 
 ### Health score per area (0–5)
 
@@ -326,39 +413,40 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 | Aliases | Canonical ID |
 |---|---|
-| API-101 | OPS-701 |
-| API-103 | OPS-712 |
+| API-101 | OPS-701  |
+| API-103 | OPS-712  |
 | API-105, API-324 | API-228 |
-| API-106 | OPS-718 |
+| API-106 | OPS-718  |
 | DASH-601, WEB-401 | API-301 |
-| DASH-604 | SEC-105 |
+| DASH-604 | SEC-105  |
 | DASH-606 (race part) | SEC-102 |
-| DASH-607 | SEC-103 |
-| DASH-608 | SEC-101 (settings part) and DASH-602 (tracking part) |
-| DASH-610 | API-322 |
+| DASH-607 | SEC-103  |
+| DASH-608 | SEC-101 (settings part) and DASH-602 (tracking part)  |
+| DASH-610 | API-322  |
 | DASH-611, WEB-403 | API-310 |
-| DASH-614 | API-223 |
-| DASH-616 | SEC-113 |
+| DASH-614 | API-223  |
+| DASH-616 | SEC-113  |
 | DASH-619, WEB-502 | API-311 |
-| DASH-623 | API-323 |
-| DASH-625 | API-227 / API-215 |
+| DASH-623 | API-323  |
+| DASH-625 | API-227 / API-215  |
 | OPS-704, WEB-408 | PAY-205 |
-| OPS-705 | API-304 |
-| OPS-711 | API-214 |
-| WEB-402 | API-302 |
-| WEB-404 | SEC-108 |
-| WEB-407 | API-210 |
-| WEB-411 | SEC-109 |
+| OPS-705 | API-304  |
+| OPS-711 | API-214  |
+| WEB-402 | API-302  |
+| WEB-404 | SEC-108  |
+| WEB-407 | API-210  |
+| WEB-411 | SEC-109  |
 | WEB-417, WEB-525 | API-312 |
-| WEB-503 | WEB-413 |
-| WEB-504 | WEB-422 |
+| WEB-503 | WEB-413  |
+| WEB-504 | WEB-422  |
 | WEB-523, WEB-524 | WEB-410 |
-| WEB-533 | WEB-416 |
+| WEB-533 | WEB-416  |
 
 ### 5.1 Security & API foundation
 
 #### SEC-101 · Moderators can change checkout pricing (tax and shipping) through store settings
 **High · Confirmed · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in A3. New admin-only `settings:write`; dashboard gates on it; tested (moderator 403).
 - **Location:** `apps/api/routes/settings.js:15-20`, `apps/api/middlewares/rolePermissions.js:17`, `apps/api/controllers/settings.controller.js:28-49`, `apps/api/utils/commerce.js:141-172`, `apps/dashboard/src/pages/Settings.tsx:29,280`
 - **Evidence:** `PUT /api/admin/settings` is gated by `content:write`, and moderators hold that permission. The endpoint writes `taxRatePercent`, `shipping.*RateUsd` and `freeShippingThresholdUsd`, which every quote and order uses. The dashboard shows the form only when `role === 'admin'`, so the UI is stricter than the API.
 - **Impact:** A moderator, or a stolen moderator token, sends `PUT {taxRatePercent: 0, shipping: {standardRateUsd: 0, expressRateUsd: 0}}`. Every later order is under-charged.
@@ -366,6 +454,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 #### SEC-105 · Dashboard password change skips the current-password check, is always 403 for moderators, and logs the admin out
 **High · Confirmed · Effort S** (merged DASH-604)
+- **Status (2026-09-29):** ✅ Fixed in A3. Dashboard uses `POST /password/change` with current password, then signs out cleanly.
 - **Location:** `apps/dashboard/src/pages/Settings.tsx:118-151,139-140,402-405`, `apps/api/controllers/user.controller.js:109-129`, `apps/api/routes/users.js:48-53`, `apps/api/routes/password.js:25-30`
 - **Evidence:** The form calls `adminUsersApi.updateUser(user._id, {password})`, which is `PUT /api/users/:id` (`users:write`). That route hashes the new password without verifying the old one, then runs `revokeAllForUser`, which includes the caller's own session. The existing `POST /api/password/change` verifies `currentPassword` and is rate-limited.
 - **Impact:**
@@ -376,6 +465,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 #### SEC-102 · Refresh-token rotation is not atomic and has no grace window; concurrent refreshes log users out everywhere
 **Medium · Confirmed (code); multi-tab trigger Suspected · Effort M** (merged DASH-606 race part)
+- **Status (2026-09-29):** ✅ Fixed in B5. Atomic rotation + 30 s grace window; unit-tested.
 - **Location:** `apps/api/utils/refreshTokens.js:45-68`, `apps/website/src/lib/api.ts:106-133`, `apps/dashboard/src/lib/api.ts:46-75`
 - **Evidence:** The code does `findOne` → check `revokedAt` → issue → `save`, with no conditional update. The single-flight `refreshPromise` is module-level, so it only covers one tab.
 - **Impact:**
@@ -392,6 +482,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 #### SEC-104 · Open redirect: `getSafeRedirectPath` lets a tab character through
 **Medium · Confirmed (proxy path, per the WHATWG URL spec); Suspected for `router.push` · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in A6. Control chars/whitespace/backslash rejected + same-origin URL check; 12 vitest cases.
 - **Location:** `apps/website/src/lib/safeRedirect.ts:125-132`, `apps/website/src/proxy.ts:34-37`, `apps/website/src/app/auth/login/page.tsx:52-55`, `apps/website/src/app/auth/signup/page.tsx:51-54`
 - **Evidence:** The function rejects only `//`, `/\` and CR/LF. For `?redirect=/%09/evil.example`, the value is `"/\t/evil.example"`. `new URL(v, request.url)` strips the tab, which yields `//evil.example`.
 - **Impact:** A signed-in user who opens `https://store/auth/login?redirect=/%09/evil.example` is redirected by `proxy.ts` to the attacker's site (phishing).
@@ -399,6 +490,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 #### SEC-106 · Forgot-password returns the reset link in the response when mail fails and `NODE_ENV` ≠ production; an unset `NODE_ENV` defaults to development
 **Medium · Confirmed (code); exposure conditional · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in A6. Reset link never returned; logged only when NODE_ENV=development; generic 200 on mail failure.
 - **Location:** `apps/api/controllers/password.controller.js:110-117`, `apps/api/config/env.js:26-31`
 - **Evidence:** `if (NODE_ENV !== 'production') return {resetPasswordLink: link}`. `validateEnv` defaults `NODE_ENV` to `'development'` and only warns. `render.yaml` sets production, but a staging, preview or Docker deploy without it is exposed.
 - **Impact:** If SMTP is broken, an attacker POSTs the victim's email and receives a working reset link, which is account takeover (including admins).
@@ -406,6 +498,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 #### SEC-107 · Changing the profile email needs no password and no verification; email validation is `includes('@')`
 **Medium · Confirmed · Effort M**
+- **Status (2026-09-29):** ✅ Fixed in B8. Email change requires the current password (Joi email validation, lockout-counted); tested. No confirmation mail to the new address.
 - **Location:** `apps/api/controllers/profile.controller.js:54-90` (validation at :63)
 - **Evidence:** `PUT /api/auth/profile {email}` writes the new address directly. `"@@@@@"` passes validation.
 - **Impact:** A stolen 15-minute token can change the email, then use forgot-password, which is a permanent takeover. A typo leaves the user unable to reset their password.
@@ -413,6 +506,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 #### SEC-108 · Weak brute-force protection: IP-only, in-memory, 30/min in production, no per-account lockout; behind Vercel `req.ip` is probably the Vercel egress
 **Medium · Confirmed (limits); Suspected (IP collapse; would be High if confirmed) · Effort M** (merged WEB-404)
+- **Status (2026-09-29):** 🟡 Partial in B7. Per-account lockout (5 wrong → 15 min, stored in DB; also on email change); tested. Still open: `trust proxy` hop count (open question Q1), shared rate-limit store.
 - **Location:** `apps/api/middlewares/rateLimit.js:22-28,42,111-116,125-130,159-164`, `apps/api/render.yaml:38-43`, `apps/api/app.js:21`, `apps/website/src/lib/serverAuth.ts:85-93`, `apps/website/next.config.ts:62-72`, `apps/api/routes/payments.js:22-27`
 - **Evidence:**
   - `RATE_LIMIT_AUTH_MAX=30` per minute in `render.yaml`, against a code default of 5. Buckets live in a process-local `Map` that resets on every deploy.
@@ -428,6 +522,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 #### SEC-109 · Storefront access token is JS-readable, and the Next app sends no security headers (CSP, frame-ancestors, HSTS)
 **Medium · Confirmed (acknowledged follow-up in AGENTS.md) · Effort M** (merged WEB-411)
+- **Status (2026-09-29):** 🟡 Partial in B7. Storefront CSP (no nonces), frame, nosniff, referrer, permissions and HSTS headers. Still open: nonce-based script-src, httpOnly access token (C4).
 - **Location:** `apps/website/src/lib/authCookies.ts:11-24,43-45`, `apps/website/next.config.ts` (no `headers()`), `apps/website/vercel.json`
 - **Evidence:** The `token` cookie is not httpOnly and lasts 7 days. There is no CSP, X-Frame-Options, Referrer-Policy or Permissions-Policy.
 - **Impact:** Any XSS yields a live bearer token (escalates through SEC-107). The site can be framed for clickjacking.
@@ -435,6 +530,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 #### SEC-110 · Changing the password on the storefront revokes the caller's own refresh token (forced logout within 15 min)
 **Medium · Confirmed · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in B5. Storefront signs out with a clear "sign in again" message after a password change.
 - **Location:** `apps/api/controllers/password.controller.js:216-218`, `apps/website/src/app/user/security/page.tsx:55-62`, `apps/website/src/lib/api.ts:147-161`
 - **Evidence:** `revokeAllForUser` runs after the change. The UI shows success and keeps the session. The next refresh returns 401, and the user sees a "Please sign in" toast.
 - **Impact:** Users experience an unexplained logout right after a successful change.
@@ -442,6 +538,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 #### SEC-113 · Admins can remove their own admin role or delete themselves; no last-admin guard
 **Medium · Confirmed · Effort S** (merged DASH-616)
+- **Status (2026-09-29):** ✅ Fixed in B6. No self-demote/self-delete; last-enabled-admin guard; tested.
 - **Location:** `apps/api/controllers/user.controller.js:96-104,139-150`, `apps/dashboard/src/pages/Users.tsx:94-150,319-355`
 - **Evidence:** Only self-disable is blocked. The UI does not know who the current user is.
 - **Impact:** The only admin can lock the store out of the dashboard. Recovery then needs the destructive seeder (API-304) or direct DB access.
@@ -449,21 +546,22 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 | ID | Title | Sev | Status | Location | Evidence / Impact | Fix | Effort |
 |---|---|---|---|---|---|---|---|
-| SEC-111 | Access JWT can't be revoked; role demotion or delete doesn't revoke sessions | Low | Confirmed | `middlewares/verfiyToken.js:13-15`, `models/User.js:127-139`, `controllers/user.controller.js:96,127-129` | `verfiyToken` trusts `roles` from the JWT and revocation runs only on password or `disabled` changes. A demoted or deleted rogue admin keeps access for ≤15 min. | Revoke on role change or delete; add a `tokenVersion` claim checked on staff routes. | S–M |
-| SEC-112 | User enumeration through register, login timing and forgot-password | Low | Confirmed | `controllers/auth.controller.js:47-50,91-94`, `controllers/profile.controller.js:77-80`, `controllers/password.controller.js:58-60,107-122` | "This user already registered". Login skips bcrypt for unknown emails. A reset mail failure returns 500 only for real accounts. | Return generic responses, run a dummy bcrypt compare, and send mail asynchronously. | S |
-| SEC-114 | `users:read` (moderators) returns full PII: addresses, phones, adminNotes, stripeCustomerId | Low | Confirmed | `controllers/user.controller.js:48,68`, `middlewares/rolePermissions.js:15` | `select('-password +adminNotes')` returns whole documents, which breaks GDPR data minimisation. | Project only the list columns; return `adminNotes` to admins only. | S |
-| SEC-115 | Next auth route handlers have no Origin or Content-Type check (login CSRF) | Low | Suspected | `apps/website/src/app/api/auth/login/route.ts:15`, `…/register/route.ts:15` | `request.json()` accepts a cross-site `text/plain` form POST, so a victim can be signed into an attacker's account. | Require `application/json` and a matching `Origin`. | S |
-| SEC-116 | Default refresh limit (20 per 15 min per IP) is lower than the login limit and contradicts its comment | Low | Confirmed | `middlewares/rateLimit.js:156-164` | Only `render.yaml` overrides it (to 120). Any other host logs out users behind NAT. | Raise the default and key it on the token hash as well as the IP. | S |
-| SEC-117 | Local upload driver is allowed in production (warning only); public URL is built from the Host header | Low | Confirmed | `config/env.js:51-55`, `controllers/upload.controller.js:14-18` | Render's disk is ephemeral, so images disappear on redeploy. A spoofed Host produces bad stored URLs. | Make `local` a boot error in production and require `UPLOAD_PUBLIC_BASE_URL`. | S |
-| API-102 | A username collision blocks unrelated profile updates | Low | Confirmed | `controllers/auth.controller.js:47`, `models/User.js:76-82`, `controllers/profile.controller.js:72-81` | Usernames aren't unique at register, but profile update rejects the request if *any* other user has the same name, even when only the email is being changed. | Check uniqueness only for fields that changed, or enforce unique usernames. | S |
-| API-104 | `dotenv` loads after the logger config is evaluated | Low | Confirmed | `app.js:4-6`, `config/logging.config.js:15-22` | Locally, `LOG_LEVEL`, `LOG_PRETTY` and `NODE_ENV` from `.env` are ignored by the logger. | Make `require('dotenv').config()` the first line. | S |
-| SEC-118 | JWT hardening gaps | Info | Confirmed | `middlewares/verfiyToken.js:6-13`, `middlewares/optionalVerifyToken.js:9-19`, `models/User.js:134-138` | No `algorithms`, `iss` or `aud` pinning. A non-standard `token:` header is accepted. bcrypt cost is 10. `newPassword` has no max length (bcrypt truncates at 72 bytes). | Pin HS256, iss and aud; drop the `token` header; use cost 12; add `max(128)`. | S |
-| API-107 | Store-settings `currency` is saved but checkout hard-codes `usd` | Info | Confirmed | `models/StoreSettings.js:27-33`, `controllers/payment.controller.js:188,202,213,250` | Changing the currency in the dashboard has no effect. | Remove the field or honour it end to end. | S |
+| SEC-111 | 🟡 Access JWT can't be revoked; role demotion or delete doesn't revoke sessions | Low | Confirmed | `middlewares/verfiyToken.js:13-15`, `models/User.js:127-139`, `controllers/user.controller.js:96,127-129` | `verfiyToken` trusts `roles` from the JWT and revocation runs only on password or `disabled` changes. A demoted or deleted rogue admin keeps access for ≤15 min. | Revoke on role change or delete; add a `tokenVersion` claim checked on staff routes. | S–M |
+| SEC-112 | 🟡 User enumeration through register, login timing and forgot-password | Low | Confirmed | `controllers/auth.controller.js:47-50,91-94`, `controllers/profile.controller.js:77-80`, `controllers/password.controller.js:58-60,107-122` | "This user already registered". Login skips bcrypt for unknown emails. A reset mail failure returns 500 only for real accounts. | Return generic responses, run a dummy bcrypt compare, and send mail asynchronously. | S |
+| SEC-114 | `users:read` (moderators) returns full PII: addresses, phones, adminNotes, stripeCustomerId  | Low | Confirmed | `controllers/user.controller.js:48,68`, `middlewares/rolePermissions.js:15` | `select('-password +adminNotes')` returns whole documents, which breaks GDPR data minimisation. | Project only the list columns; return `adminNotes` to admins only. | S |
+| SEC-115 | Next auth route handlers have no Origin or Content-Type check (login CSRF)  | Low | Suspected | `apps/website/src/app/api/auth/login/route.ts:15`, `…/register/route.ts:15` | `request.json()` accepts a cross-site `text/plain` form POST, so a victim can be signed into an attacker's account. | Require `application/json` and a matching `Origin`. | S |
+| SEC-116 | Default refresh limit (20 per 15 min per IP) is lower than the login limit and contradicts its comment  | Low | Confirmed | `middlewares/rateLimit.js:156-164` | Only `render.yaml` overrides it (to 120). Any other host logs out users behind NAT. | Raise the default and key it on the token hash as well as the IP. | S |
+| SEC-117 | Local upload driver is allowed in production (warning only); public URL is built from the Host header  | Low | Confirmed | `config/env.js:51-55`, `controllers/upload.controller.js:14-18` | Render's disk is ephemeral, so images disappear on redeploy. A spoofed Host produces bad stored URLs. | Make `local` a boot error in production and require `UPLOAD_PUBLIC_BASE_URL`. | S |
+| API-102 | ✅ A username collision blocks unrelated profile updates | Low | Confirmed | `controllers/auth.controller.js:47`, `models/User.js:76-82`, `controllers/profile.controller.js:72-81` | Usernames aren't unique at register, but profile update rejects the request if *any* other user has the same name, even when only the email is being changed. | Check uniqueness only for fields that changed, or enforce unique usernames. | S |
+| API-104 | `dotenv` loads after the logger config is evaluated  | Low | Confirmed | `app.js:4-6`, `config/logging.config.js:15-22` | Locally, `LOG_LEVEL`, `LOG_PRETTY` and `NODE_ENV` from `.env` are ignored by the logger. | Make `require('dotenv').config()` the first line. | S |
+| SEC-118 | JWT hardening gaps  | Info | Confirmed | `middlewares/verfiyToken.js:6-13`, `middlewares/optionalVerifyToken.js:9-19`, `models/User.js:134-138` | No `algorithms`, `iss` or `aud` pinning. A non-standard `token:` header is accepted. bcrypt cost is 10. `newPassword` has no max length (bcrypt truncates at 72 bytes). | Pin HS256, iss and aud; drop the `token` header; use cost 12; add `max(128)`. | S |
+| API-107 | Store-settings `currency` is saved but checkout hard-codes `usd`  | Info | Confirmed | `models/StoreSettings.js:27-33`, `controllers/payment.controller.js:188,202,213,250` | Changing the currency in the dashboard has no effect. | Remove the field or honour it end to end. | S |
 
 ### 5.2 Commerce & payments
 
 #### API-201 · Checkout fails when the cart holds two variants of the same product
 **Critical · Confirmed (re-verified) · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in A1. Line lookup compares unique product ids; covered by tests/hardening.test.js.
 - **Location:** `apps/api/utils/commerce.js:219-226`, `apps/website/src/lib/cartStore.ts:51-57`, `apps/api/controllers/return.controller.js:63-64`
 - **Evidence:** `Product.find({_id: {$in: productIds}})` returns one document per unique id, and the code then checks `products.length !== productIds.length`. The cart stores one line per productId + size + color.
 - **Impact:** A shirt in sizes M and L → `POST /payments/checkout-session` (and `POST /orders`) → 400 "One or more products not found". The quote succeeds, so the UI shows valid totals right up to payment.
@@ -471,6 +569,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 #### API-202 · Delivery checkout sends `shippingMethod: ''`, which the API rejects with 400
 **Critical · Confirmed (re-verified); production zone state is an open question · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in A1. Checkout/quote send `selectedShippingMethod || "standard"`; the server also normalises via resolveFulfillment (B1).
 - **Location:** `apps/website/src/app/checkout/page.tsx:125-134,194-204,308-311`, `apps/website/src/hooks/cart/cartQuoteQuery.ts:54-55`, `apps/api/models/Order.js:400,422`
 - **Evidence:**
   - When `/shipping/methods` returns an empty list, `selectedShippingMethod` is set to `''` (:201).
@@ -482,6 +581,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 #### PAY-201 · `payment_intent.succeeded` marks the order paid with no side effects or state checks; a paid-after-cancel order is lost
 **High · Confirmed (code, re-verified); event ordering in production Suspected · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in A2. `payment_intent.succeeded` no longer writes paid; tested.
 - **Location:** `apps/api/controllers/payment.controller.js:630-648,437-451,689-691` (the PI metadata carries `orderId`, :238-239)
 - **Evidence:**
   - This handler writes `paymentStatus: 'paid'` directly.
@@ -494,6 +594,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 #### PAY-202 · `checkout.session.completed` counts as paid whatever `session.payment_status` says
 **High · Confirmed (code); depends on which payment methods are enabled · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in A2. Paid only when `payment_status` is paid/no_payment_required; async_payment_succeeded/failed handled; tested. **Subscribe both async events in the Stripe dashboard.**
 - **Location:** `apps/api/controllers/payment.controller.js:415-428,501-507,614-651,225-244`
 - **Evidence:** There is no `payment_status === 'paid'` check. `async_payment_succeeded` and `async_payment_failed` are not handled. `payment_method_types` is not pinned. By contrast, `verifyPaymentStatus` does check the status (:704).
 - **Impact:** With a delayed method enabled (ACH, SEPA), the order is paid, stock is decremented and the email is sent before the funds settle. A later failure leaves the order paid and the goods shipped.
@@ -501,6 +602,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 #### API-203 · The client decides the shipping charge, and the chosen method is never stored on the Order
 **High · Confirmed · Effort M**
+- **Status (2026-09-29):** ✅ Fixed in B1. `delivery`/`shippingMethod` normalised by resolveFulfillment, priced and stored on Order (pickup = `none`); shown in dashboard; tested. Still open: validating a handle against the zone.
 - **Location:** `apps/api/utils/commerce.js:92-98`, `apps/api/models/Order.js:90-357,398-400`, `apps/website/src/app/checkout/page.tsx:125,308-311`
 - **Evidence:** `delivery: false` (the default), `shippingMethod: 'none'` or any unknown handle all produce `shippingPrice: 0`. Neither `delivery` nor `shippingMethod` is persisted.
 - **Impact:**
@@ -513,6 +615,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **PAY-203 · Concurrent webhook and verify-payment can overwrite a `needs_attention` (insufficient stock) flag with `paid`**
 **Medium · Confirmed (code trace; not covered by tests) · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in A2. needs_attention write matches pending or paid, so the loser cannot overwrite it.
 - **Location:** `apps/api/controllers/payment.controller.js:376-389,431-454,489-494`
 - **Evidence:** The caller that loses the claim skips the stock lease but still writes `{status: 'pending'} → paid`. The winner's stock `$inc` then fails, and its write to `needs_attention` no longer matches any document.
 - **Impact:** For the last unit, the result can be `paid` with `stockDecremented: false` and no attention flag. The item is oversold and shipped.
@@ -520,6 +623,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **PAY-204 · A webhook event left in `processing` after a crash is acknowledged as a duplicate forever**
 **Medium · Confirmed · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in A2. A `processing` claim older than 5 min is reclaimed atomically.
 - **Location:** `apps/api/utils/stripeWebhookIdempotency.js:21-25`, `apps/api/controllers/payment.controller.js:605-610,652-656`
 - **Evidence:** A duplicate-key error returns 200 `duplicate: true` whatever the stored status is. The claim is released only inside `catch`.
 - **Impact:** An OOM or SIGKILL mid-handler turns every Stripe retry into a no-op, so the side effects are never applied.
@@ -527,6 +631,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **API-204 · The coupon usage limit can be exceeded; there is no per-customer limit and no release**
 **Medium · Confirmed · Effort M**
+- **Status (2026-09-29):** ✅ Fixed in B3. Open checkouts reserve uses; new `perCustomerLimit` (paid orders only); tested.
 - **Location:** `apps/api/utils/commerce.js:185,478-485`, `apps/api/controllers/payment.controller.js:139-148,391-401`, `apps/api/models/Coupon.js:29`
 - **Evidence:** The limit is checked when the session is created, and the `$inc` at payment is unconditional. There is no per-user tracking, and cancel or refund never decrements the count.
 - **Impact:** With `usageLimit: 100` and 50 open sessions at `usedCount: 99`, all 50 get the discount. One customer can reuse a "one-time" code indefinitely.
@@ -534,6 +639,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **API-205 · Refunds restock goods that were shipped or delivered and never returned; returns never restock**
 **Medium · Confirmed · Effort M**
+- **Status (2026-09-29):** ✅ Fixed in B4. `shippedAt` + hasOrderShipped: refunds/cancels restock only unshipped goods; returns restock their lines on "received"; tested.
 - **Location:** `apps/api/controllers/payment.controller.js:566-583`, `apps/api/controllers/order.controller.js:403-443`, `apps/api/utils/orderTransitions.js:22-23`
 - **Evidence:** A full `charge.refunded`, or an admin move to `refunded` from shipped or delivered, calls `restoreStockOnce` for every line.
 - **Impact:** A goodwill refund inflates stock, and the phantom units are sold again.
@@ -541,6 +647,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **API-206 · `updateOrderStatus` is a non-atomic read-modify-save that races customer cancel and the webhook**
 **Medium · Confirmed (code); likelihood Suspected · Effort M**
+- **Status (2026-09-29):** ✅ Fixed in B4. Admin transitions claimed atomically (409 on conflict); admin cancel expires the Stripe session.
 - **Location:** `apps/api/controllers/order.controller.js:350-383,445-449` vs `cancelOrder` at `:534-558`
 - **Evidence:** The code does `findById`, validates against that possibly stale state, then calls `save()` with no version check. An admin cancel doesn't expire the open Stripe session.
 - **Impact:**
@@ -550,6 +657,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **API-207 · Money is stored as float dollars and never rounded; Stripe's charged amount can differ from `order.totalPrice`**
 **Medium · Confirmed · Effort M**
+- **Status (2026-09-29):** ✅ Fixed in B2. roundMoney at every step + computeOrderTotal; `Order.amountPaid` from Stripe; refund cap uses it; tested. Storage stays dollars (no migration).
 - **Location:** `apps/api/utils/commerce.js:201-206,287-290`, `apps/api/controllers/payment.controller.js:34-36,194,249`, `apps/api/data.js:444,459,485`, `apps/api/models/Product.js:63-67,314-320`, `apps/api/controllers/return.controller.js:246`
 - **Evidence:** Seeded variant prices look like `53.4893`. Percentage discounts and `itemsPrice` are not rounded. Stripe rounds per unit and per coupon.
 - **Impact:** Order, invoice and analytics totals don't match Stripe. The return-refund cap can exceed the amount actually captured, so Stripe rejects the refund.
@@ -557,6 +665,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **API-208 · Unvalidated admin regex in shipping zones can crash or ReDoS every quote and checkout**
 **Medium · Confirmed · Effort S**
+- **Status (2026-09-29):** 🟡 Partial in A11. Patterns validated on save, capped (200 chars), input capped (100), invalid legacy patterns skipped. Catastrophic-but-valid regexes still possible (would need safe-regex).
 - **Location:** `apps/api/utils/commerce.js:117-124`, `apps/api/controllers/shipping.controller.js:175-182`, `apps/api/models/ShippingZone.js:68-77,114-115`
 - **Evidence:** `new RegExp(zone.regionPattern, 'i')` runs on every quote, tested against the user-supplied zip and city. The pattern is never checked when it is saved.
 - **Impact:** One malformed pattern (e.g. `[A-`) turns every quote for that country into a 500. A catastrophic pattern plus a crafted zip blocks the event loop.
@@ -564,6 +673,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **API-209 · A zone method priced at $0 falls back to the flat rate**
 **Medium · Confirmed · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in A11. Zone match tracked separately from its price; $0 methods are free.
 - **Location:** `apps/api/utils/commerce.js:130-149`
 - **Evidence:** After the lookup the code checks `if (rate === 0)`, which can't tell "free" from "not found".
 - **Impact:** The methods endpoint shows $0, but checkout charges the flat $5.
@@ -571,6 +681,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **API-210 · Bundle "savings" are shown but never applied at checkout**
 **Medium · Confirmed · Effort M** (merged WEB-407)
+- **Status (2026-09-29):** ✅ Fixed in B10. Savings UI removed (real prices only); variant products skipped; API stub no longer invents savings.
 - **Location:** `apps/api/controllers/bundle.controller.js:54-60,73-94`, `apps/website/src/components/products/FrequentlyBoughtTogether.tsx:35,94-131,148-157,207-213`, `apps/website/src/data/demoStorefront.ts:745-760`, `apps/api/utils/commerce.js:269`
 - **Evidence:** The UI shows "Save $X" (from the admin's `bundlePrice`, an 8% API stub, or an 8% client demo value). `handleAddBundle` adds the lines at full price with no variant selected.
 - **Impact:** Shoppers see a price they are not charged (consumer-law risk). Products that need a variant fail the quote with `variant_required`.
@@ -585,6 +696,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **API-212 · Products and brands are hard-deleted with no referential guard in the API**
 **Medium · Confirmed · Effort M** (root cause of DASH-603)
+- **Status (2026-09-29):** ✅ Fixed in B6. Product/brand DELETE deactivates; tested.
 - **Location:** `apps/api/controllers/product.controller.js:246-254`, `apps/api/controllers/brand.controller.js:214-222`, `apps/api/utils/commerce.js:435`, `apps/dashboard/src/pages/Brands.tsx:126-133`
 - **Evidence:** Both use `findByIdAndDelete`, while coupons, offers and bundles are soft-deleted. Stock restore silently `continue`s past missing products. The only guard is a client-side check in the dashboard.
 - **Impact:** Deleting a brand leaves products with `brand: null`. Deleting a product orphans bundles, Q&A and wishlists, which crashes dashboard pages (DASH-603), and refund restock silently skips it.
@@ -592,6 +704,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **PAY-205 · Confirmation email can be sent twice, is sent for unfulfillable orders, and links to a 404 `/profile`**
 **Medium · Confirmed · Effort S** (merged OPS-704, WEB-408)
+- **Status (2026-09-29):** ✅ Fixed in A9. Emails link to `/user/orders/:id`; confirmation leased once; skipped for needs_attention.
 - **Location:** `apps/api/controllers/payment.controller.js:305-327,496`, `apps/api/utils/mail.js:72`, `apps/website/src/proxy.ts:15`, `apps/website/next.config.ts:47-60`
 - **Evidence:**
   - The `confirmationEmailSent` flag is checked on an in-memory document and set only after sending, with no lease.
@@ -619,30 +732,31 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 | ID | Title | Sev | Status | Location | Evidence / Impact | Fix | Effort |
 |---|---|---|---|---|---|---|---|
-| API-213 | Gaps in order email coverage; "shipped" is sent only if tracking already exists | Low | Confirmed | `controllers/order.controller.js:455-480`, `controllers/payment.controller.js:550-585` | No email for webhook refunds, insufficient stock or session expiry. Combined with DASH-602 (tracking can't be added from the UI), **the shipped email is effectively never sent**. | Send refund and attention emails, and send "shipped" when tracking is added later. | S |
-| PAY-206 | Checkout errors leak Stripe and config details | Low | Confirmed | `controllers/payment.controller.js:102-107,266-270` | The `detail` field includes the raw Stripe message and "Missing STRIPE_SECRET_KEY in backend/.env". | Log the detail; return a generic message plus a code. | S |
-| PAY-207 | The temporary Stripe coupon leaks when session creation fails; zero or tiny totals aren't handled | Low | Confirmed / Suspected | `controllers/payment.controller.js:247-261` | The `catch` deletes only the order. A 100%-off coupon probably yields a 502. | Delete the coupon in `catch`; handle zero totals without Stripe. | S |
-| PAY-208 | `expires_at` is exactly +1800 s, Stripe's minimum | Low | Suspected | `controllers/payment.controller.js:38,228` | Latency or clock skew can push it under the floor, and Stripe rejects the session. | Use 31+ minutes; verify in test mode. | S |
-| API-215 | Coupon public surface and logic drift | Low | Confirmed | `controllers/coupon.controller.js:95-105,239-241`, `utils/commerce.js:211-214`, `models/Coupon.js:66` | `GET /coupons/code/:code` returns the full document. `validate` doesn't `trim`, while checkout does. Percentages above 100 are allowed (also in the dashboard UI, DASH-625). A duplicate code returns 400 instead of 409. | Return public fields only (or drop the endpoint), reuse `calculateCouponDiscount`, cap at 100. | S |
-| API-216 | Missing input bounds on order and payment endpoints | Low | Confirmed | `models/Order.js:384`, `controllers/payment.controller.js:673-686` | `items` has no `.max()` (Stripe allows at most 100 lines). `verify-payment` has no ObjectId check and returns 403 rather than 404 for someone else's order. Variant strings are unbounded. | Add `.max(100)`, a Joi ObjectId check, and 404 for non-owners. | S |
-| API-217 | Customer order payloads expose internal fields | Low | Confirmed | `utils/serializeOrder.js:45-58` | `stockDecremented`, `stripeSessionId`, `paymentIntentId`, `refundId`… are returned by `/orders/my` and `/orders/:id`. | Add a customer serializer with an allow-list. | S |
-| API-218 | `GET /orders/my` is unbounded | Low | Confirmed | `controllers/order.controller.js:124-135` | No pagination and no projection. | Paginate. | S |
-| API-219 | Product sort and search quality | Low | Confirmed | `utils/productQuery.js:138-141,186-206` | The legacy sort accepts any field path. The default is oldest-first. `$text` results aren't sorted by score. | Allow-list sort fields, default to newest, sort by `textScore` when `q` is set. | S |
-| API-220 | `basePrice` (compare-at price) can't be managed, so fake "sale" badges appear | Low | Confirmed | `models/Product.js:68-75`, `controllers/product.controller.js:207-212`, `apps/website/src/components/products/ProductCard.tsx:59-61` | Lowering a price automatically shows a strike-through and "−X%". | Expose `basePrice`, or reset it when the price is edited. | S |
-| API-221 | Admin stats accuracy | Low | Confirmed | `controllers/adminStats.controller.js:7-8,23-38,203-213` | Revenue ignores partial refunds and counts paid-then-canceled orders. `statusCounts` omits `needs_attention` and `refunded`. Low-stock ignores variants and selects a nonexistent `slug`. | Fix the aggregations. | S |
-| API-222 | Offers: public list and update validation | Low | Confirmed | `controllers/offer.controller.js:18-25,104-108,134-136,190-192` | Without `?active`, the list includes inactive and expired offers. `href` and `imageUrl` aren't validated. `Boolean(body.active)`. No `runValidators`. | Default the public list to active-only; add Joi validation. | S |
-| API-224 | A soft-deleted bundle blocks re-creation | Low | Confirmed | `models/Bundle.js:21-26`, `controllers/bundle.controller.js:193-197,282-297`, `validators/bundle.validator.js:4` | The unique `primaryProduct` still holds after deactivation, so re-creating returns 409. Item ids aren't ObjectId-validated. | Use a partial unique index on `active: true`. | S |
-| API-225 | Stock restore can double-restock after a partial failure; N+1 queries | Low | Confirmed | `utils/commerce.js:425-468,508-562` | If one line throws, the flag is reset and a retry re-restocks the lines already done. Each line costs 2 queries. | Track per-line progress or use `bulkWrite`/a transaction. | M |
-| API-226 | The dashboard status toast claims "refund issued" whatever the server did | Low | Confirmed | `apps/dashboard/src/pages/OrderDetail.tsx:108`, `controllers/order.controller.js:490-491` | The server's `message` (e.g. `manual_refund_required`) is ignored. | Show `result.message`. | S |
-| API-227 | Coupon and offer expiry date is stored as 00:00 UTC of the chosen day | Low | Suspected (intent) | `apps/dashboard/src/pages/Coupons.tsx:34,92-101,386-392`, `utils/commerce.js:182`, `controllers/offer.controller.js:124-131` | It expires a day early from the admin's point of view (merged DASH-625). | Store end of day in the store's timezone. | S |
-| API-228 | Response and error shapes are inconsistent across the API | Info | Confirmed | `controllers/order.controller.js:134,257-265,322-325`, `offer.controller.js:35-38`, `coupon.controller.js:83,142`, `review.controller.js:123,170`, `content.controller.js:88,145`, `middlewares/errorHandler.js:88-94`, `middlewares/checkRolePermission.js:6-18` | Bare doc or array, `{data, meta}`, `{message, results}`, `{message, data}`; errors as `{message}` or `{success, message, code, details}`; `pages` is 0 or 1 when empty (merged API-105, API-324). | Standardise on `{message, data, meta}` and `{message, code, errors}`. | M |
-| API-229 | Index gaps | Info | Confirmed | `controllers/order.controller.js:36-42`, `models/Order.js:360-365` | `totalPrice` sort is unindexed. `returnRequest.status` has no index. The sparse Stripe indexes are useless (default `''`). | Add the indexes; default the fields to undefined or use partial indexes. | S |
-| API-230 | Commerce product gaps | Info | Confirmed | `controllers/payment.controller.js:514`, `controllers/return.controller.js:161-331`, `utils/returns.js:35-37`, `utils/commerce.js:165-172` | No stock reservation. No auto-refund or notice on insufficient stock. One return per order. Tax on the pre-discount subtotal with one global rate. USD only. | Product decisions (see §6). | L |
+| API-213 | 🟡 Gaps in order email coverage; "shipped" is sent only if tracking already exists | Low | Confirmed | `controllers/order.controller.js:455-480`, `controllers/payment.controller.js:550-585` | No email for webhook refunds, insufficient stock or session expiry. Combined with DASH-602 (tracking can't be added from the UI), **the shipped email is effectively never sent**. | Send refund and attention emails, and send "shipped" when tracking is added later. | S |
+| PAY-206 | Checkout errors leak Stripe and config details  | Low | Confirmed | `controllers/payment.controller.js:102-107,266-270` | The `detail` field includes the raw Stripe message and "Missing STRIPE_SECRET_KEY in backend/.env". | Log the detail; return a generic message plus a code. | S |
+| PAY-207 | The temporary Stripe coupon leaks when session creation fails; zero or tiny totals aren't handled  | Low | Confirmed / Suspected | `controllers/payment.controller.js:247-261` | The `catch` deletes only the order. A 100%-off coupon probably yields a 502. | Delete the coupon in `catch`; handle zero totals without Stripe. | S |
+| PAY-208 | `expires_at` is exactly +1800 s, Stripe's minimum  | Low | Suspected | `controllers/payment.controller.js:38,228` | Latency or clock skew can push it under the floor, and Stripe rejects the session. | Use 31+ minutes; verify in test mode. | S |
+| API-215 | ✅ Coupon public surface and logic drift | Low | Confirmed | `controllers/coupon.controller.js:95-105,239-241`, `utils/commerce.js:211-214`, `models/Coupon.js:66` | `GET /coupons/code/:code` returns the full document. `validate` doesn't `trim`, while checkout does. Percentages above 100 are allowed (also in the dashboard UI, DASH-625). A duplicate code returns 400 instead of 409. | Return public fields only (or drop the endpoint), reuse `calculateCouponDiscount`, cap at 100. | S |
+| API-216 | Missing input bounds on order and payment endpoints  | Low | Confirmed | `models/Order.js:384`, `controllers/payment.controller.js:673-686` | `items` has no `.max()` (Stripe allows at most 100 lines). `verify-payment` has no ObjectId check and returns 403 rather than 404 for someone else's order. Variant strings are unbounded. | Add `.max(100)`, a Joi ObjectId check, and 404 for non-owners. | S |
+| API-217 | Customer order payloads expose internal fields  | Low | Confirmed | `utils/serializeOrder.js:45-58` | `stockDecremented`, `stripeSessionId`, `paymentIntentId`, `refundId`… are returned by `/orders/my` and `/orders/:id`. | Add a customer serializer with an allow-list. | S |
+| API-218 | `GET /orders/my` is unbounded  | Low | Confirmed | `controllers/order.controller.js:124-135` | No pagination and no projection. | Paginate. | S |
+| API-219 | Product sort and search quality  | Low | Confirmed | `utils/productQuery.js:138-141,186-206` | The legacy sort accepts any field path. The default is oldest-first. `$text` results aren't sorted by score. | Allow-list sort fields, default to newest, sort by `textScore` when `q` is set. | S |
+| API-220 | `basePrice` (compare-at price) can't be managed, so fake "sale" badges appear  | Low | Confirmed | `models/Product.js:68-75`, `controllers/product.controller.js:207-212`, `apps/website/src/components/products/ProductCard.tsx:59-61` | Lowering a price automatically shows a strike-through and "−X%". | Expose `basePrice`, or reset it when the price is edited. | S |
+| API-221 | Admin stats accuracy  | Low | Confirmed | `controllers/adminStats.controller.js:7-8,23-38,203-213` | Revenue ignores partial refunds and counts paid-then-canceled orders. `statusCounts` omits `needs_attention` and `refunded`. Low-stock ignores variants and selects a nonexistent `slug`. | Fix the aggregations. | S |
+| API-222 | Offers: public list and update validation  | Low | Confirmed | `controllers/offer.controller.js:18-25,104-108,134-136,190-192` | Without `?active`, the list includes inactive and expired offers. `href` and `imageUrl` aren't validated. `Boolean(body.active)`. No `runValidators`. | Default the public list to active-only; add Joi validation. | S |
+| API-224 | A soft-deleted bundle blocks re-creation  | Low | Confirmed | `models/Bundle.js:21-26`, `controllers/bundle.controller.js:193-197,282-297`, `validators/bundle.validator.js:4` | The unique `primaryProduct` still holds after deactivation, so re-creating returns 409. Item ids aren't ObjectId-validated. | Use a partial unique index on `active: true`. | S |
+| API-225 | ✅ Stock restore can double-restock after a partial failure; N+1 queries | Low | Confirmed | `utils/commerce.js:425-468,508-562` | If one line throws, the flag is reset and a retry re-restocks the lines already done. Each line costs 2 queries. | Track per-line progress or use `bulkWrite`/a transaction. | M |
+| API-226 | ✅ The dashboard status toast claims "refund issued" whatever the server did | Low | Confirmed | `apps/dashboard/src/pages/OrderDetail.tsx:108`, `controllers/order.controller.js:490-491` | The server's `message` (e.g. `manual_refund_required`) is ignored. | Show `result.message`. | S |
+| API-227 | Coupon and offer expiry date is stored as 00:00 UTC of the chosen day  | Low | Suspected (intent) | `apps/dashboard/src/pages/Coupons.tsx:34,92-101,386-392`, `utils/commerce.js:182`, `controllers/offer.controller.js:124-131` | It expires a day early from the admin's point of view (merged DASH-625). | Store end of day in the store's timezone. | S |
+| API-228 | Response and error shapes are inconsistent across the API  | Info | Confirmed | `controllers/order.controller.js:134,257-265,322-325`, `offer.controller.js:35-38`, `coupon.controller.js:83,142`, `review.controller.js:123,170`, `content.controller.js:88,145`, `middlewares/errorHandler.js:88-94`, `middlewares/checkRolePermission.js:6-18` | Bare doc or array, `{data, meta}`, `{message, results}`, `{message, data}`; errors as `{message}` or `{success, message, code, details}`; `pages` is 0 or 1 when empty (merged API-105, API-324). | Standardise on `{message, data, meta}` and `{message, code, errors}`. | M |
+| API-229 | Index gaps  | Info | Confirmed | `controllers/order.controller.js:36-42`, `models/Order.js:360-365` | `totalPrice` sort is unindexed. `returnRequest.status` has no index. The sparse Stripe indexes are useless (default `''`). | Add the indexes; default the fields to undefined or use partial indexes. | S |
+| API-230 | Commerce product gaps  | Info | Confirmed | `controllers/payment.controller.js:514`, `controllers/return.controller.js:161-331`, `utils/returns.js:35-37`, `utils/commerce.js:165-172` | No stock reservation. No auto-refund or notice on insufficient stock. One return per order. Tax on the pre-discount subtotal with one global rate. USD only. | Product decisions (see §6). | L |
 
 ### 5.3 CMS & user content
 
 #### API-301 · A seeded or CMS-driven homepage drops 6 sections and renders 3 modules as nothing
 **High · Confirmed (re-verified) · Effort M** (merged DASH-601, WEB-401)
+- **Status (2026-09-29):** ✅ Fixed in A8. Homepage renders by module `type` (key fallback); non-CMS sections always kept. `new_arrivals` reuses the product rail (no dedicated rail yet).
 - **Location:** `apps/website/src/app/page.tsx:49-56,68-121`, `apps/website/src/hooks/storefront/homeQuery.ts:108-112`, `apps/api/data.js:875-1029`, `apps/api/models/StorefrontModule.js:14`, `apps/dashboard/src/pages/StorefrontModules.tsx:315-353`
 - **Evidence:**
   - As soon as `/storefront/modules` returns one active module, the storefront renders exactly those `key`s. `renderModule` only knows `hero, trust, categories, deals, featured_products, featured_brands, gift_finder, recently_viewed, inspired, lookbook, why_choose_us, testimonials, cta`.
@@ -655,6 +769,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 #### API-302 · Public lookbooks and testimonials return inactive ("deleted") items
 **High · Confirmed (re-verified) · Effort S** (merged WEB-402)
+- **Status (2026-09-29):** ✅ Fixed in A7. Public lookbooks/testimonials always filter `active: true`.
 - **Location:** `apps/api/controllers/lookbook.controller.js:14-25`, `apps/api/controllers/testimonials.controller.js:9-18`, `apps/website/src/lib/api.ts:923-934,977-983`, `apps/api/data.js:684-693`
 - **Evidence:** The filter applies only when `?active=` is passed, and the website never passes it. DELETE only sets `active = false`.
 - **Impact:** An admin "deletes" a testimonial or lookbook and it stays live. The seeded "Archive / Winter warmers" lookbook is public.
@@ -662,6 +777,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 #### API-303 · Creating Content unpublishes the live page, even when the new document is a draft or fails to save
 **High · Confirmed · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in A7. Validate first; only an active doc replaces the live one; old doc restored if the save fails.
 - **Location:** `apps/api/controllers/content.controller.js:128-146` (unconditional `updateMany` at :135), `apps/api/models/Content.js:16`
 - **Evidence:** Every active document of that type is deactivated first, then the new one is saved. `active: false`, or a title over 200 characters (the save throws), leaves no active document.
 - **Impact:** `/shipping` or `/returns` shows its error state until someone reactivates the old document.
@@ -671,6 +787,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **API-304 · The only first-admin bootstrap is the destructive seeder**
 **Medium · Confirmed · Effort S** (merged OPS-705)
+- **Status (2026-09-29):** ✅ Fixed in B13. `node seeder.js -admin` creates only the admin (safe on production).
 - **Location:** `apps/api/seeder.js:52-87,101-110,327-357,443-448`, `docs/PROJECT_REFERENCE.md:205`
 - **Evidence:** The admin is created only inside `importData`, after `deleteMany` has run on the catalog and CMS collections. The alternative is editing `roles` by hand in Atlas.
 - **Impact:** Creating or recovering an admin in production wipes products, brands, coupons, offers and CMS content, and seeds demo coupons (`WELCOME10`, unlimited) and fake social proof.
@@ -713,6 +830,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **API-310 · The hero slide "Active" toggle and `sortOrder` have no effect on the storefront**
 **Medium · Confirmed · Effort S** (merged DASH-611, WEB-403)
+- **Status (2026-09-29):** ✅ Fixed in A7. Public modules endpoint drops inactive slides and sorts by sortOrder.
 - **Location:** `apps/dashboard/src/components/storefront/HeroSlidesEditor.tsx:72-79`, `apps/website/src/hooks/storefront/homeQuery.ts:53-76`, `apps/website/src/lib/api.ts:1184-1198`, `apps/api/models/StorefrontModule.js:57-58`
 - **Evidence:** Every slide is mapped in array order, with no filtering or sorting.
 - **Impact:** Disabled or expired promo slides keep showing, and reordering does nothing.
@@ -727,6 +845,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **API-312 · A failure of the modules query silently switches the homepage to demo content**
 **Medium · Confirmed · Effort S** (merged WEB-417, WEB-525)
+- **Status (2026-09-29):** ✅ Fixed in B9. Home query runs after modules settle (success or error), falls back to /storefront/home, keyed on modules.
 - **Location:** `apps/website/src/hooks/storefront/homeQuery.ts:102-119`, `apps/website/src/app/page.tsx:49-56`
 - **Evidence:** `enabled: modulesQ.data !== undefined` means that on error the `/storefront/home` fallback never runs. The `queryFn` closes over `modulesQ.data`, which is not part of the key `['storefront','home']`.
 - **Impact:** A production API outage looks like a healthy page with demo slides, and module edits lag until the query goes stale.
@@ -734,6 +853,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **API-313 · A non-integer testimonial rating crashes the Testimonials section**
 **Medium · Confirmed · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in A7. Joi `.integer()` + UI clamps to whole 1–5 stars.
 - **Location:** `apps/api/validators/testimonial.validator.js:8,17`, `apps/website/src/components/home/Testimonials.tsx:61,70`
 - **Evidence:** The validator allows `Joi.number().min(1).max(5)`, and the component does `[...Array(4.5)]`, which throws `RangeError`.
 - **Impact:** An admin enters 4.5 and the homepage section errors.
@@ -757,26 +877,27 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 | ID | Title | Sev | Status | Location | Evidence / Impact | Fix | Effort |
 |---|---|---|---|---|---|---|---|
-| API-316 | Wishlist and recently viewed return inactive products; the first recently-viewed write can race | Low | Confirmed | `controllers/wishlist.controller.js:14-43,80-89`, `controllers/recentlyViewed.controller.js:8-16,61-78` | `populate` has no `isActive` match. The wishlist is uncapped. Concurrent first tracks cause a 409 or a lost view. | Use `populate({match: {isActive: true}})` and an upsert with `$push`/`$slice`. | S |
-| API-317 | Moderators can read subscriber emails and contact messages (with IPs) | Low | Confirmed | `routes/newsletter.js:17`, `routes/contact.js:16`, `middlewares/rolePermissions.js:16` | Gated by `content:read`. | Add a dedicated admin-only permission. | S |
-| API-318 | Content and HelpTopic updates bypass model validation; `Boolean("false")` is true | Low | Confirmed | `controllers/content.controller.js:116,172-174`, `controllers/helpTopic.controller.js:121,175-177` | No `runValidators`, so maxlength isn't enforced. Reactivating returns a generic 409. | Add `runValidators`, Joi `validate()` schemas and strict boolean parsing. | S |
-| API-319 | CMS link and image fields accept any scheme or host; module `config`/`items` are untyped | Low | Suspected | `validators/storefrontModule.validator.js:10-23,48,52`, `validators/lookbook.validator.js`, `apps/website/src/components/home/HeroPromoCarousel.tsx:~86-88` | `ctaHref` accepts `javascript:` or phishing URLs. The hero `imageUrl` is interpolated into CSS `url()`. Unknown image hosts break `next/image` (WEB-415). | Allow only relative or http(s) URLs on an allow-list, cap lengths, and add schemas. | S |
-| API-320 | Static fallbacks link to categories that don't exist | Low | Confirmed | `controllers/storefrontHome.controller.js:15,33,69`, `controllers/giftFinder.controller.js:16` | Links to `beauty`, `fashion` and `lifestyle`, which aren't in the Product enum, so they show 0 products. Seeded offers link to `/shop?…` (no such route, `seeder.js:167-237`). | Use `/c/<enum>` links. | S |
-| API-321 | Inconsistent soft-delete and singleton semantics | Low | Confirmed | `controllers/storefrontModule.controller.js:100-103,179-194`, `controllers/giftFinder.controller.js:42,101-103,166`, `models/GiftFinderConfig.js:61` | A module key can't be reused after "delete". Gift-finder DELETE is a hard delete. The singleton isn't unique and `findOne` has no sort. | Scope checks to active documents, add a partial unique index, and align DELETE semantics. | S |
-| API-322 | Editing a testimonial or lookbook ID in the dashboard is silently dropped | Low | Confirmed | `apps/dashboard/src/pages/Testimonials.tsx:84-93,308-318`, `apps/dashboard/src/pages/Lookbooks.tsx:99-114,320-332`, `validators/testimonial.validator.js:13-20`, `validators/lookbook.validator.js:16-26` | `stripUnknown` removes `id`, yet the modal closes as if the save succeeded (merged DASH-610). | Make the ID read-only when editing, or support renames. | S |
-| API-323 | Clearing a gift-finder price saves 0 | Low | Confirmed | `apps/dashboard/src/pages/GiftFinderConfig.tsx:108-129,457-481`, `validators/giftFinder.validator.js:3-10` | `Number('') === 0`, so `maxPrice: 0` and the budget returns no products (merged DASH-623). | Map `''` to `undefined`, and validate `min ≤ max` and the category enum. | S |
-| API-325 | The seeder promotes an existing account to admin without resetting its password | Low | Suspected | `seeder.js:64-75` | There's no email verification, so whoever registered `SEED_ADMIN_EMAIL` first becomes admin. | Require a flag, or reset the password. | S |
-| API-326 | Re-seeding orphans references | Low | Confirmed | `seeder.js:336-339,383-403` | Reviews, wishlists, recently viewed and orders point to old product `_id`s. | Clear or re-point them in dev re-seeds. | S |
-| API-327 | Reviews have no moderation loop | Low | Confirmed | `controllers/review.controller.js:20-29,95-104`, `models/Review.js` | Reviews publish instantly with no report or hide. Refunded orders count as verified. Unverified staff reviews count toward the average. Q&A askers are never notified. | Add a `status` field, a flag endpoint, exclude staff reviews from the average, and notify askers. | M |
-| API-329 | The public categories endpoint runs a seed check on every request and swallows errors | Low | Confirmed | `controllers/categories.controller.js:75-114` | `ensureDefaultCategories` runs per call, and the catch is silent. | Seed at boot or memoise, and log in the catch. | S |
-| API-330 | One wishlist-check request per product card | Low | Confirmed | `apps/website/src/components/page/wishlist/WishlistButton.tsx:31-33` | A 24-item grid makes 24 `/wishlist/check` calls. | Derive the state from the `/wishlist/my` cache, or add a batch endpoint. | S |
-| API-331 | A Content 404 shows an error rather than "unavailable"; 3 content types are unused | Low | Confirmed | `controllers/content.controller.js:28-30`, `apps/website/src/app/shipping/page.tsx:45-64` | The `!content` branch is unreachable. PRIVACY, TERMS and STOREFRONT_TRUST are editable but never read (see WEB-405). | Return 200 with `data: null`, and wire or hide those types. | S |
-| API-328 | `updateProductRating` wraps a non-middleware in `asyncHandler` | Info | Confirmed | `controllers/review.controller.js:34` | The `productId` argument is treated as `next`. It only works by accident. | Make it a plain async function. | S |
+| API-316 | 🟡 Wishlist and recently viewed return inactive products; the first recently-viewed write can race | Low | Confirmed | `controllers/wishlist.controller.js:14-43,80-89`, `controllers/recentlyViewed.controller.js:8-16,61-78` | `populate` has no `isActive` match. The wishlist is uncapped. Concurrent first tracks cause a 409 or a lost view. | Use `populate({match: {isActive: true}})` and an upsert with `$push`/`$slice`. | S |
+| API-317 | Moderators can read subscriber emails and contact messages (with IPs)  | Low | Confirmed | `routes/newsletter.js:17`, `routes/contact.js:16`, `middlewares/rolePermissions.js:16` | Gated by `content:read`. | Add a dedicated admin-only permission. | S |
+| API-318 | Content and HelpTopic updates bypass model validation; `Boolean("false")` is true  | Low | Confirmed | `controllers/content.controller.js:116,172-174`, `controllers/helpTopic.controller.js:121,175-177` | No `runValidators`, so maxlength isn't enforced. Reactivating returns a generic 409. | Add `runValidators`, Joi `validate()` schemas and strict boolean parsing. | S |
+| API-319 | CMS link and image fields accept any scheme or host; module `config`/`items` are untyped  | Low | Suspected | `validators/storefrontModule.validator.js:10-23,48,52`, `validators/lookbook.validator.js`, `apps/website/src/components/home/HeroPromoCarousel.tsx:~86-88` | `ctaHref` accepts `javascript:` or phishing URLs. The hero `imageUrl` is interpolated into CSS `url()`. Unknown image hosts break `next/image` (WEB-415). | Allow only relative or http(s) URLs on an allow-list, cap lengths, and add schemas. | S |
+| API-320 | Static fallbacks link to categories that don't exist  | Low | Confirmed | `controllers/storefrontHome.controller.js:15,33,69`, `controllers/giftFinder.controller.js:16` | Links to `beauty`, `fashion` and `lifestyle`, which aren't in the Product enum, so they show 0 products. Seeded offers link to `/shop?…` (no such route, `seeder.js:167-237`). | Use `/c/<enum>` links. | S |
+| API-321 | Inconsistent soft-delete and singleton semantics  | Low | Confirmed | `controllers/storefrontModule.controller.js:100-103,179-194`, `controllers/giftFinder.controller.js:42,101-103,166`, `models/GiftFinderConfig.js:61` | A module key can't be reused after "delete". Gift-finder DELETE is a hard delete. The singleton isn't unique and `findOne` has no sort. | Scope checks to active documents, add a partial unique index, and align DELETE semantics. | S |
+| API-322 | Editing a testimonial or lookbook ID in the dashboard is silently dropped  | Low | Confirmed | `apps/dashboard/src/pages/Testimonials.tsx:84-93,308-318`, `apps/dashboard/src/pages/Lookbooks.tsx:99-114,320-332`, `validators/testimonial.validator.js:13-20`, `validators/lookbook.validator.js:16-26` | `stripUnknown` removes `id`, yet the modal closes as if the save succeeded (merged DASH-610). | Make the ID read-only when editing, or support renames. | S |
+| API-323 | Clearing a gift-finder price saves 0  | Low | Confirmed | `apps/dashboard/src/pages/GiftFinderConfig.tsx:108-129,457-481`, `validators/giftFinder.validator.js:3-10` | `Number('') === 0`, so `maxPrice: 0` and the budget returns no products (merged DASH-623). | Map `''` to `undefined`, and validate `min ≤ max` and the category enum. | S |
+| API-325 | ✅ The seeder promotes an existing account to admin without resetting its password | Low | Suspected | `seeder.js:64-75` | There's no email verification, so whoever registered `SEED_ADMIN_EMAIL` first becomes admin. | Require a flag, or reset the password. | S |
+| API-326 | Re-seeding orphans references  | Low | Confirmed | `seeder.js:336-339,383-403` | Reviews, wishlists, recently viewed and orders point to old product `_id`s. | Clear or re-point them in dev re-seeds. | S |
+| API-327 | Reviews have no moderation loop  | Low | Confirmed | `controllers/review.controller.js:20-29,95-104`, `models/Review.js` | Reviews publish instantly with no report or hide. Refunded orders count as verified. Unverified staff reviews count toward the average. Q&A askers are never notified. | Add a `status` field, a flag endpoint, exclude staff reviews from the average, and notify askers. | M |
+| API-329 | The public categories endpoint runs a seed check on every request and swallows errors  | Low | Confirmed | `controllers/categories.controller.js:75-114` | `ensureDefaultCategories` runs per call, and the catch is silent. | Seed at boot or memoise, and log in the catch. | S |
+| API-330 | One wishlist-check request per product card  | Low | Confirmed | `apps/website/src/components/page/wishlist/WishlistButton.tsx:31-33` | A 24-item grid makes 24 `/wishlist/check` calls. | Derive the state from the `/wishlist/my` cache, or add a batch endpoint. | S |
+| API-331 | A Content 404 shows an error rather than "unavailable"; 3 content types are unused  | Low | Confirmed | `controllers/content.controller.js:28-30`, `apps/website/src/app/shipping/page.tsx:45-64` | The `!content` branch is unreachable. PRIVACY, TERMS and STOREFRONT_TRUST are editable but never read (see WEB-405). | Return 200 with `data: null`, and wire or hide those types. | S |
+| API-328 | `updateProductRating` wraps a non-middleware in `asyncHandler`  | Info | Confirmed | `controllers/review.controller.js:34` | The `productId` argument is treated as `next`. It only works by accident. | Make it a plain async function. | S |
 
 ### 5.4 Storefront (apps/website)
 
 #### WEB-522 · Logout doesn't clear user-scoped query caches, so the next user sees the previous user's data
 **High · Confirmed (re-verified) · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in A5. User-scoped query caches removed on logout/login.
 - **Location:** `apps/website/src/hooks/auth/authQuery.ts:140-155`; logout callers `components/navigation/Navbar.tsx:137-140`, `components/layout/AppShell.tsx:150`, `UserShell.tsx:71`; login `app/auth/login/page.tsx:55`
 - **Evidence:**
   - Only `['auth','me']` is reset.
@@ -787,6 +908,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 #### WEB-509 · Screen-reader users can't operate the review star rating
 **High · Confirmed (re-verified) · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in A12. Accessible radiogroup with arrow keys (RTL aware) and an announced required error.
 - **Location:** `apps/website/src/components/page/review/ReviewForm.tsx:56,83-105`
 - **Evidence:**
   - The five `<button>`s contain only an SVG: no name, no `aria-pressed`/`aria-checked`, no radiogroup.
@@ -799,6 +921,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **WEB-501 · API error messages reach Arabic users in English, sometimes in technical form**
 **Medium · Confirmed · Effort M**
+- **Status (2026-09-29):** 🟡 Partial in B8. Profile page maps CURRENT_PASSWORD_* / ACCOUNT_LOCKED codes to translated messages. General API error localisation is C1.
 - **Location:** `apps/website/src/lib/userFacingError.ts:29-32,45-48,56-61`, `apps/api/controllers/coupon.controller.js:243-278`, `apps/api/controllers/auth.controller.js:89,93`, `apps/api/middlewares/errorHandler.js:99-103`, `apps/website/src/lib/serverAuth.ts:71-72`, `apps/website/src/app/checkout/page.tsx:267,998`
 - **Evidence:** The helper returns the server's `data.message`, or any `error.message`, before it reaches the localized fallbacks. The API never localizes.
 - **Impact:** Arabic shoppers see messages such as "Coupon has expired", "invalid email or password", `"email" must be a valid email`, "Network Error" and "Route /api/x not found".
@@ -816,6 +939,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **WEB-406 · Demo fallbacks show fictitious content and mask API failures**
 **Medium · Confirmed · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in B9. Demo content only under `next dev`; production hides sections without live data.
 - **Location:** `apps/website/src/components/home/Testimonials.tsx:8-45,81,93`, `FeaturedBrandsStrip.tsx:53-61`, `DealsRail.tsx:19-21`, `PopularCategories.tsx:36-38`, `EditorialLookbookSection.tsx:30-32`, `TrustServiceStrip.tsx:25-28`, `apps/website/src/hooks/storefront/giftFinderQuery.ts:40-60,94-109`, `apps/website/src/app/cart/page.tsx:167`
 - **Evidence:** Three invented customer quotes (Sara, Omar, Layla) and invented brands ("Aura Lab", "Noir Atelier") are shown while the data is loading, empty or failed. The cart always shows demo trust items.
 - **Impact:** Fabricated reviews and brands are shown to real shoppers (a consumer-protection risk), and a production outage looks like a healthy page.
@@ -823,12 +947,14 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **WEB-409 · The wishlist shows the brand's ObjectId instead of its name**
 **Medium · Confirmed · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in B14. Wishlist populates brand name; card never shows an ObjectId.
 - **Location:** `apps/api/controllers/wishlist.controller.js:82-85`, `apps/website/src/components/page/wishlist/WishlistCard.tsx:18-19,55`
 - **Evidence:** `populate('product')` doesn't populate the nested `brand`, so the card renders "by 64f…". It is Suspected to crash when `brand` is null.
 - **Fix:** Use `populate({path: 'product', populate: {path: 'brand', select: 'name slug'}})` and null-guard the card.
 
 **WEB-410 · Hydration mismatches from cookie or localStorage reads during render, plus `router.push` during render**
 **Medium · Confirmed · Effort M** (merged WEB-523, WEB-524)
+- **Status (2026-09-29):** ✅ Fixed in B14. Hydration-safe `useHasAuthToken`; render-time cookie reads and router.push removed from account pages. WEB-524 (recently-viewed localStorage) still open.
 - **Location:** `apps/website/src/app/user/orders/page.tsx:76-79`, `user/addresses/page.tsx:119-122`, `user/security/page.tsx:70-73`, `user/orders/[id]/page.tsx:152-154`, `user/wishlist/page.tsx:15-28`, `user/reviews/page.tsx:27-40`, `user/profile/page.tsx:33`, `hooks/recentlyViewed/recentlyViewedQuery.ts:36-38,96-114`, `components/home/{RecentlyViewedSection.tsx:13,InspiredByBrowsingSection.tsx:45-52}`, `components/navigation/DeliverToControl.tsx:25-27`, `components/products/ProductReviewsSection.tsx:43`
 - **Evidence:** `js-cookie` and `localStorage` return nothing on the server, so SSR renders `null` or the logged-out branch while the client renders content. Three pages call `router.push` inside render, which also drops `?redirect=`.
 - **Impact:** React hydration errors and full client re-renders on account pages, the PDP and the home rails. Users see a flash of the wrong UI.
@@ -850,6 +976,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **WEB-414 · `/brands` and the brand filter only ever get the first 20 brands**
 **Medium · Confirmed · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in B14. useBrands walks every page (50 per page).
 - **Location:** `apps/website/src/hooks/brands/brandsQuery.ts:30-40`, `apps/website/src/app/brands/page.tsx:11`, `apps/website/src/components/products/CategorySidebar.tsx:103`, `apps/api/controllers/brand.controller.js:37,87`
 - **Evidence:** The client sends no `limit`, the API defaults to 20, and there's no pagination UI.
 - **Impact:** Brand 21 onwards is unreachable from the directory and the filter.
@@ -864,22 +991,26 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **WEB-510 · The filters drawer is `aria-modal` but has no focus move, trap or restore**
 **Medium · Confirmed · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in B16. Filters drawer on Radix Dialog.
 - **Location:** `apps/website/src/components/products/ProductFiltersDrawer.tsx:31-59`
 - **Fix:** Rebuild it on `@radix-ui/react-dialog` (already a dependency, used by `ConfirmProvider`).
 
 **WEB-511 · No skip link, and nav landmarks have no names or current-page state**
 **Medium · Confirmed · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in B16. Skip link, `main#main-content`, named navs, `aria-current`.
 - **Location:** `apps/website/src/components/layout/AppShell.tsx:28,35,41-49`, `apps/website/src/components/navigation/Navbar.tsx:271`
 - **Fix:** Add a visually hidden "Skip to content" link to `#main`, `aria-label` on each `<nav>`, and `aria-current='page'`.
 
 **WEB-512 · Nothing respects prefers-reduced-motion; the hero auto-advances with no pause control**
 **Medium · Confirmed · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in B16. `MotionConfig reducedMotion="user"`; hero pause/play; no autoplay for reduced motion.
 - **Location:** framer-motion is used in 35 files with no `MotionConfig`; `apps/website/src/components/home/HeroPromoCarousel.tsx:51-55`
 - **Impact:** This fails WCAG 2.2.2 (Pause, Stop, Hide) and causes vestibular discomfort for motion-sensitive users.
 - **Fix:** Wrap the app in `<MotionConfig reducedMotion='user'>`, disable auto-advance when reduced motion is requested, and add a pause/play button.
 
 **WEB-513 · Toasts, including errors, vanish after 3.2 s and don't pause**
 **Medium · Confirmed · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in B16. Errors 10 s in an assertive region, timers pause on hover/focus.
 - **Location:** `apps/website/src/components/ui/Toast.tsx:61,74,85`
 - **Evidence:** Errors use the polite `role='status'` region.
 - **Impact:** Checkout and coupon errors disappear before screen-reader or low-vision users can read them (WCAG 2.2.1).
@@ -887,6 +1018,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **WEB-514 · ProductCard: buttons nested in a link, an unlabelled no-op Eye button, and hover-only actions**
 **Medium · Confirmed · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in B16. Nested hover overlay (and dead Eye button) removed; rating has screen-reader text.
 - **Location:** `apps/website/src/components/products/ProductCard.tsx:77-135,155-167`
 - **Evidence:**
   - Interactive elements are nested inside the `<Link>`.
@@ -897,6 +1029,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **WEB-515 · Mobile "More" menu items remove the focus outline with no replacement**
 **Medium · Confirmed · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in B16. Visible focus on "More" menu items.
 - **Location:** `apps/website/src/components/layout/AppShell.tsx:83,92,101,113,124,133,154`
 - **Fix:** Add `data-[highlighted]:bg-gray-100` or `focus-visible:ring`.
 
@@ -904,34 +1037,35 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 | ID | Title | Sev | Status | Location | Evidence / Impact | Fix | Effort |
 |---|---|---|---|---|---|---|---|
-| WEB-416 | Soft 404s; every PDP error shows "not found" with no retry | Low | Confirmed | `app/products/[id]/page.tsx:28-33,59-107`, `app/brands/[id]/page.tsx:138-143`, `ProductDetailClient.tsx:96-104` | A missing product returns HTTP 200 with noindex. 5xx and network errors are shown as "Product not found" (merged WEB-533). | Call `notFound()` on 404; add a retry for other errors. | S |
-| WEB-418 | Sitemap and category coverage gaps | Low | Confirmed | `app/sitemap.ts:143-154`, `lib/categories.ts:25-128` | Only 100 products and 50 brands; no subcategory URLs. | Shard the sitemap and include `/c/x/y`. | S |
-| WEB-419 | Dead client methods, hooks, components and demo exports | Low | Confirmed | `lib/api.ts:411-428,656-659,737-740,1250-1255`, `hooks/coupons/couponsQuery.ts:22`, `hooks/reviews/reviewsQuery.ts:23`, `hooks/profile/useProfile.ts:18-21`, `lib/endpoints.ts:34,38,93`, `components/home/FeaturedCategories.tsx`, `components/ui/Card.tsx`, `components/orders/OrderTrackingTimeline.tsx`, `lib/orderTracking.ts`, `data/demoStorefront.ts` (`DEMO_HELP_TOPICS`, `getDemoProductQa`, `getDemoBadgesForIndex`) | Maintenance noise; the coupon-enumeration surface is kept alive. | Delete, or wire an unsubscribe page. | S |
-| WEB-420 | Order `trackingEvents` are never shown to customers | Low | Confirmed | `apps/api/models/Order.js:243-256`, `app/user/orders/[id]/page.tsx:485-515` | Only the number and URL are shown; the timeline component is an unused demo. | Render the real events. | S |
-| WEB-421 | Env and config drift (website) | Low | Confirmed | `lib/site.ts:9,15-21`, `lib/api.ts:33-36`, `components/navigation/Navbar.tsx:46` | `FRONTEND_URL` is undocumented. Axios on the server ignores `API_INTERNAL_URL`. The dashboard link falls back to localhost in production. See OPS-706 for the `/api` suffix. | Use one normalising helper and fail the build when public URLs are missing. | S |
-| WEB-422 | Next.js hygiene | Low | Confirmed | `src/app/` (no `global-error.tsx`), `app/loading.tsx`, `components/home/HeroPromoCarousel.tsx:86-88`, `lib/api.ts:88-104`, `app/providers.tsx:15-18`, `proxy.ts:66`, `lib/authCookies.ts:43` | No global error page. A single product-grid skeleton is used even for account pages. The hero LCP image is a CSS background. The forced-logout toast is hard-coded English (merged WEB-504). Static pages are client components only to call `t()`. The proxy runs on public assets. The access cookie lasts 7 days while the refresh cookie lasts 30. | Add `global-error.tsx` and per-segment loading, use `next/image` with `preload`, localise the toast, and use server components. | S |
-| WEB-505 | Hard-coded English errors thrown by hooks reach the UI | Low | Confirmed | `hooks/auth/useChangePassword.ts:7-13`, `hooks/cart/cartQuoteQuery.ts:95-113,138` | "Not authenticated" is shown on `/user/security`. | Throw keyed errors. | S |
-| WEB-507 | LTR API text is placed in RTL flow without bidi isolation | Low | Suspected | `components/products/ProductCard.tsx:149`, `ProductDetailClient.tsx:304` (only the hero uses `dir='auto'`) | Mixed strings such as "Air Max 90 (Black)" are reordered. | Wrap API strings in `dir='auto'` or `<bdi>`. | S |
-| WEB-508 | The toast progress bar shrinks toward the physical left in RTL | Low | Confirmed | `components/ui/Toast.tsx:161` | `transformOrigin: 'left'`. | Use the right-hand side when RTL. | S |
-| WEB-516 | Sidebar filter toggles lack `aria-expanded`; headings nested in buttons | Low | Confirmed | `components/products/CategorySidebar.tsx:265-277` (and 298, 372, 418, 474, 495, 553, 597, 648) | Invalid content model; preset buttons have no `aria-pressed`. | Use the disclosure pattern or Radix Accordion. | S |
-| WEB-517 | Mobile nav disclosure has no Escape handling or focus return | Low | Confirmed | `components/navigation/Navbar.tsx:547-552,601-605` | — | Close on Escape and restore focus to the toggle. | S |
-| WEB-518 | Hero carousel misuses the tab pattern | Low | Confirmed | `components/home/HeroPromoCarousel.tsx:147-170` | `tablist` with no tabpanel and no arrow keys; slide changes aren't announced. | Use buttons with `aria-current` plus a live region. | S |
-| WEB-519 | Low-contrast text risks | Low | Suspected | `components/orders/OrderTrackingTimeline.tsx:126,141`, `components/products/ProductCard.tsx:178`, `components/ui/Button.tsx:11` | About 38 `text-gray-400`, 15 `text-stone-400`, and white on the cyan gradient end (~2.4:1). | Use darker tokens; measure with a contrast tool. | S |
-| WEB-520 | Heading and landmark gaps | Low | Confirmed | `app/unauthorized/page.tsx:26`, `ProductDetailClient.tsx:304,360,426,563`, `components/home/HeroSection.tsx:47` | The unauthorized page has no h1. The PDP goes h1 → h3. The home h1 exists only inside the hero CMS module. | Fix the heading levels and add an sr-only fallback h1. | S |
-| WEB-521 | Small a11y polish items | Low | Confirmed | `app/cart/page.tsx:254,268,281`, `components/layout/Footer.tsx:94,125+`, `ProductDetailClient.tsx:253-262` | Remove and qty buttons don't name the item. The newsletter error isn't linked to its field. Social links use `href='#'`. Thumbnails have no `aria-current`. Error blocks have no `role='alert'`. | Add these incrementally. | S |
-| WEB-526 | Review mutations don't refresh the product's rating or count | Low | Confirmed | `hooks/reviews/reviewsQuery.ts:55-66,79-94,111-122` | The PDP shows stale `averageRating`. | Invalidate `productByIdKey` and `['products','list']`. | S |
-| WEB-527 | Wishlist optimistic rollback is skipped when there's no snapshot | Low | Confirmed | `hooks/wishlist/wishlistQuery.ts:62-67,96-101` | The heart stays wrong after an error. | Always restore or remove the entry, and invalidate `onSettled`. | S |
-| WEB-528 | QueryClient has no defaults | Low | Confirmed | `app/providers.tsx:40`, `hooks/profile/addressesQuery.ts:18-23`, `hooks/profile/useProfile.ts:10-15` | 4xx responses are retried 3 times, and forced-logout toasts can stack. | Skip retries on 4xx and set a default staleTime. | S |
-| WEB-529 | Profile cache is split across two keys; a dead stub exists | Low | Confirmed | `hooks/auth/authQuery.ts:130-135`, `app/user/security/page.tsx:27`, `hooks/profile/useProfile.ts:5,18-21` | `['auth','me']` and `['auth','profile']` diverge. | Use one key and delete the stub. | S |
-| WEB-530 | The cart write to localStorage has no try/catch; the `coupon` field is unused | Low | Confirmed | `lib/cartStore.ts:176-181` | `addToCart` throws when storage is full or blocked. | Wrap the write and toast on failure. | S |
-| WEB-506 | Price presets are identical in en and ar and hard-code `$` placement | Info | Confirmed | `messages/*.json` (`catalog.sidebar.pricePresets.*`, `demo.giftFinder.budgets.*`) | — | Build the labels with `formatPrice`. | S |
-| WEB-531 | Cart line notices never clear | Info | Confirmed | `hooks/cart/cartQuoteQuery.ts:268-291` | `seenRef` only grows. | Reset it when the line changes. | S |
-| WEB-532 | Cart isn't cleared on logout | Info | Confirmed | `hooks/auth/authQuery.ts:140-155`, `lib/cartStore.ts` | A product decision for shared devices. | Decide and document the behaviour. | S |
+| WEB-416 | Soft 404s; every PDP error shows "not found" with no retry  | Low | Confirmed | `app/products/[id]/page.tsx:28-33,59-107`, `app/brands/[id]/page.tsx:138-143`, `ProductDetailClient.tsx:96-104` | A missing product returns HTTP 200 with noindex. 5xx and network errors are shown as "Product not found" (merged WEB-533). | Call `notFound()` on 404; add a retry for other errors. | S |
+| WEB-418 | Sitemap and category coverage gaps  | Low | Confirmed | `app/sitemap.ts:143-154`, `lib/categories.ts:25-128` | Only 100 products and 50 brands; no subcategory URLs. | Shard the sitemap and include `/c/x/y`. | S |
+| WEB-419 | Dead client methods, hooks, components and demo exports  | Low | Confirmed | `lib/api.ts:411-428,656-659,737-740,1250-1255`, `hooks/coupons/couponsQuery.ts:22`, `hooks/reviews/reviewsQuery.ts:23`, `hooks/profile/useProfile.ts:18-21`, `lib/endpoints.ts:34,38,93`, `components/home/FeaturedCategories.tsx`, `components/ui/Card.tsx`, `components/orders/OrderTrackingTimeline.tsx`, `lib/orderTracking.ts`, `data/demoStorefront.ts` (`DEMO_HELP_TOPICS`, `getDemoProductQa`, `getDemoBadgesForIndex`) | Maintenance noise; the coupon-enumeration surface is kept alive. | Delete, or wire an unsubscribe page. | S |
+| WEB-420 | Order `trackingEvents` are never shown to customers  | Low | Confirmed | `apps/api/models/Order.js:243-256`, `app/user/orders/[id]/page.tsx:485-515` | Only the number and URL are shown; the timeline component is an unused demo. | Render the real events. | S |
+| WEB-421 | Env and config drift (website)  | Low | Confirmed | `lib/site.ts:9,15-21`, `lib/api.ts:33-36`, `components/navigation/Navbar.tsx:46` | `FRONTEND_URL` is undocumented. Axios on the server ignores `API_INTERNAL_URL`. The dashboard link falls back to localhost in production. See OPS-706 for the `/api` suffix. | Use one normalising helper and fail the build when public URLs are missing. | S |
+| WEB-422 | Next.js hygiene  | Low | Confirmed | `src/app/` (no `global-error.tsx`), `app/loading.tsx`, `components/home/HeroPromoCarousel.tsx:86-88`, `lib/api.ts:88-104`, `app/providers.tsx:15-18`, `proxy.ts:66`, `lib/authCookies.ts:43` | No global error page. A single product-grid skeleton is used even for account pages. The hero LCP image is a CSS background. The forced-logout toast is hard-coded English (merged WEB-504). Static pages are client components only to call `t()`. The proxy runs on public assets. The access cookie lasts 7 days while the refresh cookie lasts 30. | Add `global-error.tsx` and per-segment loading, use `next/image` with `preload`, localise the toast, and use server components. | S |
+| WEB-505 | Hard-coded English errors thrown by hooks reach the UI  | Low | Confirmed | `hooks/auth/useChangePassword.ts:7-13`, `hooks/cart/cartQuoteQuery.ts:95-113,138` | "Not authenticated" is shown on `/user/security`. | Throw keyed errors. | S |
+| WEB-507 | LTR API text is placed in RTL flow without bidi isolation  | Low | Suspected | `components/products/ProductCard.tsx:149`, `ProductDetailClient.tsx:304` (only the hero uses `dir='auto'`) | Mixed strings such as "Air Max 90 (Black)" are reordered. | Wrap API strings in `dir='auto'` or `<bdi>`. | S |
+| WEB-508 | ✅ The toast progress bar shrinks toward the physical left in RTL | Low | Confirmed | `components/ui/Toast.tsx:161` | `transformOrigin: 'left'`. | Use the right-hand side when RTL. | S |
+| WEB-516 | Sidebar filter toggles lack `aria-expanded`; headings nested in buttons  | Low | Confirmed | `components/products/CategorySidebar.tsx:265-277` (and 298, 372, 418, 474, 495, 553, 597, 648) | Invalid content model; preset buttons have no `aria-pressed`. | Use the disclosure pattern or Radix Accordion. | S |
+| WEB-517 | Mobile nav disclosure has no Escape handling or focus return  | Low | Confirmed | `components/navigation/Navbar.tsx:547-552,601-605` | — | Close on Escape and restore focus to the toggle. | S |
+| WEB-518 | ✅ Hero carousel misuses the tab pattern | Low | Confirmed | `components/home/HeroPromoCarousel.tsx:147-170` | `tablist` with no tabpanel and no arrow keys; slide changes aren't announced. | Use buttons with `aria-current` plus a live region. | S |
+| WEB-519 | Low-contrast text risks  | Low | Suspected | `components/orders/OrderTrackingTimeline.tsx:126,141`, `components/products/ProductCard.tsx:178`, `components/ui/Button.tsx:11` | About 38 `text-gray-400`, 15 `text-stone-400`, and white on the cyan gradient end (~2.4:1). | Use darker tokens; measure with a contrast tool. | S |
+| WEB-520 | Heading and landmark gaps  | Low | Confirmed | `app/unauthorized/page.tsx:26`, `ProductDetailClient.tsx:304,360,426,563`, `components/home/HeroSection.tsx:47` | The unauthorized page has no h1. The PDP goes h1 → h3. The home h1 exists only inside the hero CMS module. | Fix the heading levels and add an sr-only fallback h1. | S |
+| WEB-521 | Small a11y polish items  | Low | Confirmed | `app/cart/page.tsx:254,268,281`, `components/layout/Footer.tsx:94,125+`, `ProductDetailClient.tsx:253-262` | Remove and qty buttons don't name the item. The newsletter error isn't linked to its field. Social links use `href='#'`. Thumbnails have no `aria-current`. Error blocks have no `role='alert'`. | Add these incrementally. | S |
+| WEB-526 | Review mutations don't refresh the product's rating or count  | Low | Confirmed | `hooks/reviews/reviewsQuery.ts:55-66,79-94,111-122` | The PDP shows stale `averageRating`. | Invalidate `productByIdKey` and `['products','list']`. | S |
+| WEB-527 | Wishlist optimistic rollback is skipped when there's no snapshot  | Low | Confirmed | `hooks/wishlist/wishlistQuery.ts:62-67,96-101` | The heart stays wrong after an error. | Always restore or remove the entry, and invalidate `onSettled`. | S |
+| WEB-528 | QueryClient has no defaults  | Low | Confirmed | `app/providers.tsx:40`, `hooks/profile/addressesQuery.ts:18-23`, `hooks/profile/useProfile.ts:10-15` | 4xx responses are retried 3 times, and forced-logout toasts can stack. | Skip retries on 4xx and set a default staleTime. | S |
+| WEB-529 | Profile cache is split across two keys; a dead stub exists  | Low | Confirmed | `hooks/auth/authQuery.ts:130-135`, `app/user/security/page.tsx:27`, `hooks/profile/useProfile.ts:5,18-21` | `['auth','me']` and `['auth','profile']` diverge. | Use one key and delete the stub. | S |
+| WEB-530 | The cart write to localStorage has no try/catch; the `coupon` field is unused  | Low | Confirmed | `lib/cartStore.ts:176-181` | `addToCart` throws when storage is full or blocked. | Wrap the write and toast on failure. | S |
+| WEB-506 | Price presets are identical in en and ar and hard-code `$` placement  | Info | Confirmed | `messages/*.json` (`catalog.sidebar.pricePresets.*`, `demo.giftFinder.budgets.*`) | — | Build the labels with `formatPrice`. | S |
+| WEB-531 | Cart line notices never clear  | Info | Confirmed | `hooks/cart/cartQuoteQuery.ts:268-291` | `seenRef` only grows. | Reset it when the line changes. | S |
+| WEB-532 | Cart isn't cleared on logout  | Info | Confirmed | `hooks/auth/authQuery.ts:140-155`, `lib/cartStore.ts` | A product decision for shared devices. | Decide and document the behaviour. | S |
 
 ### 5.5 Dashboard (apps/dashboard)
 
 #### DASH-602 · Tracking can never be added to an order that has none; the control isn't permission-gated
 **High · Confirmed (re-verified) · Effort S** (merged DASH-608 tracking part)
+- **Status (2026-09-29):** ✅ Fixed in A9. Tracking editor always shown to `orders:write`; "Add tracking" when empty.
 - **Location:** `apps/dashboard/src/pages/OrderDetail.tsx:443-446,526-534`, `apps/api/routes/orders.js:40-45`
 - **Evidence:** The whole Tracking `<section>`, including the "Update tracking" button and form, renders only when `trackingNumber || trackingCarrier || trackingUrl || trackingEvents.length`. The button isn't wrapped in `can('orders:write')`.
 - **Impact:**
@@ -942,6 +1076,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 #### DASH-603 · A hard-deleted product crashes the Bundles and Product Q&A pages
 **High · Confirmed · Effort M** (root cause API-212)
+- **Status (2026-09-29):** ✅ Fixed in A10. Null-safe rendering; root cause removed by soft delete (B6).
 - **Location:** `apps/api/controllers/product.controller.js:247`, `apps/dashboard/src/pages/Bundles.tsx:63,67,141,252,281,292`, `apps/dashboard/src/pages/ProductQA.tsx:187,290`
 - **Evidence:** The populated `primaryProduct`, `items[].product` or `qa.product` becomes `null`, and the page reads `.title` or `._id` on it. There's no error boundary (DASH-620).
 - **Impact:** Deleting one product white-screens the whole SPA, including the sidebar, on `/bundles` or `/product-qa`.
@@ -951,6 +1086,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **DASH-605 · Cookie expiry mismatch causes spurious forced logouts with a misleading message**
 **Medium · Confirmed · Effort M**
+- **Status (2026-09-29):** ✅ Fixed in B5. One cookie lifetime for token/role/refresh (30 d remembered, else session); role renewed on refresh.
 - **Location:** `apps/dashboard/src/lib/auth.ts:201-212,219-224`, `apps/dashboard/src/layouts/DashboardLayout.tsx:82-103`
 - **Evidence:**
   - With remember=false, `token` and `role` last 1 day. A refresh re-sets `token` but not `role`.
@@ -961,6 +1097,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **DASH-606 · The refresh interceptor logs out on transient failures**
 **Medium · Confirmed · Effort S** (race part merged into SEC-102)
+- **Status (2026-09-29):** ✅ Fixed in B5. Logout only when /auth/refresh answers 401/400.
 - **Location:** `apps/dashboard/src/lib/api.ts:55-76,90-97`
 - **Evidence:** `.catch(() => null)` treats a network error, 5xx or 429 as an invalid token and calls `forceLogoutRedirect()`, which deletes a valid refresh token.
 - **Impact:** A brief API blip, or the default refresh limit of 20 per 15 min (SEC-116), logs the admin out.
@@ -968,6 +1105,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **DASH-609 · Admin endpoints with no UI, including shipping zones, which override the Settings rates**
 **Medium · Confirmed · Effort M**
+- **Status (2026-09-29):** 🟡 Partial in B1. Shipping Zones admin screen added. Still open: contact inbox, subscribers, invoice link.
 - **Location:** `apps/api/routes/shipping.js:23-77`, `apps/api/utils/commerce.js:79-112`, `apps/api/routes/contact.js:13-18`, `apps/api/routes/newsletter.js:14-19`, `apps/api/routes/orders.js:57`
 - **Evidence:** The 8 `/admin/shipping/zones*` endpoints, `/contact/admin`, `/newsletter/admin` and `/orders/:id/invoice` have no screen.
 - **Impact:** Zones can't be created, which directly causes API-202. Admin rate edits in Settings are silently overridden for any country that has a zone.
@@ -981,6 +1119,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **DASH-613 · Validation errors are unreadable or technical**
 **Medium · Confirmed · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in B15. errorMessage shows field details humanised, never axios transport text; unit-tested.
 - **Location:** `apps/dashboard/src/lib/api.ts:268-274`, `apps/api/middlewares/errorHandler.js:86-91`, `apps/dashboard/src/pages/Coupons.tsx:405`, `apps/api/models/Coupon.js:68`
 - **Evidence:** `errorMessage` reads only `.message`, so `validate()` failures show just "Validation failed". Joi keys leak through (`"usageLimit" must be greater than or equal to 1`), as does axios text ("Network Error").
 - **Fix:** Render `details[0].message` with a field-label map, map network and 5xx errors to friendly text, and align the input `min` values with the validators.
@@ -994,18 +1133,21 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **DASH-617 · The 15 custom modals are inaccessible**
 **Medium · Confirmed · Effort M**
+- **Status (2026-09-29):** ✅ Fixed in B15. Shared Radix `FormDialog` for all 16 CRUD dialogs.
 - **Location:** `pages/Products.tsx:480`, `Brands.tsx:314`, `Users.tsx:377`, `Coupons.tsx:309`, `Offers.tsx:291`, `HelpTopics.tsx:272`, `Content.tsx:255`, `StorefrontModules.tsx:297`, `Lookbooks.tsx:303`, `Testimonials.tsx:289`, `Bundles.tsx:316`, `GiftFinderConfig.tsx:290`, `ProductQA.tsx:273`, `Reviews.tsx:287`, `Categories.tsx:298`
 - **Evidence:** They have no `aria-labelledby`, no initial focus, no focus trap or restore, and no Escape handling. 13 icon-only close buttons have no `aria-label`.
 - **Fix:** Build a shared `FormDialog` on `@radix-ui/react-dialog` (already used by `ConfirmDialog.tsx`).
 
 **DASH-618 · Unlabelled form controls**
 **Medium · Confirmed · Effort S**
+- **Status (2026-09-29):** 🟡 Partial in B15. Search boxes, Settings/OrderDetail labels and the image URL input labelled. Bundles/GiftFinder item rows still placeholder-only.
 - **Location:** `apps/dashboard/src/pages/Settings.tsx:202-421`, `pages/OrderDetail.tsx:540-591`, 14 `type="search"` inputs (e.g. `StorefrontModules.tsx:176-182`), `components/ui/ImageUploadField.tsx:253-262`, `pages/Bundles.tsx:356-376`
 - **Evidence:** 14 `<label>`s have no `htmlFor`, and the search, image URL, bundle item and gift option inputs rely on placeholders only.
 - **Fix:** Wrap the inputs or use `id`/`htmlFor`, add `aria-label`s, and add eslint-plugin-jsx-a11y.
 
 **DASH-620 · No error boundary anywhere**
 **Medium · Confirmed · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in A10. ErrorBoundary around the page outlet, keyed on the path.
 - **Location:** `apps/dashboard/src/App.tsx:45-141`
 - **Impact:** Any render exception (e.g. DASH-603) blanks the whole SPA.
 - **Fix:** Add a layout-level ErrorBoundary with Retry, or use a data router with `errorElement`.
@@ -1014,24 +1156,25 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 | ID | Title | Sev | Status | Location | Evidence / Impact | Fix | Effort |
 |---|---|---|---|---|---|---|---|
-| DASH-621 | `permissions.ts` is out of parity with `rolePermissions.js`; no parity test | Low | Confirmed | `apps/dashboard/src/lib/permissions.ts:22-46` vs `apps/api/middlewares/rolePermissions.js:44-46` | Admin is missing `content:*`, `shipping:read` and `shipping:write`. Permissions come from the `role` cookie, not `/auth/profile`. | Use the server's `permissions`, or add a Jest parity test. | S |
-| DASH-622 | Sidebar and mobile drawer a11y | Low | Confirmed | `layouts/DashboardLayout.tsx:114-186` | Collapsed-rail links and the emoji theme toggle have no names. The drawer has no Escape or trap. Active matching is exact, so `/orders/:id` doesn't highlight Orders. | Add `aria-label`s and use `NavLink`. | S |
-| DASH-624 | The Q&A approve checkbox fires an unhandled mutation and bypasses "answer first" | Low | Confirmed | `pages/ProductQA.tsx:62-67,310-320` | `void answerMut.mutateAsync(...)` has no catch or toast. | Route it through `handleApprove`. | S |
-| DASH-626 | The Bundles form needs raw ObjectIds; savings are typed by hand | Low | Confirmed | `pages/Bundles.tsx:334-420` | Error-prone; savings can disagree with prices. | Add a product picker and compute savings. | M |
-| DASH-627 | Logout keeps the React Query cache; the role comes only from a cookie | Low | Confirmed | `layouts/DashboardLayout.tsx:176-182`, `pages/Settings.tsx:155-159`, `hooks/usePermissions.ts:10-11` | The next staff user on the same tab briefly sees cached users and orders. | Call `queryClient.clear()` on logout. | S |
-| DASH-628 | Some fields can't be cleared | Low | Confirmed | `pages/Products.tsx:146-150`, `pages/OrderDetail.tsx:126-131` | A blank SKU, material, weight or tracking value is omitted from the request, so the old value persists. | Send explicit `''`/`null`. | S |
-| DASH-629 | CMS image fields are URL-only | Low | Confirmed | `pages/Lookbooks.tsx:~408`, `pages/Offers.tsx:380`, `components/storefront/HeroSlidesEditor.tsx:110-116` | `ImageUploadField` is used only for products, brands and categories. | Reuse `ImageUploadField`. | S |
-| DASH-630 | Wrong client return types; dead client methods | Low | Confirmed | `lib/api.ts:354-363,1131,1138-1157,1211-1227,1271-1294,1363-1379,1421-1447,1511-1522` | Typed as the entity, but the API returns `{message, data}`. 6 `get*ById` methods have no callers. | Unwrap `data.data` and delete the dead methods. | S |
-| DASH-631 | CMS lists fetch `limit: 100` with no pagination | Low | Confirmed | `Offers.tsx:39`, `HelpTopics.tsx:33`, `Content.tsx:33`, `Lookbooks.tsx:39`, `Testimonials.tsx:33`, `StorefrontModules.tsx:51` | Search only covers the loaded page. | Use `useTableQuery` + `TablePagination`. | S |
-| DASH-632 | Toast and contrast a11y | Low | Suspected | `components/ui/Toast.tsx:42,56,74-77`, `Dashboard.tsx:210`, `LowStock.tsx:115`, `Analytics.tsx:241` | Error toasts are polite and auto-dismiss after 4.5 s. `text-gray-400` is ~2.9:1. | Make error toasts assertive and persistent; darken the text. | S |
-| DASH-633 | Theme storage can crash app init | Low | Confirmed | `hooks/useTheme.tsx:14,19` | Unguarded `localStorage` access. | Wrap it in try/catch. | S |
-| DASH-634 | Tooling and dead code | Info | Confirmed | `apps/dashboard/package.json`, `jest.config.js:12-13`, `vite.config.ts:8-11`, `README.md` | 10 unused dependencies; unused `@/` alias; Jest maps the removed `@trendvaulta/*` packages; the viteEnv mapper misses `../lib/viteEnv`; README drift (`useTableQuery` does not use the URL; low-stock doesn't cover variants). | Prune the dependencies and fix the mapper and README. | S |
-| DASH-635 | Test gaps | Info | Confirmed | `src/**/*.test.*` (5 files) | Nothing covers the refresh interceptor, layout guard, permission parity, CMS forms, OrderDetail or ReturnPanel. | Add interceptor, parity and guard tests. | M |
+| DASH-621 | 🟡 `permissions.ts` is out of parity with `rolePermissions.js`; no parity test | Low | Confirmed | `apps/dashboard/src/lib/permissions.ts:22-46` vs `apps/api/middlewares/rolePermissions.js:44-46` | Admin is missing `content:*`, `shipping:read` and `shipping:write`. Permissions come from the `role` cookie, not `/auth/profile`. | Use the server's `permissions`, or add a Jest parity test. | S |
+| DASH-622 | Sidebar and mobile drawer a11y  | Low | Confirmed | `layouts/DashboardLayout.tsx:114-186` | Collapsed-rail links and the emoji theme toggle have no names. The drawer has no Escape or trap. Active matching is exact, so `/orders/:id` doesn't highlight Orders. | Add `aria-label`s and use `NavLink`. | S |
+| DASH-624 | The Q&A approve checkbox fires an unhandled mutation and bypasses "answer first"  | Low | Confirmed | `pages/ProductQA.tsx:62-67,310-320` | `void answerMut.mutateAsync(...)` has no catch or toast. | Route it through `handleApprove`. | S |
+| DASH-626 | The Bundles form needs raw ObjectIds; savings are typed by hand  | Low | Confirmed | `pages/Bundles.tsx:334-420` | Error-prone; savings can disagree with prices. | Add a product picker and compute savings. | M |
+| DASH-627 | ✅ Logout keeps the React Query cache; the role comes only from a cookie | Low | Confirmed | `layouts/DashboardLayout.tsx:176-182`, `pages/Settings.tsx:155-159`, `hooks/usePermissions.ts:10-11` | The next staff user on the same tab briefly sees cached users and orders. | Call `queryClient.clear()` on logout. | S |
+| DASH-628 | Some fields can't be cleared  | Low | Confirmed | `pages/Products.tsx:146-150`, `pages/OrderDetail.tsx:126-131` | A blank SKU, material, weight or tracking value is omitted from the request, so the old value persists. | Send explicit `''`/`null`. | S |
+| DASH-629 | CMS image fields are URL-only  | Low | Confirmed | `pages/Lookbooks.tsx:~408`, `pages/Offers.tsx:380`, `components/storefront/HeroSlidesEditor.tsx:110-116` | `ImageUploadField` is used only for products, brands and categories. | Reuse `ImageUploadField`. | S |
+| DASH-630 | Wrong client return types; dead client methods  | Low | Confirmed | `lib/api.ts:354-363,1131,1138-1157,1211-1227,1271-1294,1363-1379,1421-1447,1511-1522` | Typed as the entity, but the API returns `{message, data}`. 6 `get*ById` methods have no callers. | Unwrap `data.data` and delete the dead methods. | S |
+| DASH-631 | CMS lists fetch `limit: 100` with no pagination  | Low | Confirmed | `Offers.tsx:39`, `HelpTopics.tsx:33`, `Content.tsx:33`, `Lookbooks.tsx:39`, `Testimonials.tsx:33`, `StorefrontModules.tsx:51` | Search only covers the loaded page. | Use `useTableQuery` + `TablePagination`. | S |
+| DASH-632 | Toast and contrast a11y  | Low | Suspected | `components/ui/Toast.tsx:42,56,74-77`, `Dashboard.tsx:210`, `LowStock.tsx:115`, `Analytics.tsx:241` | Error toasts are polite and auto-dismiss after 4.5 s. `text-gray-400` is ~2.9:1. | Make error toasts assertive and persistent; darken the text. | S |
+| DASH-633 | Theme storage can crash app init  | Low | Confirmed | `hooks/useTheme.tsx:14,19` | Unguarded `localStorage` access. | Wrap it in try/catch. | S |
+| DASH-634 | Tooling and dead code  | Info | Confirmed | `apps/dashboard/package.json`, `jest.config.js:12-13`, `vite.config.ts:8-11`, `README.md` | 10 unused dependencies; unused `@/` alias; Jest maps the removed `@trendvaulta/*` packages; the viteEnv mapper misses `../lib/viteEnv`; README drift (`useTableQuery` does not use the URL; low-stock doesn't cover variants). | Prune the dependencies and fix the mapper and README. | S |
+| DASH-635 | Test gaps  | Info | Confirmed | `src/**/*.test.*` (5 files) | Nothing covers the refresh interceptor, layout guard, permission parity, CMS forms, OrderDetail or ReturnPanel. | Add interceptor, parity and guard tests. | M |
 
 ### 5.6 Delivery, ops, observability, docs
 
 #### OPS-701 · Error, 404 and rate-limit logs drop all error context (pino argument order)
 **High · Confirmed · Effort S** (merged API-101)
+- **Status (2026-09-29):** ✅ Fixed in A4. pino calls take the context object first; docs corrected.
 - **Location:** `apps/api/middlewares/errorHandler.js:14-29,100-106`, `apps/api/middlewares/rateLimit.js:87-96`, `apps/api/utils/logger.js:16-17`, `apps/api/docs/LOGGING.md:100-102`
 - **Evidence:** The code calls `logger.error('Request failed', {error, request, …})`. Pino expects the merge object *first*. With a string first, the trailing object is treated as printf arguments, and since there are no placeholders it is discarded.
 - **Impact:** Every production 500 logs only "Request failed", with no message, stack, URL, user or requestId. Incidents can't be diagnosed, and there is no Sentry either.
@@ -1041,12 +1184,14 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **OPS-702 · No error tracking and no frontend crash boundaries; controllers log with `console.*`**
 **Medium · Confirmed · Effort M**
+- **Status (2026-09-29):** 🟡 Partial in B11. All controller/mail/storage `console.*` moved to pino. Still open: Sentry/APM (needs dependency approval + DSN).
 - **Location:** No Sentry anywhere. There is no `apps/website/src/app/global-error.tsx`, no `instrumentation.ts`, and no dashboard ErrorBoundary (DASH-620). `console.*` is used in `payment.controller.js:298,322,384,470,654,715`, `order.controller.js:423,580`, `return.controller.js:285`, `password.controller.js:111,121` and `utils/mail.js:52-330`.
 - **Impact:** Webhook and payment failures are plain text mixed into the JSON logs, with no alerting. Frontend crashes go unreported.
 - **Fix:** Route all logging through `utils/logger`. Add Sentry (or equivalent) to the API error handler, website instrumentation plus `global-error.tsx`, and a dashboard ErrorBoundary.
 
 **OPS-703 · Deploys aren't gated on CI**
 **Medium · Confirmed (config) · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in B12. render.yaml `autoDeployTrigger: checksPass`. Verify in the Render dashboard.
 - **Location:** `apps/api/render.yaml:12` (`autoDeploy: true`), `.github/workflows/ci.yml` (no deploy job)
 - **Impact:** A push to `main` with failing tests still deploys the API (and Vercel deploys through its Git integration).
 - **Fix:** Deploy only after checks pass (Render "after CI checks" or a deploy hook from CI), and require CI status via branch protection.
@@ -1066,6 +1211,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **OPS-708 · The declared engines don't match the real Node floor**
 **Medium · Confirmed · Effort S**
+- **Status (2026-09-29):** ✅ Fixed in B12. engines `>=22.12.0` (root + api) and docs aligned. Run `npm install --package-lock-only` to refresh the lockfile metadata.
 - **Location:** `package.json:31-34` (`>=20.9.0`), `ci.yml:20-22`, and lockfile engines (jsdom 30.1 `^22.22.2 || >=24.15`, vite 8, mongodb-memory-server `>=20.19`). README and PROJECT_REFERENCE say Node 18/20.
 - **Impact:** Contributors on Node 20.9–21 get failing tests. Render's Node version is undetermined.
 - **Fix:** Set engines to `>=22.12` (or the jsdom range), add engines to `apps/api`, and align the docs.
@@ -1077,6 +1223,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 **OPS-710 · The Render production config is fragile**
 **Medium · Confirmed (config) / Suspected (impact) · Effort S–M**
+- **Status (2026-09-29):** 🟡 Partial in B12. `npm ci` builds, NODE_VERSION=22. Still open: free plan (billing decision), auth IP limit kept at 30/min until Q1.
 - **Location:** `apps/api/render.yaml:5` (`plan: free`), `:10` (`npm install`, not `npm ci`), `:39` (`RATE_LIMIT_AUTH_MAX=30`), `apps/api/middlewares/rateLimit.js:42` (in-memory)
 - **Impact:** Cold starts hit checkout and webhooks. Installs aren't reproducible. Brute-force limits are 6× looser than the code default and reset on every restart.
 - **Fix:** Use a paid instance, `npm ci`, and an auth limit ≤10. Use a shared rate-limit store before scaling out.
@@ -1085,21 +1232,21 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 | ID | Title | Sev | Status | Location | Evidence / Impact | Fix | Effort |
 |---|---|---|---|---|---|---|---|
-| OPS-712 | Password-reset mail duplicates `utils/mail.js` and diverges; 5-minute lifetime | Low | Confirmed | `controllers/password.controller.js:63-122`, `utils/mail.js:17-38` | Ignores `FROM_EMAIL`/`EMAIL_PASS`, so the sender differs (more spam). A 500 on SMTP failure reveals that the account exists. 5-minute tokens expire before delayed mail arrives (merged API-103). | Reuse `createTransporter`/`getFromAddress`; always return 200; use a 15–30 min lifetime. | S |
-| OPS-713 | Request-ID tracing is incomplete | Low | Confirmed | `middlewares/requestLogger.js:49,71`, `app.js:23-27,44`, `middlewares/errorHandler.js:88-94` | The client's `x-request-id` is trusted, unbounded and never echoed. The webhook is registered before the logger. Error bodies omit the requestId. `res.responseTime` is always undefined. | Validate the id, echo `X-Request-Id`, include it in errors, and log webhooks. | S |
-| OPS-714 | Health endpoints are duplicated and misdocumented | Low | Confirmed | `app.js:62-69,135-141`, `routes/trendvaulta.js:10`, `apps/api/README.md:63` | `/health` returns 503 without the DB (so it's really readiness). The `/api/trendvaulta` duplicate is unreachable. | Keep `/api/trendvaulta` (live) and `/api/ready`, delete the duplicate, and fix the README. | S |
-| OPS-715 | Logging and rate-limit config promise features that don't exist | Low | Confirmed | `config/logging.config.js:21-56,85-90`, `config/rateLimit.config.js:24-93`, `middlewares/rateLimit.js:31,58-61`, `.env.example:34-37` | File logging and rotation aren't implemented. The limiter is described as "sliding-window" but is a fixed window. `tiers`/`endpoints` are unused. The window sizes in `.env.example` are wrong. | Delete the dead config and fix the docs. | S |
-| OPS-716 | The API has no lint, and CI has gaps | Low | Confirmed | `apps/api/package.json:6-11`, `.github/workflows/ci.yml:25-45,130` | No ESLint. No `permissions:` block. Actions pinned by tag. No mongodb binary cache. No i18n parity check, no e2e, no coverage gate. The audit runs only `--omit=dev --audit-level=critical`. | Add ESLint, `permissions: contents: read`, caching and a parity script. | S–M |
-| OPS-717 | Website test toolchain version mismatch | Low | Suspected | `apps/website/package.json:42,49`, `vitest.config.mts:2,6` | vitest 2.1.9 on vite 5, with plugin-react 6 (peer vite ^8). | Upgrade to vitest ≥4, or pin plugin-react 4. | S |
-| OPS-718 | Dead code (repo-wide) | Low | Confirmed | `apps/api/middlewares/logger.js`, `apps/api/utils/errorResponse.js`, `verfiyToken.js:25-52` (unused helpers), `routes/users.js:3-5`, `checkRolePermission.js:14` (wildcards ignored), `render.yaml:27` (points to a nonexistent `cors.js`), `packages/types`, root `build:types`, lockfile `packages/api-client`/`ui` entries, api `main: index.js` | Maintenance noise (merged API-106). Website dead code is covered in WEB-419. | Delete, or wire `hasPermission`; regenerate the lockfile. | S |
-| OPS-719 | Unused dependencies | Low | Confirmed | Website: `zustand`, `next-intl`, `@radix-ui/react-label`, `@radix-ui/react-tabs`. Dashboard: see DASH-634. | — | Remove them. | S |
-| OPS-720 | Outdated dashboard toolchain and Stripe SDK | Low | Suspected | eslint 8 (EOL), @typescript-eslint 7, vite 5, react-router 6, tailwind 3, stripe-node 17.7 | — | Upgrade the majors in separate PRs. | M |
-| OPS-721 | Docs drift: AGENTS.md and agent rule files | Low | Confirmed | `AGENTS.md:9,17,34,85,90,211`, `.cursorrules:10,22,49`, `.cursor/rules/*.mdc` | Refers to a nonexistent `pnpm-workspace.yaml`; says packages were "removed" (`packages/types` exists); lists a `typecheck:types` script that doesn't exist; references `@trendvaulta/api-client`; gives the wrong error shape; says the refresh token is not yet httpOnly (it is). | Update the docs. | S |
-| OPS-722 | Docs drift: READMEs and MONOREPO_SETUP | Low | Confirmed | `README.md:13,23,55`, `apps/website/README.md:3,44`, `apps/api/README.md:14`, `MONOREPO_SETUP.md:96-100,124`, `SEEDER_README.md:29-38`, `app.js:113` | Says "no refresh tokens"; references a deleted plan item "I5"; says the cart is "Zustand"; gives the wrong test command; says the order email is "when wired" (it is wired); the seeder from the repo root misses `.env`; references a stale `backend/.env` path. | Update the docs. | S |
-| OPS-723 | Docs drift: PROJECT_REFERENCE.md (untracked) | Low | Confirmed | `docs/PROJECT_REFERENCE.md:19,136,274,281,303,360-369,374,415-420,436,453-454,499` | JWT 30 d and "no refresh"; "no auto refund"; 8 models (there are 24); "no disable flag"; "purchase gate not enforced"; "shipping client-supplied" — all contradict the code. | Rewrite from this audit. | S |
-| OPS-724 | No schema migrations or index management | Low | Confirmed | No migrations dir; `syncIndexes` only in `tests/setup.js:181` | Index changes (e.g. the text index at `Product.js:224-227`) rely on autoIndex at boot. | Add migrate-mongo or a scripted `syncIndexes` deploy step. | M |
-| OPS-725 | Admin user delete is a hard delete | Low | Confirmed | `controllers/user.controller.js:143-144` | Orphans orders, reviews and refresh tokens; there's no GDPR anonymisation path. | Soft-delete or anonymise, and revoke tokens. | S–M |
-| OPS-726 | Minor repo hygiene | Info | Confirmed | `package.json:25`, `.gitignore`, `apps/api/uploads/.gitkeep` | `clean` uses `&&` and `rm -rf` (AGENTS.md requires `;`). `.gitkeep` is ignored but tracked. | Tidy up. | S |
+| OPS-712 | 🟡 Password-reset mail duplicates `utils/mail.js` and diverges; 5-minute lifetime | Low | Confirmed | `controllers/password.controller.js:63-122`, `utils/mail.js:17-38` | Ignores `FROM_EMAIL`/`EMAIL_PASS`, so the sender differs (more spam). A 500 on SMTP failure reveals that the account exists. 5-minute tokens expire before delayed mail arrives (merged API-103). | Reuse `createTransporter`/`getFromAddress`; always return 200; use a 15–30 min lifetime. | S |
+| OPS-713 | ✅ Request-ID tracing is incomplete | Low | Confirmed | `middlewares/requestLogger.js:49,71`, `app.js:23-27,44`, `middlewares/errorHandler.js:88-94` | The client's `x-request-id` is trusted, unbounded and never echoed. The webhook is registered before the logger. Error bodies omit the requestId. `res.responseTime` is always undefined. | Validate the id, echo `X-Request-Id`, include it in errors, and log webhooks. | S |
+| OPS-714 | Health endpoints are duplicated and misdocumented  | Low | Confirmed | `app.js:62-69,135-141`, `routes/trendvaulta.js:10`, `apps/api/README.md:63` | `/health` returns 503 without the DB (so it's really readiness). The `/api/trendvaulta` duplicate is unreachable. | Keep `/api/trendvaulta` (live) and `/api/ready`, delete the duplicate, and fix the README. | S |
+| OPS-715 | Logging and rate-limit config promise features that don't exist  | Low | Confirmed | `config/logging.config.js:21-56,85-90`, `config/rateLimit.config.js:24-93`, `middlewares/rateLimit.js:31,58-61`, `.env.example:34-37` | File logging and rotation aren't implemented. The limiter is described as "sliding-window" but is a fixed window. `tiers`/`endpoints` are unused. The window sizes in `.env.example` are wrong. | Delete the dead config and fix the docs. | S |
+| OPS-716 | The API has no lint, and CI has gaps  | Low | Confirmed | `apps/api/package.json:6-11`, `.github/workflows/ci.yml:25-45,130` | No ESLint. No `permissions:` block. Actions pinned by tag. No mongodb binary cache. No i18n parity check, no e2e, no coverage gate. The audit runs only `--omit=dev --audit-level=critical`. | Add ESLint, `permissions: contents: read`, caching and a parity script. | S–M |
+| OPS-717 | Website test toolchain version mismatch  | Low | Suspected | `apps/website/package.json:42,49`, `vitest.config.mts:2,6` | vitest 2.1.9 on vite 5, with plugin-react 6 (peer vite ^8). | Upgrade to vitest ≥4, or pin plugin-react 4. | S |
+| OPS-718 | Dead code (repo-wide)  | Low | Confirmed | `apps/api/middlewares/logger.js`, `apps/api/utils/errorResponse.js`, `verfiyToken.js:25-52` (unused helpers), `routes/users.js:3-5`, `checkRolePermission.js:14` (wildcards ignored), `render.yaml:27` (points to a nonexistent `cors.js`), `packages/types`, root `build:types`, lockfile `packages/api-client`/`ui` entries, api `main: index.js` | Maintenance noise (merged API-106). Website dead code is covered in WEB-419. | Delete, or wire `hasPermission`; regenerate the lockfile. | S |
+| OPS-719 | Unused dependencies  | Low | Confirmed | Website: `zustand`, `next-intl`, `@radix-ui/react-label`, `@radix-ui/react-tabs`. Dashboard: see DASH-634. | — | Remove them. | S |
+| OPS-720 | Outdated dashboard toolchain and Stripe SDK  | Low | Suspected | eslint 8 (EOL), @typescript-eslint 7, vite 5, react-router 6, tailwind 3, stripe-node 17.7 | — | Upgrade the majors in separate PRs. | M |
+| OPS-721 | Docs drift: AGENTS.md and agent rule files  | Low | Confirmed | `AGENTS.md:9,17,34,85,90,211`, `.cursorrules:10,22,49`, `.cursor/rules/*.mdc` | Refers to a nonexistent `pnpm-workspace.yaml`; says packages were "removed" (`packages/types` exists); lists a `typecheck:types` script that doesn't exist; references `@trendvaulta/api-client`; gives the wrong error shape; says the refresh token is not yet httpOnly (it is). | Update the docs. | S |
+| OPS-722 | 🟡 Docs drift: READMEs and MONOREPO_SETUP | Low | Confirmed | `README.md:13,23,55`, `apps/website/README.md:3,44`, `apps/api/README.md:14`, `MONOREPO_SETUP.md:96-100,124`, `SEEDER_README.md:29-38`, `app.js:113` | Says "no refresh tokens"; references a deleted plan item "I5"; says the cart is "Zustand"; gives the wrong test command; says the order email is "when wired" (it is wired); the seeder from the repo root misses `.env`; references a stale `backend/.env` path. | Update the docs. | S |
+| OPS-723 | Docs drift: PROJECT_REFERENCE.md (untracked)  | Low | Confirmed | `docs/PROJECT_REFERENCE.md:19,136,274,281,303,360-369,374,415-420,436,453-454,499` | JWT 30 d and "no refresh"; "no auto refund"; 8 models (there are 24); "no disable flag"; "purchase gate not enforced"; "shipping client-supplied" — all contradict the code. | Rewrite from this audit. | S |
+| OPS-724 | No schema migrations or index management  | Low | Confirmed | No migrations dir; `syncIndexes` only in `tests/setup.js:181` | Index changes (e.g. the text index at `Product.js:224-227`) rely on autoIndex at boot. | Add migrate-mongo or a scripted `syncIndexes` deploy step. | M |
+| OPS-725 | ✅ Admin user delete is a hard delete | Low | Confirmed | `controllers/user.controller.js:143-144` | Orphans orders, reviews and refresh tokens; there's no GDPR anonymisation path. | Soft-delete or anonymise, and revoke tokens. | S–M |
+| OPS-726 | Minor repo hygiene  | Info | Confirmed | `package.json:25`, `.gitignore`, `apps/api/uploads/.gitkeep` | `clean` uses `&&` and `rm -rf` (AGENTS.md requires `;`). `.gitkeep` is ignored but tracked. | Tidy up. | S |
 
 ### 5.7 Tests & CI inventory (Phase 5)
 
@@ -1147,55 +1294,55 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 
 ### Phase A: Fix now (1–2 weeks). Checkout, money, privilege, blind spots
 
-| # | Item | IDs | Effort | Depends on |
-|---|---|---|---|---|
-| A1 | Fix the two-variant cart lookup and send a non-empty `shippingMethod`, with regression tests | API-201, API-202 | S | — |
-| A2 | Harden the Stripe state machine: drop the `payment_intent.succeeded` write (or route it through the claim), check `payment_status`, handle async events, have only the claimant set status, reclaim stuck events | PAY-201, PAY-202, PAY-203, PAY-204 | S–M | — |
-| A3 | Add an admin-only `settings:write`, and switch the dashboard password form to `/password/change` | SEC-101, SEC-105 | S | — |
-| A4 | Fix the pino argument order at every error site | OPS-701 | S | — |
-| A5 | Clear React Query caches on logout and login (storefront and dashboard) | WEB-522, DASH-627 | S | — |
-| A6 | Close the open redirect; remove the reset-link echo | SEC-104, SEC-106 | S | — |
-| A7 | CMS correctness: default `active: true` on public lookbooks and testimonials; safe Content create; filter and sort hero slides; integer ratings | API-302, API-303, API-310, API-313 | S | — |
-| A8 | Homepage modules: map the seeded and allowed keys to renderers, and keep the default sections when the CMS is partial | API-301 | M | — |
-| A9 | Order emails: link to `/user/orders/:id`, lease the email flag; always show the tracking editor | PAY-205, DASH-602, API-213 | S | — |
-| A10 | Stop the dashboard white-screen: null-safe Bundles and Q&A plus an ErrorBoundary | DASH-603, DASH-620 | S | Root fix in B6 |
-| A11 | Zone price of $0 treated as free; validate zone regexes | API-209, API-208 | S | Before B1 exposes zones |
-| A12 | Accessible review rating control | WEB-509 | S | — |
+| # | Item | IDs | Effort | Depends on | Status |
+|---|---|---|---|---|---|
+| A1 | Fix the two-variant cart lookup and send a non-empty `shippingMethod`, with regression tests | API-201, API-202 | S | — | ✅ Done |
+| A2 | Harden the Stripe state machine: drop the `payment_intent.succeeded` write (or route it through the claim), check `payment_status`, handle async events, have only the claimant set status, reclaim stuck events | PAY-201, PAY-202, PAY-203, PAY-204 | S–M | — | ✅ Done |
+| A3 | Add an admin-only `settings:write`, and switch the dashboard password form to `/password/change` | SEC-101, SEC-105 | S | — | ✅ Done |
+| A4 | Fix the pino argument order at every error site | OPS-701 | S | — | ✅ Done |
+| A5 | Clear React Query caches on logout and login (storefront and dashboard) | WEB-522, DASH-627 | S | — | ✅ Done |
+| A6 | Close the open redirect; remove the reset-link echo | SEC-104, SEC-106 | S | — | ✅ Done (OPS-712 partly) |
+| A7 | CMS correctness: default `active: true` on public lookbooks and testimonials; safe Content create; filter and sort hero slides; integer ratings | API-302, API-303, API-310, API-313 | S | — | ✅ Done |
+| A8 | Homepage modules: map the seeded and allowed keys to renderers, and keep the default sections when the CMS is partial | API-301 | M | — | ✅ Done |
+| A9 | Order emails: link to `/user/orders/:id`, lease the email flag; always show the tracking editor | PAY-205, DASH-602, API-213 | S | — | ✅ Done (API-213 partly) |
+| A10 | Stop the dashboard white-screen: null-safe Bundles and Q&A plus an ErrorBoundary | DASH-603, DASH-620 | S | Root fix in B6 | ✅ Done |
+| A11 | Zone price of $0 treated as free; validate zone regexes | API-209, API-208 | S | Before B1 exposes zones | ✅ Done (ReDoS limited, not eliminated) |
+| A12 | Accessible review rating control | WEB-509 | S | — | ✅ Done |
 
 ### Phase B: Next sprint. Correctness, security hardening, admin UX
 
-| # | Item | IDs | Effort | Depends on |
-|---|---|---|---|---|
-| B1 | Shipping-zones admin screen; persist `delivery` and `shippingMethod` on Order and show them in the dashboard; decide the "no delivery" rule | DASH-609, API-203, DASH-621 | M | A1, A11 |
-| B2 | Money in cents end to end; store the Stripe `amount_total` | API-207 | M | A2 |
-| B3 | Conditional coupon usage and per-user limits | API-204, API-215 | M | — |
-| B4 | Atomic admin status transitions; refund/restock policy tied to returns | API-206, API-205, API-225 | M | A2 |
-| B5 | Refresh token: atomic rotation plus a grace window; dashboard logs out only on 401 | SEC-102, DASH-606, DASH-605, SEC-110 | M | — |
-| B6 | Soft delete for products and brands; a last-admin guard; hard-delete policy for users | API-212, SEC-113, OPS-725 | M | Replaces the A10 stopgap |
-| B7 | Security headers and CSP for the storefront; per-account login throttling; confirm the proxy hop count | SEC-109, SEC-108 | M | Open question Q1 |
-| B8 | Email change needs a password or verification | SEC-107 | M | — |
-| B9 | Demo fallback policy: hide on error in production; no fake testimonials or brands; one modules/home query | WEB-406, API-312 | S | A8 |
-| B10 | Hide bundle savings until they are priced server-side (or implement bundle pricing) | API-210 | S / M | — |
-| B11 | Observability: Sentry (API, website, dashboard), request-ID echo, logger in controllers | OPS-702, OPS-713 | M | A4 |
-| B12 | CI-gated deploys; `npm ci`; paid Render plan; engines alignment | OPS-703, OPS-710, OPS-708 | S | — |
-| B13 | Non-destructive admin bootstrap script | API-304, API-325 | S | — |
-| B14 | Storefront hydration fixes; brands pagination; wishlist brand populate | WEB-410, WEB-414, WEB-409 | M | — |
-| B15 | Dashboard a11y: shared Radix `FormDialog`, labels, readable validation errors | DASH-617, DASH-618, DASH-613 | M | — |
-| B16 | Storefront a11y: skip link, focus trap in the filters drawer, reduced motion, error toasts, ProductCard | WEB-510–WEB-515 | S–M | — |
-| B17 | Tests for auth routes, permission wiring, returns, the refresh interceptor and `safeRedirect` | §5.7 | M | A1–A6 |
+| # | Item | IDs | Effort | Depends on | Status |
+|---|---|---|---|---|---|
+| B1 | Shipping-zones admin screen; persist `delivery` and `shippingMethod` on Order and show them in the dashboard; decide the "no delivery" rule | DASH-609, API-203, DASH-621 | M | A1, A11 | ✅ Done (B1a fulfilment + B1b zones screen; handle validation open) |
+| B2 | Money in cents end to end; store the Stripe `amount_total` | API-207 | M | A2 | ✅ Done |
+| B3 | Conditional coupon usage and per-user limits | API-204, API-215 | M | — | ✅ Done (coupon end-of-day expiry, API-227, open) |
+| B4 | Atomic admin status transitions; refund/restock policy tied to returns | API-206, API-205, API-225 | M | A2 | ✅ Done |
+| B5 | Refresh token: atomic rotation plus a grace window; dashboard logs out only on 401 | SEC-102, DASH-606, DASH-605, SEC-110 | M | — | ✅ Done |
+| B6 | Soft delete for products and brands; a last-admin guard; hard-delete policy for users | API-212, SEC-113, OPS-725 | M | Replaces the A10 stopgap | ✅ Done |
+| B7 | Security headers and CSP for the storefront; per-account login throttling; confirm the proxy hop count | SEC-109, SEC-108 | M | Open question Q1 | 🟡 Partial — trust proxy waits on Q1; nonce CSP later |
+| B8 | Email change needs a password or verification | SEC-107 | M | — | ✅ Done (no new-email confirmation) |
+| B9 | Demo fallback policy: hide on error in production; no fake testimonials or brands; one modules/home query | WEB-406, API-312 | S | A8 | ✅ Done |
+| B10 | Hide bundle savings until they are priced server-side (or implement bundle pricing) | API-210 | S / M | — | ✅ Done (savings hidden) |
+| B11 | Observability: Sentry (API, website, dashboard), request-ID echo, logger in controllers | OPS-702, OPS-713 | M | A4 | 🟡 Partial — Sentry needs dependency approval |
+| B12 | CI-gated deploys; `npm ci`; paid Render plan; engines alignment | OPS-703, OPS-710, OPS-708 | S | — | ✅ Done (verify Render; free plan is your call) |
+| B13 | Non-destructive admin bootstrap script | API-304, API-325 | S | — | ✅ Done |
+| B14 | Storefront hydration fixes; brands pagination; wishlist brand populate | WEB-410, WEB-414, WEB-409 | M | — | ✅ Done (WEB-524 open) |
+| B15 | Dashboard a11y: shared Radix `FormDialog`, labels, readable validation errors | DASH-617, DASH-618, DASH-613 | M | — | ✅ Done (DASH-618 partly) |
+| B16 | Storefront a11y: skip link, focus trap in the filters drawer, reduced motion, error toasts, ProductCard | WEB-510–WEB-515 | S–M | — | ✅ Done |
+| B17 | Tests for auth routes, permission wiring, returns, the refresh interceptor and `safeRedirect` | §5.7 | M | A1–A6 | ✅ Done (dashboard refresh interceptor untested) |
 
 ### Phase C: Later. Platform and product
 
-| # | Item | IDs | Effort | Depends on |
-|---|---|---|---|---|
-| C1 | Standard response and error envelope with stable error codes, then localised API errors on the client | API-228, WEB-501, DASH-613 | M | — |
-| C2 | Arabic for all CMS models, dashboard forms and emails | API-311, WEB-405 | L | C1 (codes) helps |
-| C3 | SSR catalogue plus locale URLs and hreflang, localised metadata, sitemap shards | WEB-412, WEB-413, WEB-418, WEB-416 | L | — |
-| C4 | Move the dashboard refresh token to httpOnly (BFF) and the storefront access token to httpOnly; admin 2FA | SEC-103, SEC-109 | L | B7 |
-| C5 | Wire the category CMS into navigation and `/c/*`; render PRIVACY and TERMS from the CMS; honour module title and limit | API-315, WEB-405, API-331 | M | A8 |
-| C6 | Product gaps: stock reservation, audit log, GDPR export/delete, review moderation, newsletter double opt-in, analytics + consent, abandoned cart, search upgrade | §6 | L | B-phase |
-| C7 | Migrations and index management; a shared rate-limit store; horizontal scaling readiness | OPS-724, SEC-108 | M | — |
-| C8 | Docs refresh (AGENTS.md, READMEs, PROJECT_REFERENCE) and commit the untracked docs; dead code and dependency cleanup; toolchain upgrades | OPS-709, OPS-718–OPS-723, WEB-419, DASH-634, OPS-719, OPS-720 | S–M | — |
+| # | Item | IDs | Effort | Depends on | Status |
+|---|---|---|---|---|---|
+| C1 | Standard response and error envelope with stable error codes, then localised API errors on the client | API-228, WEB-501, DASH-613 | M | — | ⬜ Open |
+| C2 | Arabic for all CMS models, dashboard forms and emails | API-311, WEB-405 | L | C1 (codes) helps | ⬜ Open |
+| C3 | SSR catalogue plus locale URLs and hreflang, localised metadata, sitemap shards | WEB-412, WEB-413, WEB-418, WEB-416 | L | — | ⬜ Open |
+| C4 | Move the dashboard refresh token to httpOnly (BFF) and the storefront access token to httpOnly; admin 2FA | SEC-103, SEC-109 | L | B7 | ⬜ Open |
+| C5 | Wire the category CMS into navigation and `/c/*`; render PRIVACY and TERMS from the CMS; honour module title and limit | API-315, WEB-405, API-331 | M | A8 | ⬜ Open |
+| C6 | Product gaps: stock reservation, audit log, GDPR export/delete, review moderation, newsletter double opt-in, analytics + consent, abandoned cart, search upgrade | §6 | L | B-phase | ⬜ Open |
+| C7 | Migrations and index management; a shared rate-limit store; horizontal scaling readiness | OPS-724, SEC-108 | M | — | ⬜ Open |
+| C8 | Docs refresh (AGENTS.md, READMEs, PROJECT_REFERENCE) and commit the untracked docs; dead code and dependency cleanup; toolchain upgrades | OPS-709, OPS-718–OPS-723, WEB-419, DASH-634, OPS-719, OPS-720 | S–M | — | ⬜ Open |
 
 ```mermaid
 flowchart LR

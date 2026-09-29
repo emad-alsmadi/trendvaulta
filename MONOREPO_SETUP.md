@@ -17,7 +17,7 @@ Catalog domain: **products and brands**.
 
 ## Prerequisites
 
-- Node.js 18 or higher
+- Node.js 22.12 or higher
 - npm 9+ (primary package manager for this repo)
 - MongoDB (local or Atlas)
 - Stripe keys if you exercise checkout

@@ -39,7 +39,7 @@ Catalog domain is **products and brands**.
 
 **Dashboard** — Vite, React 19, TypeScript, React Router, TanStack Query, Tailwind CSS
 
-**API** — Node.js 20.9+, Express 5, Mongoose, Joi, JWT, bcryptjs, Stripe, Nodemailer
+**API** — Node.js 22.12+, Express 5, Mongoose, Joi, JWT, bcryptjs, Stripe, Nodemailer
 
 ---
 
@@ -64,7 +64,7 @@ trendvaulta/
 
 ### Prerequisites
 
-- Node.js 20.9+ and npm 10+
+- Node.js 22.12+ and npm 10+
 - MongoDB (local or Atlas)
 - Stripe keys for checkout (optional for non-payment work)
 

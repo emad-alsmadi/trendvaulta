@@ -15,7 +15,7 @@ From a fresh clone to all three apps running with data, in about ten minutes.
 
 | Tool | Version | Notes |
 |---|---|---|
-| Node.js | **20.9+** (CI uses 22) | Required by Next.js 16; set in root `package.json` `engines` |
+| Node.js | **22.12+** (CI uses 22) | Required by Next.js 16; set in root `package.json` `engines` |
 | npm | 10+ | The repo uses **npm workspaces**. Ignore `pnpm-workspace.yaml` |
 | MongoDB | 6+ | Local `mongod`, Docker, or a free Atlas cluster |
 | Stripe account | test mode | Optional — only needed to exercise checkout and refunds |
@@ -202,7 +202,7 @@ Deploy order (each app needs the URLs of the ones before it): **database → API
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | from the Cloudinary console |
 
 3. Deploy. Render waits for `/api/ready` → `200`, which only happens once Mongo is connected.
-4. Create the first admin: don't use the seeder in production (it wipes the catalog and refuses `NODE_ENV=production`). Register through the storefront, then set `roles: ["admin"]` on that user in Atlas. Grant further staff roles from Dashboard → Users.
+4. Create the first admin with `node seeder.js -admin` (in `apps/api`, with `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` and the production `MONGO_URL` set). It only creates the admin account and touches no other collection — unlike `-import`, which wipes the catalog. Grant further staff roles from Dashboard → Users.
 
 The API **refuses to start** in production when:
 - `MONGO_URL`, `JWT_SECRET_KEY`, or `FRONTEND_URL` is missing
