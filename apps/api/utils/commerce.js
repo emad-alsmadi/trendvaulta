@@ -700,6 +700,7 @@ module.exports = {
   resolveFulfillment,
   resolveShippingPrice,
   resolveTaxPrice,
+  getStoreSettings,
   invalidateStoreSettingsCache,
   calculateCouponDiscount,
   checkCouponUsage,

@@ -301,6 +301,7 @@ No server cart API — client cart only (`cartStore.ts`). Commerce entry point i
 | `POST /orders` | private | `{ items: [{ productId, qty, variant? }], shippingAddress, shippingPrice?, taxPrice? }`; disabled when Stripe is configured unless `DEV_ALLOW_DIRECT_ORDERS`/`ALLOW_DIRECT_ORDERS` |
 | `GET /orders/my` | private | own orders |
 | `GET /orders/:id` | private | owner or admin |
+| `GET /orders/:id/invoice` | private: owner, or staff with `orders:read` | `?lang=en\|ar`. A self-contained printable HTML invoice (every value escaped, CSP forbids scripts, `no-store`). `409 INVOICE_NOT_AVAILABLE` until the payment is captured; 404 for someone else's order. Storefront link: `/user/orders/:id/invoice` (Next route handler that forwards the cookie token). Dashboard: Order detail → Invoice / عربي |
 | `GET /orders` (admin list) | private + `orders:read` | `page, limit, status, paymentStatus, q`; items include `allowedNextStatuses` |
 | `PATCH /orders/:id/status` (admin) | private + `orders:write` | `pending→canceled`, `paid→shipped|canceled`, `shipped→delivered`. Not `pending→paid` (Stripe/webhook only). Transitions are claimed atomically (409 on a concurrent change). Canceling/refunding a paid order issues a Stripe refund automatically (`AUTO_REFUND_ON_CANCEL`, default on); inventory is restored once, and only if the order never shipped (returns restock their lines when marked received) |
 
@@ -392,7 +393,15 @@ No dedicated `Address` or server-side `Cart` model — addresses live on the use
 `name, slug (unique), description, logo, website, country, isActive, featured`. Public list filters `isActive: true`.
 
 ### Order
-`user (ref User), items[] ({ productId, title, price, qty, cover, variant? }), shippingAddress, status (pending|paid|shipped|delivered|canceled), itemsPrice, shippingPrice, taxPrice, totalPrice, paymentStatus (unpaid|pending|paid|failed|refunded), stripeSessionId, paymentIntentId, paidAt`. Ownership via `user`.
+`user (ref User), items[] ({ productId, title, price, qty, cover, variant? }), shippingAddress, status (pending|paid|shipped|delivered|canceled), itemsPrice, shippingPrice, taxPrice, totalPrice, paymentStatus (unpaid|pending|paid|failed|refunded), stripeSessionId, paymentIntentId, paidAt, invoiceNumber, invoiceIssuedAt`. Ownership via `user`.
+
+**Invoice numbers** (`utils/invoice.js`): `<prefix>-<year>-<6-digit sequence>`, e.g. `TV-2026-000123`.
+- The sequence is per calendar year of `paidAt` in `STORE_TIMEZONE` (the same zone the invoice date prints in), stored in the `counters` collection (`models/Counter.js`).
+- The number is assigned once, when the payment is captured (`applyPaidSideEffects`), or on first invoice view for older paid orders. It never changes afterwards, even when the prefix setting changes.
+- The order is claimed before a number is drawn, so concurrent callers can't burn numbers. Numbering is gap-free unless the process crashes mid-allocation; a stale claim is taken over after 1 minute.
+- `invoiceNumber` is unique (partial index on non-empty values).
+- The seller block and prefix come from `StoreSettings.invoice` (`legalName`, `address`, `taxId`, `prefix`), set in Dashboard → Settings.
+- Dates print in `STORE_TIMEZONE` (default `UTC`; an invalid zone falls back to UTC).
 
 ### Wishlist / Review
 One document per `(user, product)`, unique compound index `{ user: 1, product: 1 }`.

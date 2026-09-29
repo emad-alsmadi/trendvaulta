@@ -242,6 +242,22 @@ const OrderSchema = new mongoose.Schema(
       min: 0,
       default: 0,
     },
+    // Sequential per year (TV-2026-000123), assigned once when the payment is
+    // captured (utils/invoice.js ensureInvoiceNumber) and never changed.
+    invoiceNumber: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    invoiceIssuedAt: {
+      type: Date,
+    },
+    // Short claim while a number is being allocated, so concurrent callers
+    // can't each burn one; a stale claim (crash) is taken over after 1 min.
+    invoiceClaimedAt: {
+      type: Date,
+      default: null,
+    },
     trackingNumber: {
       type: String,
       trim: true,
@@ -385,6 +401,11 @@ OrderSchema.index({ paymentStatus: 1, createdAt: -1 });
 // Stripe lookups (verify-payment, webhook handlers)
 OrderSchema.index({ stripeSessionId: 1 }, { sparse: true });
 OrderSchema.index({ paymentIntentId: 1 }, { sparse: true });
+// An invoice number is issued once: unique among orders that have one
+OrderSchema.index(
+  { invoiceNumber: 1 },
+  { unique: true, partialFilterExpression: { invoiceNumber: { $gt: '' } } },
+);
 
 const Order = mongoose.model('Order', OrderSchema);
 

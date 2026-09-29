@@ -25,7 +25,9 @@ const {
   restoreStockOnce,
   incrementCouponUsedCount,
   incrementSalesCountForPaidOrder,
+  getStoreSettings,
 } = require('../utils/commerce');
+const { ensureInvoiceNumber } = require('../utils/invoice');
 const {
   canTransitionOrderStatus,
   hasOrderShipped,
@@ -462,6 +464,15 @@ async function applyPaidSideEffects(order) {
       await releaseOrderFlag(order._id, 'salesCountIncremented');
       throw e;
     }
+  }
+
+  // Number the invoice in payment order. Best effort: the invoice endpoint
+  // assigns it on first view if this fails, so it must never fail the webhook.
+  try {
+    const settings = await getStoreSettings();
+    await ensureInvoiceNumber(Order, order._id, { prefix: settings?.invoice?.prefix });
+  } catch (invoiceErr) {
+    logger.error({ err: invoiceErr }, `Order ${order._id}: invoice number not assigned`);
   }
 
   return { status, attentionReason };
