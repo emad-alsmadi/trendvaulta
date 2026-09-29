@@ -891,6 +891,12 @@
     "visitWebsite": "Visit Official Website",
     "emptyTitle": "No Brands Available",
     "emptyDescription": "Check back later as we add new brands to our collection.",
+    "count": "{count} brands",
+    "searchLabel": "Search brands",
+    "searchPlaceholder": "Search by brand name",
+    "clearSearch": "Clear search",
+    "noMatch": "No brands match “{query}”",
+    "indexLabel": "Brands A–Z",
     "detail": {
       "loading": "Loading brand...",
       "notFound": "Brand not found",
