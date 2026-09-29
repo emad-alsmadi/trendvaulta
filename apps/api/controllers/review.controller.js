@@ -7,7 +7,9 @@ const {
 } = require('../models/Review');
 const { Product } = require('../models/Product');
 const { Order } = require('../models/Order');
+const { User } = require('../models/User');
 const { buildSort } = require('../utils/sort');
+const { EMAIL_NOT_VERIFIED, hasVerifiedEmail } = require('../utils/emailVerification');
 const { normalizeSearchTerm } = require('../utils/search');
 
 /** Columns the admin review table may sort on. */
@@ -101,6 +103,11 @@ const createReview = asyncHandler(async (req, res) => {
       message: 'You can review this product after purchasing it.',
       code: 'PURCHASE_REQUIRED',
     });
+  }
+
+  // A public review is tied to a confirmed address (plan decision D5)
+  if (!canBypass && !(await hasVerifiedEmail(User, userId))) {
+    return res.status(403).json(EMAIL_NOT_VERIFIED);
   }
 
   // Create review

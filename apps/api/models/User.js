@@ -123,6 +123,25 @@ const UserSchema = new mongoose.Schema(
       default: false,
       index: true,
     },
+    // Email ownership (utils/emailVerification.js). No default on purpose:
+    // accounts created before verification existed have no such field and
+    // count as verified (grandfathered); new sign-ups and email changes set
+    // it to null until the link is opened. Token stored hashed, single-use.
+    emailVerifiedAt: {
+      type: Date,
+    },
+    emailVerificationTokenHash: {
+      type: String,
+      select: false,
+    },
+    emailVerificationExpires: {
+      type: Date,
+      select: false,
+    },
+    emailVerificationSentAt: {
+      type: Date,
+      select: false,
+    },
     // Internal staff notes. select:false so no customer-facing endpoint
     // (profile, login, reviews…) can ever return them by accident — admin
     // endpoints opt in with .select('+adminNotes').

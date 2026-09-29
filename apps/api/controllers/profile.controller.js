@@ -7,6 +7,13 @@ const {
 } = require('../models/User');
 const bcrypt = require('bcryptjs');
 const Joi = require('joi');
+const logger = require('../utils/logger');
+// Module object, not destructured, so tests can observe the notice
+const mail = require('../utils/mail');
+const {
+  isEmailVerified,
+  startEmailVerification,
+} = require('../utils/emailVerification');
 const { getUserPermissions } = require('../middlewares/rolePermissions');
 const {
   LOCKED_RESPONSE,
@@ -48,7 +55,7 @@ const getProfile = asyncHandler(async (req, res) => {
   }
 
   res.status(200).json({
-    user,
+    user: { ...user, emailVerified: isEmailVerified(user) },
     permissions: getUserPermissions(user.roles || ['user']),
   });
 });
@@ -137,9 +144,21 @@ const updateProfile = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: 'User not found' });
   }
 
+  if (emailChanged) {
+    // The new address must be confirmed again, and the old one is told, so
+    // a takeover through a stolen session can't go unnoticed. Best effort.
+    await startEmailVerification(User, updatedUser).catch((err) =>
+      logger.error({ err }, 'Could not start email verification after an email change'),
+    );
+    updatedUser.emailVerifiedAt = null;
+    await mail
+      .sendEmailChangedNotice({ to: current.email, newEmail: trimmedEmail })
+      .catch(() => {});
+  }
+
   res.status(200).json({
     message: 'Profile updated successfully',
-    user: updatedUser,
+    user: { ...updatedUser, emailVerified: isEmailVerified(updatedUser) },
   });
 });
 

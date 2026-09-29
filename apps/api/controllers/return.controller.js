@@ -12,6 +12,7 @@ const {
 const { canTransitionOrderStatus } = require('../utils/orderTransitions');
 const { canCustomerReturn, canTransitionReturn } = require('../utils/returns');
 const { sendOrderRefundedEmail } = require('../utils/mail');
+const { EMAIL_NOT_VERIFIED, hasVerifiedEmail } = require('../utils/emailVerification');
 
 const returnItemSchema = Joi.object({
   productId: Joi.string().hex().length(24).required(),
@@ -61,6 +62,11 @@ const createReturnRequest = asyncHandler(async (req, res) => {
   const eligible = canCustomerReturn(order);
   if (!eligible.ok) {
     return res.status(400).json({ message: eligible.message });
+  }
+
+  // Refund updates go to this address, so it must be confirmed (plan D5)
+  if (!(await hasVerifiedEmail(User, req.user?.id))) {
+    return res.status(403).json(EMAIL_NOT_VERIFIED);
   }
 
   // An order can hold the same product on several lines (variants), so

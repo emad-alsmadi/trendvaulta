@@ -68,6 +68,13 @@
 
 Record answers here (date + who), for example: `D2 — Yes, guest checkout — 2026-10-01 — owner`.
 
+**Recorded decisions**
+- `D2 — Yes, guest checkout — 2026-09-29 — owner`
+- `D5 — Default: soft banner, verification required before a review or a return request, existing accounts grandfathered (not required for checkout, which guests use anyway) — 2026-09-29 — owner said "yes" to an either/or question; default applied, easy to tighten`
+- `D8 — Yes, Sentry; enabled only when the DSN env vars are set (DSNs to follow) — 2026-09-29 — owner`
+- `P0-10 — Yes, Playwright may be added as a dev dependency — 2026-09-29 — owner`
+- `D4, D7 (P0-09 rate limiting, P0-08 backups) — postponed — 2026-09-29 — owner`
+
 ---
 
 ## 3. Phase 0 — Launch blockers (P0)
@@ -685,7 +692,7 @@ Each item needs its own short design note before it gets a task ID:
 |---|---|---|---|---|---|---|---|---|
 | P0-00 | Windows test command, docs links, i18n parity CI | P0 | S | — | — | ✅ (`packages/types` removed with approval; stale lockfile entries pruned) | 2026-09-29 | `0c23ca5`…  |
 | P0-01 | Stock reservation at checkout | P0 | M | P0-00 | — | ✅ (no Mongo lease: all reconciler writes are conditional, so multi-instance safe without one) | 2026-09-29 | |
-| P0-02 | Email verification | P0 | M | — | D5 | ⬜ | | |
+| P0-02 | Email verification | P0 | M | — | D5 | ✅ (D5 default: soft; reviews/returns gated; no migration needed) | 2026-09-29 | |
 | P0-03 | Guest checkout | P0 | L | P0-01 | D2 | ⬜ | | |
 | P0-04 | Messages inbox in dashboard | P0 | S | — | — | ✅ (checked in a browser at 1024/1536 px incl. Arabic messages) | 2026-09-29 | |
 | P0-05 | Invoices and receipts | P0 | M | — | — | ✅ (printable HTML; PDF not built. Storefront route unit-tested, not browser-tested: your own `next dev` was running) | 2026-09-29 | |

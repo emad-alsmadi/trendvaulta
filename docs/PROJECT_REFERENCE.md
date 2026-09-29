@@ -289,7 +289,9 @@ Authority: `apps/api/routes/` + `app.js`, cross-checked with `apps/website/src/l
 | `POST /auth/refresh` | refresh token | rotates the refresh token (reuse detection, 30 s grace for concurrent tabs) |
 | `POST /auth/logout` | public | revokes the presented refresh token; client clears cookies |
 | `GET /auth/profile` | private | JWT subject only |
-| `PUT /auth/profile` | private | `{ username, email, currentPassword? }` — `currentPassword` required when the email changes; 409 on conflict |
+| `PUT /auth/profile` | private | `{ username, email, currentPassword? }` — `currentPassword` required when the email changes; 409 on conflict. An email change marks the address unconfirmed, sends a link to the new address and a notice to the old one |
+| `POST /auth/verify-email` | public, rate-limited | `{ token }` from the emailed link `/auth/verify-email?token=…` → `{ emailVerified: true }`; unknown, used or expired → `400 VERIFICATION_LINK_INVALID` |
+| `POST /auth/verify-email/resend` | private, rate-limited | New link to the current email; one per minute per account (`429 VERIFICATION_RESEND_TOO_SOON` + `Retry-After`); `503 MAIL_UNAVAILABLE` when mail can't be sent |
 
 ### Password
 | Route | Access | Notes |
@@ -398,7 +400,15 @@ Dashboard → **Messages** (`/messages`) is the inbox. Opening an unread message
 No dedicated `Address` or server-side `Cart` model — addresses live on the user's saved address list (see `apps/website/src/components/account/AddressBook.tsx` + `hooks/profile/addressesQuery.ts`), cart is client-only.
 
 ### User
-`email` (unique), `username`, `password` (bcrypt), `roles: string[]` (enum user/admin/moderator — array, not singular), `stripeCustomerId`, `disabled` (admin-disabled accounts cannot sign in or refresh), `failedLoginAttempts` / `lockUntil` (lockout, `select: false`). JWT payload is `{ id: String(_id), roles }`. Deleting a user anonymises it (PII erased, orders kept).
+`email` (unique), `username`, `password` (bcrypt), `roles: string[]` (enum user/admin/moderator — array, not singular), `stripeCustomerId`, `disabled` (admin-disabled accounts cannot sign in or refresh), `failedLoginAttempts` / `lockUntil` (lockout, `select: false`), `emailVerifiedAt` (see below). JWT payload is `{ id: String(_id), roles }`. Deleting a user anonymises it (PII erased, orders kept).
+
+**Email verification** (`utils/emailVerification.js`, decision D5):
+- `emailVerifiedAt` has no schema default. `null` means waiting for the link. A date, or **no field at all** (accounts created before verification existed), means confirmed, so no migration is needed. Login and profile responses expose it as `emailVerified`.
+- The link token is 32 random bytes, stored only as a SHA-256 hash (`select: false`), valid for 24 h and cleared on first use (atomic).
+- A confirmed address is **not** needed to sign in or check out, since guests check out too.
+- It **is** needed to post a review or request a return (`403 EMAIL_NOT_VERIFIED`). Staff are exempt for reviews.
+- The storefront shows a banner with "Send a new link" across `/user/*`, and the dashboard Users list badges unconfirmed accounts.
+- Emails carry English and Arabic text until users have a stored language (P1-02).
 
 ### Product
 `title, description, cover, brand (ref Brand), price, basePrice, images[], category (enum), subcategory, variants[] (size, color, colorCode, stock, price, sku), material, weight, dimensions, shippingInfo, stock, sku (unique sparse), averageRating, reviewCount, isActive, featured`. Stock precedence: variant stock is authoritative when variants exist, else product-level `stock`.
@@ -533,7 +543,7 @@ Hard rules: never trust client price/discount/stock/role/paymentStatus; never sk
 
 ### Wishlist / Reviews
 - One wishlist entry and one review per `(user, product)` pair.
-- Reviews: rating 1–5; owner can edit/delete; only customers with a paid (or refunded) order for the product can review (staff exempt, not marked verified).
+- Reviews: rating 1–5; owner can edit/delete; only customers with a paid (or refunded) order for the product **and a confirmed email** can review (staff exempt, not marked verified).
 
 ### Addresses
 - Shoppers can save multiple addresses, pick one at checkout, and mark a default (`AddressBook.tsx` + `hooks/profile/addressesQuery.ts`). Shipping address is required on every order.

@@ -1,5 +1,12 @@
 const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcryptjs');
+const logger = require('../utils/logger');
+const {
+  isEmailVerified,
+  startEmailVerification,
+  confirmEmailToken,
+  resendCooldownSeconds,
+} = require('../utils/emailVerification');
 const {
   User,
   validateRegisterUser,
@@ -28,6 +35,7 @@ function toPublicUser(user) {
     email: user.email,
     username: user.username,
     roles: Array.isArray(user.roles) ? user.roles : ['user'],
+    emailVerified: isEmailVerified(user),
   };
 }
 
@@ -65,8 +73,14 @@ const registerUser = asyncHandler(async (req, res) => {
     password: hashedPassword,
     // Never trust client-supplied roles on public registration
     roles: ['user'],
+    // Unconfirmed until the emailed link is opened (see emailVerification.js)
+    emailVerifiedAt: null,
   });
   const result = await user.save();
+  // Best effort: a mail outage must not fail the sign-up; "Resend" exists.
+  await startEmailVerification(User, result).catch((err) =>
+    logger.error({ err }, 'Could not start email verification'),
+  );
   const token = user.generateToken();
   const { plaintext: refreshToken } = await issueRefreshToken(
     RefreshToken,
@@ -198,9 +212,65 @@ const logoutUser = asyncHandler(async (req, res) => {
   res.status(200).json({ message: 'Logged out' });
 });
 
+/**
+ * Confirm an email address from the emailed link. The token works once and
+ * expires after 24 hours; an unknown, used or expired one gets the same 400.
+ *
+ * @route POST /api/auth/verify-email
+ * @access Public (rate-limited)
+ */
+const verifyEmail = asyncHandler(async (req, res) => {
+  const user = await confirmEmailToken(User, req.body?.token);
+  if (!user) {
+    return res.status(400).json({
+      code: 'VERIFICATION_LINK_INVALID',
+      message: 'This confirmation link is invalid or has expired. Request a new one from your account.',
+    });
+  }
+  res.status(200).json({ message: 'Email confirmed', emailVerified: true });
+});
+
+/**
+ * Send a new confirmation link to the signed-in user's current email.
+ * At most one per minute per account.
+ *
+ * @route POST /api/auth/verify-email/resend
+ * @access Private (rate-limited)
+ */
+const resendVerificationEmail = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user?.id)
+    .select('email username emailVerifiedAt +emailVerificationSentAt')
+    .lean();
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+  if (isEmailVerified(user)) {
+    return res.status(200).json({ message: 'Email already confirmed', emailVerified: true });
+  }
+  const wait = resendCooldownSeconds(user);
+  if (wait > 0) {
+    res.set('Retry-After', String(wait));
+    return res.status(429).json({
+      code: 'VERIFICATION_RESEND_TOO_SOON',
+      message: `Please wait ${wait} seconds before requesting another link.`,
+      retryAfterSeconds: wait,
+    });
+  }
+  const { sent } = await startEmailVerification(User, user);
+  if (!sent) {
+    return res.status(503).json({
+      code: 'MAIL_UNAVAILABLE',
+      message: 'We could not send the email right now. Please try again later.',
+    });
+  }
+  res.status(200).json({ message: 'Confirmation link sent', emailVerified: false });
+});
+
 module.exports = {
   registerUser,
   loginUser,
   refreshAccessToken,
   logoutUser,
+  verifyEmail,
+  resendVerificationEmail,
 };

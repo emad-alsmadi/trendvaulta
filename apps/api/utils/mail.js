@@ -337,9 +337,107 @@ async function sendOrderRefundedEmail(opts) {
   }
 }
 
+function mailConfigured() {
+  return Boolean(
+    process.env.SMTP_HOST || process.env.EMAIL_USER || process.env.SMTP_USER,
+  );
+}
+
+/** Storefront link that confirms an email address (utils/emailVerification.js). */
+function verifyEmailUrl(token) {
+  const frontend = process.env.FRONTEND_URL || 'http://localhost:3001';
+  return `${frontend}/auth/verify-email?token=${encodeURIComponent(token)}`;
+}
+
+/**
+ * Ask the owner of an address to confirm it. English and Arabic in one
+ * message until users have a stored language (plan P1-02). Fail-soft.
+ * @param {{ to: string, token: string, username?: string }} opts
+ */
+async function sendEmailVerificationEmail(opts) {
+  const { to, token, username } = opts;
+  if (!to || !token) return false;
+  if (!mailConfigured()) {
+    logger.warn('[mail] Skipping email verification — SMTP/EMAIL credentials not configured');
+    return false;
+  }
+
+  const link = verifyEmailUrl(token);
+  const text = [
+    `Hi${username ? ` ${username}` : ''},`,
+    '',
+    'Please confirm your email address for your TrendVaulta account:',
+    link,
+    '',
+    'The link works once and expires in 24 hours. If you did not create an account, you can ignore this email.',
+    '',
+    '—',
+    '',
+    'يرجى تأكيد بريدك الإلكتروني لحسابك في TrendVaulta:',
+    link,
+    '',
+    'يعمل الرابط مرة واحدة وتنتهي صلاحيته خلال 24 ساعة. إن لم تُنشئ حسابًا فتجاهل هذه الرسالة.',
+  ].join('\n');
+
+  try {
+    await createTransporter().sendMail({
+      from: getFromAddress(),
+      to,
+      subject: 'Confirm your email — تأكيد بريدك الإلكتروني',
+      text,
+    });
+    return true;
+  } catch (err) {
+    logger.error({ err }, '[mail] Email verification failed');
+    return false;
+  }
+}
+
+/**
+ * Tell the previous address that the account's email was changed, so a
+ * takeover doesn't go unnoticed. Fail-soft.
+ * @param {{ to: string, newEmail: string }} opts
+ */
+async function sendEmailChangedNotice(opts) {
+  const { to, newEmail } = opts;
+  if (!to) return false;
+  if (!mailConfigured()) {
+    logger.warn('[mail] Skipping email-changed notice — SMTP/EMAIL credentials not configured');
+    return false;
+  }
+
+  const text = [
+    `The email address of your TrendVaulta account was changed to ${newEmail}.`,
+    '',
+    'If you made this change, no action is needed. If you did not, reset your password right away and contact us.',
+    '',
+    '—',
+    '',
+    `تم تغيير البريد الإلكتروني لحسابك في TrendVaulta إلى ${newEmail}.`,
+    '',
+    'إن كنت أنت من غيّره فلا حاجة لأي إجراء. وإن لم تكن أنت، فأعد تعيين كلمة المرور فورًا وتواصل معنا.',
+  ].join('\n');
+
+  try {
+    await createTransporter().sendMail({
+      from: getFromAddress(),
+      to,
+      subject: 'Your email address was changed — تم تغيير بريدك الإلكتروني',
+      text,
+    });
+    return true;
+  } catch (err) {
+    logger.error({ err }, '[mail] Email-changed notice failed');
+    return false;
+  }
+}
+
 module.exports = {
   createTransporter,
   getFromAddress,
+  verifyEmailUrl,
+  sendEmailVerificationEmail,
+  sendEmailChangedNotice,
   sendOrderConfirmationEmail,
   sendContactNotificationEmail,
   sendOrderShippedEmail,
