@@ -5,6 +5,7 @@ import { ProductCard } from '@/components/products/ProductCard';
 import type { ProductCardBadge } from '@/components/products/ProductCard';
 import type { Product } from '@/types';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { ProductGridSkeleton } from '@/components/ui/Skeleton';
 
 type Props = {
   products: Product[];
@@ -62,9 +63,11 @@ export function FeaturedProductsSection({
         </div>
 
         {loading && (
-          <p className='py-10 text-center text-sm text-stone-500'>
-            {t('home.featured.loading')}
-          </p>
+          <ProductGridSkeleton
+            count={4}
+            label={t('home.featured.loading')}
+            className='grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4'
+          />
         )}
 
         {!loading && error && (

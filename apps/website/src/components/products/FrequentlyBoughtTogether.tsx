@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ShoppingCart, Loader2, Plus } from 'lucide-react';
+import { ShoppingCart, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useCart } from '@/lib/cartStore';
 import {
@@ -12,6 +12,7 @@ import {
 } from '@/hooks/products/productsQuery';
 import { pickBundleCompanions } from '@/data/demoStorefront';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { Skeleton, SkeletonGroup } from '@/components/ui/Skeleton';
 
 type BundleProduct = {
   _id: string;
@@ -141,13 +142,15 @@ export function FrequentlyBoughtTogether({ primary }: Props) {
         aria-labelledby='fbt-heading'
         className='mb-8 rounded-2xl border border-stone-200 bg-white p-6 sm:p-8'
       >
-        <div className='flex items-center gap-2 text-sm text-stone-500'>
-          <Loader2
-            className='h-4 w-4 animate-spin'
-            aria-hidden
-          />
-          {t('bundle.loading')}
-        </div>
+        <SkeletonGroup label={t('bundle.loading')}>
+          <Skeleton className='h-6 w-56 max-w-full' />
+          <div aria-hidden className='mt-6 flex items-center gap-3'>
+            {Array.from({ length: 3 }, (_, i) => (
+              <Skeleton key={i} className='aspect-square w-24 shrink-0 rounded-xl sm:w-28' />
+            ))}
+          </div>
+          <Skeleton className='mt-6 h-11 w-48' />
+        </SkeletonGroup>
       </section>
     );
   }

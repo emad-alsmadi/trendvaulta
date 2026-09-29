@@ -10,6 +10,7 @@ import {
 } from '@/data/demoStorefront';
 import { useActiveOffers } from '@/hooks/storefront/offersQuery';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { Skeleton, SkeletonGroup } from '@/components/ui/Skeleton';
 
 type Props = {
   deals?: DemoDeal[];
@@ -62,9 +63,21 @@ export function DealsRail({ deals: dealsProp }: Props) {
         </div>
 
         {isLoading && !deals ? (
-          <p className='text-sm text-stone-500' role='status'>
-            {t('home.deals.loading')}
-          </p>
+          <SkeletonGroup className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4'>
+            {Array.from({ length: 4 }, (_, i) => (
+              <div
+                key={i}
+                aria-hidden
+                className={i > 0 ? 'hidden overflow-hidden rounded-2xl border border-stone-200 bg-stone-50 sm:block' : 'overflow-hidden rounded-2xl border border-stone-200 bg-stone-50'}
+              >
+                <Skeleton className='aspect-[4/3] w-full rounded-none' />
+                <div className='p-4'>
+                  <Skeleton className='h-4 w-2/3' />
+                  <Skeleton className='mt-2 h-3 w-1/2' />
+                </div>
+              </div>
+            ))}
+          </SkeletonGroup>
         ) : deals ? (
           <div className='-mx-4 flex gap-4 overflow-x-auto px-4 pb-2 snap-x snap-mandatory sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-4'>
             {deals.map((deal, index) => (

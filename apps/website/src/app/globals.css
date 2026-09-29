@@ -35,6 +35,95 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* ─── TrendVaulta design tokens ────────────────────────────────────────────
+   New names only — Tailwind's defaults (rounded-lg, shadow-md, …) are left
+   alone so existing screens don't shift. New/updated UI uses these:
+     colors   bg-surface  bg-surface-muted  text-ink  text-ink-muted  border-line
+     radius   rounded-control  rounded-card  rounded-panel
+     shadow   shadow-soft  shadow-raised  shadow-overlay
+     type     text-display  text-title  text-heading  text-eyebrow
+     motion   ease-brand  duration-(--dur-fast|base|slow)  animate-shimmer  */
+@theme {
+  --color-surface: #ffffff;
+  --color-surface-muted: #f5f5f4; /* stone-100 */
+  --color-surface-sunken: #fafaf9; /* stone-50 */
+  --color-ink: #1c1917; /* stone-900 */
+  --color-ink-muted: #57534e; /* stone-600 */
+  --color-ink-subtle: #a8a29e; /* stone-400 */
+  --color-line: #e7e5e4; /* stone-200 */
+  --color-accent: #a21caf; /* fuchsia-700 — brand accent */
+  --color-accent-soft: #fdf4ff; /* fuchsia-50 */
+
+  --radius-control: 0.625rem; /* inputs, buttons, menu items */
+  --radius-card: 0.875rem; /* cards, media */
+  --radius-panel: 1.25rem; /* large panels, drawers' inner blocks */
+
+  --shadow-soft: 0 1px 2px rgb(28 25 23 / 0.04), 0 1px 3px rgb(28 25 23 / 0.06);
+  --shadow-raised: 0 4px 12px -2px rgb(28 25 23 / 0.08), 0 2px 4px -2px rgb(28 25 23 / 0.05);
+  --shadow-overlay: 0 16px 40px -8px rgb(28 25 23 / 0.18), 0 4px 12px -4px rgb(28 25 23 / 0.08);
+
+  --text-display: 3rem;
+  --text-display--line-height: 1.08;
+  --text-display--letter-spacing: -0.025em;
+  --text-display--font-weight: 700;
+  --text-title: 2rem;
+  --text-title--line-height: 1.15;
+  --text-title--letter-spacing: -0.02em;
+  --text-title--font-weight: 700;
+  --text-heading: 1.25rem;
+  --text-heading--line-height: 1.35;
+  --text-heading--font-weight: 600;
+  --text-eyebrow: 0.75rem;
+  --text-eyebrow--line-height: 1.2;
+  --text-eyebrow--letter-spacing: 0.18em;
+  --text-eyebrow--font-weight: 600;
+
+  --ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-shimmer: shimmer 1.6s var(--ease-brand) infinite;
+  --animate-pop-in: pop-in 160ms var(--ease-brand);
+  --animate-pop-out: pop-out 120ms ease-in;
+
+  @keyframes shimmer {
+    from {
+      background-position: 150% 0;
+    }
+    to {
+      background-position: -50% 0;
+    }
+  }
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px) scale(0.98);
+    }
+  }
+  @keyframes pop-out {
+    to {
+      opacity: 0;
+      transform: translateY(-4px) scale(0.98);
+    }
+  }
+}
+
+:root {
+  /* Motion durations — use as duration-(--dur-base) */
+  --dur-fast: 150ms;
+  --dur-base: 220ms;
+  --dur-slow: 320ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #f8fafc;
@@ -140,6 +229,18 @@ html {
   }
   to {
     height: 0;
+  }
+}
+
+/* Hero carousel progress segment (components/home/HeroPromoCarousel.tsx).
+   Its animationend advances the slide, so pausing the animation pauses
+   autoplay exactly where it was. */
+@keyframes hero-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
   }
 }
 

@@ -17,6 +17,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { intlLocale } from '@/lib/locale';
+import { ListSkeleton, PageHeaderSkeleton } from '@/components/ui/Skeleton';
 
 export default function UserReviewsPage() {
   const { t, locale } = useTranslation();
@@ -68,9 +69,9 @@ export default function UserReviewsPage() {
 
   if (isLoading) {
     return (
-      <div role='status' aria-label={t('common.loading')} className='animate-pulse'>
-        <div className='h-8 bg-gray-200 rounded w-48 mb-8'></div>
-        <div className='h-64 bg-gray-200 rounded'></div>
+      <div>
+        <PageHeaderSkeleton className='mb-8' />
+        <ListSkeleton rows={3} />
       </div>
     );
   }

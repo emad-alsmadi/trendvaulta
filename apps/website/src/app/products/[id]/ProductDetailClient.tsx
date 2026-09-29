@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useProductById } from '@/hooks/products/productsQuery';
 import { motion } from 'framer-motion';
 import {
-  Loader2,
   Star,
   ShoppingCart,
   Share2,
@@ -29,6 +28,7 @@ import { WishlistButton } from '@/components/page/wishlist/WishlistButton';
 import { trackRecentlyViewed } from '@/lib/recentlyViewed';
 import { useTranslation } from '@/contexts/TranslationContext';
 import type { Product, ProductVariant } from '@/types';
+import { Skeleton, SkeletonGroup, SkeletonText } from '@/components/ui/Skeleton';
 
 type Dimensions = Product['dimensions'];
 type Translate = ReturnType<typeof useTranslation>['t'];
@@ -86,12 +86,30 @@ export function ProductDetailClient({ id }: { id: string }) {
 
   if (isLoading) {
     return (
-      <div role='status' className='min-h-screen flex items-center justify-center'>
-        <div className='text-center'>
-          <Loader2 className='h-12 w-12 animate-spin text-fuchsia-600 mx-auto' aria-hidden />
-          <p className='mt-4 text-gray-600'>{t('productPage.loading')}</p>
+      <SkeletonGroup
+        label={t('productPage.loading')}
+        className='mx-auto grid max-w-7xl grid-cols-1 gap-8 py-6 lg:grid-cols-2 lg:gap-12'
+      >
+        <div aria-hidden>
+          <Skeleton className='aspect-square w-full rounded-2xl' />
+          <div className='mt-4 grid grid-cols-4 gap-3'>
+            {Array.from({ length: 4 }, (_, i) => (
+              <Skeleton key={i} className='aspect-square rounded-xl' />
+            ))}
+          </div>
         </div>
-      </div>
+        <div aria-hidden className='space-y-5'>
+          <Skeleton className='h-3 w-24' />
+          <Skeleton className='h-9 w-4/5' />
+          <Skeleton className='h-4 w-40' />
+          <Skeleton className='h-8 w-32' />
+          <SkeletonText lines={4} />
+          <div className='flex gap-3 pt-2'>
+            <Skeleton className='h-12 flex-1' />
+            <Skeleton className='h-12 flex-1' />
+          </div>
+        </div>
+      </SkeletonGroup>
     );
   }
 

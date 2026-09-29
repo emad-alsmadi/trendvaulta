@@ -31,7 +31,7 @@ export function HeroSection({
   const { t } = useTranslation();
   return (
     <div className='relative overflow-hidden bg-white'>
-      <div className='relative mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8'>
+      <div className='relative mx-auto max-w-7xl px-4 pb-8 pt-2 sm:px-6 sm:pb-14 sm:pt-4 lg:px-4'>
         <div className='grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-12'>
           <motion.div
             className='space-y-6 text-start'

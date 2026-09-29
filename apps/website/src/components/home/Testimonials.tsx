@@ -1,6 +1,5 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import { DEMO_FALLBACK_ENABLED } from '@/data/demoStorefront';
 import { useTestimonials } from '@/hooks/storefront/testimonialsQuery';
 import { useTranslation } from '@/contexts/TranslationContext';
@@ -49,18 +48,24 @@ export function Testimonials() {
   const testimonials = usingFallback ? FALLBACK : q.data;
 
   return (
-    <div className='bg-slate-50 py-20'>
-      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
-        <div className='text-center mb-12'>
-          <h2 className='text-3xl font-bold text-gray-900 mb-4'>
+    <section
+      aria-labelledby='testimonials-heading'
+      className='bg-surface-sunken py-12 sm:py-16'
+    >
+      <div className='mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8'>
+        <div className='mb-10 max-w-2xl'>
+          <h2
+            id='testimonials-heading'
+            className='text-2xl font-extrabold text-ink sm:text-3xl'
+          >
             {t('home.testimonials.title')}
           </h2>
-          <p className='text-gray-600 text-lg'>
+          <p className='mt-2 text-base text-ink-muted'>
             {t('home.testimonials.subtitle')}
           </p>
         </div>
 
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'>
+        <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
           {testimonials.map((testimonial) => {
             // Array(4.5) throws — clamp older/odd data to whole 1–5 stars.
             const rating = Math.min(
@@ -69,10 +74,9 @@ export function Testimonials() {
             );
             const avatar = initials(testimonial.name);
             return (
-              <motion.div
+              <figure
                 key={testimonial.id || testimonial.name}
-                whileHover={{ y: -4 }}
-                className='bg-white rounded-lg p-6 hover:shadow-lg transition-shadow duration-300 border border-slate-200'
+                className='flex flex-col rounded-card bg-surface p-6 text-start shadow-soft transition-shadow duration-(--dur-base) ease-brand hover:shadow-raised'
               >
                 <div className='flex items-center gap-1 mb-4'>
                   {[...Array(rating)].map((_, i) => (
@@ -85,29 +89,33 @@ export function Testimonials() {
                     </svg>
                   ))}
                 </div>
-                <p className='text-gray-700 mb-6 leading-relaxed'>
+                {/* dir=auto: live quotes may be in either language. */}
+                <blockquote dir='auto' className='mb-6 flex-1 leading-relaxed text-ink'>
                   {usingFallback ? t(testimonial.quote) : testimonial.quote}
-                </p>
-                <div className='flex items-center gap-3'>
-                  <div className='inline-flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-fuchsia-600 via-indigo-600 to-cyan-500 text-white font-bold'>
+                </blockquote>
+                <figcaption className='flex items-center gap-3 border-t border-line pt-4'>
+                  <span
+                    aria-hidden
+                    className='inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-sm font-bold text-accent'
+                  >
                     {avatar}
-                  </div>
-                  <div>
-                    <div className='font-semibold text-gray-900'>
+                  </span>
+                  <span className='min-w-0'>
+                    <span className='block truncate font-semibold text-ink'>
                       {testimonial.name}
-                    </div>
+                    </span>
                     {testimonial.role && (
-                      <div className='text-sm text-gray-500'>
+                      <span className='block truncate text-sm text-ink-muted'>
                         {usingFallback ? t(testimonial.role) : testimonial.role}
-                      </div>
+                      </span>
                     )}
-                  </div>
-                </div>
-              </motion.div>
+                  </span>
+                </figcaption>
+              </figure>
             );
           })}
         </div>
       </div>
-    </div>
+    </section>
   );
 }

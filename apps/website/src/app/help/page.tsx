@@ -19,6 +19,7 @@ import {
 import { useHelpTopics } from '@/hooks/storefront/helpTopicsQuery';
 import type { DemoHelpTopic } from '@/data/demoStorefront';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { ListSkeleton } from '@/components/ui/Skeleton';
 
 const ICONS: Record<
   DemoHelpTopic['icon'],
@@ -74,9 +75,7 @@ export default function HelpPage() {
         </motion.div>
 
         {isLoading && (
-          <p className='py-10 text-center text-sm text-stone-500'>
-            {t('help.loading')}
-          </p>
+          <ListSkeleton rows={5} thumb={false} label={t('help.loading')} />
         )}
 
         {error && (

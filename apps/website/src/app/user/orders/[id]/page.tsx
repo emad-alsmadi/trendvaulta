@@ -28,6 +28,7 @@ import { OrderReturnSection } from '@/components/orders/OrderReturnSection';
 import type { Order } from '@/types';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { intlLocale } from '@/lib/locale';
+import { ListSkeleton, PageHeaderSkeleton } from '@/components/ui/Skeleton';
 
 /** Message keys, resolved with t() at render. */
 const STATUS_LABELS: Record<string, string> = {
@@ -194,9 +195,10 @@ export default function OrderDetailPage() {
         </Link>
 
         {orderQuery.isLoading && (
-          <p className='py-10 text-center text-sm text-indigo-950/50'>
-            {t('orders.detail.loading')}
-          </p>
+          <div className='space-y-6'>
+            <PageHeaderSkeleton />
+            <ListSkeleton rows={2} label={t('orders.detail.loading')} />
+          </div>
         )}
 
         {orderQuery.isError && (

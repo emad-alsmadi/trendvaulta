@@ -6,6 +6,7 @@ import { Sparkles, Truck } from 'lucide-react';
 import { useContent } from '@/hooks/storefront/contentQuery';
 import { sanitizeHtml } from '@/lib/sanitizeHtml';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { ProseSkeleton } from '@/components/ui/Skeleton';
 
 /** Shipping policy page — API: GET /api/content?type=SHIPPING */
 export default function ShippingPage() {
@@ -38,9 +39,10 @@ export default function ShippingPage() {
         </motion.div>
 
         {isLoading && (
-          <p className='py-10 text-center text-sm text-stone-500'>
-            {t('shippingPolicy.loading')}
-          </p>
+          <ProseSkeleton
+            label={t('shippingPolicy.loading')}
+            className='rounded-2xl border border-stone-200 bg-white p-8'
+          />
         )}
 
         {error && (

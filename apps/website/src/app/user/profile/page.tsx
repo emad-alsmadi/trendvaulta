@@ -15,6 +15,7 @@ import {
   getUserFacingErrorMessage,
   logErrorForDev,
 } from '@/lib/userFacingError';
+import { PageHeaderSkeleton, Skeleton, SkeletonGroup } from '@/components/ui/Skeleton';
 
 /** Edit profile — PUT /api/auth/profile (username, email) */
 type ProfileUser = NonNullable<MeResponse['user']>;
@@ -28,10 +29,18 @@ export default function EditProfilePage() {
   // No token: UserShell redirects to login (proxy.ts guards /user too).
   if (meQuery.isPending && hasToken) {
     return (
-      <div role='status' aria-label={t('common.loading')} className='animate-pulse'>
-        <div className='mb-8 h-8 w-48 rounded bg-gray-200' />
-        <div className='h-64 rounded bg-gray-200' />
-      </div>
+      <SkeletonGroup className='max-w-2xl'>
+        <PageHeaderSkeleton className='mb-8' />
+        <div aria-hidden className='space-y-5'>
+          {Array.from({ length: 4 }, (_, i) => (
+            <div key={i}>
+              <Skeleton className='h-3.5 w-28' />
+              <Skeleton className='mt-2 h-11 w-full' />
+            </div>
+          ))}
+          <Skeleton className='h-11 w-36' />
+        </div>
+      </SkeletonGroup>
     );
   }
 

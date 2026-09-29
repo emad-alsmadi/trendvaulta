@@ -3,9 +3,10 @@
 import Image from 'next/image';
 import { useBrands } from '@/hooks/brands/brandsQuery';
 import { motion } from 'framer-motion';
-import { Loader2, Globe, MapPin, ArrowRight } from 'lucide-react';
+import { Globe, MapPin, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { MediaTileSkeleton, PageHeaderSkeleton, SkeletonGroup } from '@/components/ui/Skeleton';
 
 export default function BrandsPage() {
   const { data: brands, isLoading, error } = useBrands();
@@ -13,12 +14,17 @@ export default function BrandsPage() {
 
   if (isLoading) {
     return (
-      <div role='status' className='min-h-screen flex items-center justify-center'>
-        <div className='text-center'>
-          <Loader2 className='h-12 w-12 animate-spin text-fuchsia-600 mx-auto' aria-hidden />
-          <p className='mt-4 text-gray-600'>{t('brandsPage.loading')}</p>
+      <SkeletonGroup
+        label={t('brandsPage.loading')}
+        className='mx-auto max-w-7xl py-6'
+      >
+        <PageHeaderSkeleton className='mb-10' />
+        <div className='grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4'>
+          {Array.from({ length: 8 }, (_, i) => (
+            <MediaTileSkeleton key={i} mediaClassName='aspect-[4/3]' />
+          ))}
         </div>
-      </div>
+      </SkeletonGroup>
     );
   }
 

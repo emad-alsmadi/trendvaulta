@@ -9,6 +9,7 @@ import { useMyOrders } from '@/hooks/orders/ordersQuery';
 import type { Order } from '@/types';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { intlLocale } from '@/lib/locale';
+import { ListSkeleton } from '@/components/ui/Skeleton';
 
 /** Message keys, resolved with t() at render. */
 const STATUS_LABELS: Record<string, string> = {
@@ -104,9 +105,7 @@ export default function OrdersPage() {
       </motion.div>
 
       {ordersQuery.isLoading && (
-        <div role='status' aria-label={t('common.loading')} className='flex items-center justify-center py-12'>
-          <div className='h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent' />
-        </div>
+        <ListSkeleton rows={3} />
       )}
 
       {ordersQuery.isError && (

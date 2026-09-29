@@ -5,6 +5,7 @@ import { WishlistGrid } from '@/components/page/wishlist/WishlistGrid';
 import { WishlistEmptyState } from '@/components/page/wishlist/WishlistEmptyState';
 import { Heart } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { PageHeaderSkeleton, ProductGridSkeleton } from '@/components/ui/Skeleton';
 
 export default function UserWishlistPage() {
   const { t } = useTranslation();
@@ -12,9 +13,12 @@ export default function UserWishlistPage() {
 
   if (isLoading) {
     return (
-      <div role="status" aria-label={t('common.loading')} className="animate-pulse">
-        <div className="h-8 bg-gray-200 rounded w-48 mb-8"></div>
-        <div className="h-64 bg-gray-200 rounded"></div>
+      <div>
+        <PageHeaderSkeleton className='mb-8' />
+        <ProductGridSkeleton
+          count={4}
+          className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+        />
       </div>
     );
   }
