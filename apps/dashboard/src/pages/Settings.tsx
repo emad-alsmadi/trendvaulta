@@ -66,6 +66,10 @@ export default function Settings() {
   const [expressRateUsd, setExpressRateUsd] = useState('');
   const [freeShippingThresholdUsd, setFreeShippingThresholdUsd] = useState('');
   const [taxRatePercent, setTaxRatePercent] = useState('');
+  const [invoiceLegalName, setInvoiceLegalName] = useState('');
+  const [invoiceAddress, setInvoiceAddress] = useState('');
+  const [invoiceTaxId, setInvoiceTaxId] = useState('');
+  const [invoicePrefix, setInvoicePrefix] = useState('');
 
   useEffect(() => {
     const data = storeSettingsQ.data?.data;
@@ -78,6 +82,10 @@ export default function Settings() {
       String(data.shipping?.freeShippingThresholdUsd ?? 0),
     );
     setTaxRatePercent(String(data.taxRatePercent ?? 0));
+    setInvoiceLegalName(data.invoice?.legalName || '');
+    setInvoiceAddress(data.invoice?.address || '');
+    setInvoiceTaxId(data.invoice?.taxId || '');
+    setInvoicePrefix(data.invoice?.prefix || 'TV');
   }, [storeSettingsQ.data]);
 
   async function saveStoreSettings(e: React.FormEvent) {
@@ -92,6 +100,12 @@ export default function Settings() {
           freeShippingThresholdUsd: Number(freeShippingThresholdUsd),
         },
         taxRatePercent: Number(taxRatePercent),
+        invoice: {
+          legalName: invoiceLegalName.trim(),
+          address: invoiceAddress.trim(),
+          taxId: invoiceTaxId.trim(),
+          prefix: invoicePrefix.trim().toUpperCase() || 'TV',
+        },
       });
       toast.success('Store settings updated.');
     } catch (err) {
@@ -406,6 +420,74 @@ export default function Settings() {
                   />
                 </div>
               </div>
+
+              <fieldset className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+                <legend className="px-1 text-sm font-semibold text-gray-900 dark:text-white">
+                  Invoices
+                </legend>
+                <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+                  Printed as the seller on every invoice. Leave the legal name empty to use the store name.
+                </p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="settings-invoice-legal-name" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Legal business name
+                    </label>
+                    <input
+                      id="settings-invoice-legal-name"
+                      dir="auto"
+                      maxLength={200}
+                      value={invoiceLegalName}
+                      onChange={(e) => setInvoiceLegalName(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="settings-invoice-tax-id" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Tax / VAT registration number
+                    </label>
+                    <input
+                      id="settings-invoice-tax-id"
+                      maxLength={60}
+                      value={invoiceTaxId}
+                      onChange={(e) => setInvoiceTaxId(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label htmlFor="settings-invoice-address" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Business address
+                    </label>
+                    <textarea
+                      id="settings-invoice-address"
+                      dir="auto"
+                      rows={3}
+                      maxLength={500}
+                      value={invoiceAddress}
+                      onChange={(e) => setInvoiceAddress(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="settings-invoice-prefix" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Invoice number prefix
+                    </label>
+                    <input
+                      id="settings-invoice-prefix"
+                      maxLength={10}
+                      pattern="[A-Za-z0-9]{1,10}"
+                      value={invoicePrefix}
+                      onChange={(e) => setInvoicePrefix(e.target.value)}
+                      aria-describedby="settings-invoice-prefix-help"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 uppercase text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                    />
+                    <p id="settings-invoice-prefix-help" className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Letters and digits, e.g. {(invoicePrefix || 'TV').toUpperCase()}-{new Date().getFullYear()}-000123.
+                      Issued numbers never change.
+                    </p>
+                  </div>
+                </div>
+              </fieldset>
               <button
                 type="submit"
                 disabled={updateStoreSettingsMut.isPending || storeSettingsQ.isLoading}

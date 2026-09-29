@@ -165,6 +165,8 @@ export type AdminOrder = {
   refundId?: string;
   refundedAt?: string;
   refundAmount?: number;
+  /** Issued once the payment is captured, e.g. TV-2026-000123. */
+  invoiceNumber?: string;
   trackingNumber?: string;
   trackingCarrier?: string;
   trackingUrl?: string;
@@ -398,6 +400,18 @@ export const adminOrdersApi = {
   ): Promise<AdminOrdersResponse> => {
     const { data } = await api.get<AdminOrdersResponse>('/orders', {
       params: { limit: 25, ...params },
+    });
+    return data;
+  },
+
+  /**
+   * The printable invoice document. Fetched with the Bearer header (a plain
+   * link can't send it) and opened from a blob URL by the caller.
+   */
+  getInvoiceHtml: async (id: string, lang: 'en' | 'ar' = 'en'): Promise<string> => {
+    const { data } = await api.get<string>(`/orders/${id}/invoice`, {
+      params: { lang },
+      responseType: 'text',
     });
     return data;
   },
@@ -1719,6 +1733,14 @@ export type StoreSettings = {
     freeShippingThresholdUsd: number;
   };
   taxRatePercent: number;
+  /** Seller block printed on invoices. */
+  invoice?: {
+    legalName?: string;
+    address?: string;
+    taxId?: string;
+    /** TV → TV-2026-000123; only numbers issued later use a new prefix. */
+    prefix?: string;
+  };
   updatedAt?: string;
   updatedBy?: string | null;
 };
@@ -1729,6 +1751,7 @@ export type StoreSettingsPayload = {
   currency?: string;
   shipping?: Partial<StoreSettings['shipping']>;
   taxRatePercent?: number;
+  invoice?: StoreSettings['invoice'];
 };
 
 export const adminSettingsApi = {

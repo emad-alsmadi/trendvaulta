@@ -1,12 +1,13 @@
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Copy, Package, Plus } from 'lucide-react';
+import { ArrowLeft, Copy, FileText, Package, Plus } from 'lucide-react';
 import {
   useAdminOrderById,
   useUpdateOrderStatusMutation,
   useUpdateOrderTrackingMutation,
 } from '../hooks/useAdminOrders';
 import {
+  adminOrdersApi,
   errorMessage,
   type AdminOrderCustomer,
   type OrderTrackingPayload,
@@ -186,6 +187,33 @@ export default function OrderDetail() {
     }
   };
 
+  const hasInvoice =
+    order?.paymentStatus === 'paid' || order?.paymentStatus === 'refunded';
+
+  async function openInvoice(lang: 'en' | 'ar') {
+    if (!order) return;
+    // Open the tab inside the click (popup blockers), fill it once fetched
+    const tab = window.open('', '_blank');
+    try {
+      const html = await adminOrdersApi.getInvoiceHtml(order._id, lang);
+      // The document escapes everything and its CSP <meta> forbids scripts,
+      // which matters here: a blob: page runs on the dashboard's origin.
+      const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+      if (tab) {
+        tab.opener = null;
+        tab.location.href = url;
+      } else {
+        window.location.assign(url);
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      // The first view numbers an older paid order: show it here too
+      if (!order.invoiceNumber) void orderQ.refetch();
+    } catch (err) {
+      tab?.close();
+      toast.error(errorMessage(err, 'Could not open the invoice'));
+    }
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -233,6 +261,32 @@ export default function OrderDetail() {
                 <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>
                   Placed {new Date(order.createdAt).toLocaleString()}
                 </p>
+              )}
+              {hasInvoice && (
+                <div className='mt-3 flex flex-wrap items-center gap-2'>
+                  <button
+                    type='button'
+                    onClick={() => void openInvoice('en')}
+                    className='inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700'
+                  >
+                    <FileText className='h-4 w-4' aria-hidden='true' />
+                    Invoice
+                  </button>
+                  <button
+                    type='button'
+                    lang='ar'
+                    onClick={() => void openInvoice('ar')}
+                    aria-label='Invoice in Arabic'
+                    className='rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700'
+                  >
+                    عربي
+                  </button>
+                  {order.invoiceNumber && (
+                    <span className='text-xs text-gray-500 dark:text-gray-400'>
+                      {order.invoiceNumber}
+                    </span>
+                  )}
+                </div>
               )}
             </div>
             <div className='flex flex-wrap gap-2'>
