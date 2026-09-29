@@ -517,7 +517,6 @@ Everything else described in the old phase-by-phase plan (critical recovery, sec
 - **Arabic manual QA** — a real-browser pass across home, PLP+filters, PDP, cart, checkout, account, at phone width. Static audit (no physical direction classes, icons flip, no hardcoded English JSX) is already done.
 - **Deploy automation** — API/website/dashboard deploys are still triggered by each host's own Git integration, not from CI. No E2E test suite exists yet.
 - **Observability** — Sentry (or equivalent) is not wired up. Pino logging, request IDs, and graceful shutdown are already in place.
-- **Unused shared package** — `packages/types` is built but nothing currently imports it; each app owns its own types. Either wire it in or remove it.
 - **Tech debt (low priority)** — ~178 `express-async-handler` wraps could be simplified now that the underlying Express version handles async errors natively; response contracts across controllers aren't fully standardized.
 - **Security hardening backlog** — see §7's "Known open hardening items."
 

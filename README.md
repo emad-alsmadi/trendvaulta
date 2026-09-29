@@ -9,8 +9,7 @@ Retail e-commerce monorepo for beauty, fashion, and lifestyle products. Buyers s
 | Dashboard | `apps/dashboard` | **3002** | Vite + React admin |
 
 Package manager: **npm workspaces** (root `package.json`, `apps/*`). Each app
-keeps its own API client and types. `packages/types` exists but no app imports
-it.
+keeps its own API client and types.
 
 **New here?** Follow [`docs/PROJECT_REFERENCE.md`](docs/PROJECT_REFERENCE.md)
 for local setup and production deployment.
@@ -51,8 +50,6 @@ trendvaulta/
 │   ├── api/                 # Express API (default PORT=3000)
 │   ├── website/             # Next.js storefront (port 3001)
 │   └── dashboard/           # Vite admin (port 3002; proxies /api → :3000)
-├── packages/
-│   └── types/               # unused (nothing imports it)
 ├── docs/                    # PROJECT_REFERENCE.md — setup, deployment, CI, API, data model, security, business rules
 ├── package.json             # npm workspaces + scripts
 └── AGENTS.md                # AI agent instructions
