@@ -31,11 +31,9 @@ export const endpoints = {
   orders: {
     create: '/orders',
     my: '/orders/my',
-    list: '/orders',
     details: (id: string) => `/orders/${id}`,
     cancel: (id: string) => `/orders/${id}/cancel`,
     returnRequest: (id: string) => `/orders/${id}/return`,
-    updateStatus: (id: string) => `/orders/${id}/status`,
   },
   payments: {
     setupStatus: '/payments/setup-status',
@@ -59,7 +57,6 @@ export const endpoints = {
     myReviews: '/reviews/my',
   },
   coupons: {
-    byCode: (code: string) => `/coupons/code/${code}`,
     /** Checkout UX — POST /api/coupons/validate */
     validate: '/coupons/validate',
   },
@@ -84,13 +81,11 @@ export const endpoints = {
   },
   newsletter: {
     subscribe: '/newsletter',
-    unsubscribe: '/newsletter/unsubscribe',
   },
   contact: {
     send: '/contact',
   },
   shipping: {
-    zones: '/shipping/zones',
     methods: '/shipping/methods',
   },
 } as const;

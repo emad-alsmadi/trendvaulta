@@ -6,15 +6,15 @@ These instructions apply to every task unless explicitly overridden. If a user r
 
 ## Project Overview
 
-**Monorepo**: npm workspaces (root `package.json`) — *not pnpm* (ignore `pnpm-workspace.yaml`)
+**Monorepo**: npm workspaces (root `package.json`) — *not pnpm* (there is no `pnpm-workspace.yaml`)
 
 | App | Path | Port | Stack |
 |---|---|---|---|
 | API | `apps/api` | **3000** | Express 5, Mongoose, Joi, Stripe, Nodemailer |
-| Storefront | `apps/website` | **3001** | Next.js 16 App Router, React 19, TanStack Query, Zustand, Tailwind |
+| Storefront | `apps/website` | **3001** | Next.js 16 App Router, React 19, TanStack Query, Tailwind (cart: `useSyncExternalStore` store) |
 | Dashboard | `apps/dashboard` | **3002** | Vite + React Router, React 19, TanStack Query, Tailwind |
 
-**Shared packages**: none. `@trendvaulta/types` and `@trendvaulta/api-client` were unused and removed; `@trendvaulta/ui` never existed. Each app owns its own types and API client.
+**Shared packages**: effectively none. `packages/types` (`@trendvaulta/types`) is still a workspace but nothing imports it; `@trendvaulta/api-client` and `@trendvaulta/ui` do not exist. Each app owns its own types and API client.
 
 **Domain**: Products & brands catalog (not digital templates).
 
@@ -31,7 +31,7 @@ npm run dev:dashboard       # Dashboard only
 npm run build               # build all workspaces
 npm run lint                # lint all workspaces
 npm run typecheck:website   # website tsc --noEmit
-npm run typecheck:types     # types package tsc --noEmit
+npm run typecheck:dashboard # dashboard tsc --noEmit
 npm run test:api            # API tests (node --test)
 ```
 
@@ -82,12 +82,12 @@ Examples:
 2. Matching `apps/api/controllers/` — business logic, response contracts
 3. `apps/api/models/` — Mongoose schemas + Joi validators (when creating/updating)
 4. `apps/api/app.js` — route mounts, Stripe webhook (`POST /api/webhooks/stripe`, raw body), CORS
-5. Frontend clients/hooks: `apps/website/src/lib/api.ts`, `apps/dashboard/src/lib/api.ts`, `@trendvaulta/api-client`
+5. Frontend clients/hooks: `apps/website/src/lib/api.ts`, `apps/dashboard/src/lib/api.ts`
 
 ### API Patterns
 
 - Auth: JWT via `verfiyToken` (existing spelling)
-- Common response: `{ message, data?, errors? }` — confirm per controller
+- Response shapes vary per controller (`{ message, data }`, `{ data, meta }`, bare documents) — confirm per controller. Errors from the central handler are `{ success: false, message, code, details?, requestId? }`
 - Pagination: check controller for `page` / `limit` / `total` naming
 - Uploads: only if existing Multer pattern exists for that resource
 
@@ -208,7 +208,9 @@ Notes:
 ## Known Gotchas
 
 - **Package manager**: npm workspaces — dashboard installs from root lockfile
-- **Auth cookie**: Storefront uses `js-cookie` (client-readable); httpOnly hardening is a deliberate follow-up
+- **Auth cookie**: Storefront access token + role use `js-cookie` (client-readable); the refresh token is already httpOnly (`tv_refresh`, set by the Next BFF in `apps/website/src/app/api/auth/*`). Moving the access token to httpOnly is a deliberate follow-up
+- **Deploys use `npm ci`** (Render): keep `package-lock.json` in sync with every `package.json` change
+- **First admin**: `cd apps/api ; node seeder.js -admin` (touches only the admin account; `-import` wipes the catalog)
 - **Demo fallback**: Storefront may fall back to `apps/website/src/data/demoStorefront.ts` — prefer live APIs for new rails
 - **Admin permissions**: Check `rolePermissions.js` helpers before adding admin CRUD
 - **Stripe paid side-effects**: Sales count, confirmation email live in payment/order paid controllers — read before changing checkout

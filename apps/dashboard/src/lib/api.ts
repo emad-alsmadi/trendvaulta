@@ -1285,13 +1285,6 @@ export const adminStorefrontModulesApi = {
     return data;
   },
 
-  getStorefrontModuleById: async (
-    id: string,
-  ): Promise<{ data: AdminStorefrontModule }> => {
-    const { data } = await api.get(`/storefront-modules/${id}`);
-    return data;
-  },
-
   createStorefrontModule: async (
     payload: StorefrontModulePayload,
   ): Promise<AdminStorefrontModule> => {
@@ -1365,11 +1358,6 @@ export const adminLookbooksApi = {
     return data;
   },
 
-  getLookbookById: async (id: string): Promise<{ data: AdminLookbook }> => {
-    const { data } = await api.get(`/lookbooks/${id}`);
-    return data;
-  },
-
   createLookbook: async (payload: LookbookPayload): Promise<AdminLookbook> => {
     const { data } = await api.post<AdminLookbook>('/lookbooks', payload);
     return data;
@@ -1422,13 +1410,6 @@ export const adminTestimonialsApi = {
     const { data } = await api.get('/testimonials/admin', {
       params: { limit: 100, ...params },
     });
-    return data;
-  },
-
-  getTestimonialById: async (
-    id: string,
-  ): Promise<{ data: AdminTestimonial }> => {
-    const { data } = await api.get(`/testimonials/${id}`);
     return data;
   },
 
@@ -1522,11 +1503,6 @@ export const adminBundlesApi = {
     return data;
   },
 
-  getBundleById: async (id: string): Promise<{ data: AdminBundle }> => {
-    const { data } = await api.get(`/bundles/${id}`);
-    return data;
-  },
-
   createBundle: async (payload: BundlePayload): Promise<AdminBundle> => {
     const { data } = await api.post<AdminBundle>('/bundles', payload);
     return data;
@@ -1577,13 +1553,6 @@ export const adminGiftFinderConfigApi = {
     data: AdminGiftFinderConfig[];
   }> => {
     const { data } = await api.get('/gift-finder/admin');
-    return data;
-  },
-
-  getGiftFinderConfigById: async (
-    id: string,
-  ): Promise<{ data: AdminGiftFinderConfig }> => {
-    const { data } = await api.get(`/gift-finder/${id}`);
     return data;
   },
 
@@ -1668,11 +1637,6 @@ export const adminProductQAApi = {
     const { data } = await api.get('/qa/admin', {
       params: { limit: 25, ...params },
     });
-    return data;
-  },
-
-  getProductQAById: async (id: string): Promise<{ data: AdminProductQA }> => {
-    const { data } = await api.get(`/qa/${id}`);
     return data;
   },
 

@@ -7,10 +7,10 @@ export default {
   moduleNameMapper: {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     // import.meta is ESM-only syntax Jest's CJS runtime can't parse at all —
-    // substitute the Jest-safe shim for the one module that touches it.
-    '^\\./viteEnv$': '<rootDir>/src/lib/viteEnv.test-shim.ts',
+    // substitute the Jest-safe shim for the one module that touches it
+    // (imported as './viteEnv' from lib/ and '../lib/viteEnv' from pages).
+    '^(\\.{1,2}/)+(lib/)?viteEnv$': '<rootDir>/src/lib/viteEnv.test-shim.ts',
     '^@/(.*)$': '<rootDir>/src/$1',
-    '^@trendvaulta/(.*)$': '<rootDir>/../../packages/$1/src',
   },
   transform: {
     '^.+\\.tsx?$': [
@@ -33,5 +33,4 @@ export default {
     '!src/lib/viteEnv.test-shim.ts',
   ],
   testMatch: ['**/__tests__/**/*.{ts,tsx}', '**/*.{spec,test}.{ts,tsx}'],
-  transformIgnorePatterns: ['node_modules/(?!(@trendvaulta)/)'],
 }

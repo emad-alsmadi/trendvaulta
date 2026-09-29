@@ -12,7 +12,6 @@ import {
   Review,
   ReviewPayload,
   ReviewUpdatePayload,
-  Coupon,
   CouponValidationResponse,
   Address,
   AddressPayload,
@@ -413,25 +412,6 @@ export const ordersApi = {
   },
 };
 
-export type AdminOrdersQuery = {
-  page?: number;
-  limit?: number;
-  status?: string;
-  paymentStatus?: string;
-  q?: string;
-};
-
-export type AdminOrderCustomer = {
-  _id?: string;
-  username?: string;
-  email?: string;
-};
-
-export type AdminOrder = Omit<Order, 'user'> & {
-  allowedNextStatuses?: string[];
-  user?: string | AdminOrderCustomer;
-};
-
 /**
  * Payments API - Handles Stripe payment operations
  */
@@ -654,15 +634,6 @@ export const reviewsApi = {
     return data;
   },
   /**
-   * Fetch current user's review for a specific product
-   * @param productId - Product ID
-   * @returns User's review or null if not reviewed
-   */
-  getMyReview: async (productId: string): Promise<Review | null> => {
-    const { data } = await api.get(`/reviews/my/${productId}`);
-    return data;
-  },
-  /**
    * Fetch all reviews by current user
    * @returns Array of user's reviews
    */
@@ -733,14 +704,6 @@ export const couponsApi = {
       code,
       orderAmount,
     });
-    return data;
-  },
-  /**
-   * Get coupon by code
-   * Canonical: GET /api/coupons/code/:code
-   */
-  getCouponByCode: async (code: string): Promise<Coupon> => {
-    const { data } = await api.get(endpoints.coupons.byCode(code));
     return data;
   },
 };
@@ -1249,13 +1212,6 @@ export const newsletterApi = {
     source?: 'footer' | 'checkout' | 'other';
   }): Promise<{ message: string }> => {
     const { data } = await api.post(endpoints.newsletter.subscribe, payload);
-    return data;
-  },
-  /** POST /api/newsletter/unsubscribe */
-  unsubscribe: async (email: string): Promise<{ message: string }> => {
-    const { data } = await api.post(endpoints.newsletter.unsubscribe, {
-      email,
-    });
     return data;
   },
 };

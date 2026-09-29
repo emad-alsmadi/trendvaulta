@@ -1,6 +1,6 @@
 # TrendVaulta Storefront (`apps/website`)
 
-Customer-facing storefront for TrendVaulta (beauty / fashion / lifestyle retail). Next.js 16 App Router, React 19, TypeScript, TanStack Query, Zustand, Tailwind CSS.
+Customer-facing storefront for TrendVaulta (beauty / fashion / lifestyle retail). Next.js 16 App Router, React 19, TypeScript, TanStack Query, Tailwind CSS.
 
 Runs on port **3001** and talks to the Express API in `apps/api` (port 3000).
 
@@ -41,7 +41,7 @@ src/
 ├── app/            # App Router routes (products, c/[category], brands, cart, checkout, user, auth, …)
 ├── components/     # UI by area: home/ (storefront rails), products/, navigation/, layout/, ui/
 ├── hooks/          # TanStack Query hooks by domain (products, brands, cart, orders, wishlist, …)
-├── lib/            # api.ts (API client), cartStore.ts (Zustand), i18n, categories, auth cookies, validation
+├── lib/            # api.ts (API client), cartStore.ts (`useSyncExternalStore` + localStorage), i18n, categories, auth cookies, validation
 ├── messages/       # en.json / ar.json translation catalogs
 ├── data/           # Fallback storefront content when an API rail is unavailable (text fields are message keys)
 ├── types/          # TypeScript types

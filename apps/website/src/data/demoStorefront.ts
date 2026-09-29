@@ -25,7 +25,6 @@ import {
  */
 export const DEMO_FALLBACK_ENABLED = process.env.NODE_ENV === 'development';
 
-export type DemoBadge = 'bestseller' | 'lowStock' | 'new';
 
 export type DemoTrustItem = {
   id: string;
@@ -209,167 +208,6 @@ export const DEMO_HERO_SLIDES: DemoHeroSlide[] = [
     href: '/products?category=home',
     imageUrl: '/images/4.jpeg',
     tone: 'stone',
-  },
-];
-
-/** DEMO PDP Q&A — category-scoped FAQ (not live customer Q&A).
- *  `question`/`answer` are message keys — render with t(). */
-export type DemoProductQaItem = {
-  id: string;
-  question: string;
-  answer: string;
-};
-
-const DEMO_QA_COMMON: DemoProductQaItem[] = [
-  {
-    id: 'qa-ship',
-    question: 'demo.qa.shipping.question',
-    answer: 'demo.qa.shipping.answer',
-  },
-  {
-    id: 'qa-return',
-    question: 'demo.qa.returns.question',
-    answer: 'demo.qa.returns.answer',
-  },
-  {
-    id: 'qa-pay',
-    question: 'demo.qa.payments.question',
-    answer: 'demo.qa.payments.answer',
-  },
-];
-
-const DEMO_QA_BY_CATEGORY: Record<string, DemoProductQaItem[]> = {
-  beauty: [
-    {
-      id: 'qa-beauty-skin',
-      question: 'demo.qa.sensitiveSkin.question',
-      answer: 'demo.qa.sensitiveSkin.answer',
-    },
-    {
-      id: 'qa-beauty-expire',
-      question: 'demo.qa.storage.question',
-      answer: 'demo.qa.storage.answer',
-    },
-  ],
-  skincare: [
-    {
-      id: 'qa-skin-order',
-      question: 'demo.qa.routine.question',
-      answer: 'demo.qa.routine.answer',
-    },
-  ],
-  makeup: [
-    {
-      id: 'qa-makeup-shade',
-      question: 'demo.qa.shade.question',
-      answer: 'demo.qa.shade.answer',
-    },
-  ],
-  fashion: [
-    {
-      id: 'qa-fashion-fit',
-      question: 'demo.qa.sizing.question',
-      answer: 'demo.qa.sizing.answer',
-    },
-    {
-      id: 'qa-fashion-care',
-      question: 'demo.qa.fashionCare.question',
-      answer: 'demo.qa.fashionCare.answer',
-    },
-  ],
-  clothing: [
-    {
-      id: 'qa-clothing-fit',
-      question: 'demo.qa.shrink.question',
-      answer: 'demo.qa.shrink.answer',
-    },
-  ],
-  lifestyle: [
-    {
-      id: 'qa-life-use',
-      question: 'demo.qa.readyToUse.question',
-      answer: 'demo.qa.readyToUse.answer',
-    },
-  ],
-  home: [
-    {
-      id: 'qa-home-place',
-      question: 'demo.qa.placement.question',
-      answer: 'demo.qa.placement.answer',
-    },
-  ],
-};
-
-/**
- * Pick DEMO Q&A for a product category (falls back to common retail FAQs).
- * TODO(api): GET /api/products/:id/qa
- */
-export function getDemoProductQa(
-  category?: string | null,
-): DemoProductQaItem[] {
-  const key = (category || '').toLowerCase().trim();
-  const specific = key ? DEMO_QA_BY_CATEGORY[key] : undefined;
-  return [...(specific ?? []), ...DEMO_QA_COMMON];
-}
-
-/** DEMO — Customer Service / Help Center topics (Amazon-like IA, TrendVaulta copy).
- *  `title`/`description` are message keys — render with t(). */
-export const DEMO_HELP_TOPICS: DemoHelpTopic[] = [
-  {
-    id: 'orders',
-    title: 'demo.help.orders.title',
-    description: 'demo.help.orders.description',
-    href: '/auth/login',
-    icon: 'package',
-  },
-  {
-    id: 'shipping',
-    title: 'demo.help.shipping.title',
-    description: 'demo.help.shipping.description',
-    href: '/shipping',
-    icon: 'truck',
-  },
-  {
-    id: 'returns',
-    title: 'demo.help.returns.title',
-    description: 'demo.help.returns.description',
-    href: '/returns',
-    icon: 'refresh',
-  },
-  {
-    id: 'payments',
-    title: 'demo.help.payments.title',
-    description: 'demo.help.payments.description',
-    href: '/faq',
-    icon: 'shield',
-  },
-  {
-    id: 'gifts',
-    title: 'demo.help.gifts.title',
-    description: 'demo.help.gifts.description',
-    href: '/#gift-finder',
-    icon: 'gift',
-  },
-  {
-    id: 'offers',
-    title: 'demo.help.offers.title',
-    description: 'demo.help.offers.description',
-    href: '/offers',
-    icon: 'tag',
-  },
-  {
-    id: 'account',
-    title: 'demo.help.account.title',
-    description: 'demo.help.account.description',
-    href: '/auth/login',
-    icon: 'user',
-  },
-  {
-    id: 'contact',
-    title: 'demo.help.contact.title',
-    description: 'demo.help.contact.description',
-    href: '/contact',
-    icon: 'headset',
   },
 ];
 
@@ -667,19 +505,6 @@ export const DEMO_LOOKBOOK_STORIES: DemoLookbookStory[] = [
     tone: 'teal',
   },
 ];
-
-/**
- * DEMO badge overlay for homepage product rails.
- * Maps list index → badges until Product.badges exists in API.
- * TODO(api): read badges from product payload
- */
-export function getDemoBadgesForIndex(index: number): DemoBadge[] {
-  if (index === 0) return ['bestseller'];
-  if (index === 1) return ['new'];
-  if (index === 2) return ['lowStock'];
-  if (index % 5 === 0) return ['bestseller'];
-  return [];
-}
 
 /**
  * DEMO recommendation stub — category affinity + exclude recently viewed.

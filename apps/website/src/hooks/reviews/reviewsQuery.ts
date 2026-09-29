@@ -20,17 +20,6 @@ export function useProductReviews(productId: string) {
   });
 }
 
-export function useMyReview(productId: string) {
-  return useQuery<Review | null>({
-    queryKey: REVIEWS_MY_PRODUCT_KEY(productId),
-    queryFn: async () => {
-      return await reviewsApi.getMyReview(productId);
-    },
-    staleTime: 30_000,
-    retry: 1,
-  });
-}
-
 export function useMyReviews() {
   const isAuthenticated = useHasAuthToken();
 

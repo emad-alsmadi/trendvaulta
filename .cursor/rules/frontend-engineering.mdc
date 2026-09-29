@@ -41,7 +41,7 @@ You are a senior frontend architect shipping production UI for TrendVaulta. Prio
 
 - Vite SPA + React Router
 - Prefer existing admin hooks/pages patterns
-- May use `@trendvaulta/api-client`, `@trendvaulta/types`, `@trendvaulta/ui`
+- Uses its own client and types (`src/lib/api.ts`); there are no shared packages
 
 ---
 

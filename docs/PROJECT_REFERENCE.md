@@ -16,7 +16,7 @@ From a fresh clone to all three apps running with data, in about ten minutes.
 | Tool | Version | Notes |
 |---|---|---|
 | Node.js | **22.12+** (CI uses 22) | Required by Next.js 16; set in root `package.json` `engines` |
-| npm | 10+ | The repo uses **npm workspaces**. Ignore `pnpm-workspace.yaml` |
+| npm | 10+ | The repo uses **npm workspaces** (there is no `pnpm-workspace.yaml`) |
 | MongoDB | 6+ | Local `mongod`, Docker, or a free Atlas cluster |
 | Stripe account | test mode | Optional — only needed to exercise checkout and refunds |
 
@@ -133,7 +133,7 @@ The storefront supports English and Arabic:
 
 ## 3. CI
 
-Workflow: `.github/workflows/ci.yml`. Triggers on PRs and pushes to `main`/`master`.
+Workflow: `.github/workflows/ci.yml`. Triggers on PRs and pushes to `main`.
 
 | Job | Steps |
 |-----|--------|
@@ -270,10 +270,11 @@ Authority: `apps/api/routes/` + `app.js`, cross-checked with `apps/website/src/l
 | Route | Access | Notes |
 |---|---|---|
 | `POST /auth/register` | public | `{ email, username, password }`; server forces `roles: ['user']` |
-| `POST /auth/login` | public | `{ email, password }` → user + `token` |
-| `POST /auth/logout` | public (stateless) | client clears cookies |
+| `POST /auth/login` | public | `{ email, password }` → user + `token` (15 min) + `refreshToken`; 5 wrong passwords lock the account for 15 min (429 `ACCOUNT_LOCKED`) |
+| `POST /auth/refresh` | refresh token | rotates the refresh token (reuse detection, 30 s grace for concurrent tabs) |
+| `POST /auth/logout` | public | revokes the presented refresh token; client clears cookies |
 | `GET /auth/profile` | private | JWT subject only |
-| `PUT /auth/profile` | private | `{ username, email }`; 409 on conflict |
+| `PUT /auth/profile` | private | `{ username, email, currentPassword? }` — `currentPassword` required when the email changes; 409 on conflict |
 
 ### Password
 | Route | Access | Notes |
@@ -300,7 +301,7 @@ No server cart API — client cart only (`cartStore.ts`). Commerce entry point i
 | `GET /orders/my` | private | own orders |
 | `GET /orders/:id` | private | owner or admin |
 | `GET /orders` (admin list) | private + `orders:read` | `page, limit, status, paymentStatus, q`; items include `allowedNextStatuses` |
-| `PATCH /orders/:id/status` (admin) | private + `orders:write` | `pending→canceled`, `paid→shipped|canceled`, `shipped→delivered`. Not `pending→paid` (Stripe/webhook only). Canceling a paid order restores inventory once via a `stockRestored` flag; Stripe refunds are separate, not automatic |
+| `PATCH /orders/:id/status` (admin) | private + `orders:write` | `pending→canceled`, `paid→shipped|canceled`, `shipped→delivered`. Not `pending→paid` (Stripe/webhook only). Transitions are claimed atomically (409 on a concurrent change). Canceling/refunding a paid order issues a Stripe refund automatically (`AUTO_REFUND_ON_CANCEL`, default on); inventory is restored once, and only if the order never shipped (returns restock their lines when marked received) |
 
 ### Payments & Stripe
 | Route | Access | Notes |
@@ -367,11 +368,12 @@ No server cart API — client cart only (`cartStore.ts`). Commerce entry point i
 | `Wishlist.js` | `wishlists` | Per-user saved products |
 | `Review.js` | `reviews` | Ratings/comments |
 | `StripeWebhookEvent.js` | `stripewebhookevents` | Webhook idempotency |
+| … | | 24 models in total — also `RefreshToken`, `StoreSettings`, `ShippingZone`, `Offer`, `Bundle`, `Category`, `Content`, `HelpTopic`, `Lookbook`, `Testimonial`, `StorefrontModule`, `GiftFinderConfig`, `ProductQA`, `RecentlyViewed`, `Subscriber`, `ContactMessage` (see `docs/audit/AUDIT_REPORT.md` §2.3) |
 
 No dedicated `Address` or server-side `Cart` model — addresses live on the user's saved address list (see `apps/website/src/components/account/AddressBook.tsx` + `hooks/profile/addressesQuery.ts`), cart is client-only.
 
 ### User
-`email` (unique), `username`, `password` (bcrypt), `roles: string[]` (enum user/admin/moderator — array, not singular), `stripeCustomerId`. JWT payload is `{ id: String(_id), roles }`. No soft-delete/disable flag today.
+`email` (unique), `username`, `password` (bcrypt), `roles: string[]` (enum user/admin/moderator — array, not singular), `stripeCustomerId`, `disabled` (admin-disabled accounts cannot sign in or refresh), `failedLoginAttempts` / `lockUntil` (lockout, `select: false`). JWT payload is `{ id: String(_id), roles }`. Deleting a user anonymises it (PII erased, orders kept).
 
 ### Product
 `title, description, cover, brand (ref Brand), price, basePrice, images[], category (enum), subcategory, variants[] (size, color, colorCode, stock, price, sku), material, weight, dimensions, shippingInfo, stock, sku (unique sparse), averageRating, reviewCount, isActive, featured`. Stock precedence: variant stock is authoritative when variants exist, else product-level `stock`.
@@ -412,12 +414,12 @@ Evidence: `apps/api` middlewares/controllers + website `authCookies.ts` / `proxy
 Pipeline: `verfiyToken → checkRolePermission (admin routes) → validate (Joi) → controller (ownership + business rules)`.
 
 ### Authentication
-- `User.generateToken()` → JWT HS256 `{ id, roles }`, `expiresIn: '30d'`, secret `JWT_SECRET_KEY`. Issued on register/login.
+- `User.generateToken()` → JWT HS256 `{ id, roles }`, `expiresIn: '15m'`, secret `JWT_SECRET_KEY`. Issued on register/login/refresh.
 - Header `Authorization: Bearer <token>` (legacy `headers.token` too). Invalid/missing → 401.
-- Refresh tokens: **not implemented.**
-- Logout: API returns 200; client clears cookies. No server-side denylist.
+- Refresh tokens: opaque, stored hashed (`RefreshToken`), 30 days, rotated on every use with reuse detection (30 s grace for concurrent tabs); revoked on logout, password change/reset, disable and role change (`utils/refreshTokens.js`).
+- Logout: revokes the refresh token; the ≤15-min access token simply expires.
 - Password hashing: bcryptjs, salt rounds 10.
-- Password reset: token = JWT signed with `JWT_SECRET_KEY + currentPasswordHash`, 5-minute expiry; a successful reset invalidates prior tokens; unknown email currently returns 404 (known enumeration risk — hardening candidate: return a generic 200 regardless).
+- Password reset: token = JWT signed with `JWT_SECRET_KEY + currentPasswordHash`, 5-minute expiry; a successful reset invalidates prior tokens; unknown emails and mail failures return the same generic 200 (no enumeration); the link is never returned in the response.
 
 ### Client-side cookies
 | Cookie | Set by | httpOnly | Notes |
@@ -433,7 +435,7 @@ Pipeline: `verfiyToken → checkRolePermission (admin routes) → validate (Joi)
 Orders, reviews, wishlist, and payment-verify all scope correctly by `user`/JWT id. List endpoints must never accept an arbitrary `userId` query without admin permission.
 
 ### Validation
-Backend Joi validation exists on models. Frontend validation is never trusted alone for money/auth: checkout item prices come from the DB, never the client; shipping/tax are currently client-supplied inputs the server should treat as advisory only.
+Backend Joi validation exists on models. Frontend validation is never trusted alone for money/auth: checkout item prices come from the DB, never the client; shipping and tax are computed server-side (zones / StoreSettings); the client only sends intent (`delivery`, `shippingMethod`), normalised by `resolveFulfillment`.
 
 ### Payments & webhooks
 - Stripe secret lives server-side only (env).
@@ -449,10 +451,8 @@ Hard rules: never trust client price/discount/stock/role/paymentStatus; never sk
 - CSRF exposure is low while auth uses a Bearer header rather than cookie-based sessions.
 
 ### Known open hardening items
-- Account lockout / brute-force rate limiting beyond the existing limits.
-- No disabled-user (`isActive`) flag on `User` yet — an admin cannot deactivate an account today.
-- Forgot-password currently returns 404 for an unknown email (enumeration) rather than a generic response.
-- httpOnly session cookies were considered as a V1 upgrade over the current non-httpOnly `token` cookie; not yet implemented — track as a deliberate, still-open decision if revisited.
+- Per-IP limits share one bucket if all traffic arrives via the Vercel proxy (`trust proxy` hop count still to confirm); per-account lockout exists.
+- The storefront refresh token is httpOnly (`tv_refresh`); the access `token` cookie is still JS-readable — moving it behind the BFF is an open follow-up (audit C4).
 
 ### Pre-launch security checklist
 - [x] Password hashing verified
@@ -496,7 +496,7 @@ Hard rules: never trust client price/discount/stock/role/paymentStatus; never sk
 
 ### Wishlist / Reviews
 - One wishlist entry and one review per `(user, product)` pair.
-- Reviews: rating 1–5; owner can edit/delete; a "must have purchased" gate is not enforced today.
+- Reviews: rating 1–5; owner can edit/delete; only customers with a paid (or refunded) order for the product can review (staff exempt, not marked verified).
 
 ### Addresses
 - Shoppers can save multiple addresses, pick one at checkout, and mark a default (`AddressBook.tsx` + `hooks/profile/addressesQuery.ts`). Shipping address is required on every order.

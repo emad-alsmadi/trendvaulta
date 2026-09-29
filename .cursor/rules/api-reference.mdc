@@ -19,7 +19,6 @@ There is **no**  trendvaulta / API-3 extract in this repo. Do not search for `ap
 | `apps/api/app.js` | Route mounts, Stripe webhook, CORS |
 | `apps/website/src/lib/api.ts` | Storefront HTTP client |
 | `apps/dashboard/src/lib/api.ts` | Dashboard HTTP client |
-| `packages/api-client/` | Shared client (used by dashboard) |
 
 ## Lookup workflow (token-efficient)
 

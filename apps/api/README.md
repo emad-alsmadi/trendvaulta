@@ -11,7 +11,7 @@ Install once from the repo root (npm workspaces), then in `apps/api`:
 ```bash
 npm run dev     # nodemon app.js
 npm start       # node app.js
-npm test        # node --test app.test.js utils/*.test.js middlewares/*.test.js services/*.test.js
+npm test        # node --test app.test.js 'utils/**/*.test.js' 'middlewares/**/*.test.js' 'services/**/*.test.js' 'tests/**/*.test.js'
 ```
 
 From the repo root: `npm run dev:api`, `npm run test:api`.
@@ -56,11 +56,12 @@ apps/api/
 └── data.js           # Seed data generators
 ```
 
-Conventions: JWT via `Authorization: Bearer <token>` (`verfiyToken`, existing spelling); admin routes add `checkRolePermission('<resource>:<action>')`; responses are `{ message, data?, errors? }` (confirm per controller).
+Conventions: JWT via `Authorization: Bearer <token>` (`verfiyToken`, existing spelling); admin routes add `checkRolePermission('<resource>:<action>')`; success shapes vary per controller (`{ message, data }`, `{ data, meta }`, bare documents — confirm per controller); errors from the central handler are `{ success: false, message, code, details?, requestId? }`, and every response carries an `X-Request-Id` header.
 
 ## Health
 
-- `GET /health`, `GET /api/trendvaulta` — liveness (no DB)
+- `GET /api/trendvaulta` — liveness (no DB)
+- `GET /health` — reports DB state; `503` without Mongo (so it behaves like readiness)
 - `GET /api/ready` — readiness; `503` until Mongo is connected (used as `healthCheckPath` in `render.yaml`)
 
 ## Stripe webhook

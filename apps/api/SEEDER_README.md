@@ -30,25 +30,25 @@ The seeder generates realistic e-commerce data for the TrendVaulta platform acro
 
 ```bash
 # Default: 50 products per category (~300 total products)
-node apps/api/seeder.js -import
+cd apps/api ; node seeder.js -import
 
 # Custom: 100 products per category (~600 total products)
-node apps/api/seeder.js -import 100
+cd apps/api ; node seeder.js -import 100
 
 # Small test: 10 products per category (~60 total products)
-node apps/api/seeder.js -import 10
+cd apps/api ; node seeder.js -import 10
 ```
 
 ### Remove Data
 
 ```bash
-node apps/api/seeder.js -remove
+cd apps/api ; node seeder.js -remove
 ```
 
 ### Show Help
 
 ```bash
-node apps/api/seeder.js -help
+cd apps/api ; node seeder.js -help
 ```
 
 ### Safety Guard
@@ -60,7 +60,7 @@ The seeder therefore **refuses to run when `NODE_ENV=production`**.
 If you genuinely need to reseed a production database, pass `--force`:
 
 ```bash
-NODE_ENV=production node apps/api/seeder.js -import --force
+cd apps/api ; NODE_ENV=production node seeder.js -import --force
 ```
 
 ### Admin User
@@ -202,8 +202,8 @@ Ensure:
 
 Run `-remove` first to clear existing data:
 ```bash
-node apps/api/seeder.js -remove
-node apps/api/seeder.js -import
+cd apps/api ; node seeder.js -remove
+cd apps/api ; node seeder.js -import
 ```
 
 ### Memory Issues with Large Datasets

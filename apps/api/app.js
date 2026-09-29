@@ -112,7 +112,7 @@ app.get('/', (req, res) => {
     message:
       'This is the backend only. Open your Next.js frontend (usually another port) for the website.',
     apiOverview: '/api/',
-    tip: 'If the frontend also tries to use port 3000, set PORT=5000 in backend/.env or change NEXT_PUBLIC_API_URL on the frontend.',
+    tip: 'If the frontend also tries to use port 3000, set PORT=5000 in apps/api/.env or change NEXT_PUBLIC_API_URL on the frontend.',
   });
 });
 

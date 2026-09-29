@@ -93,11 +93,10 @@ API has no compile step (`npm start` / `npm run dev` run Node directly).
 
 ## Shared code
 
-There is no shared `packages/` workspace: each app keeps its own API
-client and types (`apps/website/src/lib/api.ts`, `apps/website/src/types/`,
-`apps/dashboard/src/lib/api.ts`). The former `@trendvaulta/types` and
-`@trendvaulta/api-client` packages were removed — neither app ever
-imported them. Always verify paths against `apps/api/routes/` — do not
+No shared package is in use: each app keeps its own API client and types
+(`apps/website/src/lib/api.ts`, `apps/website/src/types/`,
+`apps/dashboard/src/lib/api.ts`). `packages/types` (`@trendvaulta/types`) is
+still a workspace but nothing imports it; there is no `@trendvaulta/api-client`. Always verify paths against `apps/api/routes/` — do not
 assume a client's types are complete or current.
 
 ## App roles
@@ -121,7 +120,7 @@ assume a client's types are complete or current.
 - REST under `/api/`
 - JWT auth (`verfiyToken`), Joi validation, Mongoose
 - Stripe Checkout + webhook
-- Nodemailer (password reset; order confirmation when wired)
+- Nodemailer (password reset; order confirmation and status emails)
 - Default port `3000` (`PORT` env override)
 
 ## Useful scripts (root)

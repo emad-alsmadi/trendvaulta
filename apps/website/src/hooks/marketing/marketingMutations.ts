@@ -20,15 +20,6 @@ export function useSubscribeNewsletter() {
   });
 }
 
-/** Newsletter opt-out — POST /api/newsletter/unsubscribe. */
-export function useUnsubscribeNewsletter() {
-  return useMutation({
-    mutationFn: async (email: string) => {
-      return await newsletterApi.unsubscribe(email);
-    },
-  });
-}
-
 /** Contact form — POST /api/contact. */
 export function useSendContactMessage() {
   return useMutation({

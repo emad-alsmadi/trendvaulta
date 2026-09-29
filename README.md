@@ -10,7 +10,7 @@ Retail e-commerce monorepo for beauty, fashion, and lifestyle products. Buyers s
 
 Package manager: **npm workspaces** (root `package.json`, `apps/*`). Each app
 keeps its own API client and types. `packages/types` exists but no app imports
-it yet (plan item I5).
+it.
 
 **New here?** Follow [`docs/PROJECT_REFERENCE.md`](docs/PROJECT_REFERENCE.md)
 for local setup and production deployment.
@@ -20,7 +20,7 @@ for local setup and production deployment.
 ## Features
 
 - English and Arabic storefront (RTL), USD pricing
-- JWT auth (login, register, profile, password reset email) — no refresh tokens
+- JWT auth (login, register, profile, password reset email) — 15-minute access token + rotating refresh token (httpOnly cookie on the storefront)
 - Product catalog with brands, filters, badges, and sorting (e.g. bestselling)
 - Client cart + Stripe Checkout, shipping zones, tax
 - Orders with cancellation, returns and Stripe refunds; wishlist, reviews with staff replies
@@ -52,7 +52,7 @@ trendvaulta/
 │   ├── website/             # Next.js storefront (port 3001)
 │   └── dashboard/           # Vite admin (port 3002; proxies /api → :3000)
 ├── packages/
-│   └── types/               # unused so far (plan item I5)
+│   └── types/               # unused (nothing imports it)
 ├── docs/                    # PROJECT_REFERENCE.md — setup, deployment, CI, API, data model, security, business rules
 ├── package.json             # npm workspaces + scripts
 └── AGENTS.md                # AI agent instructions

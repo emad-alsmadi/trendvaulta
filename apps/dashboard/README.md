@@ -39,7 +39,7 @@ Copy `.env.example` to `.env`:
 | `/` | Overview (KPIs) | any staff |
 | `/analytics` | Revenue, orders, top products and brands | `orders:read` |
 | `/orders`, `/orders/:id` | Order list (server-side filter/sort/paging), detail, status, tracking, refunds, returns | `orders:read` / `orders:write` |
-| `/low-stock` | Products and variants under the stock threshold | `products:read` |
+| `/low-stock` | Products under the stock threshold (product-level stock; variants not included yet) | `products:read` |
 | `/products` | Product form with variants, gallery, shipping data | `products:*` |
 | `/brands`, `/categories` | Brands; categories and subcategories | `brands:*`, `products:*` |
 | `/users` | Customers: search, roles, disable, notes, order history | `users:*` |
@@ -60,7 +60,7 @@ src/
 ├── layouts/         # DashboardLayout: sidebar nav (each item hidden without its read permission), header
 ├── pages/           # one file per screen (table above)
 ├── components/      # ui/ primitives, products/ (VariantsEditor, GalleryField), orders/ (ReturnPanel)
-├── hooks/           # useAdmin*.ts React Query hooks per resource; useTableQuery for URL-synced tables
+├── hooks/           # useAdmin*.ts React Query hooks per resource; useTableQuery for paged/sorted tables
 └── lib/             # api.ts (axios + token refresh), auth.ts (session), permissions.ts, variants.ts
 ```
 
@@ -68,9 +68,9 @@ src/
 
 - **API paths:** look them up in `apps/api/routes/`, never guess. Clients live in
   `lib/api.ts`, and each resource has a hook in `hooks/`.
-- **Tables:** list pages use `useTableQuery` (page, sort and search kept in the
-  URL) with `keepPreviousData`, so rows stay on screen while the next page loads.
-- **Errors:** show `errorMessage(err, fallback)` from `lib/api.ts`. It keeps the API's `message` and falls back otherwise; never render a raw error object.
+- **Tables:** list pages use `useTableQuery` (page, sort and search kept in
+  component state) with `keepPreviousData`, so rows stay on screen while the next page loads.
+- **Errors:** show `errorMessage(err, fallback)` from `lib/api.ts`. It shows the first field detail of a validation error (keys humanised) or the API's `message`, maps network/5xx/429 to plain sentences, and never shows axios transport text; never render a raw error object.
 - **Auth:** the access token is refreshed once on a `401` (concurrent requests
   share one refresh). A failed refresh signs the user out.
 

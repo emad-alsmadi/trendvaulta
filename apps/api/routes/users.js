@@ -1,8 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const asyncHandler = require('express-async-handler');
-const bcrypt = require('bcryptjs');
-const { User, validateUpdateUser } = require('../models/User');
 const { verfiyToken } = require('../middlewares/verfiyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 

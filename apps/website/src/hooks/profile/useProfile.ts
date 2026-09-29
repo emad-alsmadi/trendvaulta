@@ -14,8 +14,3 @@ export function useProfile() {
     staleTime: 30_000,
   });
 }
-
-export function useUpdateProfile() {
-  // This will be implemented when needed
-  return { mutateAsync: async () => {} };
-}

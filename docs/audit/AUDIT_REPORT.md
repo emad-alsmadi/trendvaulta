@@ -20,9 +20,9 @@ Phases **A** (fix now) and **B** (next sprint) of the [roadmap](#7-remediation-r
 | Critical | 2 | 2 | 0 | 0 |
 | High | 13 | 13 | 0 | 0 |
 | Medium | 66 | 37 | 8 | 21 |
-| Low | 83 | 10 | 7 | 66 |
-| Info | 12 | 0 | 0 | 12 |
-| **Total** | **176** | **62** | **15** | **99** |
+| Low | 83 | 14 | 7 | 62 |
+| Info | 12 | 0 | 1 | 11 |
+| **Total** | **176** | **66** | **16** | **94** |
 
 ### Validation (2026-09-29)
 
@@ -87,13 +87,14 @@ Regression tests for this work: `apps/api/tests/hardening.test.js`, new cases in
 | B10 | API-210 ✅ |
 | B11 | OPS-702 🟡, OPS-713 ✅ |
 | B12 | OPS-703 ✅, OPS-708 ✅, OPS-710 🟡 |
-| B12/B13 | OPS-722 🟡 |
+| B12/B13 | OPS-722 ✅ |
 | B13 | API-304 ✅, API-325 ✅ |
 | B14 | API-316 🟡, WEB-409 ✅, WEB-410 ✅, WEB-414 ✅ |
 | B15 | API-226 ✅, DASH-613 ✅, DASH-617 ✅, DASH-618 🟡 |
 | B16 | WEB-508 ✅, WEB-510 ✅, WEB-511 ✅, WEB-512 ✅, WEB-513 ✅, WEB-514 ✅, WEB-515 ✅, WEB-518 ✅ |
+| C8 | OPS-718 🟡, OPS-721 ✅, OPS-722 ✅, OPS-723 ✅, WEB-419 ✅, DASH-634 🟡 |
 
-Phase C (C1–C8) and every finding not listed above are still open.
+C8 (docs & cleanup, 2026-09-29): dead files/methods/exports removed in all three apps, agent rules and READMEs/PROJECT_REFERENCE corrected. Not done, because it needs a lockfile update (`npm install`, deploys use `npm ci`): removing unused dependencies (OPS-719, DASH-634) and the unused `packages/types` workspace + extraneous lockfile entries (OPS-718); committing the untracked docs (OPS-709) is a git step for you. Phase C items C1–C7 and every finding not listed above are still open.
 
 ---
 
@@ -1039,7 +1040,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 |---|---|---|---|---|---|---|---|
 | WEB-416 | Soft 404s; every PDP error shows "not found" with no retry  | Low | Confirmed | `app/products/[id]/page.tsx:28-33,59-107`, `app/brands/[id]/page.tsx:138-143`, `ProductDetailClient.tsx:96-104` | A missing product returns HTTP 200 with noindex. 5xx and network errors are shown as "Product not found" (merged WEB-533). | Call `notFound()` on 404; add a retry for other errors. | S |
 | WEB-418 | Sitemap and category coverage gaps  | Low | Confirmed | `app/sitemap.ts:143-154`, `lib/categories.ts:25-128` | Only 100 products and 50 brands; no subcategory URLs. | Shard the sitemap and include `/c/x/y`. | S |
-| WEB-419 | Dead client methods, hooks, components and demo exports  | Low | Confirmed | `lib/api.ts:411-428,656-659,737-740,1250-1255`, `hooks/coupons/couponsQuery.ts:22`, `hooks/reviews/reviewsQuery.ts:23`, `hooks/profile/useProfile.ts:18-21`, `lib/endpoints.ts:34,38,93`, `components/home/FeaturedCategories.tsx`, `components/ui/Card.tsx`, `components/orders/OrderTrackingTimeline.tsx`, `lib/orderTracking.ts`, `data/demoStorefront.ts` (`DEMO_HELP_TOPICS`, `getDemoProductQa`, `getDemoBadgesForIndex`) | Maintenance noise; the coupon-enumeration surface is kept alive. | Delete, or wire an unsubscribe page. | S |
+| WEB-419 | ✅ Dead client methods, hooks, components and demo exports  | Low | Confirmed | `lib/api.ts:411-428,656-659,737-740,1250-1255`, `hooks/coupons/couponsQuery.ts:22`, `hooks/reviews/reviewsQuery.ts:23`, `hooks/profile/useProfile.ts:18-21`, `lib/endpoints.ts:34,38,93`, `components/home/FeaturedCategories.tsx`, `components/ui/Card.tsx`, `components/orders/OrderTrackingTimeline.tsx`, `lib/orderTracking.ts`, `data/demoStorefront.ts` (`DEMO_HELP_TOPICS`, `getDemoProductQa`, `getDemoBadgesForIndex`) | Maintenance noise; the coupon-enumeration surface is kept alive. | Delete, or wire an unsubscribe page. | S |
 | WEB-420 | Order `trackingEvents` are never shown to customers  | Low | Confirmed | `apps/api/models/Order.js:243-256`, `app/user/orders/[id]/page.tsx:485-515` | Only the number and URL are shown; the timeline component is an unused demo. | Render the real events. | S |
 | WEB-421 | Env and config drift (website)  | Low | Confirmed | `lib/site.ts:9,15-21`, `lib/api.ts:33-36`, `components/navigation/Navbar.tsx:46` | `FRONTEND_URL` is undocumented. Axios on the server ignores `API_INTERNAL_URL`. The dashboard link falls back to localhost in production. See OPS-706 for the `/api` suffix. | Use one normalising helper and fail the build when public URLs are missing. | S |
 | WEB-422 | Next.js hygiene  | Low | Confirmed | `src/app/` (no `global-error.tsx`), `app/loading.tsx`, `components/home/HeroPromoCarousel.tsx:86-88`, `lib/api.ts:88-104`, `app/providers.tsx:15-18`, `proxy.ts:66`, `lib/authCookies.ts:43` | No global error page. A single product-grid skeleton is used even for account pages. The hero LCP image is a CSS background. The forced-logout toast is hard-coded English (merged WEB-504). Static pages are client components only to call `t()`. The proxy runs on public assets. The access cookie lasts 7 days while the refresh cookie lasts 30. | Add `global-error.tsx` and per-segment loading, use `next/image` with `preload`, localise the toast, and use server components. | S |
@@ -1167,7 +1168,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 | DASH-631 | CMS lists fetch `limit: 100` with no pagination  | Low | Confirmed | `Offers.tsx:39`, `HelpTopics.tsx:33`, `Content.tsx:33`, `Lookbooks.tsx:39`, `Testimonials.tsx:33`, `StorefrontModules.tsx:51` | Search only covers the loaded page. | Use `useTableQuery` + `TablePagination`. | S |
 | DASH-632 | Toast and contrast a11y  | Low | Suspected | `components/ui/Toast.tsx:42,56,74-77`, `Dashboard.tsx:210`, `LowStock.tsx:115`, `Analytics.tsx:241` | Error toasts are polite and auto-dismiss after 4.5 s. `text-gray-400` is ~2.9:1. | Make error toasts assertive and persistent; darken the text. | S |
 | DASH-633 | Theme storage can crash app init  | Low | Confirmed | `hooks/useTheme.tsx:14,19` | Unguarded `localStorage` access. | Wrap it in try/catch. | S |
-| DASH-634 | Tooling and dead code  | Info | Confirmed | `apps/dashboard/package.json`, `jest.config.js:12-13`, `vite.config.ts:8-11`, `README.md` | 10 unused dependencies; unused `@/` alias; Jest maps the removed `@trendvaulta/*` packages; the viteEnv mapper misses `../lib/viteEnv`; README drift (`useTableQuery` does not use the URL; low-stock doesn't cover variants). | Prune the dependencies and fix the mapper and README. | S |
+| DASH-634 | 🟡 Tooling and dead code  | Info | Confirmed | `apps/dashboard/package.json`, `jest.config.js:12-13`, `vite.config.ts:8-11`, `README.md` | 10 unused dependencies; unused `@/` alias; Jest maps the removed `@trendvaulta/*` packages; the viteEnv mapper misses `../lib/viteEnv`; README drift (`useTableQuery` does not use the URL; low-stock doesn't cover variants). | Prune the dependencies and fix the mapper and README. | S |
 | DASH-635 | Test gaps  | Info | Confirmed | `src/**/*.test.*` (5 files) | Nothing covers the refresh interceptor, layout guard, permission parity, CMS forms, OrderDetail or ReturnPanel. | Add interceptor, parity and guard tests. | M |
 
 ### 5.6 Delivery, ops, observability, docs
@@ -1238,12 +1239,12 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 | OPS-715 | Logging and rate-limit config promise features that don't exist  | Low | Confirmed | `config/logging.config.js:21-56,85-90`, `config/rateLimit.config.js:24-93`, `middlewares/rateLimit.js:31,58-61`, `.env.example:34-37` | File logging and rotation aren't implemented. The limiter is described as "sliding-window" but is a fixed window. `tiers`/`endpoints` are unused. The window sizes in `.env.example` are wrong. | Delete the dead config and fix the docs. | S |
 | OPS-716 | The API has no lint, and CI has gaps  | Low | Confirmed | `apps/api/package.json:6-11`, `.github/workflows/ci.yml:25-45,130` | No ESLint. No `permissions:` block. Actions pinned by tag. No mongodb binary cache. No i18n parity check, no e2e, no coverage gate. The audit runs only `--omit=dev --audit-level=critical`. | Add ESLint, `permissions: contents: read`, caching and a parity script. | S–M |
 | OPS-717 | Website test toolchain version mismatch  | Low | Suspected | `apps/website/package.json:42,49`, `vitest.config.mts:2,6` | vitest 2.1.9 on vite 5, with plugin-react 6 (peer vite ^8). | Upgrade to vitest ≥4, or pin plugin-react 4. | S |
-| OPS-718 | Dead code (repo-wide)  | Low | Confirmed | `apps/api/middlewares/logger.js`, `apps/api/utils/errorResponse.js`, `verfiyToken.js:25-52` (unused helpers), `routes/users.js:3-5`, `checkRolePermission.js:14` (wildcards ignored), `render.yaml:27` (points to a nonexistent `cors.js`), `packages/types`, root `build:types`, lockfile `packages/api-client`/`ui` entries, api `main: index.js` | Maintenance noise (merged API-106). Website dead code is covered in WEB-419. | Delete, or wire `hasPermission`; regenerate the lockfile. | S |
+| OPS-718 | 🟡 Dead code (repo-wide)  | Low | Confirmed | `apps/api/middlewares/logger.js`, `apps/api/utils/errorResponse.js`, `verfiyToken.js:25-52` (unused helpers), `routes/users.js:3-5`, `checkRolePermission.js:14` (wildcards ignored), `render.yaml:27` (points to a nonexistent `cors.js`), `packages/types`, root `build:types`, lockfile `packages/api-client`/`ui` entries, api `main: index.js` | Maintenance noise (merged API-106). Website dead code is covered in WEB-419. | Delete, or wire `hasPermission`; regenerate the lockfile. | S |
 | OPS-719 | Unused dependencies  | Low | Confirmed | Website: `zustand`, `next-intl`, `@radix-ui/react-label`, `@radix-ui/react-tabs`. Dashboard: see DASH-634. | — | Remove them. | S |
 | OPS-720 | Outdated dashboard toolchain and Stripe SDK  | Low | Suspected | eslint 8 (EOL), @typescript-eslint 7, vite 5, react-router 6, tailwind 3, stripe-node 17.7 | — | Upgrade the majors in separate PRs. | M |
-| OPS-721 | Docs drift: AGENTS.md and agent rule files  | Low | Confirmed | `AGENTS.md:9,17,34,85,90,211`, `.cursorrules:10,22,49`, `.cursor/rules/*.mdc` | Refers to a nonexistent `pnpm-workspace.yaml`; says packages were "removed" (`packages/types` exists); lists a `typecheck:types` script that doesn't exist; references `@trendvaulta/api-client`; gives the wrong error shape; says the refresh token is not yet httpOnly (it is). | Update the docs. | S |
-| OPS-722 | 🟡 Docs drift: READMEs and MONOREPO_SETUP | Low | Confirmed | `README.md:13,23,55`, `apps/website/README.md:3,44`, `apps/api/README.md:14`, `MONOREPO_SETUP.md:96-100,124`, `SEEDER_README.md:29-38`, `app.js:113` | Says "no refresh tokens"; references a deleted plan item "I5"; says the cart is "Zustand"; gives the wrong test command; says the order email is "when wired" (it is wired); the seeder from the repo root misses `.env`; references a stale `backend/.env` path. | Update the docs. | S |
-| OPS-723 | Docs drift: PROJECT_REFERENCE.md (untracked)  | Low | Confirmed | `docs/PROJECT_REFERENCE.md:19,136,274,281,303,360-369,374,415-420,436,453-454,499` | JWT 30 d and "no refresh"; "no auto refund"; 8 models (there are 24); "no disable flag"; "purchase gate not enforced"; "shipping client-supplied" — all contradict the code. | Rewrite from this audit. | S |
+| OPS-721 | ✅ Docs drift: AGENTS.md and agent rule files  | Low | Confirmed | `AGENTS.md:9,17,34,85,90,211`, `.cursorrules:10,22,49`, `.cursor/rules/*.mdc` | Refers to a nonexistent `pnpm-workspace.yaml`; says packages were "removed" (`packages/types` exists); lists a `typecheck:types` script that doesn't exist; references `@trendvaulta/api-client`; gives the wrong error shape; says the refresh token is not yet httpOnly (it is). | Update the docs. | S |
+| OPS-722 | ✅ Docs drift: READMEs and MONOREPO_SETUP | Low | Confirmed | `README.md:13,23,55`, `apps/website/README.md:3,44`, `apps/api/README.md:14`, `MONOREPO_SETUP.md:96-100,124`, `SEEDER_README.md:29-38`, `app.js:113` | Says "no refresh tokens"; references a deleted plan item "I5"; says the cart is "Zustand"; gives the wrong test command; says the order email is "when wired" (it is wired); the seeder from the repo root misses `.env`; references a stale `backend/.env` path. | Update the docs. | S |
+| OPS-723 | ✅ Docs drift: PROJECT_REFERENCE.md (untracked)  | Low | Confirmed | `docs/PROJECT_REFERENCE.md:19,136,274,281,303,360-369,374,415-420,436,453-454,499` | JWT 30 d and "no refresh"; "no auto refund"; 8 models (there are 24); "no disable flag"; "purchase gate not enforced"; "shipping client-supplied" — all contradict the code. | Rewrite from this audit. | S |
 | OPS-724 | No schema migrations or index management  | Low | Confirmed | No migrations dir; `syncIndexes` only in `tests/setup.js:181` | Index changes (e.g. the text index at `Product.js:224-227`) rely on autoIndex at boot. | Add migrate-mongo or a scripted `syncIndexes` deploy step. | M |
 | OPS-725 | ✅ Admin user delete is a hard delete | Low | Confirmed | `controllers/user.controller.js:143-144` | Orphans orders, reviews and refresh tokens; there's no GDPR anonymisation path. | Soft-delete or anonymise, and revoke tokens. | S–M |
 | OPS-726 | Minor repo hygiene  | Info | Confirmed | `package.json:25`, `.gitignore`, `apps/api/uploads/.gitkeep` | `clean` uses `&&` and `rm -rf` (AGENTS.md requires `;`). `.gitkeep` is ignored but tracked. | Tidy up. | S |
@@ -1342,7 +1343,7 @@ Findings are grouped by area and sorted by severity. Critical, High and Medium f
 | C5 | Wire the category CMS into navigation and `/c/*`; render PRIVACY and TERMS from the CMS; honour module title and limit | API-315, WEB-405, API-331 | M | A8 | ⬜ Open |
 | C6 | Product gaps: stock reservation, audit log, GDPR export/delete, review moderation, newsletter double opt-in, analytics + consent, abandoned cart, search upgrade | §6 | L | B-phase | ⬜ Open |
 | C7 | Migrations and index management; a shared rate-limit store; horizontal scaling readiness | OPS-724, SEC-108 | M | — | ⬜ Open |
-| C8 | Docs refresh (AGENTS.md, READMEs, PROJECT_REFERENCE) and commit the untracked docs; dead code and dependency cleanup; toolchain upgrades | OPS-709, OPS-718–OPS-723, WEB-419, DASH-634, OPS-719, OPS-720 | S–M | — | ⬜ Open |
+| C8 | Docs refresh (AGENTS.md, READMEs, PROJECT_REFERENCE) and commit the untracked docs; dead code and dependency cleanup; toolchain upgrades | OPS-709, OPS-718–OPS-723, WEB-419, DASH-634, OPS-719, OPS-720 | S–M | — | 🟡 Partial — dead code + docs done; dependency/`packages/types` removal needs a lockfile update |
 
 ```mermaid
 flowchart LR

@@ -4,10 +4,10 @@
 TrendVaulta is a monorepo retail e-commerce platform for beauty, fashion, and lifestyle products. It includes a Next.js storefront, a Vite admin dashboard, and an Express.js API with MongoDB and Stripe.
 
 ## Tech Stack
-- **Storefront** (`apps/website`): Next.js 16 (App Router), React 19, TypeScript, React Query, Zustand, Tailwind CSS, Framer Motion
-- **Dashboard** (`apps/dashboard`): Vite + React 19, TypeScript, React Query, Zustand, Tailwind CSS, React Router
+- **Storefront** (`apps/website`): Next.js 16 (App Router), React 19, TypeScript, React Query, Tailwind CSS, Framer Motion (cart: `useSyncExternalStore` store in `lib/cartStore.ts`)
+- **Dashboard** (`apps/dashboard`): Vite + React 19, TypeScript, React Query, Tailwind CSS, React Router
 - **Backend** (`apps/api`): Express.js, Node.js, MongoDB, Mongoose, Stripe, Nodemailer
-- **Shared packages** (`packages/`): `@trendvaulta/types`, `@trendvaulta/api-client`
+- **Shared packages**: none in use (`packages/types` exists but nothing imports it; there is no api-client or ui package)
 - **Package Manager**: npm workspaces (root `package.json`)
 
 ## Monorepo Structure
@@ -18,8 +18,7 @@ trendvaulta/
 │   ├── website/      # Next.js storefront (port 3001)
 │   └── dashboard/    # Vite admin dashboard (port 3002)
 ├── packages/
-│   ├── types/
-│   └── api-client/
+│   └── types/        # unused workspace
 └── docs/             # Audits, gap analysis, backlog notes
 ```
 
@@ -46,10 +45,10 @@ trendvaulta/
 
 ## API Integration
 - Storefront: `apps/website/src/lib/api.ts` (+ domain hooks)
-- Dashboard: `apps/dashboard/src/lib/api.ts` and/or `@trendvaulta/api-client`
+- Dashboard: `apps/dashboard/src/lib/api.ts`
 - Backend routes under `apps/api/routes/`, mounted in `apps/api/app.js`
 - JWT via `verfiyToken` middleware (note existing spelling)
-- Typical response shape: `{ message, data?, errors? }` (confirm per controller)
+- Response shapes vary per controller (confirm per controller); errors are `{ success: false, message, code, details?, requestId? }`
 
 ## Domain
 Primary catalog resources are **products** and **brands**, plus orders, payments, wishlist, reviews, coupons, offers, recommendations, bundles, recently-viewed, gift-finder, lookbooks, and storefront content endpoints.

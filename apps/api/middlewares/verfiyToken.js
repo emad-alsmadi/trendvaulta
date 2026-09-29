@@ -21,38 +21,6 @@ const verfiyToken = (req, res, next) => {
   }
 };
 
-// Verify Token & Authorization
-const verfiyTokenAndAuthorization = (req, res, next) => {
-  verfiyToken(req, res, () => {
-    const userId = req.user?.id ?? req.user?._id;
-    const paramId = req.params?.id;
-    const isAdmin = req.user?.roles?.includes('admin');
-
-    if (String(userId) === String(paramId) || isAdmin) {
-      next();
-    } else {
-      return res
-        .status(403)
-        .json({ message: 'You are not allowed to update this user' });
-    }
-  });
-};
-
-// Verify Token & Admin
-const verfiyTokenAndAdmin = (req, res, next) => {
-  verfiyToken(req, res, () => {
-    if (req.user?.roles?.includes('admin')) {
-      next();
-    } else {
-      return res.status(403).json({
-        message: `You are not allowed to ${req.method === 'DELETE' ? 'delete this user' : req.method === 'PUT' ? 'update this user' : 'get users'}, only admin`,
-      });
-    }
-  });
-};
-
 module.exports = {
   verfiyToken,
-  verfiyTokenAndAuthorization,
-  verfiyTokenAndAdmin,
 };
