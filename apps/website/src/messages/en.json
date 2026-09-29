@@ -262,6 +262,8 @@
       "checkoutFailed": "Checkout failed",
       "noCheckoutUrl": "No checkout URL returned. Please try again shortly.",
       "paymentPageUnavailable": "We could not open the secure payment page. Please try again shortly.",
+      "outOfStockTitle": "Item no longer available",
+      "outOfStock": "Another shopper just bought the last of an item in your cart. We've updated your cart; please review it and try again.",
       "couldNotStartCheckout": "Could not start checkout",
       "secureCheckoutUnavailable": "Could not start secure checkout. Confirm Stripe keys and try again.",
       "devOrderSaved": "Order saved without card payment (dev mode). Use Stripe in production.",

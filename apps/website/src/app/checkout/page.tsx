@@ -225,7 +225,7 @@ export default function CheckoutPage() {
 
   // Server-side quote (same intent fields as the checkout payload). Falls
   // back to client-side totals while loading or if the endpoint is missing.
-  const { quote, notices } = useCartQuoteSync({
+  const { query: quoteQuery, quote, notices } = useCartQuoteSync({
     items,
     couponCode: appliedCoupon?.code,
     delivery: deliverySelected,
@@ -382,6 +382,17 @@ export default function CheckoutPage() {
             logErrorForDev(stripeErr);
             // Handle 502 and other server errors with user-friendly message
             if (
+              axios.isAxiosError(stripeErr) &&
+              stripeErr.response?.data?.code === 'OUT_OF_STOCK'
+            ) {
+              // Someone else just took the last units. A fresh quote caps or
+              // flags the affected line, so the shopper sees which one.
+              void quoteQuery.refetch();
+              toast(t('checkoutPage.toast.outOfStock'), {
+                title: t('checkoutPage.toast.outOfStockTitle'),
+                variant: 'error',
+              });
+            } else if (
               axios.isAxiosError(stripeErr) &&
               stripeErr.response?.status === 502
             ) {
