@@ -19,6 +19,7 @@ import { useTableQuery, type SortOrder } from '../hooks/useTableQuery';
 import { TablePagination } from '../components/ui/TablePagination';
 import { ImageUploadField } from '../components/ui/ImageUploadField';
 import { FormDialog } from '../components/ui/FormDialog';
+import { useT } from '../i18n/I18nProvider';
 
 const emptyForm: BrandFormPayload = {
   name: '',
@@ -58,6 +59,7 @@ export default function Brands() {
   const { can } = usePermissions();
   const toast = useToast();
   const confirm = useConfirm();
+  const { t } = useT();
   const [search, setSearch] = useState('');
   const [appliedQ, setAppliedQ] = useState('');
   const [open, setOpen] = useState(false);
@@ -106,7 +108,7 @@ export default function Brands() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.name.trim() || !form.slug.trim()) {
-      toast.error('Name and slug are required.');
+      toast.error(t('brands.required'));
       return;
     }
     const payload = toBrandPayload(form);
@@ -119,7 +121,7 @@ export default function Brands() {
       setOpen(false);
       setEditing(null);
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not save brand'));
+      toast.error(errorMessage(err, t('brands.saveFailed')));
     }
   }
 
@@ -127,15 +129,15 @@ export default function Brands() {
     // The API deactivates (products keep their brand), so no product check
     // is needed any more.
     const ok = await confirm({
-      message: `Deactivate brand "${brand.name}"? It is hidden from the storefront brand pages; its products keep the brand, and you can reactivate it later.`,
+      message: t('brands.confirmDeactivate', { name: brand.name }),
       danger: true,
-      confirmLabel: 'Deactivate',
+      confirmLabel: t('brands.deactivate'),
     });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(brand._id);
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not deactivate brand'));
+      toast.error(errorMessage(err, t('brands.deactivateFailed')));
     }
   }
 
@@ -148,10 +150,10 @@ export default function Brands() {
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Brands
+            {t('brands.title')}
           </h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Live brand catalog from the API
+            {t('brands.subtitle')}
           </p>
         </div>
         {can('brands:write') && (
@@ -160,8 +162,8 @@ export default function Brands() {
             onClick={openCreate}
             className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
           >
-            <Plus className="me-2 h-5 w-5" />
-            Add Brand
+            <Plus className="me-2 h-5 w-5" aria-hidden />
+            {t('brands.add')}
           </button>
         )}
       </div>
@@ -175,13 +177,13 @@ export default function Brands() {
             resetPage();
           }}
         >
-          <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+          <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" aria-hidden />
           <input
             type="search"
-            aria-label="Search brands"
+            aria-label={t('brands.searchLabel')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search brands…"
+            placeholder={t('brands.searchPlaceholder')}
             className="w-full rounded-lg border border-gray-300 bg-white py-2 ps-10 pe-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
           />
         </form>
@@ -192,22 +194,22 @@ export default function Brands() {
             const [field, order] = e.target.value.split(':');
             table.setSort(field, order as SortOrder);
           }}
-          aria-label="Sort brands"
+          aria-label={t('brands.sortLabel')}
           className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
         >
-          <option value="name:asc">Name A–Z</option>
-          <option value="name:desc">Name Z–A</option>
-          <option value="createdAt:desc">Newest first</option>
-          <option value="createdAt:asc">Oldest first</option>
+          <option value="name:asc">{t('brands.sortNameAsc')}</option>
+          <option value="name:desc">{t('brands.sortNameDesc')}</option>
+          <option value="createdAt:desc">{t('brands.sortNewest')}</option>
+          <option value="createdAt:asc">{t('brands.sortOldest')}</option>
         </select>
       </div>
 
       {brandsQ.isLoading && (
-        <p className="py-10 text-center text-sm text-gray-500">Loading brands…</p>
+        <p className="py-10 text-center text-sm text-gray-500">{t('brands.loading')}</p>
       )}
       {brandsQ.isError && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-          {errorMessage(brandsQ.error, 'Failed to load brands')}
+          {errorMessage(brandsQ.error, t('brands.loadFailed'))}
         </div>
       )}
 
@@ -215,7 +217,7 @@ export default function Brands() {
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {brands.length === 0 ? (
             <p className="col-span-full py-10 text-center text-sm text-gray-500">
-              No brands found.
+              {t('brands.empty')}
             </p>
           ) : (
             brands.map((brand) => (
@@ -245,16 +247,16 @@ export default function Brands() {
                         </h3>
                         {brand.isActive === false && (
                           <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-                            Inactive
+                            {t('common.inactive')}
                           </span>
                         )}
                         {brand.featured && (
                           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
-                            Featured
+                            {t('brands.featured')}
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-gray-500">{brand.slug}</p>
+                      <p className="text-xs text-gray-500" dir="ltr">{brand.slug}</p>
                     </div>
                     <div className="flex gap-1">
                       {can('brands:write') && (
@@ -262,9 +264,9 @@ export default function Brands() {
                           type="button"
                           onClick={() => openEdit(brand)}
                           className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700"
-                          aria-label={`Edit ${brand.name}`}
+                          aria-label={t('common.editItem', { name: brand.name })}
                         >
-                          <Pencil className="h-4 w-4 text-gray-500" />
+                          <Pencil className="h-4 w-4 text-gray-500" aria-hidden />
                         </button>
                       )}
                       {can('brands:delete') && (
@@ -273,9 +275,9 @@ export default function Brands() {
                           onClick={() => void handleDelete(brand)}
                           disabled={deleteMut.isPending}
                           className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
-                          aria-label={`Delete ${brand.name}`}
+                          aria-label={t('common.deleteItem', { name: brand.name })}
                         >
-                          <Trash2 className="h-4 w-4 text-red-500" />
+                          <Trash2 className="h-4 w-4 text-red-500" aria-hidden />
                         </button>
                       )}
                     </div>
@@ -283,8 +285,8 @@ export default function Brands() {
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     {brand.country || '—'}
                   </p>
-                  <p className="truncate text-sm text-gray-500 dark:text-gray-400">
-                    {brand.website || 'No website'}
+                  <p className="truncate text-sm text-gray-500 dark:text-gray-400" dir={brand.website ? 'ltr' : undefined}>
+                    {brand.website || t('brands.noWebsite')}
                   </p>
                 </div>
               </div>
@@ -305,14 +307,14 @@ export default function Brands() {
       {open && (
         <FormDialog
           onClose={() => setOpen(false)}
-          title={editing ? 'Edit brand' : 'Create brand'}
+          title={editing ? t('brands.form.editTitle') : t('brands.form.createTitle')}
           busy={saving}
           maxWidthClass="max-w-lg"
         >
           <form onSubmit={handleSubmit} className="space-y-3">
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Name
+                {t('brands.form.name')}
               </span>
               <input
                 required
@@ -330,11 +332,12 @@ export default function Brands() {
             </label>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Slug
+                {t('brands.form.slug')}
               </span>
               <input
                 required
                 value={form.slug}
+                dir="ltr"
                 onChange={(e) =>
                   setForm((f) => ({ ...f, slug: e.target.value }))
                 }
@@ -343,7 +346,7 @@ export default function Brands() {
             </label>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Country
+                {t('brands.form.country')}
               </span>
               <input
                 value={form.country}
@@ -355,10 +358,11 @@ export default function Brands() {
             </label>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Website
+                {t('brands.form.website')}
               </span>
               <input
                 value={form.website}
+                dir="ltr"
                 onChange={(e) =>
                   setForm((f) => ({ ...f, website: e.target.value }))
                 }
@@ -366,13 +370,13 @@ export default function Brands() {
               />
             </label>
             <ImageUploadField
-              label="Logo"
+              label={t('brands.form.logo')}
               value={form.logo ?? ''}
               onChange={(url) => setForm((f) => ({ ...f, logo: url }))}
             />
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Description
+                {t('common.description')}
               </span>
               <textarea
                 value={form.description}
@@ -393,7 +397,7 @@ export default function Brands() {
                   }
                   className="h-4 w-4 rounded border-gray-300"
                 />
-                <span className="text-gray-700 dark:text-gray-300">Active</span>
+                <span className="text-gray-700 dark:text-gray-300">{t('common.active')}</span>
               </label>
               <label className="flex items-center gap-2 text-sm">
                 <input
@@ -404,7 +408,7 @@ export default function Brands() {
                   }
                   className="h-4 w-4 rounded border-gray-300"
                 />
-                <span className="text-gray-700 dark:text-gray-300">Featured</span>
+                <span className="text-gray-700 dark:text-gray-300">{t('brands.form.featured')}</span>
               </label>
             </div>
             <div className="flex justify-end gap-2 pt-2">
@@ -414,14 +418,14 @@ export default function Brands() {
                 onClick={() => setOpen(false)}
                 className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={saving}
                 className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
               >
-                {saving ? 'Saving…' : editing ? 'Save' : 'Create'}
+                {saving ? t('common.saving') : editing ? t('common.save') : t('common.create')}
               </button>
             </div>
           </form>

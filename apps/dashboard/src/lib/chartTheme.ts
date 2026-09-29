@@ -44,17 +44,21 @@ const DARK: ChartTheme = {
 export const chartTheme = (theme: 'light' | 'dark'): ChartTheme =>
   theme === 'dark' ? DARK : LIGHT;
 
-export const money = (n: number) =>
-  new Intl.NumberFormat('en-US', {
+/**
+ * Whole-dollar USD for tiles and chart labels. `tag` is a BCP 47 locale
+ * (intlLocale(locale) from the i18n provider); English is the default.
+ */
+export const money = (n: number, tag = 'en-US') =>
+  new Intl.NumberFormat(tag, {
     style: 'currency',
     currency: 'USD',
     maximumFractionDigits: 0,
   }).format(n);
 
-/** "2026-09-23" -> "23 Sep", for an axis that must stay narrow. */
-export const shortDate = (iso: string) => {
+/** "2026-09-23" -> "23 Sep" (or the locale's short month), for a narrow axis. */
+export const shortDate = (iso: string, tag = 'en-US') => {
   const [, m, d] = iso.split('-');
-  const month = new Date(`${iso}T00:00:00Z`).toLocaleString('en-US', {
+  const month = new Date(`${iso}T00:00:00Z`).toLocaleString(tag, {
     month: 'short',
     timeZone: 'UTC',
   });

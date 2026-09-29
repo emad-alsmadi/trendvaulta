@@ -7,22 +7,24 @@ import { useUpdateProductMutation } from '../hooks/useAdminCatalog';
 import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { errorMessage, type LowStockProduct } from '../lib/api';
+import { useT } from '../i18n/I18nProvider';
 
 const THRESHOLDS = [5, 10, 25];
 
 function StockBadge({ stock }: { stock: number }) {
+  const { t, formatNumber } = useT();
   if (stock <= 0) {
     return (
       <span className='inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-950/60 dark:text-red-300'>
-        <PackageX className='h-3 w-3' />
-        Out of stock
+        <PackageX className='h-3 w-3' aria-hidden />
+        {t('lowStock.outOfStock')}
       </span>
     );
   }
   return (
     <span className='inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'>
-      <AlertTriangle className='h-3 w-3' />
-      {stock} left
+      <AlertTriangle className='h-3 w-3' aria-hidden />
+      {t('lowStock.left', { count: formatNumber(stock) })}
     </span>
   );
 }
@@ -37,6 +39,7 @@ function RestockRow({
   onDone: () => void;
 }) {
   const toast = useToast();
+  const { t, tv, formatCurrency, formatNumber } = useT();
   const updateMut = useUpdateProductMutation();
   const [value, setValue] = useState(String(product.stock));
 
@@ -47,15 +50,15 @@ function RestockRow({
   async function save() {
     const stock = Number(value);
     if (!Number.isInteger(stock) || stock < 0) {
-      toast.error('Stock must be a whole number of 0 or more.');
+      toast.error(t('lowStock.invalid'));
       return;
     }
     try {
       await updateMut.mutateAsync({ id: product._id, payload: { stock } });
-      toast.success(`${product.title} set to ${stock} in stock.`);
+      toast.success(t('lowStock.updated', { title: product.title, stock: formatNumber(stock) }));
       onDone();
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not update stock'));
+      toast.error(errorMessage(err, t('lowStock.updateFailed')));
     }
   }
 
@@ -80,19 +83,19 @@ function RestockRow({
         </div>
       </td>
       <td className='py-3 pe-3 text-sm text-gray-600 dark:text-gray-400'>
-        {product.category || '—'}
+        {product.category ? tv('productCategory', product.category) : '—'}
       </td>
       <td className='py-3 pe-3'>
         <StockBadge stock={product.stock} />
       </td>
       <td className='py-3 pe-3 text-end text-sm tabular-nums text-gray-900 dark:text-white'>
-        ${Number(product.price || 0).toFixed(2)}
+        {formatCurrency(Number(product.price || 0))}
       </td>
       <td className='py-3'>
         {canWrite ? (
           <div className='flex items-center justify-end gap-2'>
             <label className='sr-only' htmlFor={`stock-${product._id}`}>
-              New stock for {product.title}
+              {t('lowStock.newStockFor', { title: product.title })}
             </label>
             <input
               id={`stock-${product._id}`}
@@ -108,11 +111,11 @@ function RestockRow({
               disabled={!dirty || updateMut.isPending}
               className='rounded-lg bg-blue-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50'
             >
-              {updateMut.isPending ? 'Saving…' : 'Save'}
+              {updateMut.isPending ? t('common.saving') : t('common.save')}
             </button>
           </div>
         ) : (
-          <p className='text-end text-xs text-gray-400'>Read only</p>
+          <p className='text-end text-xs text-gray-400'>{t('lowStock.readOnly')}</p>
         )}
       </td>
     </tr>
@@ -121,6 +124,7 @@ function RestockRow({
 
 export default function LowStock() {
   const { can } = usePermissions();
+  const { t, formatNumber } = useT();
   const [threshold, setThreshold] = useState(5);
   const q = useAdminLowStock(threshold);
 
@@ -136,10 +140,10 @@ export default function LowStock() {
       <div className='mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between'>
         <div>
           <h1 className='text-3xl font-bold text-gray-900 dark:text-white'>
-            Low stock
+            {t('lowStock.title')}
           </h1>
           <p className='mt-1 text-sm text-gray-600 dark:text-gray-400'>
-            Active products at or below the threshold, most urgent first.
+            {t('lowStock.subtitle')}
           </p>
         </div>
         <div className='flex flex-wrap items-center gap-2'>
@@ -167,15 +171,16 @@ export default function LowStock() {
           >
             <RefreshCw
               className={`me-2 h-4 w-4 ${q.isFetching ? 'animate-spin' : ''}`}
+              aria-hidden
             />
-            Refresh
+            {t('lowStock.refresh')}
           </button>
         </div>
       </div>
 
       {q.isError && (
         <div className='mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200'>
-          {errorMessage(q.error, 'Failed to load low stock products')}
+          {errorMessage(q.error, t('lowStock.loadFailed'))}
         </div>
       )}
 
@@ -183,18 +188,18 @@ export default function LowStock() {
         <div className='mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2'>
           <div className='rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800'>
             <p className='text-sm text-gray-600 dark:text-gray-400'>
-              Needs restocking
+              {t('lowStock.needsRestock')}
             </p>
             <p className='mt-1 text-3xl font-bold tabular-nums text-gray-900 dark:text-white'>
-              {q.isLoading ? '—' : products.length}
+              {q.isLoading ? '—' : formatNumber(products.length)}
             </p>
           </div>
           <div className='rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800'>
             <p className='text-sm text-gray-600 dark:text-gray-400'>
-              Out of stock
+              {t('lowStock.outOfStock')}
             </p>
             <p className='mt-1 text-3xl font-bold tabular-nums text-red-600 dark:text-red-400'>
-              {q.isLoading ? '—' : outOfStock}
+              {q.isLoading ? '—' : formatNumber(outOfStock)}
             </p>
           </div>
         </div>
@@ -202,12 +207,12 @@ export default function LowStock() {
 
       <section className='overflow-x-auto rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800'>
         {q.isLoading ? (
-          <p className='py-10 text-center text-sm text-gray-500'>Loading…</p>
+          <p className='py-10 text-center text-sm text-gray-500'>{t('lowStock.loading')}</p>
         ) : products.length === 0 ? (
           <p className='py-10 text-center text-sm text-gray-500'>
-            Nothing at or below {threshold} in stock.{' '}
+            {t('lowStock.nothing', { threshold })}{' '}
             <Link to='/products' className='text-blue-600 hover:underline'>
-              Browse the catalog
+              {t('lowStock.browse')}
             </Link>
           </p>
         ) : (
@@ -215,19 +220,19 @@ export default function LowStock() {
             <thead>
               <tr className='border-b border-gray-200 text-start text-gray-500 dark:border-gray-700'>
                 <th scope='col' className='pb-2 font-medium'>
-                  Product
+                  {t('lowStock.columns.product')}
                 </th>
                 <th scope='col' className='pb-2 font-medium'>
-                  Category
+                  {t('lowStock.columns.category')}
                 </th>
                 <th scope='col' className='pb-2 font-medium'>
-                  Stock
+                  {t('lowStock.columns.stock')}
                 </th>
                 <th scope='col' className='pb-2 text-end font-medium'>
-                  Price
+                  {t('lowStock.columns.price')}
                 </th>
                 <th scope='col' className='pb-2 text-end font-medium'>
-                  Restock
+                  {t('lowStock.columns.restock')}
                 </th>
               </tr>
             </thead>
