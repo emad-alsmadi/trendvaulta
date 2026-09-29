@@ -46,7 +46,8 @@ type ValueGroup =
   | 'returnStatus'
   | 'returnStage'
   | 'attentionReason'
-  | 'trackingEvent';
+  | 'trackingEvent'
+  | 'productCategory';
 
 type I18n = {
   locale: Locale;
