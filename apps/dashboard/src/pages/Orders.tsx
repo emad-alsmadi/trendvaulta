@@ -18,66 +18,17 @@ import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useTableQuery } from '../hooks/useTableQuery';
 import { SortableHeader } from '../components/ui/SortableHeader';
 import { TablePagination } from '../components/ui/TablePagination';
+import { useT } from '../i18n/I18nProvider';
+import { orderStatusOutcome } from '../lib/orderStatusOutcome';
 
-const STATUS_FILTERS = [
-  { value: '', label: 'All statuses' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'paid', label: 'Paid' },
-  { value: 'shipped', label: 'Shipped' },
-  { value: 'delivered', label: 'Delivered' },
-  { value: 'canceled', label: 'Canceled' },
-  { value: 'needs_attention', label: 'Needs attention' },
-  { value: 'refunded', label: 'Refunded' },
-];
+// Filter values are API values; labels come from tv(group, value).
+const STATUS_FILTERS = ['pending', 'paid', 'shipped', 'delivered', 'canceled', 'needs_attention', 'refunded'];
 
 // Mirrors the paymentStatus values order.controller.js accepts.
-const PAYMENT_FILTERS = [
-  { value: '', label: 'All payments' },
-  { value: 'unpaid', label: 'Unpaid' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'paid', label: 'Paid' },
-  { value: 'failed', label: 'Failed' },
-  { value: 'refunded', label: 'Refunded' },
-];
+const PAYMENT_FILTERS = ['unpaid', 'pending', 'paid', 'failed', 'refunded'];
 
 /** Open return steps first — the ones that need someone to act. */
-const RETURN_FILTERS = [
-  { value: '', label: 'All returns' },
-  { value: 'requested', label: 'Return requested' },
-  { value: 'approved', label: 'Return approved' },
-  { value: 'received', label: 'Return received' },
-  { value: 'refunded', label: 'Return refunded' },
-  { value: 'rejected', label: 'Return rejected' },
-];
-
-const RETURN_LABELS: Record<string, string> = Object.fromEntries(
-  RETURN_FILTERS.filter((f) => f.value).map((f) => [f.value, f.label]),
-);
-
-const STATUS_LABELS: Record<string, string> = {
-  pending: 'Pending',
-  paid: 'Paid',
-  shipped: 'Shipped',
-  delivered: 'Delivered',
-  canceled: 'Canceled',
-  needs_attention: 'Needs attention',
-  refunded: 'Refunded',
-};
-
-const ATTENTION_REASON_LABELS: Record<string, string> = {
-  insufficient_stock: 'Insufficient stock after payment',
-  paid_after_cancel: 'Paid after cancel',
-  refund_failed: 'Refund failed — manual action',
-  manual_refund_required: 'Manual refund required',
-};
-
-function statusLabel(status: string) {
-  return STATUS_LABELS[status] || status;
-}
-
-function attentionReasonLabel(reason: string) {
-  return ATTENTION_REASON_LABELS[reason] || reason.replace(/_/g, ' ');
-}
+const RETURN_FILTERS = ['requested', 'approved', 'received', 'refunded', 'rejected'];
 
 function triggersRefund(order: AdminOrder, next: string) {
   return (
@@ -86,11 +37,11 @@ function triggersRefund(order: AdminOrder, next: string) {
   );
 }
 
-function customerLabel(order: AdminOrder) {
+function customerLabel(order: AdminOrder, fallback: string) {
   if (order.user && typeof order.user === 'object') {
-    return order.user.email || order.user.username || 'Customer';
+    return order.user.email || order.user.username || fallback;
   }
-  return typeof order.user === 'string' ? order.user : 'Customer';
+  return typeof order.user === 'string' ? order.user : fallback;
 }
 
 function shortId(id: string) {
@@ -117,10 +68,14 @@ function statusBadgeClass(status: string) {
   }
 }
 
+const selectClass =
+  'rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white';
+
 export default function Orders() {
   const { can } = usePermissions();
   const toast = useToast();
   const confirm = useConfirm();
+  const { t, tv, formatCurrency, formatDate, formatNumber } = useT();
   const [statusFilter, setStatusFilter] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('');
   const [returnFilter, setReturnFilter] = useState('');
@@ -159,23 +114,24 @@ export default function Orders() {
   const orders = ordersQ.data?.data || [];
   const meta = ordersQ.data?.meta;
   const hasToken = Boolean(getAuthToken());
+  const customerFallback = t('orders.customerFallback');
 
   async function onChangeStatus(order: AdminOrder, next: string) {
     if (!next || next === order.status) return;
-    const refundNote = triggersRefund(order, next)
-      ? ' This order is paid — a Stripe refund will be issued.'
-      : '';
-    const ok = await confirm({ message: `Change order ${shortId(order._id)} from "${statusLabel(order.status)}" to "${statusLabel(next)}"?${refundNote}`, confirmLabel: 'Change status' });
+    const question = t('orders.confirmChange', {
+      id: shortId(order._id),
+      from: tv('orderStatus', order.status),
+      to: tv('orderStatus', next),
+    });
+    const refundNote = triggersRefund(order, next) ? ` ${t('orders.refundNote')}` : '';
+    const ok = await confirm({ message: `${question}${refundNote}`, confirmLabel: t('orders.changeStatus') });
     if (!ok) return;
     try {
       const result = await updateMut.mutateAsync({ id: order._id, status: next });
-      if (result.attentionReason === 'manual_refund_required') {
-        toast.error(result.message || 'Status updated — refund it manually in Stripe');
-      } else {
-        toast.success(result.message || 'Status updated');
-      }
+      const outcome = orderStatusOutcome(result, next, { t, tv });
+      toast[outcome.variant](outcome.message);
     } catch (err) {
-      toast.error(errorMessage(err, 'Failed to update order'));
+      toast.error(errorMessage(err, t('orders.updateFailed')));
     }
   }
 
@@ -194,11 +150,10 @@ export default function Orders() {
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Orders
+            {t('orders.title')}
           </h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Live fulfillment from the API. Paid is set by Stripe — not from this
-            panel.
+            {t('orders.subtitle')}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -208,12 +163,13 @@ export default function Orders() {
               setStatusFilter(e.target.value);
               resetPage();
             }}
-            aria-label="Filter by status"
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+            aria-label={t('orders.filterStatus')}
+            className={selectClass}
           >
+            <option value="">{t('orders.allStatuses')}</option>
             {STATUS_FILTERS.map((s) => (
-              <option key={s.value || 'all'} value={s.value}>
-                {s.label}
+              <option key={s} value={s}>
+                {tv('orderStatus', s)}
               </option>
             ))}
           </select>
@@ -223,12 +179,13 @@ export default function Orders() {
               setPaymentFilter(e.target.value);
               resetPage();
             }}
-            aria-label="Filter by payment status"
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+            aria-label={t('orders.filterPayment')}
+            className={selectClass}
           >
+            <option value="">{t('orders.allPayments')}</option>
             {PAYMENT_FILTERS.map((s) => (
-              <option key={s.value || 'all'} value={s.value}>
-                {s.label}
+              <option key={s} value={s}>
+                {tv('paymentStatus', s)}
               </option>
             ))}
           </select>
@@ -238,12 +195,13 @@ export default function Orders() {
               setReturnFilter(e.target.value);
               resetPage();
             }}
-            aria-label="Filter by return status"
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+            aria-label={t('orders.filterReturn')}
+            className={selectClass}
           >
+            <option value="">{t('orders.allReturns')}</option>
             {RETURN_FILTERS.map((s) => (
-              <option key={s.value || 'all'} value={s.value}>
-                {s.label}
+              <option key={s} value={s}>
+                {tv('returnStatus', s)}
               </option>
             ))}
           </select>
@@ -255,8 +213,9 @@ export default function Orders() {
           >
             <RefreshCw
               className={`me-2 h-4 w-4 ${ordersQ.isFetching ? 'animate-spin' : ''}`}
+              aria-hidden
             />
-            Refresh
+            {t('orders.refresh')}
           </button>
         </div>
       </div>
@@ -264,32 +223,32 @@ export default function Orders() {
       {customerId && (
         <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-sm text-blue-800 dark:bg-blue-900/40 dark:text-blue-200">
           <span>
-            Orders for{' '}
-            <strong>
-              {orders[0] ? customerLabel(orders[0]) : 'selected customer'}
+            {t('orders.ordersFor')}{' '}
+            <strong dir="auto">
+              {orders[0] ? customerLabel(orders[0], customerFallback) : t('orders.selectedCustomer')}
             </strong>
-            {meta ? ` · ${meta.total}` : ''}
+            {meta ? ` · ${formatNumber(meta.total)}` : ''}
           </span>
           <button
             type="button"
             onClick={clearCustomer}
-            aria-label="Show all customers"
+            aria-label={t('orders.showAllCustomers')}
             className="rounded-full p-0.5 hover:bg-blue-100 dark:hover:bg-blue-800"
           >
-            <X className="h-3.5 w-3.5" />
+            <X className="h-3.5 w-3.5" aria-hidden />
           </button>
         </div>
       )}
 
       <form onSubmit={onSearchSubmit} className="mb-6">
         <div className="relative">
-          <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+          <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" aria-hidden />
           <input
             type="search"
-            aria-label="Search by order id or customer email"
+            aria-label={t('orders.searchLabel')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by order id or customer email…"
+            placeholder={t('orders.searchPlaceholder')}
             className="w-full rounded-lg border border-gray-300 bg-white py-2 ps-10 pe-4 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
           />
         </div>
@@ -297,27 +256,25 @@ export default function Orders() {
 
       {!hasToken && (
         <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100">
-          Sign in with an admin account that has{' '}
-          <code className="font-mono">orders:read</code> /{' '}
-          <code className="font-mono">orders:write</code>.{' '}
+          {t('orders.signInHint', { read: 'orders:read', write: 'orders:write' })}{' '}
           <Link to="/login" className="font-semibold underline">
-            Go to login
+            {t('orders.goToLogin')}
           </Link>
         </div>
       )}
 
       {ordersQ.isLoading && (
-        <p className="py-10 text-center text-sm text-gray-500">Loading orders…</p>
+        <p className="py-10 text-center text-sm text-gray-500">{t('orders.loading')}</p>
       )}
 
       {ordersQ.isError && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-          {errorMessage(ordersQ.error, 'Failed to load orders')}
+          {errorMessage(ordersQ.error, t('orders.loadFailed'))}
           {!hasToken && (
             <>
               {' '}
               <Link to="/login" className="font-semibold underline">
-                Sign in
+                {t('orders.signIn')}
               </Link>
             </>
           )}
@@ -334,15 +291,15 @@ export default function Orders() {
             <table className="w-full min-w-[720px]">
               <thead className="bg-gray-50 text-xs uppercase tracking-wider dark:bg-gray-700">
                 <tr className="[&>th]:px-4 [&>th]:py-3 [&>th]:text-start [&>th]:font-medium [&>th]:text-gray-500 dark:[&>th]:text-gray-300">
-                  <th scope="col">Order</th>
-                  <th scope="col">Customer</th>
+                  <th scope="col">{t('orders.columns.order')}</th>
+                  <th scope="col">{t('orders.columns.customer')}</th>
                   <SortableHeader
                     field="totalPrice"
                     active={table.sort}
                     order={table.order}
                     onSort={table.toggleSort}
                   >
-                    Total
+                    {t('orders.columns.total')}
                   </SortableHeader>
                   <SortableHeader
                     field="paymentStatus"
@@ -350,7 +307,7 @@ export default function Orders() {
                     order={table.order}
                     onSort={table.toggleSort}
                   >
-                    Payment
+                    {t('orders.columns.payment')}
                   </SortableHeader>
                   <SortableHeader
                     field="status"
@@ -358,7 +315,7 @@ export default function Orders() {
                     order={table.order}
                     onSort={table.toggleSort}
                   >
-                    Status
+                    {t('orders.columns.status')}
                   </SortableHeader>
                   <SortableHeader
                     field="createdAt"
@@ -366,9 +323,9 @@ export default function Orders() {
                     order={table.order}
                     onSort={table.toggleSort}
                   >
-                    Date
+                    {t('orders.columns.date')}
                   </SortableHeader>
-                  <th scope="col">Next action</th>
+                  <th scope="col">{t('orders.columns.nextAction')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -378,7 +335,7 @@ export default function Orders() {
                       colSpan={7}
                       className="px-4 py-10 text-center text-sm text-gray-500"
                     >
-                      No orders match this filter.
+                      {t('orders.empty')}
                     </td>
                   </tr>
                 ) : (
@@ -390,27 +347,26 @@ export default function Orders() {
                         className="hover:bg-gray-50 dark:hover:bg-gray-700/60"
                       >
                         <td className="px-4 py-3 font-mono text-xs font-semibold text-gray-900 dark:text-white">
-                          <Link to={`/orders/${order._id}`} className='hover:underline'>
+                          <Link to={`/orders/${order._id}`} className='hover:underline' dir="ltr">
                             {shortId(order._id)}
                           </Link>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                          {customerLabel(order)}
+                        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300" dir="auto">
+                          {customerLabel(order, customerFallback)}
                         </td>
                         <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
-                          ${Number(order.totalPrice || 0).toFixed(2)}
+                          {formatCurrency(Number(order.totalPrice || 0))}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                          {order.paymentStatus || '—'}
+                          {tv('paymentStatus', order.paymentStatus)}
                           {order.paymentStatus === 'refunded' && (
                             <span className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
-                              Refunded $
-                              {Number(
-                                order.refundAmount ?? order.totalPrice ?? 0,
-                              ).toFixed(2)}
-                              {order.refundedAt
-                                ? ` · ${new Date(order.refundedAt).toLocaleDateString()}`
-                                : ''}
+                              {t('orders.refundedAmount', {
+                                amount: formatCurrency(
+                                  Number(order.refundAmount ?? order.totalPrice ?? 0),
+                                ),
+                              })}
+                              {order.refundedAt ? ` · ${formatDate(order.refundedAt)}` : ''}
                             </span>
                           )}
                         </td>
@@ -418,25 +374,22 @@ export default function Orders() {
                           <span
                             className={`rounded-full px-2 py-1 text-xs font-medium ${statusBadgeClass(order.status)}`}
                           >
-                            {statusLabel(order.status)}
+                            {tv('orderStatus', order.status)}
                           </span>
                           {order.attentionReason ? (
                             <span className="mt-1 block w-fit rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">
-                              {attentionReasonLabel(order.attentionReason)}
+                              {tv('attentionReason', order.attentionReason)}
                             </span>
                           ) : null}
                           {order.returnRequest &&
                           order.returnRequest.status !== 'none' ? (
                             <span className="mt-1 block w-fit rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-medium text-violet-800 dark:bg-violet-900 dark:text-violet-200">
-                              {RETURN_LABELS[order.returnRequest.status] ||
-                                order.returnRequest.status}
+                              {tv('returnStatus', order.returnRequest.status)}
                             </span>
                           ) : null}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                          {order.createdAt
-                            ? new Date(order.createdAt).toLocaleDateString()
-                            : '—'}
+                          {order.createdAt ? formatDate(order.createdAt) : '—'}
                         </td>
                         <td className="px-4 py-3">
                           {next.length === 0 || !can('orders:write') ? (
@@ -445,16 +398,16 @@ export default function Orders() {
                             <select
                               value=""
                               disabled={updateMut.isPending}
-                              aria-label={`Update status for ${order._id}`}
+                              aria-label={t('orders.updateStatusFor', { id: order._id })}
                               onChange={(e) =>
                                 void onChangeStatus(order, e.target.value)
                               }
                               className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                             >
-                              <option value="">Set status…</option>
+                              <option value="">{t('orders.setStatus')}</option>
                               {next.map((s) => (
                                 <option key={s} value={s}>
-                                  {statusLabel(s)}
+                                  {tv('orderStatus', s)}
                                 </option>
                               ))}
                             </select>

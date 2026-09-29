@@ -9,14 +9,7 @@ import {
 import { usePermissions } from '../../hooks/usePermissions';
 import { useToast } from '../ui/Toast';
 import { useConfirm } from '../ui/ConfirmDialog';
-
-const STATUS_LABELS: Record<string, string> = {
-  requested: 'Requested',
-  approved: 'Approved — awaiting parcel',
-  received: 'Received — ready to refund',
-  refunded: 'Refunded',
-  rejected: 'Rejected',
-};
+import { useT } from '../../i18n/I18nProvider';
 
 const STATUS_CLASS: Record<string, string> = {
   requested: 'bg-violet-100 text-violet-800 dark:bg-violet-900/50 dark:text-violet-200',
@@ -29,6 +22,10 @@ const STATUS_CLASS: Record<string, string> = {
 /** Must be replaced before approving — see approve(). */
 const ADDRESS_PLACEHOLDER = '[RETURN ADDRESS]';
 
+/**
+ * Sent to the customer, not shown to staff — so it stays in the store's
+ * customer-facing language rather than following the dashboard's locale.
+ */
 function defaultInstructions(orderRef: string) {
   return [
     'Please pack the items securely, in their original packaging if you still have it.',
@@ -37,8 +34,6 @@ function defaultInstructions(orderRef: string) {
     'Keep your shipping receipt. We will refund you once the parcel arrives and is checked.',
   ].join('\n');
 }
-
-const money = (n: number) => `$${n.toFixed(2)}`;
 
 /**
  * Suggested refund: the returned items at the price paid, capped at what is
@@ -69,6 +64,8 @@ export function ReturnPanel({ order }: { order: AdminOrderDetail }) {
   const toast = useToast();
   const confirm = useConfirm();
   const updateReturn = useUpdateReturnMutation();
+  const { t, tv, formatCurrency, formatDate, formatDateTime } = useT();
+  const money = formatCurrency;
 
   const rr = order.returnRequest;
   const orderRef = order._id.slice(-8).toUpperCase();
@@ -91,49 +88,50 @@ export function ReturnPanel({ order }: { order: AdminOrderDetail }) {
 
   async function send(payload: ReturnUpdatePayload, success: string) {
     try {
-      const res = await updateReturn.mutateAsync({ id: order._id, payload });
-      toast.success(res.message || success);
+      await updateReturn.mutateAsync({ id: order._id, payload });
+      // The API's message is English-only; the caller passes translated copy.
+      toast.success(success);
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not update the return'));
+      toast.error(errorMessage(err, t('returns.updateFailed')));
     }
   }
 
   async function approve() {
     const text = instructions.trim();
     if (!text || text.includes(ADDRESS_PLACEHOLDER)) {
-      toast.error(`Replace ${ADDRESS_PLACEHOLDER} with the address the customer should ship to.`);
+      toast.error(t('returns.replaceAddress', { placeholder: ADDRESS_PLACEHOLDER }));
       return;
     }
-    await send({ status: 'approved', instructions: text, notes: notes.trim() }, 'Return approved');
+    await send({ status: 'approved', instructions: text, notes: notes.trim() }, t('returns.approved'));
   }
 
   async function reject() {
     if (!notes.trim()) {
-      toast.error('Add a note telling the customer why the return was rejected.');
+      toast.error(t('returns.rejectNoteRequired'));
       return;
     }
     const ok = await confirm({
-      message: 'Reject this return? The customer will see your note.',
+      message: t('returns.confirmReject'),
       danger: true,
-      confirmLabel: 'Reject',
+      confirmLabel: t('returns.reject'),
     });
     if (!ok) return;
-    await send({ status: 'rejected', notes: notes.trim() }, 'Return rejected');
+    await send({ status: 'rejected', notes: notes.trim() }, t('returns.rejected'));
   }
 
   async function refund() {
     const value = Math.round(Number(amount) * 100) / 100;
     if (!(value > 0) || value > refundable) {
-      toast.error(`Enter an amount between $0.01 and ${money(refundable)}.`);
+      toast.error(t('returns.amountRange', { min: money(0.01), max: money(refundable) }));
       return;
     }
     const ok = await confirm({
-      message: `Refund ${money(value)} to the customer's card via Stripe? This cannot be undone.`,
+      message: t('returns.confirmRefund', { amount: money(value) }),
       danger: true,
-      confirmLabel: `Refund ${money(value)}`,
+      confirmLabel: t('returns.refundButton', { amount: money(value) }),
     });
     if (!ok) return;
-    await send({ status: 'refunded', refundAmount: value, notes: notes.trim() }, 'Refund issued');
+    await send({ status: 'refunded', refundAmount: value, notes: notes.trim() }, t('returns.refundIssued'));
   }
 
   const field =
@@ -144,20 +142,20 @@ export function ReturnPanel({ order }: { order: AdminOrderDetail }) {
       <div className='mb-4 flex flex-wrap items-center justify-between gap-2'>
         <h2 className='flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400'>
           <RotateCcw className='h-4 w-4' aria-hidden />
-          Return request
+          {t('returns.title')}
         </h2>
         <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_CLASS[rr.status] || ''}`}>
-          {STATUS_LABELS[rr.status] || rr.status}
+          {tv('returnStage', rr.status)}
         </span>
       </div>
 
       <dl className='space-y-3 text-sm'>
         <div>
-          <dt className='text-gray-500 dark:text-gray-400'>Customer&apos;s reason</dt>
-          <dd className='whitespace-pre-line text-gray-900 dark:text-white'>{rr.reason || '—'}</dd>
+          <dt className='text-gray-500 dark:text-gray-400'>{t('returns.customerReason')}</dt>
+          <dd dir='auto' className='whitespace-pre-line text-gray-900 dark:text-white'>{rr.reason || '—'}</dd>
         </div>
         <div>
-          <dt className='text-gray-500 dark:text-gray-400'>Items</dt>
+          <dt className='text-gray-500 dark:text-gray-400'>{t('returns.items')}</dt>
           <dd>
             <ul className='mt-1 space-y-1'>
               {rr.items.map((item) => (
@@ -173,26 +171,30 @@ export function ReturnPanel({ order }: { order: AdminOrderDetail }) {
         </div>
         {rr.requestedAt && (
           <div className='text-xs text-gray-500'>
-            Requested {new Date(rr.requestedAt).toLocaleString()}
+            {t('returns.requestedAt', { date: formatDateTime(rr.requestedAt) })}
           </div>
         )}
         {rr.status === 'refunded' && (
           <div className='font-medium text-green-700 dark:text-green-300'>
-            Refunded {money(rr.refundAmount || 0)}
-            {rr.refundedAt ? ` on ${new Date(rr.refundedAt).toLocaleDateString()}` : ''}
+            {rr.refundedAt
+              ? t('returns.refundedOn', {
+                  amount: money(rr.refundAmount || 0),
+                  date: formatDate(rr.refundedAt),
+                })
+              : t('returns.refundedAmount', { amount: money(rr.refundAmount || 0) })}
             {rr.refundId ? ` · ${rr.refundId}` : ''}
           </div>
         )}
         {!open && rr.notes && (
           <div>
-            <dt className='text-gray-500 dark:text-gray-400'>Note to customer</dt>
-            <dd className='whitespace-pre-line text-gray-900 dark:text-white'>{rr.notes}</dd>
+            <dt className='text-gray-500 dark:text-gray-400'>{t('returns.noteToCustomer')}</dt>
+            <dd dir='auto' className='whitespace-pre-line text-gray-900 dark:text-white'>{rr.notes}</dd>
           </div>
         )}
         {rr.status !== 'requested' && rr.instructions && (
           <div>
-            <dt className='text-gray-500 dark:text-gray-400'>Instructions sent</dt>
-            <dd className='whitespace-pre-line text-gray-700 dark:text-gray-300'>{rr.instructions}</dd>
+            <dt className='text-gray-500 dark:text-gray-400'>{t('returns.instructionsSent')}</dt>
+            <dd dir='auto' className='whitespace-pre-line text-gray-700 dark:text-gray-300'>{rr.instructions}</dd>
           </div>
         )}
       </dl>
@@ -202,12 +204,13 @@ export function ReturnPanel({ order }: { order: AdminOrderDetail }) {
           {rr.status === 'requested' && (
             <label className='block text-sm'>
               <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                Return instructions (shown to the customer)
+                {t('returns.instructionsLabel')}
               </span>
               <textarea
                 rows={5}
                 maxLength={2000}
                 value={instructions}
+                dir='auto'
                 onChange={(e) => setInstructions(e.target.value)}
                 className={field}
               />
@@ -216,7 +219,7 @@ export function ReturnPanel({ order }: { order: AdminOrderDetail }) {
           {rr.status === 'received' && (
             <label className='block text-sm'>
               <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                Refund amount
+                {t('returns.refundAmount')}
               </span>
               <input
                 type='number'
@@ -228,21 +231,20 @@ export function ReturnPanel({ order }: { order: AdminOrderDetail }) {
                 className={field}
               />
               <span className='mt-1 block text-xs text-gray-500 dark:text-gray-400'>
-                Suggested from the returned items&apos; prices. Up to{' '}
-                {money(refundable)} can still be refunded. Shipping and tax
-                are not included — add them if they should be. Returned stock
-                is not added back automatically.
+                {t('returns.refundHint', { max: money(refundable) })}
               </span>
             </label>
           )}
           <label className='block text-sm'>
             <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-              Note to customer {rr.status === 'requested' ? '(required to reject)' : '(optional)'}
+              {t('returns.noteToCustomer')}{' '}
+              {rr.status === 'requested' ? t('returns.noteRequired') : t('returns.noteOptional')}
             </span>
             <textarea
               rows={2}
               maxLength={500}
               value={notes}
+              dir='auto'
               onChange={(e) => setNotes(e.target.value)}
               className={field}
             />
@@ -254,7 +256,7 @@ export function ReturnPanel({ order }: { order: AdminOrderDetail }) {
               onClick={() => void reject()}
               className='rounded-lg px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-60 dark:text-red-400 dark:hover:bg-red-950/40'
             >
-              Reject
+              {t('returns.reject')}
             </button>
             {rr.status === 'requested' && (
               <button
@@ -263,17 +265,17 @@ export function ReturnPanel({ order }: { order: AdminOrderDetail }) {
                 onClick={() => void approve()}
                 className='rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60'
               >
-                {busy ? 'Saving…' : 'Approve & send instructions'}
+                {busy ? t('returns.saving') : t('returns.approve')}
               </button>
             )}
             {rr.status === 'approved' && (
               <button
                 type='button'
                 disabled={busy}
-                onClick={() => void send({ status: 'received', notes: notes.trim() }, 'Marked received')}
+                onClick={() => void send({ status: 'received', notes: notes.trim() }, t('returns.received'))}
                 className='rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60'
               >
-                {busy ? 'Saving…' : 'Mark parcel received'}
+                {busy ? t('returns.saving') : t('returns.markReceived')}
               </button>
             )}
             {rr.status === 'received' && (
@@ -283,7 +285,7 @@ export function ReturnPanel({ order }: { order: AdminOrderDetail }) {
                 onClick={() => void refund()}
                 className='rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60'
               >
-                {busy ? 'Refunding…' : 'Refund via Stripe'}
+                {busy ? t('returns.refunding') : t('returns.refundViaStripe')}
               </button>
             )}
           </div>

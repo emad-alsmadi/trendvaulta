@@ -17,45 +17,11 @@ import { useConfirm } from '../components/ui/ConfirmDialog';
 import { ReturnPanel } from '../components/orders/ReturnPanel';
 import { usePermissions } from '../hooks/usePermissions';
 import { useState } from 'react';
+import { useT } from '../i18n/I18nProvider';
+import { orderStatusOutcome } from '../lib/orderStatusOutcome';
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: 'Pending',
-  paid: 'Paid',
-  shipped: 'Shipped',
-  delivered: 'Delivered',
-  canceled: 'Canceled',
-  needs_attention: 'Needs attention',
-  refunded: 'Refunded',
-};
-
-const PAYMENT_STATUS_LABELS: Record<string, string> = {
-  unpaid: 'Unpaid',
-  pending: 'Pending',
-  paid: 'Paid',
-  failed: 'Failed',
-  refunded: 'Refunded',
-};
-
-const ATTENTION_REASON_LABELS: Record<string, string> = {
-  insufficient_stock: 'Insufficient stock after payment',
-  paid_after_cancel: 'Paid after cancel',
-  refund_failed: 'Refund failed — manual action',
-  manual_refund_required: 'Manual refund required',
-};
-
-function statusLabel(status?: string) {
-  if (!status) return '—';
-  return STATUS_LABELS[status] || status;
-}
-
-function paymentStatusLabel(status?: string) {
-  if (!status) return '—';
-  return PAYMENT_STATUS_LABELS[status] || status;
-}
-
-function money(n?: number) {
-  return `$${(n ?? 0).toFixed(2)}`;
-}
+// Carrier scan statuses staff can add; labels come from tv('trackingEvent').
+const TRACKING_EVENTS = ['picked_up', 'in_transit', 'out_for_delivery', 'delivered', 'exception'];
 
 function customerLabel(user?: string | AdminOrderCustomer) {
   if (!user) return '—';
@@ -63,16 +29,15 @@ function customerLabel(user?: string | AdminOrderCustomer) {
   return user.username || user.email || user._id;
 }
 
-function variantLabel(variant?: {
-  size?: string;
-  color?: string;
-  sku?: string;
-}) {
+function variantLabel(
+  variant: { size?: string; color?: string; sku?: string } | undefined,
+  t: ReturnType<typeof useT>['t'],
+) {
   if (!variant) return null;
   const parts = [
-    variant.size ? `Size: ${variant.size}` : null,
-    variant.color ? `Color: ${variant.color}` : null,
-    variant.sku ? `SKU: ${variant.sku}` : null,
+    variant.size ? t('orderDetail.variantSize', { value: variant.size }) : null,
+    variant.color ? t('orderDetail.variantColor', { value: variant.color }) : null,
+    variant.sku ? t('orderDetail.variantSku', { value: variant.sku }) : null,
   ].filter(Boolean);
   return parts.length ? parts.join(' · ') : null;
 }
@@ -82,6 +47,8 @@ export default function OrderDetail() {
   const toast = useToast();
   const confirm = useConfirm();
   const { can } = usePermissions();
+  const { t, tv, formatCurrency, formatDateTime } = useT();
+  const money = (n?: number) => formatCurrency(n ?? 0);
   const orderQ = useAdminOrderById(id);
   const order = orderQ.data;
   // Pickup orders carry an address (checkout requires one) but must not be
@@ -89,10 +56,10 @@ export default function OrderDetail() {
   const isPickup =
     order?.delivery === false || order?.shippingMethod === 'none';
   const fulfilmentLabel = isPickup
-    ? 'Store pickup — do not ship'
+    ? t('orderDetail.pickup')
     : order?.shippingMethod
-      ? `Delivery — ${order.shippingMethod}`
-      : 'Not recorded (order placed before fulfilment was saved)';
+      ? t('orderDetail.delivery', { method: order.shippingMethod })
+      : t('orderDetail.fulfilmentUnknown');
   const hasTracking = Boolean(
     order &&
       (order.trackingNumber ||
@@ -111,11 +78,13 @@ export default function OrderDetail() {
     const refunds =
       order.paymentStatus === 'paid' &&
       (next === 'canceled' || next === 'refunded');
+    const question = t('orderDetail.confirmChange', {
+      from: tv('orderStatus', order.status),
+      to: tv('orderStatus', next),
+    });
     const ok = await confirm({
-      message: `Change this order from "${statusLabel(order.status)}" to "${statusLabel(next)}"?${
-        refunds ? ' This order is paid — a Stripe refund will be issued.' : ''
-      }`,
-      confirmLabel: refunds ? 'Change and refund' : 'Change status',
+      message: refunds ? `${question} ${t('orders.refundNote')}` : question,
+      confirmLabel: refunds ? t('orderDetail.changeAndRefund') : t('orders.changeStatus'),
       danger: refunds,
     });
     if (!ok) return;
@@ -123,13 +92,10 @@ export default function OrderDetail() {
       const result = await updateStatus.mutateAsync({ id: order._id, status: next });
       // Report what the server actually did — a refund may have needed
       // manual handling rather than being issued.
-      if (result.attentionReason === 'manual_refund_required') {
-        toast.error(result.message || 'Status updated — refund it manually in Stripe');
-      } else {
-        toast.success(result.message || 'Status updated');
-      }
+      const outcome = orderStatusOutcome(result, next, { t, tv });
+      toast[outcome.variant](outcome.message);
     } catch (err) {
-      toast.error(errorMessage(err, 'Failed to update order'));
+      toast.error(errorMessage(err, t('orders.updateFailed')));
     }
   }
   const [showTrackingForm, setShowTrackingForm] = useState(false);
@@ -163,7 +129,7 @@ export default function OrderDetail() {
 
     try {
       await updateTracking.mutateAsync({ id, tracking });
-      toast.success('Tracking updated successfully');
+      toast.success(t('orderDetail.trackingUpdated'));
       setShowTrackingForm(false);
       setTrackingForm({
         trackingNumber: '',
@@ -174,16 +140,16 @@ export default function OrderDetail() {
         eventLocation: '',
       });
     } catch (err) {
-      toast.error(errorMessage(err, 'Failed to update tracking'));
+      toast.error(errorMessage(err, t('orderDetail.trackingFailed')));
     }
   };
 
   const copyId = async (value: string) => {
     try {
       await navigator.clipboard.writeText(value);
-      toast.success('Copied to clipboard');
+      toast.success(t('orderDetail.copied'));
     } catch {
-      toast.error('Could not copy');
+      toast.error(t('orderDetail.copyFailed'));
     }
   };
 
@@ -210,7 +176,7 @@ export default function OrderDetail() {
       if (!order.invoiceNumber) void orderQ.refetch();
     } catch (err) {
       tab?.close();
-      toast.error(errorMessage(err, 'Could not open the invoice'));
+      toast.error(errorMessage(err, t('orderDetail.invoiceFailed')));
     }
   }
 
@@ -224,19 +190,19 @@ export default function OrderDetail() {
         to='/orders'
         className='mb-4 inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:underline dark:text-blue-400'
       >
-        <ArrowLeft className='h-4 w-4' />
-        Back to orders
+        <ArrowLeft className='h-4 w-4 rtl:-scale-x-100' aria-hidden />
+        {t('orderDetail.back')}
       </Link>
 
       {orderQ.isLoading && (
         <p className='py-10 text-center text-sm text-gray-500'>
-          Loading order…
+          {t('orderDetail.loading')}
         </p>
       )}
 
       {orderQ.isError && (
         <div className='rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200'>
-          {errorMessage(orderQ.error, 'Failed to load order')}
+          {errorMessage(orderQ.error, t('orderDetail.loadFailed'))}
         </div>
       )}
 
@@ -246,12 +212,12 @@ export default function OrderDetail() {
             <div>
               <div className='flex items-center gap-2'>
                 <h1 className='text-2xl font-bold text-gray-900 dark:text-white'>
-                  Order {order._id.slice(-8).toUpperCase()}
+                  {t('orderDetail.title', { ref: order._id.slice(-8).toUpperCase() })}
                 </h1>
                 <button
                   type='button'
                   onClick={() => void copyId(order._id)}
-                  aria-label='Copy full order id'
+                  aria-label={t('orderDetail.copyId')}
                   className='rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700'
                 >
                   <Copy className='h-4 w-4' />
@@ -259,7 +225,7 @@ export default function OrderDetail() {
               </div>
               {order.createdAt && (
                 <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>
-                  Placed {new Date(order.createdAt).toLocaleString()}
+                  {t('orderDetail.placed', { date: formatDateTime(order.createdAt) })}
                 </p>
               )}
               {hasInvoice && (
@@ -270,13 +236,13 @@ export default function OrderDetail() {
                     className='inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700'
                   >
                     <FileText className='h-4 w-4' aria-hidden='true' />
-                    Invoice
+                    {t('orderDetail.invoice')}
                   </button>
                   <button
                     type='button'
                     lang='ar'
                     onClick={() => void openInvoice('ar')}
-                    aria-label='Invoice in Arabic'
+                    aria-label={t('orderDetail.invoiceArabic')}
                     className='rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700'
                   >
                     عربي
@@ -291,15 +257,14 @@ export default function OrderDetail() {
             </div>
             <div className='flex flex-wrap gap-2'>
               <span className='inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800 dark:bg-blue-900/40 dark:text-blue-200'>
-                {statusLabel(order.status)}
+                {tv('orderStatus', order.status)}
               </span>
               <span className='inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-200'>
-                Payment: {paymentStatusLabel(order.paymentStatus)}
+                {t('orderDetail.paymentBadge', { status: tv('paymentStatus', order.paymentStatus) })}
               </span>
               {order.attentionReason && (
                 <span className='inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'>
-                  {ATTENTION_REASON_LABELS[order.attentionReason] ||
-                    order.attentionReason}
+                  {tv('attentionReason', order.attentionReason)}
                 </span>
               )}
               {can('orders:write') &&
@@ -307,16 +272,16 @@ export default function OrderDetail() {
                   <select
                     value=''
                     disabled={updateStatus.isPending}
-                    aria-label='Change order status'
+                    aria-label={t('orderDetail.changeStatusLabel')}
                     onChange={(e) => void onChangeStatus(e.target.value)}
                     className='rounded-md border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-900 dark:text-white'
                   >
                     <option value=''>
-                      {updateStatus.isPending ? 'Updating…' : 'Change status…'}
+                      {updateStatus.isPending ? t('orderDetail.updating') : t('orderDetail.changeStatusPlaceholder')}
                     </option>
                     {order.allowedNextStatuses?.map((s) => (
                       <option key={s} value={s}>
-                        {statusLabel(s)}
+                        {tv('orderStatus', s)}
                       </option>
                     ))}
                   </select>
@@ -329,7 +294,7 @@ export default function OrderDetail() {
               <ReturnPanel key={order.returnRequest?.status ?? 'none'} order={order} />
               <section className='rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800'>
                 <h2 className='mb-4 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400'>
-                  Items
+                  {t('orderDetail.items')}
                 </h2>
                 <ul className='divide-y divide-gray-100 dark:divide-gray-700'>
                   {order.items.map((item, i) => (
@@ -350,13 +315,13 @@ export default function OrderDetail() {
                         <p className='truncate text-sm font-medium text-gray-900 dark:text-white'>
                           {item.title}
                         </p>
-                        {variantLabel(item.variant) && (
+                        {variantLabel(item.variant, t) && (
                           <p className='text-xs text-gray-500 dark:text-gray-400'>
-                            {variantLabel(item.variant)}
+                            {variantLabel(item.variant, t)}
                           </p>
                         )}
                         <p className='text-xs text-gray-500 dark:text-gray-400'>
-                          Qty {item.qty} × {money(item.price)}
+                          {t('orderDetail.qtyTimesPrice', { qty: item.qty, price: money(item.price) })}
                         </p>
                       </div>
                       <p className='shrink-0 text-sm font-semibold text-gray-900 dark:text-white'>
@@ -369,12 +334,12 @@ export default function OrderDetail() {
 
               <section className='rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800'>
                 <h2 className='mb-4 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400'>
-                  Shipping address
+                  {t('orderDetail.shippingAddress')}
                 </h2>
                 <dl className='grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2'>
                   <div className='sm:col-span-2'>
                     <dt className='text-gray-500 dark:text-gray-400'>
-                      Fulfilment
+                      {t('orderDetail.fulfilment')}
                     </dt>
                     <dd
                       className={
@@ -387,20 +352,20 @@ export default function OrderDetail() {
                     </dd>
                   </div>
                   <div>
-                    <dt className='text-gray-500 dark:text-gray-400'>Name</dt>
+                    <dt className='text-gray-500 dark:text-gray-400'>{t('orderDetail.name')}</dt>
                     <dd className='font-medium text-gray-900 dark:text-white'>
                       {order.shippingAddress?.name || '—'}
                     </dd>
                   </div>
                   <div>
-                    <dt className='text-gray-500 dark:text-gray-400'>Phone</dt>
-                    <dd className='font-medium text-gray-900 dark:text-white'>
+                    <dt className='text-gray-500 dark:text-gray-400'>{t('orderDetail.phone')}</dt>
+                    <dd className='font-medium text-gray-900 dark:text-white' dir='ltr'>
                       {order.shippingAddress?.phone || '—'}
                     </dd>
                   </div>
                   <div className='sm:col-span-2'>
                     <dt className='text-gray-500 dark:text-gray-400'>
-                      Address
+                      {t('orderDetail.address')}
                     </dt>
                     <dd className='font-medium text-gray-900 dark:text-white'>
                       {order.shippingAddress?.address || '—'},{' '}
@@ -414,7 +379,7 @@ export default function OrderDetail() {
                   {order.shippingAddress?.notes && (
                     <div className='sm:col-span-2'>
                       <dt className='text-gray-500 dark:text-gray-400'>
-                        Notes
+                        {t('orderDetail.notes')}
                       </dt>
                       <dd className='font-medium text-gray-900 dark:text-white'>
                         {order.shippingAddress.notes}
@@ -428,7 +393,7 @@ export default function OrderDetail() {
             <div className='space-y-6'>
               <section className='rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800'>
                 <h2 className='mb-4 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400'>
-                  Customer
+                  {t('orderDetail.customer')}
                 </h2>
                 <p className='text-sm font-medium text-gray-900 dark:text-white'>
                   {customerLabel(order.user)}
@@ -442,11 +407,11 @@ export default function OrderDetail() {
 
               <section className='rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800'>
                 <h2 className='mb-4 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400'>
-                  Totals
+                  {t('orderDetail.totals')}
                 </h2>
                 <dl className='space-y-2 text-sm'>
                   <div className='flex justify-between'>
-                    <dt className='text-gray-500 dark:text-gray-400'>Items</dt>
+                    <dt className='text-gray-500 dark:text-gray-400'>{t('orderDetail.itemsTotal')}</dt>
                     <dd className='text-gray-900 dark:text-white'>
                       {money(order.itemsPrice)}
                     </dd>
@@ -454,7 +419,7 @@ export default function OrderDetail() {
                   {order.discountAmount > 0 && (
                     <div className='flex justify-between'>
                       <dt className='text-gray-500 dark:text-gray-400'>
-                        Discount{' '}
+                        {t('orderDetail.discount')}{' '}
                         {order.couponCode ? `(${order.couponCode})` : ''}
                       </dt>
                       <dd className='text-gray-900 dark:text-white'>
@@ -464,27 +429,27 @@ export default function OrderDetail() {
                   )}
                   <div className='flex justify-between'>
                     <dt className='text-gray-500 dark:text-gray-400'>
-                      Shipping
+                      {t('orderDetail.shipping')}
                     </dt>
                     <dd className='text-gray-900 dark:text-white'>
                       {money(order.shippingPrice)}
                     </dd>
                   </div>
                   <div className='flex justify-between'>
-                    <dt className='text-gray-500 dark:text-gray-400'>Tax</dt>
+                    <dt className='text-gray-500 dark:text-gray-400'>{t('orderDetail.tax')}</dt>
                     <dd className='text-gray-900 dark:text-white'>
                       {money(order.taxPrice)}
                     </dd>
                   </div>
                   <div className='flex justify-between border-t border-gray-100 pt-2 font-semibold dark:border-gray-700'>
-                    <dt className='text-gray-900 dark:text-white'>Total</dt>
+                    <dt className='text-gray-900 dark:text-white'>{t('orderDetail.total')}</dt>
                     <dd className='text-gray-900 dark:text-white'>
                       {money(order.totalPrice)}
                     </dd>
                   </div>
                   {order.refundAmount ? (
                     <div className='flex justify-between text-red-600 dark:text-red-400'>
-                      <dt>Refunded</dt>
+                      <dt>{t('orderDetail.refunded')}</dt>
                       <dd>-{money(order.refundAmount)}</dd>
                     </div>
                   ) : null}
@@ -496,13 +461,13 @@ export default function OrderDetail() {
                 order.refundId) && (
                 <section className='rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800'>
                   <h2 className='mb-4 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400'>
-                    Payment references
+                    {t('orderDetail.paymentRefs')}
                   </h2>
                   <dl className='space-y-2 text-xs'>
                     {order.stripeSessionId && (
                       <div>
                         <dt className='text-gray-500 dark:text-gray-400'>
-                          Checkout session
+                          {t('orderDetail.checkoutSession')}
                         </dt>
                         <dd className='break-all font-mono text-gray-700 dark:text-gray-300'>
                           {order.stripeSessionId}
@@ -512,7 +477,7 @@ export default function OrderDetail() {
                     {order.paymentIntentId && (
                       <div>
                         <dt className='text-gray-500 dark:text-gray-400'>
-                          Payment intent
+                          {t('orderDetail.paymentIntent')}
                         </dt>
                         <dd className='break-all font-mono text-gray-700 dark:text-gray-300'>
                           {order.paymentIntentId}
@@ -522,7 +487,7 @@ export default function OrderDetail() {
                     {order.refundId && (
                       <div>
                         <dt className='text-gray-500 dark:text-gray-400'>
-                          Refund id
+                          {t('orderDetail.refundId')}
                         </dt>
                         <dd className='break-all font-mono text-gray-700 dark:text-gray-300'>
                           {order.refundId}
@@ -538,18 +503,18 @@ export default function OrderDetail() {
               {(hasTracking || can('orders:write')) && (
                 <section className='rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800'>
                   <h2 className='mb-4 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400'>
-                    Tracking
+                    {t('orderDetail.tracking')}
                   </h2>
                   {!hasTracking && (
                     <p className='text-sm text-gray-500 dark:text-gray-400'>
-                      No tracking information yet.
+                      {t('orderDetail.noTracking')}
                     </p>
                   )}
                   <dl className='space-y-2 text-sm'>
                     {order.trackingNumber && (
                       <div>
                         <dt className='text-gray-500 dark:text-gray-400'>
-                          Tracking number
+                          {t('orderDetail.trackingNumber')}
                         </dt>
                         <dd className='font-mono text-gray-900 dark:text-white'>
                           {order.trackingNumber}
@@ -559,7 +524,7 @@ export default function OrderDetail() {
                     {order.trackingCarrier && (
                       <div>
                         <dt className='text-gray-500 dark:text-gray-400'>
-                          Carrier
+                          {t('orderDetail.carrier')}
                         </dt>
                         <dd className='font-medium text-gray-900 dark:text-white'>
                           {order.trackingCarrier}
@@ -569,7 +534,7 @@ export default function OrderDetail() {
                     {order.trackingUrl && (
                       <div>
                         <dt className='text-gray-500 dark:text-gray-400'>
-                          Tracking URL
+                          {t('orderDetail.trackingUrl')}
                         </dt>
                         <dd>
                           <a
@@ -578,7 +543,7 @@ export default function OrderDetail() {
                             rel='noopener noreferrer'
                             className='font-medium text-blue-600 hover:underline dark:text-blue-400'
                           >
-                            View tracking
+                            {t('orderDetail.viewTracking')}
                           </a>
                         </dd>
                       </div>
@@ -587,7 +552,7 @@ export default function OrderDetail() {
                   {order.trackingEvents && order.trackingEvents.length > 0 && (
                     <div className='mt-4'>
                       <h3 className='mb-2 text-xs font-semibold text-gray-500 dark:text-gray-400'>
-                        Tracking events
+                        {t('orderDetail.trackingEvents')}
                       </h3>
                       <ul className='space-y-2 text-xs'>
                         {order.trackingEvents.map((event, i) => (
@@ -597,12 +562,10 @@ export default function OrderDetail() {
                           >
                             <div className='flex items-center justify-between gap-2'>
                               <span className='font-medium text-gray-900 dark:text-white'>
-                                {event.status}
+                                {tv('trackingEvent', event.status)}
                               </span>
                               <span className='text-gray-500 dark:text-gray-400'>
-                                {event.timestamp
-                                  ? new Date(event.timestamp).toLocaleString()
-                                  : '—'}
+                                {event.timestamp ? formatDateTime(event.timestamp) : '—'}
                               </span>
                             </div>
                             {event.description && (
@@ -626,12 +589,12 @@ export default function OrderDetail() {
                       onClick={() => setShowTrackingForm(!showTrackingForm)}
                       className='mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:underline dark:text-blue-400'
                     >
-                      <Plus className='h-4 w-4' />
+                      <Plus className='h-4 w-4' aria-hidden />
                       {showTrackingForm
-                        ? 'Cancel'
+                        ? t('common.cancel')
                         : hasTracking
-                          ? 'Update tracking'
-                          : 'Add tracking'}
+                          ? t('orderDetail.updateTracking')
+                          : t('orderDetail.addTracking')}
                     </button>
                   )}
                   {can('orders:write') && showTrackingForm && (
@@ -641,7 +604,7 @@ export default function OrderDetail() {
                     >
                       <div>
                         <label htmlFor='order-tracking-number' className='mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300'>
-                          Tracking number
+                          {t('orderDetail.trackingNumber')}
                         </label>
                         <input
                           id='order-tracking-number'
@@ -654,12 +617,13 @@ export default function OrderDetail() {
                             })
                           }
                           className='w-full rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white'
-                          placeholder='e.g. 1Z999AA10123456784'
+                          placeholder={t('orderDetail.trackingNumberPlaceholder')}
+                          dir='ltr'
                         />
                       </div>
                       <div>
                         <label htmlFor='order-carrier' className='mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300'>
-                          Carrier
+                          {t('orderDetail.carrier')}
                         </label>
                         <input
                           id='order-carrier'
@@ -672,12 +636,12 @@ export default function OrderDetail() {
                             })
                           }
                           className='w-full rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white'
-                          placeholder='e.g. FedEx, UPS, DHL'
+                          placeholder={t('orderDetail.carrierPlaceholder')}
                         />
                       </div>
                       <div>
                         <label htmlFor='order-tracking-url' className='mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300'>
-                          Tracking URL
+                          {t('orderDetail.trackingUrl')}
                         </label>
                         <input
                           id='order-tracking-url'
@@ -691,11 +655,12 @@ export default function OrderDetail() {
                           }
                           className='w-full rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white'
                           placeholder='https://...'
+                          dir='ltr'
                         />
                       </div>
                       <div className='border-t border-gray-200 pt-3 dark:border-gray-700'>
                         <label htmlFor='order-add-tracking-event-optional' className='mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300'>
-                          Add tracking event (optional)
+                          {t('orderDetail.addEvent')}
                         </label>
                         <select
                           id='order-add-tracking-event-optional'
@@ -708,14 +673,12 @@ export default function OrderDetail() {
                           }
                           className='mb-2 w-full rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white'
                         >
-                          <option value=''>Select status...</option>
-                          <option value='picked_up'>Picked up</option>
-                          <option value='in_transit'>In transit</option>
-                          <option value='out_for_delivery'>
-                            Out for delivery
-                          </option>
-                          <option value='delivered'>Delivered</option>
-                          <option value='exception'>Exception</option>
+                          <option value=''>{t('orderDetail.selectEventStatus')}</option>
+                          {TRACKING_EVENTS.map((value) => (
+                            <option key={value} value={value}>
+                              {tv('trackingEvent', value)}
+                            </option>
+                          ))}
                         </select>
                         <input
                           type='text'
@@ -727,7 +690,7 @@ export default function OrderDetail() {
                             })
                           }
                           className='mb-2 w-full rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white'
-                          placeholder='Description (optional)'
+                          placeholder={t('orderDetail.eventDescription')}
                         />
                         <input
                           type='text'
@@ -739,7 +702,7 @@ export default function OrderDetail() {
                             })
                           }
                           className='w-full rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white'
-                          placeholder='Location (optional)'
+                          placeholder={t('orderDetail.eventLocation')}
                         />
                       </div>
                       <button
@@ -747,10 +710,10 @@ export default function OrderDetail() {
                         disabled={updateTracking.isPending}
                         className='inline-flex items-center gap-1.5 rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60'
                       >
-                        <Package className='h-4 w-4' />
+                        <Package className='h-4 w-4' aria-hidden />
                         {updateTracking.isPending
-                          ? 'Updating...'
-                          : 'Update tracking'}
+                          ? t('orderDetail.updating')
+                          : t('orderDetail.updateTracking')}
                       </button>
                     </form>
                   )}

@@ -39,23 +39,57 @@ export function intlLocale(locale: Locale) {
   return locale === 'ar' ? 'ar-u-nu-latn' : 'en-US';
 }
 
+/** Message groups whose keys are API enum values (status, reason, …). */
+type ValueGroup =
+  | 'orderStatus'
+  | 'paymentStatus'
+  | 'returnStatus'
+  | 'returnStage'
+  | 'attentionReason'
+  | 'trackingEvent';
+
 type I18n = {
   locale: Locale;
   dir: 'ltr' | 'rtl';
   setLocale: (locale: Locale) => void;
   t: ReturnType<typeof translator>;
+  /**
+   * Label for an API value, e.g. tv('orderStatus', order.status). Unknown
+   * values (added server-side later) fall back to a readable raw string.
+   */
+  tv: (group: ValueGroup, value: string | undefined | null) => string;
   /** Locale-aware number formatting (Latin digits in both languages). */
   formatNumber: (n: number) => string;
+  /** USD — the store charges in USD only. */
+  formatCurrency: (n: number) => string;
+  formatDate: (value: string | number | Date) => string;
+  formatDateTime: (value: string | number | Date) => string;
 };
 
 function build(locale: Locale, setLocale: (l: Locale) => void): I18n {
-  const nf = new Intl.NumberFormat(intlLocale(locale));
+  const tag = intlLocale(locale);
+  const nf = new Intl.NumberFormat(tag);
+  const cf = new Intl.NumberFormat(tag, { style: 'currency', currency: 'USD' });
+  const df = new Intl.DateTimeFormat(tag, { dateStyle: 'medium' });
+  const dtf = new Intl.DateTimeFormat(tag, { dateStyle: 'medium', timeStyle: 'short' });
+  const safe = (f: Intl.DateTimeFormat) => (value: string | number | Date) => {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? '—' : f.format(d);
+  };
   return {
     locale,
     dir: locale === 'ar' ? 'rtl' : 'ltr',
     setLocale,
     t: translator(locale),
+    tv: (group, value) => {
+      if (!value) return '—';
+      const key = `${group}.${value}`;
+      return lookup(MESSAGES[locale], key) ?? lookup(en, key) ?? value.replace(/_/g, ' ');
+    },
     formatNumber: (n) => nf.format(n),
+    formatCurrency: (n) => cf.format(n),
+    formatDate: safe(df),
+    formatDateTime: safe(dtf),
   };
 }
 
