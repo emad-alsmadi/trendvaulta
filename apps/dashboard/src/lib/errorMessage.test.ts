@@ -33,6 +33,11 @@ describe('errorMessage', () => {
     expect(errorMessage(serverError, 'fallback')).toMatch(/server had a problem/i);
   });
 
+  it('explains a timeout instead of calling it a connection problem', () => {
+    const timeout = { request: {}, code: 'ECONNABORTED', message: 'timeout of 30000ms exceeded' };
+    expect(errorMessage(timeout, 'fallback')).toMatch(/taking too long/i);
+  });
+
   it('falls back when nothing usable is present', () => {
     expect(errorMessage(new Error('boom'), 'Could not save')).toBe('Could not save');
   });

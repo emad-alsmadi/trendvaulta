@@ -92,6 +92,11 @@ export default function Content() {
       } else {
         await createMut.mutateAsync(payload);
       }
+      toast.success(
+        payload.active
+          ? `${payload.type} content published`
+          : `${payload.type} content saved as draft`,
+      );
       setOpen(false);
       setEditing(null);
     } catch (err) {

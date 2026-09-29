@@ -13,9 +13,19 @@ import { viteEnv } from './viteEnv';
  */
 const API_BASE = viteEnv.VITE_API_URL?.replace(/\/$/, '') || '/api';
 
+/**
+ * Without a timeout a stalled API (cold start, hung DB connection) leaves
+ * every request pending forever: buttons stay disabled and pages stay blank,
+ * which reads as a frozen dashboard. Fail fast with a clear message instead;
+ * queries retry once, by which time a cold server is usually awake.
+ */
+export const REQUEST_TIMEOUT_MS = 30_000;
+const UPLOAD_TIMEOUT_MS = 120_000;
+
 export const api = axios.create({
   baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
+  timeout: REQUEST_TIMEOUT_MS,
 });
 
 api.interceptors.request.use((config) => {
@@ -61,7 +71,8 @@ async function refreshAccessToken(): Promise<RefreshOutcome> {
 
   if (!refreshPromise) {
     refreshPromise = axios
-      .post(`${API_BASE}/auth/refresh`, { refreshToken })
+      // Every 401'd request awaits this one promise — it must not hang.
+      .post(`${API_BASE}/auth/refresh`, { refreshToken }, { timeout: REQUEST_TIMEOUT_MS })
       .then(({ data }): RefreshOutcome => {
         const nextToken: string | null = data?.token || null;
         const nextRefreshToken: string | null = data?.refreshToken || null;
@@ -319,6 +330,7 @@ function errorMessage(err: unknown, fallback: string) {
       };
     };
     request?: unknown;
+    code?: string;
   };
   const data = ax?.response?.data;
   const detail = data?.details?.find((d) => d?.message)?.message;
@@ -326,6 +338,9 @@ function errorMessage(err: unknown, fallback: string) {
   if (data?.message) return humanizeValidationMessage(data.message);
 
   const status = ax?.response?.status;
+  if (ax?.code === 'ECONNABORTED' || ax?.code === 'ETIMEDOUT') {
+    return 'The server is taking too long to respond. Please try again.';
+  }
   if (!ax?.response && ax?.request) {
     return 'Could not reach the server. Check your connection and try again.';
   }
@@ -784,6 +799,8 @@ export const uploadsApi = {
     formData.append('image', file);
     const { data } = await api.post<UploadImageResponse>('/uploads', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      // Large images on slow connections need longer than a JSON call.
+      timeout: UPLOAD_TIMEOUT_MS,
     });
     return data.data.url;
   },
