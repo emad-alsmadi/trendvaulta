@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Plus, Pencil, Trash2, X } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2 } from 'lucide-react';
 import {
   useAdminBrands,
   useCreateBrandMutation,
@@ -18,6 +18,7 @@ import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useTableQuery, type SortOrder } from '../hooks/useTableQuery';
 import { TablePagination } from '../components/ui/TablePagination';
 import { ImageUploadField } from '../components/ui/ImageUploadField';
+import { FormDialog } from '../components/ui/FormDialog';
 
 const emptyForm: BrandFormPayload = {
   name: '',
@@ -177,6 +178,7 @@ export default function Brands() {
           <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
           <input
             type="search"
+            aria-label="Search brands"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search brands…"
@@ -301,139 +303,129 @@ export default function Brands() {
       )}
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800" role="dialog" aria-modal="true">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                {editing ? 'Edit brand' : 'Create brand'}
-              </h2>
+        <FormDialog
+          onClose={() => setOpen(false)}
+          title={editing ? 'Edit brand' : 'Create brand'}
+          busy={saving}
+          maxWidthClass="max-w-lg"
+        >
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                Name
+              </span>
+              <input
+                required
+                value={form.name}
+                onChange={(e) => {
+                  const name = e.target.value;
+                  setForm((f) => ({
+                    ...f,
+                    name,
+                    slug: editing ? f.slug : slugify(name),
+                  }));
+                }}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                Slug
+              </span>
+              <input
+                required
+                value={form.slug}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, slug: e.target.value }))
+                }
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                Country
+              </span>
+              <input
+                value={form.country}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, country: e.target.value }))
+                }
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                Website
+              </span>
+              <input
+                value={form.website}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, website: e.target.value }))
+                }
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              />
+            </label>
+            <ImageUploadField
+              label="Logo"
+              value={form.logo ?? ''}
+              onChange={(url) => setForm((f) => ({ ...f, logo: url }))}
+            />
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                Description
+              </span>
+              <textarea
+                value={form.description}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, description: e.target.value }))
+                }
+                rows={3}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              />
+            </label>
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.isActive ?? true}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, isActive: e.target.checked }))
+                  }
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <span className="text-gray-700 dark:text-gray-300">Active</span>
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.featured ?? false}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, featured: e.target.checked }))
+                  }
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <span className="text-gray-700 dark:text-gray-300">Featured</span>
+              </label>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
                 disabled={saving}
                 onClick={() => setOpen(false)}
-                className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
               >
-                <X className="h-5 w-5" />
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
+              >
+                {saving ? 'Saving…' : editing ? 'Save' : 'Create'}
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Name
-                </span>
-                <input
-                  required
-                  value={form.name}
-                  onChange={(e) => {
-                    const name = e.target.value;
-                    setForm((f) => ({
-                      ...f,
-                      name,
-                      slug: editing ? f.slug : slugify(name),
-                    }));
-                  }}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Slug
-                </span>
-                <input
-                  required
-                  value={form.slug}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, slug: e.target.value }))
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Country
-                </span>
-                <input
-                  value={form.country}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, country: e.target.value }))
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Website
-                </span>
-                <input
-                  value={form.website}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, website: e.target.value }))
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                />
-              </label>
-              <ImageUploadField
-                label="Logo"
-                value={form.logo ?? ''}
-                onChange={(url) => setForm((f) => ({ ...f, logo: url }))}
-              />
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Description
-                </span>
-                <textarea
-                  value={form.description}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, description: e.target.value }))
-                  }
-                  rows={3}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                />
-              </label>
-              <div className="flex flex-wrap gap-4">
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={form.isActive ?? true}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, isActive: e.target.checked }))
-                    }
-                    className="h-4 w-4 rounded border-gray-300"
-                  />
-                  <span className="text-gray-700 dark:text-gray-300">Active</span>
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={form.featured ?? false}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, featured: e.target.checked }))
-                    }
-                    className="h-4 w-4 rounded border-gray-300"
-                  />
-                  <span className="text-gray-700 dark:text-gray-300">Featured</span>
-                </label>
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={() => setOpen(false)}
-                  className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
-                >
-                  {saving ? 'Saving…' : editing ? 'Save' : 'Create'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+          </form>
+        </FormDialog>
       )}
     </motion.div>
   );

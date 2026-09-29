@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Plus, Pencil, Trash2, X } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2 } from 'lucide-react';
 import {
   useAdminBrands,
   useAdminProducts,
@@ -25,6 +25,7 @@ import { validateVariants } from '../lib/variants';
 import { useTableQuery } from '../hooks/useTableQuery';
 import { useAdminCategories } from '../hooks/useAdminCategories';
 import { TablePagination } from '../components/ui/TablePagination';
+import { FormDialog } from '../components/ui/FormDialog';
 
 const emptyForm: ProductFormPayload = {
   title: '',
@@ -334,6 +335,7 @@ export default function Products() {
           <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
           <input
             type="search"
+            aria-label="Search products"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search products…"
@@ -480,409 +482,399 @@ export default function Products() {
       )}
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800" role="dialog" aria-modal="true">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                {editing ? 'Edit product' : 'Create product'}
-              </h2>
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => setOpen(false)}
-                className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
+        <FormDialog
+          onClose={() => setOpen(false)}
+          title={editing ? 'Edit product' : 'Create product'}
+          busy={saving}
+          maxWidthClass="max-w-3xl"
+        >
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                Title
+              </span>
+              <input
+                required
+                value={form.title}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, title: e.target.value }))
+                }
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                Brand
+              </span>
+              <select
+                required
+                value={form.brand}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, brand: e.target.value }))
+                }
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
               >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit} className="space-y-3">
+                <option value="">Select brand</option>
+                {brands.map((b) => (
+                  <option key={b._id} value={b._id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="grid grid-cols-2 gap-3">
               <label className="block text-sm">
                 <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Title
+                  Price
                 </span>
                 <input
+                  type="number"
+                  min={0}
+                  step="0.01"
                   required
-                  value={form.title}
+                  value={form.price}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, title: e.target.value }))
+                    setForm((f) => ({
+                      ...f,
+                      price: Number(e.target.value),
+                    }))
                   }
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                 />
               </label>
               <label className="block text-sm">
                 <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Brand
+                  Stock
                 </span>
-                <select
-                  required
-                  value={form.brand}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, brand: e.target.value }))
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                >
-                  <option value="">Select brand</option>
-                  {brands.map((b) => (
-                    <option key={b._id} value={b._id}>
-                      {b.name}
-                    </option>
-                  ))}
-                </select>
+                {hasVariants ? (
+                  <>
+                    <input
+                      type="number"
+                      readOnly
+                      value={variantStockTotal(form.variants)}
+                      aria-describedby="stock-from-variants"
+                      className="w-full cursor-not-allowed rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                    />
+                    <span
+                      id="stock-from-variants"
+                      className="mt-1 block text-xs text-gray-500 dark:text-gray-400"
+                    >
+                      Sum of variant stock
+                    </span>
+                  </>
+                ) : (
+                  <input
+                    type="number"
+                    min={0}
+                    value={form.stock}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        stock: Number(e.target.value),
+                      }))
+                    }
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                  />
+                )}
               </label>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block text-sm">
-                  <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                    Price
+            </div>
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                Category
+              </span>
+              <select
+                value={form.category}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, category: e.target.value }))
+                }
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              >
+                {CATEGORIES.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                Subcategory
+              </span>
+              <input
+                value={form.subcategory}
+                list="product-subcategories"
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, subcategory: e.target.value }))
+                }
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              />
+              <datalist id="product-subcategories">
+                {subcategoryOptions.map((c) => (
+                  <option key={c._id} value={c.slug}>
+                    {c.name}
+                  </option>
+                ))}
+              </datalist>
+            </label>
+            <ImageUploadField
+              label="Cover image"
+              required
+              value={form.cover}
+              onChange={(url) => setForm((f) => ({ ...f, cover: url }))}
+            />
+            <GalleryField
+              value={form.images || []}
+              onChange={(images) => setForm((f) => ({ ...f, images }))}
+            />
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                SKU
+              </span>
+              <input
+                value={form.sku}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, sku: e.target.value }))
+                }
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                Description
+              </span>
+              <textarea
+                value={form.description}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, description: e.target.value }))
+                }
+                rows={3}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              />
+            </label>
+            <VariantsEditor
+              value={form.variants || []}
+              onChange={(variants) => setForm((f) => ({ ...f, variants }))}
+            />
+            <details
+              className="rounded-lg border border-gray-200 p-3 text-sm dark:border-gray-700"
+              open={physicalOpen}
+              onToggle={(e) => setPhysicalOpen(e.currentTarget.open)}
+            >
+              <summary className="cursor-pointer font-medium text-gray-700 dark:text-gray-300">
+                Physical attributes &amp; shipping
+              </summary>
+              <div className="mt-3 space-y-3">
+                <label className="block text-xs">
+                  <span className="mb-1 block text-gray-600 dark:text-gray-400">
+                    Material
+                  </span>
+                  <input
+                    value={form.material ?? ''}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, material: e.target.value }))
+                    }
+                    className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                  />
+                </label>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <label className="block text-xs">
+                  <span className="mb-1 block text-gray-600 dark:text-gray-400">
+                    Weight (kg)
                   </span>
                   <input
                     type="number"
                     min={0}
                     step="0.01"
-                    required
-                    value={form.price}
+                    value={form.weight ?? ''}
+                    onChange={(e) => {
+                      const v = numberOrUndefined(e.target.value);
+                      setForm((f) => ({ ...f, weight: v }));
+                    }}
+                    className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                  />
+                </label>
+                <label className="block text-xs">
+                  <span className="mb-1 block text-gray-600 dark:text-gray-400">
+                    Length (cm)
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={form.dimensions?.length ?? ''}
+                    onChange={(e) => {
+                      const v = numberOrUndefined(e.target.value);
+                      setForm((f) => ({ ...f, dimensions: { ...f.dimensions, length: v } }));
+                    }}
+                    className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                  />
+                </label>
+                <label className="block text-xs">
+                  <span className="mb-1 block text-gray-600 dark:text-gray-400">
+                    Width (cm)
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={form.dimensions?.width ?? ''}
+                    onChange={(e) => {
+                      const v = numberOrUndefined(e.target.value);
+                      setForm((f) => ({ ...f, dimensions: { ...f.dimensions, width: v } }));
+                    }}
+                    className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                  />
+                </label>
+                <label className="block text-xs">
+                  <span className="mb-1 block text-gray-600 dark:text-gray-400">
+                    Height (cm)
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={form.dimensions?.height ?? ''}
+                    onChange={(e) => {
+                      const v = numberOrUndefined(e.target.value);
+                      setForm((f) => ({ ...f, dimensions: { ...f.dimensions, height: v } }));
+                    }}
+                    className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                  />
+                </label>
+                </div>
+                <p className="pt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  Packed for shipping
+                </p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <label className="block text-xs">
+                  <span className="mb-1 block text-gray-600 dark:text-gray-400">
+                    Weight (kg)
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={form.shippingInfo?.weight ?? ''}
+                    onChange={(e) => {
+                      const v = numberOrUndefined(e.target.value);
+                      setForm((f) => ({ ...f, shippingInfo: { ...f.shippingInfo, weight: v } }));
+                    }}
+                    className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                  />
+                </label>
+                <label className="block text-xs">
+                  <span className="mb-1 block text-gray-600 dark:text-gray-400">
+                    Length (cm)
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={form.shippingInfo?.dimensions?.length ?? ''}
+                    onChange={(e) => {
+                      const v = numberOrUndefined(e.target.value);
+                      setForm((f) => ({ ...f, shippingInfo: { ...f.shippingInfo, dimensions: { ...f.shippingInfo?.dimensions, length: v } } }));
+                    }}
+                    className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                  />
+                </label>
+                <label className="block text-xs">
+                  <span className="mb-1 block text-gray-600 dark:text-gray-400">
+                    Width (cm)
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={form.shippingInfo?.dimensions?.width ?? ''}
+                    onChange={(e) => {
+                      const v = numberOrUndefined(e.target.value);
+                      setForm((f) => ({ ...f, shippingInfo: { ...f.shippingInfo, dimensions: { ...f.shippingInfo?.dimensions, width: v } } }));
+                    }}
+                    className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                  />
+                </label>
+                <label className="block text-xs">
+                  <span className="mb-1 block text-gray-600 dark:text-gray-400">
+                    Height (cm)
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={form.shippingInfo?.dimensions?.height ?? ''}
+                    onChange={(e) => {
+                      const v = numberOrUndefined(e.target.value);
+                      setForm((f) => ({ ...f, shippingInfo: { ...f.shippingInfo, dimensions: { ...f.shippingInfo?.dimensions, height: v } } }));
+                    }}
+                    className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                  />
+                </label>
+                </div>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(form.shippingInfo?.requiresSpecialHandling)}
                     onChange={(e) =>
                       setForm((f) => ({
                         ...f,
-                        price: Number(e.target.value),
+                        shippingInfo: {
+                          ...f.shippingInfo,
+                          requiresSpecialHandling: e.target.checked,
+                        },
                       }))
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                    className="h-4 w-4 rounded border-gray-300"
                   />
-                </label>
-                <label className="block text-sm">
-                  <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                    Stock
+                  <span className="text-gray-700 dark:text-gray-300">
+                    Requires special handling (fragile, liquid, oversized…)
                   </span>
-                  {hasVariants ? (
-                    <>
-                      <input
-                        type="number"
-                        readOnly
-                        value={variantStockTotal(form.variants)}
-                        aria-describedby="stock-from-variants"
-                        className="w-full cursor-not-allowed rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
-                      />
-                      <span
-                        id="stock-from-variants"
-                        className="mt-1 block text-xs text-gray-500 dark:text-gray-400"
-                      >
-                        Sum of variant stock
-                      </span>
-                    </>
-                  ) : (
-                    <input
-                      type="number"
-                      min={0}
-                      value={form.stock}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          stock: Number(e.target.value),
-                        }))
-                      }
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                    />
-                  )}
                 </label>
               </div>
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Category
-                </span>
-                <select
-                  value={form.category}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, category: e.target.value }))
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                >
-                  {CATEGORIES.map((c) => (
-                    <option key={c.value} value={c.value}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Subcategory
-                </span>
+            </details>
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 text-sm">
                 <input
-                  value={form.subcategory}
-                  list="product-subcategories"
+                  type="checkbox"
+                  checked={form.isActive ?? true}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, subcategory: e.target.value }))
+                    setForm((f) => ({ ...f, isActive: e.target.checked }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                  className="h-4 w-4 rounded border-gray-300"
                 />
-                <datalist id="product-subcategories">
-                  {subcategoryOptions.map((c) => (
-                    <option key={c._id} value={c.slug}>
-                      {c.name}
-                    </option>
-                  ))}
-                </datalist>
+                <span className="text-gray-700 dark:text-gray-300">Active</span>
               </label>
-              <ImageUploadField
-                label="Cover image"
-                required
-                value={form.cover}
-                onChange={(url) => setForm((f) => ({ ...f, cover: url }))}
-              />
-              <GalleryField
-                value={form.images || []}
-                onChange={(images) => setForm((f) => ({ ...f, images }))}
-              />
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  SKU
-                </span>
+              <label className="flex items-center gap-2 text-sm">
                 <input
-                  value={form.sku}
+                  type="checkbox"
+                  checked={form.featured ?? false}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, sku: e.target.value }))
+                    setForm((f) => ({ ...f, featured: e.target.checked }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                  className="h-4 w-4 rounded border-gray-300"
                 />
+                <span className="text-gray-700 dark:text-gray-300">Featured</span>
               </label>
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Description
-                </span>
-                <textarea
-                  value={form.description}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, description: e.target.value }))
-                  }
-                  rows={3}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                />
-              </label>
-              <VariantsEditor
-                value={form.variants || []}
-                onChange={(variants) => setForm((f) => ({ ...f, variants }))}
-              />
-              <details
-                className="rounded-lg border border-gray-200 p-3 text-sm dark:border-gray-700"
-                open={physicalOpen}
-                onToggle={(e) => setPhysicalOpen(e.currentTarget.open)}
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => setOpen(false)}
+                className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
               >
-                <summary className="cursor-pointer font-medium text-gray-700 dark:text-gray-300">
-                  Physical attributes &amp; shipping
-                </summary>
-                <div className="mt-3 space-y-3">
-                  <label className="block text-xs">
-                    <span className="mb-1 block text-gray-600 dark:text-gray-400">
-                      Material
-                    </span>
-                    <input
-                      value={form.material ?? ''}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, material: e.target.value }))
-                      }
-                      className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                    />
-                  </label>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <label className="block text-xs">
-                    <span className="mb-1 block text-gray-600 dark:text-gray-400">
-                      Weight (kg)
-                    </span>
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={form.weight ?? ''}
-                      onChange={(e) => {
-                        const v = numberOrUndefined(e.target.value);
-                        setForm((f) => ({ ...f, weight: v }));
-                      }}
-                      className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                    />
-                  </label>
-                  <label className="block text-xs">
-                    <span className="mb-1 block text-gray-600 dark:text-gray-400">
-                      Length (cm)
-                    </span>
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={form.dimensions?.length ?? ''}
-                      onChange={(e) => {
-                        const v = numberOrUndefined(e.target.value);
-                        setForm((f) => ({ ...f, dimensions: { ...f.dimensions, length: v } }));
-                      }}
-                      className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                    />
-                  </label>
-                  <label className="block text-xs">
-                    <span className="mb-1 block text-gray-600 dark:text-gray-400">
-                      Width (cm)
-                    </span>
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={form.dimensions?.width ?? ''}
-                      onChange={(e) => {
-                        const v = numberOrUndefined(e.target.value);
-                        setForm((f) => ({ ...f, dimensions: { ...f.dimensions, width: v } }));
-                      }}
-                      className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                    />
-                  </label>
-                  <label className="block text-xs">
-                    <span className="mb-1 block text-gray-600 dark:text-gray-400">
-                      Height (cm)
-                    </span>
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={form.dimensions?.height ?? ''}
-                      onChange={(e) => {
-                        const v = numberOrUndefined(e.target.value);
-                        setForm((f) => ({ ...f, dimensions: { ...f.dimensions, height: v } }));
-                      }}
-                      className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                    />
-                  </label>
-                  </div>
-                  <p className="pt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    Packed for shipping
-                  </p>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <label className="block text-xs">
-                    <span className="mb-1 block text-gray-600 dark:text-gray-400">
-                      Weight (kg)
-                    </span>
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={form.shippingInfo?.weight ?? ''}
-                      onChange={(e) => {
-                        const v = numberOrUndefined(e.target.value);
-                        setForm((f) => ({ ...f, shippingInfo: { ...f.shippingInfo, weight: v } }));
-                      }}
-                      className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                    />
-                  </label>
-                  <label className="block text-xs">
-                    <span className="mb-1 block text-gray-600 dark:text-gray-400">
-                      Length (cm)
-                    </span>
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={form.shippingInfo?.dimensions?.length ?? ''}
-                      onChange={(e) => {
-                        const v = numberOrUndefined(e.target.value);
-                        setForm((f) => ({ ...f, shippingInfo: { ...f.shippingInfo, dimensions: { ...f.shippingInfo?.dimensions, length: v } } }));
-                      }}
-                      className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                    />
-                  </label>
-                  <label className="block text-xs">
-                    <span className="mb-1 block text-gray-600 dark:text-gray-400">
-                      Width (cm)
-                    </span>
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={form.shippingInfo?.dimensions?.width ?? ''}
-                      onChange={(e) => {
-                        const v = numberOrUndefined(e.target.value);
-                        setForm((f) => ({ ...f, shippingInfo: { ...f.shippingInfo, dimensions: { ...f.shippingInfo?.dimensions, width: v } } }));
-                      }}
-                      className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                    />
-                  </label>
-                  <label className="block text-xs">
-                    <span className="mb-1 block text-gray-600 dark:text-gray-400">
-                      Height (cm)
-                    </span>
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={form.shippingInfo?.dimensions?.height ?? ''}
-                      onChange={(e) => {
-                        const v = numberOrUndefined(e.target.value);
-                        setForm((f) => ({ ...f, shippingInfo: { ...f.shippingInfo, dimensions: { ...f.shippingInfo?.dimensions, height: v } } }));
-                      }}
-                      className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                    />
-                  </label>
-                  </div>
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(form.shippingInfo?.requiresSpecialHandling)}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          shippingInfo: {
-                            ...f.shippingInfo,
-                            requiresSpecialHandling: e.target.checked,
-                          },
-                        }))
-                      }
-                      className="h-4 w-4 rounded border-gray-300"
-                    />
-                    <span className="text-gray-700 dark:text-gray-300">
-                      Requires special handling (fragile, liquid, oversized…)
-                    </span>
-                  </label>
-                </div>
-              </details>
-              <div className="flex flex-wrap gap-4">
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={form.isActive ?? true}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, isActive: e.target.checked }))
-                    }
-                    className="h-4 w-4 rounded border-gray-300"
-                  />
-                  <span className="text-gray-700 dark:text-gray-300">Active</span>
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={form.featured ?? false}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, featured: e.target.checked }))
-                    }
-                    className="h-4 w-4 rounded border-gray-300"
-                  />
-                  <span className="text-gray-700 dark:text-gray-300">Featured</span>
-                </label>
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={() => setOpen(false)}
-                  className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
-                >
-                  {saving ? 'Saving…' : editing ? 'Save' : 'Create'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
+              >
+                {saving ? 'Saving…' : editing ? 'Save' : 'Create'}
+              </button>
+            </div>
+          </form>
+        </FormDialog>
       )}
     </motion.div>
   );

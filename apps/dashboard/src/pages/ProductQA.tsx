@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Trash2, MessageSquare, Search } from 'lucide-react';
+import { Trash2, MessageSquare, Search } from 'lucide-react';
 import {
   useAdminProductQA,
   useAnswerProductQAMutation,
@@ -16,6 +16,7 @@ import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useTableQuery, type SortOrder } from '../hooks/useTableQuery';
 import { TablePagination } from '../components/ui/TablePagination';
+import { FormDialog } from '../components/ui/FormDialog';
 
 export default function ProductQA() {
   const { can } = usePermissions();
@@ -125,6 +126,7 @@ export default function ProductQA() {
           <Search className='absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400' />
           <input
             type='search'
+            aria-label='Search questions and answers'
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder='Search questions and answers…'
@@ -270,85 +272,75 @@ export default function ProductQA() {
       )}
 
       {editing && (
-        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4'>
-          <div className='max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800' role='dialog' aria-modal='true'>
-            <div className='mb-4 flex items-center justify-between'>
-              <h2 className='text-xl font-bold text-gray-900 dark:text-white'>
-                Answer Question
-              </h2>
+        <FormDialog
+          onClose={closeEdit}
+          title='Answer Question'
+          busy={saving}
+          maxWidthClass='max-w-2xl'
+        >
+          <div className='space-y-4'>
+            <div>
+              <p className='text-sm text-gray-600 dark:text-gray-400'>
+                {editing.product?.title || 'Deleted product'}
+              </p>
+              <p className='mt-2 font-medium text-gray-900 dark:text-white'>
+                Q: {editing.question}
+              </p>
+            </div>
+            <label className='block text-sm'>
+              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
+                Your Answer
+              </span>
+              <textarea
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+                rows={4}
+                placeholder='Type your answer here...'
+                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+              />
+            </label>
+            <div className='flex items-center gap-2'>
+              <input
+                type='checkbox'
+                id='approve'
+                checked={editing.approved}
+                onChange={(e) => {
+                  const approved = e.target.checked;
+                  // Keep local state in sync so the checkbox reflects the
+                  // change and Save doesn't send a stale `approved`.
+                  setEditing((prev) => (prev ? { ...prev, approved } : prev));
+                  const payload: ProductQAAnswerPayload = { approved };
+                  void answerMut.mutateAsync({ id: editing._id, payload });
+                }}
+                disabled={saving}
+              />
+              <label
+                htmlFor='approve'
+                className='text-sm text-gray-700 dark:text-gray-300'
+              >
+                Approve and publish
+              </label>
+            </div>
+            <div className='flex justify-end gap-2 pt-2'>
               <button
                 type='button'
                 disabled={saving}
                 onClick={closeEdit}
-                className='rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700'
+                className='rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
               >
-                <X className='h-5 w-5' />
+                Cancel
+              </button>
+              <button
+                type='button'
+                disabled={saving}
+                onClick={handleSaveAnswer}
+                className='rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60'
+              >
+                {saving ? 'Saving…' : 'Save Answer'}
               </button>
             </div>
-            <div className='space-y-4'>
-              <div>
-                <p className='text-sm text-gray-600 dark:text-gray-400'>
-                  {editing.product?.title || 'Deleted product'}
-                </p>
-                <p className='mt-2 font-medium text-gray-900 dark:text-white'>
-                  Q: {editing.question}
-                </p>
-              </div>
-              <label className='block text-sm'>
-                <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                  Your Answer
-                </span>
-                <textarea
-                  value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                  rows={4}
-                  placeholder='Type your answer here...'
-                  className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                />
-              </label>
-              <div className='flex items-center gap-2'>
-                <input
-                  type='checkbox'
-                  id='approve'
-                  checked={editing.approved}
-                  onChange={(e) => {
-                    const approved = e.target.checked;
-                    // Keep local state in sync so the checkbox reflects the
-                    // change and Save doesn't send a stale `approved`.
-                    setEditing((prev) => (prev ? { ...prev, approved } : prev));
-                    const payload: ProductQAAnswerPayload = { approved };
-                    void answerMut.mutateAsync({ id: editing._id, payload });
-                  }}
-                  disabled={saving}
-                />
-                <label
-                  htmlFor='approve'
-                  className='text-sm text-gray-700 dark:text-gray-300'
-                >
-                  Approve and publish
-                </label>
-              </div>
-              <div className='flex justify-end gap-2 pt-2'>
-                <button
-                  type='button'
-                  disabled={saving}
-                  onClick={closeEdit}
-                  className='rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
-                >
-                  Cancel
-                </button>
-                <button
-                  type='button'
-                  disabled={saving}
-                  onClick={handleSaveAnswer}
-                  className='rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60'
-                >
-                  {saving ? 'Saving…' : 'Save Answer'}
-                </button>
-              </div>
-            </div>
           </div>
-        </div>
+        </FormDialog>
       )}
     </motion.div>
   );

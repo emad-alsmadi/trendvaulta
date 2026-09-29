@@ -119,8 +119,14 @@ export default function OrderDetail() {
     });
     if (!ok) return;
     try {
-      await updateStatus.mutateAsync({ id: order._id, status: next });
-      toast.success(refunds ? 'Status updated — refund issued' : 'Status updated');
+      const result = await updateStatus.mutateAsync({ id: order._id, status: next });
+      // Report what the server actually did — a refund may have needed
+      // manual handling rather than being issued.
+      if (result.attentionReason === 'manual_refund_required') {
+        toast.error(result.message || 'Status updated — refund it manually in Stripe');
+      } else {
+        toast.success(result.message || 'Status updated');
+      }
     } catch (err) {
       toast.error(errorMessage(err, 'Failed to update order'));
     }
@@ -580,10 +586,11 @@ export default function OrderDetail() {
                       className='mt-4 space-y-3'
                     >
                       <div>
-                        <label className='mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300'>
+                        <label htmlFor='order-tracking-number' className='mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300'>
                           Tracking number
                         </label>
                         <input
+                          id='order-tracking-number'
                           type='text'
                           value={trackingForm.trackingNumber}
                           onChange={(e) =>
@@ -597,10 +604,11 @@ export default function OrderDetail() {
                         />
                       </div>
                       <div>
-                        <label className='mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300'>
+                        <label htmlFor='order-carrier' className='mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300'>
                           Carrier
                         </label>
                         <input
+                          id='order-carrier'
                           type='text'
                           value={trackingForm.trackingCarrier}
                           onChange={(e) =>
@@ -614,10 +622,11 @@ export default function OrderDetail() {
                         />
                       </div>
                       <div>
-                        <label className='mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300'>
+                        <label htmlFor='order-tracking-url' className='mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300'>
                           Tracking URL
                         </label>
                         <input
+                          id='order-tracking-url'
                           type='url'
                           value={trackingForm.trackingUrl}
                           onChange={(e) =>
@@ -631,10 +640,11 @@ export default function OrderDetail() {
                         />
                       </div>
                       <div className='border-t border-gray-200 pt-3 dark:border-gray-700'>
-                        <label className='mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300'>
+                        <label htmlFor='order-add-tracking-event-optional' className='mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300'>
                           Add tracking event (optional)
                         </label>
                         <select
+                          id='order-add-tracking-event-optional'
                           value={trackingForm.eventStatus}
                           onChange={(e) =>
                             setTrackingForm({

@@ -168,7 +168,12 @@ export default function Orders() {
     const ok = await confirm({ message: `Change order ${shortId(order._id)} from "${statusLabel(order.status)}" to "${statusLabel(next)}"?${refundNote}`, confirmLabel: 'Change status' });
     if (!ok) return;
     try {
-      await updateMut.mutateAsync({ id: order._id, status: next });
+      const result = await updateMut.mutateAsync({ id: order._id, status: next });
+      if (result.attentionReason === 'manual_refund_required') {
+        toast.error(result.message || 'Status updated — refund it manually in Stripe');
+      } else {
+        toast.success(result.message || 'Status updated');
+      }
     } catch (err) {
       toast.error(errorMessage(err, 'Failed to update order'));
     }
@@ -281,6 +286,7 @@ export default function Orders() {
           <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
           <input
             type="search"
+            aria-label="Search by order id or customer email"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by order id or customer email…"

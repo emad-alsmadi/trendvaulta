@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Pencil, Trash2, X } from 'lucide-react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
 import {
   useAdminGiftFinderConfigs,
   useCreateGiftFinderConfigMutation,
@@ -16,6 +16,7 @@ import {
 import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
+import { FormDialog } from '../components/ui/FormDialog';
 
 const emptyOption: GiftOption = { id: '', label: '' };
 
@@ -286,253 +287,243 @@ export default function GiftFinderConfig() {
       )}
 
       {open && (
-        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4'>
-          <div className='max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800' role='dialog' aria-modal='true'>
-            <div className='mb-4 flex items-center justify-between'>
-              <h2 className='text-xl font-bold text-gray-900 dark:text-white'>
-                {editing
-                  ? 'Edit gift finder config'
-                  : 'Create gift finder config'}
-              </h2>
+        <FormDialog
+          onClose={() => setOpen(false)}
+          title={editing
+            ? 'Edit gift finder config'
+            : 'Create gift finder config'}
+          busy={saving}
+          maxWidthClass='max-w-3xl'
+        >
+          <form
+            onSubmit={handleSubmit}
+            className='space-y-4'
+          >
+            <div>
+              <span className='mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300'>
+                Occasions
+              </span>
+              {form.occasions.map((option, index) => (
+                <div
+                  key={index}
+                  className='mb-2 flex gap-2'
+                >
+                  <input
+                    required
+                    value={option.id}
+                    onChange={(e) =>
+                      updateOption('occasions', index, 'id', e.target.value)
+                    }
+                    placeholder='ID'
+                    className='flex-1 rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+                  />
+                  <input
+                    required
+                    value={option.label}
+                    onChange={(e) =>
+                      updateOption(
+                        'occasions',
+                        index,
+                        'label',
+                        e.target.value,
+                      )
+                    }
+                    placeholder='Label'
+                    className='flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+                  />
+                  <input
+                    value={option.q || ''}
+                    onChange={(e) =>
+                      updateOption('occasions', index, 'q', e.target.value)
+                    }
+                    placeholder='Query'
+                    className='flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+                  />
+                  {form.occasions.length > 1 && (
+                    <button
+                      type='button'
+                      onClick={() => removeOption('occasions', index)}
+                      className='rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-600 hover:bg-red-100 dark:border-red-700 dark:bg-red-950/40 dark:text-red-400'
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                type='button'
+                onClick={() => addOption('occasions')}
+                className='mt-2 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300'
+              >
+                + Add occasion
+              </button>
+            </div>
+
+            <div>
+              <span className='mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300'>
+                Recipients
+              </span>
+              {form.recipients.map((option, index) => (
+                <div
+                  key={index}
+                  className='mb-2 flex gap-2'
+                >
+                  <input
+                    required
+                    value={option.id}
+                    onChange={(e) =>
+                      updateOption('recipients', index, 'id', e.target.value)
+                    }
+                    placeholder='ID'
+                    className='flex-1 rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+                  />
+                  <input
+                    required
+                    value={option.label}
+                    onChange={(e) =>
+                      updateOption(
+                        'recipients',
+                        index,
+                        'label',
+                        e.target.value,
+                      )
+                    }
+                    placeholder='Label'
+                    className='flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+                  />
+                  <input
+                    value={option.q || ''}
+                    onChange={(e) =>
+                      updateOption('recipients', index, 'q', e.target.value)
+                    }
+                    placeholder='Query'
+                    className='flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+                  />
+                  {form.recipients.length > 1 && (
+                    <button
+                      type='button'
+                      onClick={() => removeOption('recipients', index)}
+                      className='rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-600 hover:bg-red-100 dark:border-red-700 dark:bg-red-950/40 dark:text-red-400'
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                type='button'
+                onClick={() => addOption('recipients')}
+                className='mt-2 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300'
+              >
+                + Add recipient
+              </button>
+            </div>
+
+            <div>
+              <span className='mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300'>
+                Budgets
+              </span>
+              {form.budgets.map((option, index) => (
+                <div
+                  key={index}
+                  className='mb-2 flex gap-2'
+                >
+                  <input
+                    required
+                    value={option.id}
+                    onChange={(e) =>
+                      updateOption('budgets', index, 'id', e.target.value)
+                    }
+                    placeholder='ID'
+                    className='flex-1 rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+                  />
+                  <input
+                    required
+                    value={option.label}
+                    onChange={(e) =>
+                      updateOption('budgets', index, 'label', e.target.value)
+                    }
+                    placeholder='Label'
+                    className='flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+                  />
+                  <input
+                    type='number'
+                    value={option.minPrice || ''}
+                    onChange={(e) =>
+                      updateOption(
+                        'budgets',
+                        index,
+                        'minPrice',
+                        e.target.value,
+                      )
+                    }
+                    placeholder='Min price'
+                    className='w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+                  />
+                  <input
+                    type='number'
+                    value={option.maxPrice || ''}
+                    onChange={(e) =>
+                      updateOption(
+                        'budgets',
+                        index,
+                        'maxPrice',
+                        e.target.value,
+                      )
+                    }
+                    placeholder='Max price'
+                    className='w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+                  />
+                  {form.budgets.length > 1 && (
+                    <button
+                      type='button'
+                      onClick={() => removeOption('budgets', index)}
+                      className='rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-600 hover:bg-red-100 dark:border-red-700 dark:bg-red-950/40 dark:text-red-400'
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                type='button'
+                onClick={() => addOption('budgets')}
+                className='mt-2 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300'
+              >
+                + Add budget
+              </button>
+            </div>
+
+            <label className='flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300'>
+              <input
+                type='checkbox'
+                checked={!!form.active}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, active: e.target.checked }))
+                }
+              />
+              Active (only one config can be active at a time)
+            </label>
+
+            <div className='flex justify-end gap-2 pt-2'>
               <button
                 type='button'
                 disabled={saving}
                 onClick={() => setOpen(false)}
-                className='rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700'
+                className='rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
               >
-                <X className='h-5 w-5' />
+                Cancel
+              </button>
+              <button
+                type='submit'
+                disabled={saving}
+                className='rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60'
+              >
+                {saving ? 'Saving…' : editing ? 'Save' : 'Create'}
               </button>
             </div>
-            <form
-              onSubmit={handleSubmit}
-              className='space-y-4'
-            >
-              <div>
-                <span className='mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300'>
-                  Occasions
-                </span>
-                {form.occasions.map((option, index) => (
-                  <div
-                    key={index}
-                    className='mb-2 flex gap-2'
-                  >
-                    <input
-                      required
-                      value={option.id}
-                      onChange={(e) =>
-                        updateOption('occasions', index, 'id', e.target.value)
-                      }
-                      placeholder='ID'
-                      className='flex-1 rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                    />
-                    <input
-                      required
-                      value={option.label}
-                      onChange={(e) =>
-                        updateOption(
-                          'occasions',
-                          index,
-                          'label',
-                          e.target.value,
-                        )
-                      }
-                      placeholder='Label'
-                      className='flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                    />
-                    <input
-                      value={option.q || ''}
-                      onChange={(e) =>
-                        updateOption('occasions', index, 'q', e.target.value)
-                      }
-                      placeholder='Query'
-                      className='flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                    />
-                    {form.occasions.length > 1 && (
-                      <button
-                        type='button'
-                        onClick={() => removeOption('occasions', index)}
-                        className='rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-600 hover:bg-red-100 dark:border-red-700 dark:bg-red-950/40 dark:text-red-400'
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                ))}
-                <button
-                  type='button'
-                  onClick={() => addOption('occasions')}
-                  className='mt-2 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300'
-                >
-                  + Add occasion
-                </button>
-              </div>
-
-              <div>
-                <span className='mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300'>
-                  Recipients
-                </span>
-                {form.recipients.map((option, index) => (
-                  <div
-                    key={index}
-                    className='mb-2 flex gap-2'
-                  >
-                    <input
-                      required
-                      value={option.id}
-                      onChange={(e) =>
-                        updateOption('recipients', index, 'id', e.target.value)
-                      }
-                      placeholder='ID'
-                      className='flex-1 rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                    />
-                    <input
-                      required
-                      value={option.label}
-                      onChange={(e) =>
-                        updateOption(
-                          'recipients',
-                          index,
-                          'label',
-                          e.target.value,
-                        )
-                      }
-                      placeholder='Label'
-                      className='flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                    />
-                    <input
-                      value={option.q || ''}
-                      onChange={(e) =>
-                        updateOption('recipients', index, 'q', e.target.value)
-                      }
-                      placeholder='Query'
-                      className='flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                    />
-                    {form.recipients.length > 1 && (
-                      <button
-                        type='button'
-                        onClick={() => removeOption('recipients', index)}
-                        className='rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-600 hover:bg-red-100 dark:border-red-700 dark:bg-red-950/40 dark:text-red-400'
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                ))}
-                <button
-                  type='button'
-                  onClick={() => addOption('recipients')}
-                  className='mt-2 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300'
-                >
-                  + Add recipient
-                </button>
-              </div>
-
-              <div>
-                <span className='mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300'>
-                  Budgets
-                </span>
-                {form.budgets.map((option, index) => (
-                  <div
-                    key={index}
-                    className='mb-2 flex gap-2'
-                  >
-                    <input
-                      required
-                      value={option.id}
-                      onChange={(e) =>
-                        updateOption('budgets', index, 'id', e.target.value)
-                      }
-                      placeholder='ID'
-                      className='flex-1 rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                    />
-                    <input
-                      required
-                      value={option.label}
-                      onChange={(e) =>
-                        updateOption('budgets', index, 'label', e.target.value)
-                      }
-                      placeholder='Label'
-                      className='flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                    />
-                    <input
-                      type='number'
-                      value={option.minPrice || ''}
-                      onChange={(e) =>
-                        updateOption(
-                          'budgets',
-                          index,
-                          'minPrice',
-                          e.target.value,
-                        )
-                      }
-                      placeholder='Min price'
-                      className='w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                    />
-                    <input
-                      type='number'
-                      value={option.maxPrice || ''}
-                      onChange={(e) =>
-                        updateOption(
-                          'budgets',
-                          index,
-                          'maxPrice',
-                          e.target.value,
-                        )
-                      }
-                      placeholder='Max price'
-                      className='w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                    />
-                    {form.budgets.length > 1 && (
-                      <button
-                        type='button'
-                        onClick={() => removeOption('budgets', index)}
-                        className='rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-600 hover:bg-red-100 dark:border-red-700 dark:bg-red-950/40 dark:text-red-400'
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                ))}
-                <button
-                  type='button'
-                  onClick={() => addOption('budgets')}
-                  className='mt-2 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300'
-                >
-                  + Add budget
-                </button>
-              </div>
-
-              <label className='flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300'>
-                <input
-                  type='checkbox'
-                  checked={!!form.active}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, active: e.target.checked }))
-                  }
-                />
-                Active (only one config can be active at a time)
-              </label>
-
-              <div className='flex justify-end gap-2 pt-2'>
-                <button
-                  type='button'
-                  disabled={saving}
-                  onClick={() => setOpen(false)}
-                  className='rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
-                >
-                  Cancel
-                </button>
-                <button
-                  type='submit'
-                  disabled={saving}
-                  className='rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60'
-                >
-                  {saving ? 'Saving…' : editing ? 'Save' : 'Create'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+          </form>
+        </FormDialog>
       )}
     </motion.div>
   );

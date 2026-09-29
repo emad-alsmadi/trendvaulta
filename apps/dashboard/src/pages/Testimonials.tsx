@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Pencil, Trash2, Search, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search } from 'lucide-react';
 import {
   useAdminTestimonials,
   useCreateTestimonialMutation,
@@ -15,6 +15,7 @@ import {
 import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
+import { FormDialog } from '../components/ui/FormDialog';
 
 const emptyForm: TestimonialPayload = {
   id: '',
@@ -146,6 +147,7 @@ export default function Testimonials() {
         <Search className='absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400' />
         <input
           type='search'
+          aria-label='Search by ID, name, or role'
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder='Search by ID, name, or role…'
@@ -285,140 +287,130 @@ export default function Testimonials() {
       )}
 
       {open && (
-        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4'>
-          <div className='max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800' role='dialog' aria-modal='true'>
-            <div className='mb-4 flex items-center justify-between'>
-              <h2 className='text-xl font-bold text-gray-900 dark:text-white'>
-                {editing ? 'Edit testimonial' : 'Create testimonial'}
-              </h2>
+        <FormDialog
+          onClose={() => setOpen(false)}
+          title={editing ? 'Edit testimonial' : 'Create testimonial'}
+          busy={saving}
+          maxWidthClass='max-w-2xl'
+        >
+          <form
+            onSubmit={handleSubmit}
+            className='space-y-3'
+          >
+            <label className='block text-sm'>
+              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
+                ID
+              </span>
+              <input
+                required
+                value={form.id}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, id: e.target.value }))
+                }
+                placeholder='sara'
+                className='w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+              />
+            </label>
+            <label className='block text-sm'>
+              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
+                Name
+              </span>
+              <input
+                required
+                value={form.name}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, name: e.target.value }))
+                }
+                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+              />
+            </label>
+            <label className='block text-sm'>
+              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
+                Role
+              </span>
+              <input
+                value={form.role || ''}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, role: e.target.value }))
+                }
+                placeholder='Beauty enthusiast'
+                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+              />
+            </label>
+            <label className='block text-sm'>
+              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
+                Quote
+              </span>
+              <textarea
+                required
+                value={form.quote}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, quote: e.target.value }))
+                }
+                rows={3}
+                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+              />
+            </label>
+            <label className='block text-sm'>
+              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
+                Rating (1-5)
+              </span>
+              <input
+                type='number'
+                min={1}
+                max={5}
+                value={form.rating}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, rating: Number(e.target.value) }))
+                }
+                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+              />
+            </label>
+            <label className='block text-sm'>
+              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
+                Sort order
+              </span>
+              <input
+                type='number'
+                value={form.sortOrder ?? 0}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    sortOrder: Number(e.target.value),
+                  }))
+                }
+                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+              />
+            </label>
+            <label className='flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300'>
+              <input
+                type='checkbox'
+                checked={!!form.active}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, active: e.target.checked }))
+                }
+              />
+              Active
+            </label>
+            <div className='flex justify-end gap-2 pt-2'>
               <button
                 type='button'
                 disabled={saving}
                 onClick={() => setOpen(false)}
-                className='rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700'
+                className='rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
               >
-                <X className='h-5 w-5' />
+                Cancel
+              </button>
+              <button
+                type='submit'
+                disabled={saving}
+                className='rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60'
+              >
+                {saving ? 'Saving…' : editing ? 'Save' : 'Create'}
               </button>
             </div>
-            <form
-              onSubmit={handleSubmit}
-              className='space-y-3'
-            >
-              <label className='block text-sm'>
-                <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                  ID
-                </span>
-                <input
-                  required
-                  value={form.id}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, id: e.target.value }))
-                  }
-                  placeholder='sara'
-                  className='w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                />
-              </label>
-              <label className='block text-sm'>
-                <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                  Name
-                </span>
-                <input
-                  required
-                  value={form.name}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, name: e.target.value }))
-                  }
-                  className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                />
-              </label>
-              <label className='block text-sm'>
-                <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                  Role
-                </span>
-                <input
-                  value={form.role || ''}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, role: e.target.value }))
-                  }
-                  placeholder='Beauty enthusiast'
-                  className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                />
-              </label>
-              <label className='block text-sm'>
-                <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                  Quote
-                </span>
-                <textarea
-                  required
-                  value={form.quote}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, quote: e.target.value }))
-                  }
-                  rows={3}
-                  className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                />
-              </label>
-              <label className='block text-sm'>
-                <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                  Rating (1-5)
-                </span>
-                <input
-                  type='number'
-                  min={1}
-                  max={5}
-                  value={form.rating}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, rating: Number(e.target.value) }))
-                  }
-                  className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                />
-              </label>
-              <label className='block text-sm'>
-                <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                  Sort order
-                </span>
-                <input
-                  type='number'
-                  value={form.sortOrder ?? 0}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      sortOrder: Number(e.target.value),
-                    }))
-                  }
-                  className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                />
-              </label>
-              <label className='flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300'>
-                <input
-                  type='checkbox'
-                  checked={!!form.active}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, active: e.target.checked }))
-                  }
-                />
-                Active
-              </label>
-              <div className='flex justify-end gap-2 pt-2'>
-                <button
-                  type='button'
-                  disabled={saving}
-                  onClick={() => setOpen(false)}
-                  className='rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
-                >
-                  Cancel
-                </button>
-                <button
-                  type='submit'
-                  disabled={saving}
-                  className='rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60'
-                >
-                  {saving ? 'Saving…' : editing ? 'Save' : 'Create'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+          </form>
+        </FormDialog>
       )}
     </motion.div>
   );

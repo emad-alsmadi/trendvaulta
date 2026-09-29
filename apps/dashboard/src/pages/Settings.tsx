@@ -204,10 +204,11 @@ export default function Settings() {
           </div>
           <form onSubmit={saveProfile} className="space-y-4">
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label htmlFor="settings-username" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Username
               </label>
               <input
+                id="settings-username"
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -215,10 +216,11 @@ export default function Settings() {
               />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label htmlFor="settings-email" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Email
               </label>
               <input
+                id="settings-email"
                 type="email"
                 required
                 value={email}
@@ -324,20 +326,22 @@ export default function Settings() {
             <form onSubmit={saveStoreSettings} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label htmlFor="settings-store-name" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Store name
                   </label>
                   <input
+                    id="settings-store-name"
                     value={storeName}
                     onChange={(e) => setStoreName(e.target.value)}
                     className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label htmlFor="settings-contact-email" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Contact email
                   </label>
                   <input
+                    id="settings-contact-email"
                     type="email"
                     value={contactEmail}
                     onChange={(e) => setContactEmail(e.target.value)}
@@ -345,10 +349,11 @@ export default function Settings() {
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label htmlFor="settings-standard-shipping" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Standard shipping ($)
                   </label>
                   <input
+                    id="settings-standard-shipping"
                     type="number"
                     min={0}
                     step="0.01"
@@ -358,10 +363,11 @@ export default function Settings() {
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label htmlFor="settings-express-shipping" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Express shipping ($)
                   </label>
                   <input
+                    id="settings-express-shipping"
                     type="number"
                     min={0}
                     step="0.01"
@@ -371,10 +377,11 @@ export default function Settings() {
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label htmlFor="settings-free-shipping-threshold-0-disabled" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Free shipping threshold ($, 0 = disabled)
                   </label>
                   <input
+                    id="settings-free-shipping-threshold-0-disabled"
                     type="number"
                     min={0}
                     step="0.01"
@@ -384,10 +391,11 @@ export default function Settings() {
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label htmlFor="settings-tax-rate" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Tax rate (%)
                   </label>
                   <input
+                    id="settings-tax-rate"
                     type="number"
                     min={0}
                     max={100}
@@ -424,10 +432,11 @@ export default function Settings() {
           </p>
           <form onSubmit={savePassword} className="space-y-4">
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label htmlFor="settings-current-password" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Current password
               </label>
               <input
+                id="settings-current-password"
                 type="password"
                 autoComplete="current-password"
                 value={currentPassword}
@@ -436,10 +445,11 @@ export default function Settings() {
               />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label htmlFor="settings-new-password" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 New password
               </label>
               <input
+                id="settings-new-password"
                 type="password"
                 autoComplete="new-password"
                 value={newPassword}
@@ -449,10 +459,11 @@ export default function Settings() {
               />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label htmlFor="settings-confirm-new-password" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Confirm new password
               </label>
               <input
+                id="settings-confirm-new-password"
                 type="password"
                 autoComplete="new-password"
                 value={confirmPassword}

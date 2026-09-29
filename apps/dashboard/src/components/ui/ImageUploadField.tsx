@@ -64,6 +64,8 @@ export function ImageUploadField({
         </div>
         <div className="flex flex-1 flex-col gap-2">
           <input
+            // The visible caption is a <span>, so name the field explicitly.
+            aria-label={`${label} URL`}
             required={required}
             value={value}
             onChange={(e) => {

@@ -190,6 +190,13 @@ export type AdminOrderItem = {
   };
 };
 
+/** PATCH /orders/:id/status response: the order plus what happened. */
+export type AdminOrderStatusResult = AdminOrder & {
+  message?: string;
+  refunded?: boolean;
+  stockRestored?: boolean;
+};
+
 export type AdminOrderShippingAddress = {
   name: string;
   phone: string;
@@ -285,12 +292,44 @@ export type LoginResponse = {
   roles?: string[];
 };
 
+/** `"usageLimit" must be…` → `Usage limit must be…` (Joi quotes the key). */
+function humanizeValidationMessage(message: string) {
+  return message.replace(/"([\w.[\]]+)"/g, (_, path: string) => {
+    const key = path.split('.').pop() || path;
+    const words = key.replace(/\[\d+\]/g, '').replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+    return words.charAt(0).toUpperCase() + words.slice(1).toLowerCase();
+  });
+}
+
+/**
+ * User-facing text for a failed request: the API's own message (or the
+ * first field detail of a `Validation failed` response), with Joi keys made
+ * readable. Never axios' own text ("Request failed with status code 500",
+ * "Network Error").
+ */
 function errorMessage(err: unknown, fallback: string) {
   const ax = err as {
-    response?: { data?: { message?: string } };
-    message?: string;
+    response?: {
+      status?: number;
+      data?: {
+        message?: string;
+        details?: Array<{ field?: string; message?: string }>;
+      };
+    };
+    request?: unknown;
   };
-  return ax?.response?.data?.message || ax?.message || fallback;
+  const data = ax?.response?.data;
+  const detail = data?.details?.find((d) => d?.message)?.message;
+  if (detail) return humanizeValidationMessage(detail);
+  if (data?.message) return humanizeValidationMessage(data.message);
+
+  const status = ax?.response?.status;
+  if (!ax?.response && ax?.request) {
+    return 'Could not reach the server. Check your connection and try again.';
+  }
+  if (status === 429) return 'Too many requests. Please wait a moment and try again.';
+  if (status && status >= 500) return 'The server had a problem. Please try again.';
+  return fallback;
 }
 
 export { errorMessage };
@@ -363,13 +402,15 @@ export const adminOrdersApi = {
     return data;
   },
 
+  /** The API reports what it actually did (refund issued, manual refund…). */
   updateOrderStatus: async (
     id: string,
     status: string,
-  ): Promise<AdminOrder> => {
-    const { data } = await api.patch<AdminOrder>(`/orders/${id}/status`, {
-      status,
-    });
+  ): Promise<AdminOrderStatusResult> => {
+    const { data } = await api.patch<AdminOrderStatusResult>(
+      `/orders/${id}/status`,
+      { status },
+    );
     return data;
   },
 

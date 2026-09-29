@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Pencil, Trash2, Search, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search } from 'lucide-react';
 import {
   useAdminShippingZones,
   useCreateShippingZoneMutation,
@@ -15,6 +15,7 @@ import {
 import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
+import { FormDialog } from '../components/ui/FormDialog';
 
 /** Method row as edited in the form (numbers kept as strings until save). */
 type MethodForm = {
@@ -373,261 +374,242 @@ export default function ShippingZones() {
       )}
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div
-            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="shipping-zone-dialog-title"
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <h2
-                id="shipping-zone-dialog-title"
-                className="text-xl font-bold text-gray-900 dark:text-white"
+        <FormDialog
+          onClose={() => setOpen(false)}
+          title={editing ? 'Edit shipping zone' : 'Create shipping zone'}
+          busy={saving}
+          maxWidthClass="max-w-2xl"
+        >
+
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                Name
+              </span>
+              <input
+                required
+                maxLength={200}
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="Gulf countries"
+                className={inputClass}
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                Countries (2-letter codes, comma separated; empty = all)
+              </span>
+              <input
+                value={form.countries}
+                onChange={(e) => setForm((f) => ({ ...f, countries: e.target.value }))}
+                placeholder="AE, SA, KW"
+                className={`${inputClass} font-mono uppercase`}
+              />
+            </label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-sm">
+                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                  City/region pattern (optional regex)
+                </span>
+                <input
+                  maxLength={200}
+                  value={form.regionPattern}
+                  onChange={(e) => setForm((f) => ({ ...f, regionPattern: e.target.value }))}
+                  placeholder="^(dubai|sharjah)$"
+                  className={`${inputClass} font-mono`}
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                  Postal code pattern (optional regex)
+                </span>
+                <input
+                  maxLength={200}
+                  value={form.postalCodePattern}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, postalCodePattern: e.target.value }))
+                  }
+                  placeholder="^9\d{4}$"
+                  className={`${inputClass} font-mono`}
+                />
+              </label>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-sm">
+                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                  Order (lower matches first)
+                </span>
+                <input
+                  type="number"
+                  value={form.sortOrder}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, sortOrder: Number(e.target.value) }))
+                  }
+                  className={inputClass}
+                />
+              </label>
+              <label className="flex items-center gap-2 self-end pb-2 text-sm text-gray-700 dark:text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={form.isActive}
+                  onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
+                />
+                Active
+              </label>
+            </div>
+
+            <fieldset className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+              <legend className="px-1 text-sm font-semibold text-gray-900 dark:text-white">
+                Methods
+              </legend>
+              <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+                Shoppers pick one of these at checkout. A price of 0 means
+                free. Use the handles “standard” / “express” to override the
+                Settings flat rates for this zone.
+              </p>
+              <div className="space-y-3">
+                {form.methods.map((m, index) => (
+                  <div
+                    key={index}
+                    className="rounded-lg bg-gray-50 p-3 dark:bg-gray-900/40"
+                  >
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      <label className="block text-xs">
+                        <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                          Name
+                        </span>
+                        <input
+                          value={m.name}
+                          maxLength={100}
+                          onChange={(e) => updateMethod(index, { name: e.target.value })}
+                          className={inputClass}
+                        />
+                      </label>
+                      <label className="block text-xs">
+                        <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                          Handle
+                        </span>
+                        <input
+                          value={m.handle}
+                          maxLength={50}
+                          onChange={(e) => updateMethod(index, { handle: e.target.value })}
+                          className={`${inputClass} font-mono`}
+                        />
+                      </label>
+                      <label className="block text-xs">
+                        <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                          Price (USD)
+                        </span>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={m.priceUsd}
+                          onChange={(e) => updateMethod(index, { priceUsd: e.target.value })}
+                          className={inputClass}
+                        />
+                      </label>
+                      <label className="block text-xs">
+                        <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                          Min days
+                        </span>
+                        <input
+                          type="number"
+                          min={0}
+                          step={1}
+                          value={m.estimatedDaysMin}
+                          onChange={(e) =>
+                            updateMethod(index, { estimatedDaysMin: e.target.value })
+                          }
+                          className={inputClass}
+                        />
+                      </label>
+                      <label className="block text-xs">
+                        <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                          Max days
+                        </span>
+                        <input
+                          type="number"
+                          min={0}
+                          step={1}
+                          value={m.estimatedDaysMax}
+                          onChange={(e) =>
+                            updateMethod(index, { estimatedDaysMax: e.target.value })
+                          }
+                          className={inputClass}
+                        />
+                      </label>
+                      <div className="flex items-end justify-between gap-2 pb-2">
+                        <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
+                          <input
+                            type="checkbox"
+                            checked={m.isActive}
+                            onChange={(e) =>
+                              updateMethod(index, { isActive: e.target.checked })
+                            }
+                          />
+                          Active
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setForm((f) => ({
+                              ...f,
+                              methods: f.methods.filter((_, i) => i !== index),
+                            }))
+                          }
+                          className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
+                          aria-label={`Remove method ${m.name || index + 1}`}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </button>
+                      </div>
+                    </div>
+                    <label className="mt-2 block text-xs">
+                      <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                        Description (optional)
+                      </span>
+                      <input
+                        value={m.description}
+                        maxLength={500}
+                        onChange={(e) => updateMethod(index, { description: e.target.value })}
+                        className={inputClass}
+                      />
+                    </label>
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  setForm((f) => ({ ...f, methods: [...f.methods, { ...emptyMethod }] }))
+                }
+                className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
               >
-                {editing ? 'Edit shipping zone' : 'Create shipping zone'}
-              </h2>
+                <Plus className="h-4 w-4" />
+                Add method
+              </button>
+            </fieldset>
+
+            <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
                 disabled={saving}
                 onClick={() => setOpen(false)}
-                aria-label="Close"
-                className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
               >
-                <X className="h-5 w-5" />
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
+              >
+                {saving ? 'Saving…' : editing ? 'Save' : 'Create'}
               </button>
             </div>
-
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Name
-                </span>
-                <input
-                  required
-                  maxLength={200}
-                  value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="Gulf countries"
-                  className={inputClass}
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Countries (2-letter codes, comma separated; empty = all)
-                </span>
-                <input
-                  value={form.countries}
-                  onChange={(e) => setForm((f) => ({ ...f, countries: e.target.value }))}
-                  placeholder="AE, SA, KW"
-                  className={`${inputClass} font-mono uppercase`}
-                />
-              </label>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="block text-sm">
-                  <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                    City/region pattern (optional regex)
-                  </span>
-                  <input
-                    maxLength={200}
-                    value={form.regionPattern}
-                    onChange={(e) => setForm((f) => ({ ...f, regionPattern: e.target.value }))}
-                    placeholder="^(dubai|sharjah)$"
-                    className={`${inputClass} font-mono`}
-                  />
-                </label>
-                <label className="block text-sm">
-                  <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                    Postal code pattern (optional regex)
-                  </span>
-                  <input
-                    maxLength={200}
-                    value={form.postalCodePattern}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, postalCodePattern: e.target.value }))
-                    }
-                    placeholder="^9\d{4}$"
-                    className={`${inputClass} font-mono`}
-                  />
-                </label>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="block text-sm">
-                  <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                    Order (lower matches first)
-                  </span>
-                  <input
-                    type="number"
-                    value={form.sortOrder}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, sortOrder: Number(e.target.value) }))
-                    }
-                    className={inputClass}
-                  />
-                </label>
-                <label className="flex items-center gap-2 self-end pb-2 text-sm text-gray-700 dark:text-gray-300">
-                  <input
-                    type="checkbox"
-                    checked={form.isActive}
-                    onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
-                  />
-                  Active
-                </label>
-              </div>
-
-              <fieldset className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                <legend className="px-1 text-sm font-semibold text-gray-900 dark:text-white">
-                  Methods
-                </legend>
-                <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
-                  Shoppers pick one of these at checkout. A price of 0 means
-                  free. Use the handles “standard” / “express” to override the
-                  Settings flat rates for this zone.
-                </p>
-                <div className="space-y-3">
-                  {form.methods.map((m, index) => (
-                    <div
-                      key={index}
-                      className="rounded-lg bg-gray-50 p-3 dark:bg-gray-900/40"
-                    >
-                      <div className="grid gap-2 sm:grid-cols-3">
-                        <label className="block text-xs">
-                          <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                            Name
-                          </span>
-                          <input
-                            value={m.name}
-                            maxLength={100}
-                            onChange={(e) => updateMethod(index, { name: e.target.value })}
-                            className={inputClass}
-                          />
-                        </label>
-                        <label className="block text-xs">
-                          <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                            Handle
-                          </span>
-                          <input
-                            value={m.handle}
-                            maxLength={50}
-                            onChange={(e) => updateMethod(index, { handle: e.target.value })}
-                            className={`${inputClass} font-mono`}
-                          />
-                        </label>
-                        <label className="block text-xs">
-                          <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                            Price (USD)
-                          </span>
-                          <input
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            value={m.priceUsd}
-                            onChange={(e) => updateMethod(index, { priceUsd: e.target.value })}
-                            className={inputClass}
-                          />
-                        </label>
-                        <label className="block text-xs">
-                          <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                            Min days
-                          </span>
-                          <input
-                            type="number"
-                            min={0}
-                            step={1}
-                            value={m.estimatedDaysMin}
-                            onChange={(e) =>
-                              updateMethod(index, { estimatedDaysMin: e.target.value })
-                            }
-                            className={inputClass}
-                          />
-                        </label>
-                        <label className="block text-xs">
-                          <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                            Max days
-                          </span>
-                          <input
-                            type="number"
-                            min={0}
-                            step={1}
-                            value={m.estimatedDaysMax}
-                            onChange={(e) =>
-                              updateMethod(index, { estimatedDaysMax: e.target.value })
-                            }
-                            className={inputClass}
-                          />
-                        </label>
-                        <div className="flex items-end justify-between gap-2 pb-2">
-                          <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
-                            <input
-                              type="checkbox"
-                              checked={m.isActive}
-                              onChange={(e) =>
-                                updateMethod(index, { isActive: e.target.checked })
-                              }
-                            />
-                            Active
-                          </label>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setForm((f) => ({
-                                ...f,
-                                methods: f.methods.filter((_, i) => i !== index),
-                              }))
-                            }
-                            className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
-                            aria-label={`Remove method ${m.name || index + 1}`}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </button>
-                        </div>
-                      </div>
-                      <label className="mt-2 block text-xs">
-                        <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                          Description (optional)
-                        </span>
-                        <input
-                          value={m.description}
-                          maxLength={500}
-                          onChange={(e) => updateMethod(index, { description: e.target.value })}
-                          className={inputClass}
-                        />
-                      </label>
-                    </div>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setForm((f) => ({ ...f, methods: [...f.methods, { ...emptyMethod }] }))
-                  }
-                  className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add method
-                </button>
-              </fieldset>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={() => setOpen(false)}
-                  className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
-                >
-                  {saving ? 'Saving…' : editing ? 'Save' : 'Create'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+          </form>
+        </FormDialog>
       )}
     </motion.div>
   );

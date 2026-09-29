@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { EyeOff, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { EyeOff, Pencil, Plus, Trash2 } from 'lucide-react';
 import {
   useAdminCategories,
   useCreateCategoryMutation,
@@ -12,6 +12,7 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { ImageUploadField } from '../components/ui/ImageUploadField';
+import { FormDialog } from '../components/ui/FormDialog';
 
 /** Mirrors SLUG_PATTERN in apps/api/models/Category.js. */
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -291,144 +292,129 @@ export default function Categories() {
       )}
 
       {dialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div
-            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800"
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                {dialog.mode === 'edit'
-                  ? `Edit ${dialog.category.parent ? 'subcategory' : 'category'}`
-                  : `New subcategory in ${dialog.parent.name}`}
-              </h2>
+        <FormDialog
+          onClose={close}
+          title={dialog.mode === 'edit'
+            ? `Edit ${dialog.category.parent ? 'subcategory' : 'category'}`
+            : `New subcategory in ${dialog.parent.name}`}
+          busy={saving}
+          maxWidthClass="max-w-lg"
+        >
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                Name
+              </span>
+              <input
+                required
+                maxLength={80}
+                value={form.name}
+                onChange={(e) => {
+                  const name = e.target.value;
+                  setForm((f) => ({
+                    ...f,
+                    name,
+                    ...(!isEdit && !slugTouched ? { slug: toSlug(name) } : {}),
+                  }));
+                }}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                Slug
+              </span>
+              <input
+                required
+                maxLength={64}
+                value={form.slug}
+                readOnly={isEdit}
+                onChange={(e) => {
+                  setSlugTouched(true);
+                  setForm((f) => ({ ...f, slug: e.target.value.toLowerCase() }));
+                }}
+                aria-describedby="slug-help"
+                className={`w-full rounded-lg border px-3 py-2 font-mono text-sm ${
+                  isEdit
+                    ? 'cursor-not-allowed border-gray-200 bg-gray-50 text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400'
+                    : 'border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+                }`}
+              />
+              <span id="slug-help" className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
+                {isEdit
+                  ? 'Fixed after creation — products and storefront URLs use it.'
+                  : 'Used in URLs and stored on products; cannot be changed later.'}
+              </span>
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                Description
+              </span>
+              <textarea
+                rows={2}
+                maxLength={300}
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              />
+            </label>
+            <ImageUploadField
+              label="Image"
+              value={form.imageUrl}
+              onChange={(url) => setForm((f) => ({ ...f, imageUrl: url }))}
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block text-sm">
+                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                  Order
+                </span>
+                <input
+                  type="number"
+                  step={1}
+                  value={form.sortOrder}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, sortOrder: Number(e.target.value) }))
+                  }
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                />
+              </label>
+              <label className="flex items-end gap-2 pb-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.isActive}
+                  onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <span className="text-gray-700 dark:text-gray-300">
+                  Visible on storefront
+                </span>
+              </label>
+            </div>
+            {isTopLevelEdit && !form.isActive && (
+              <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+                Hiding removes this category from the homepage tiles. Its
+                products stay live and reachable by search and direct link.
+              </p>
+            )}
+            <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
                 disabled={saving}
                 onClick={close}
-                className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
-                aria-label="Close"
+                className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
               >
-                <X className="h-5 w-5" />
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
+              >
+                {saving ? 'Saving…' : isEdit ? 'Save' : 'Add'}
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Name
-                </span>
-                <input
-                  required
-                  maxLength={80}
-                  value={form.name}
-                  onChange={(e) => {
-                    const name = e.target.value;
-                    setForm((f) => ({
-                      ...f,
-                      name,
-                      ...(!isEdit && !slugTouched ? { slug: toSlug(name) } : {}),
-                    }));
-                  }}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Slug
-                </span>
-                <input
-                  required
-                  maxLength={64}
-                  value={form.slug}
-                  readOnly={isEdit}
-                  onChange={(e) => {
-                    setSlugTouched(true);
-                    setForm((f) => ({ ...f, slug: e.target.value.toLowerCase() }));
-                  }}
-                  aria-describedby="slug-help"
-                  className={`w-full rounded-lg border px-3 py-2 font-mono text-sm ${
-                    isEdit
-                      ? 'cursor-not-allowed border-gray-200 bg-gray-50 text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400'
-                      : 'border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                  }`}
-                />
-                <span id="slug-help" className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
-                  {isEdit
-                    ? 'Fixed after creation — products and storefront URLs use it.'
-                    : 'Used in URLs and stored on products; cannot be changed later.'}
-                </span>
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Description
-                </span>
-                <textarea
-                  rows={2}
-                  maxLength={300}
-                  value={form.description}
-                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                />
-              </label>
-              <ImageUploadField
-                label="Image"
-                value={form.imageUrl}
-                onChange={(url) => setForm((f) => ({ ...f, imageUrl: url }))}
-              />
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block text-sm">
-                  <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                    Order
-                  </span>
-                  <input
-                    type="number"
-                    step={1}
-                    value={form.sortOrder}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, sortOrder: Number(e.target.value) }))
-                    }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                  />
-                </label>
-                <label className="flex items-end gap-2 pb-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={form.isActive}
-                    onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
-                    className="h-4 w-4 rounded border-gray-300"
-                  />
-                  <span className="text-gray-700 dark:text-gray-300">
-                    Visible on storefront
-                  </span>
-                </label>
-              </div>
-              {isTopLevelEdit && !form.isActive && (
-                <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
-                  Hiding removes this category from the homepage tiles. Its
-                  products stay live and reachable by search and direct link.
-                </p>
-              )}
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={close}
-                  className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
-                >
-                  {saving ? 'Saving…' : isEdit ? 'Save' : 'Add'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+          </form>
+        </FormDialog>
       )}
     </motion.div>
   );

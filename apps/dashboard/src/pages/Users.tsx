@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Search, Pencil, Trash2, X, Ban, CircleCheck, Receipt } from 'lucide-react';
+import { Search, Pencil, Trash2, Ban, CircleCheck, Receipt } from 'lucide-react';
 import {
   useAdminUsers,
   useDeleteUserMutation,
@@ -19,6 +19,7 @@ import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useTableQuery } from '../hooks/useTableQuery';
 import { SortableHeader } from '../components/ui/SortableHeader';
 import { TablePagination } from '../components/ui/TablePagination';
+import { FormDialog } from '../components/ui/FormDialog';
 
 const ROLES: AppRole[] = ['user', 'moderator', 'admin'];
 
@@ -185,6 +186,7 @@ export default function Users() {
           <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
           <input
             type="search"
+            aria-label="Search by email or username"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by email or username…"
@@ -377,125 +379,115 @@ export default function Users() {
       )}
 
       {open && editing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800" role="dialog" aria-modal="true">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                Edit user
-              </h2>
+        <FormDialog
+          onClose={() => setOpen(false)}
+          title="Edit user"
+          busy={saving}
+          maxWidthClass="max-w-lg"
+        >
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                Username
+              </span>
+              <input
+                required
+                value={form.username}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, username: e.target.value }))
+                }
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                Email
+              </span>
+              <input
+                type="email"
+                required
+                value={form.email}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, email: e.target.value }))
+                }
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              />
+            </label>
+            <fieldset>
+              <legend className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                Roles
+              </legend>
+              <div className="flex flex-wrap gap-2">
+                {ROLES.map((role) => {
+                  const selected = form.roles.includes(role);
+                  return (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => toggleRole(role)}
+                      aria-pressed={selected}
+                      className={`rounded-full border px-3 py-1 text-sm font-medium ${
+                        selected
+                          ? 'border-blue-600 bg-blue-600 text-white'
+                          : 'border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300'
+                      }`}
+                    >
+                      {role}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                New password (optional)
+              </span>
+              <input
+                type="password"
+                autoComplete="new-password"
+                minLength={8}
+                value={form.password}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, password: e.target.value }))
+                }
+                placeholder="Leave blank to keep current"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                Staff notes
+              </span>
+              <textarea
+                rows={3}
+                maxLength={2000}
+                value={form.adminNotes}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, adminNotes: e.target.value }))
+                }
+                placeholder="Internal only — never shown to the customer"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              />
+            </label>
+            <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
                 disabled={saving}
                 onClick={() => setOpen(false)}
-                className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
               >
-                <X className="h-5 w-5" />
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
+              >
+                {saving ? 'Saving…' : 'Save'}
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Username
-                </span>
-                <input
-                  required
-                  value={form.username}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, username: e.target.value }))
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Email
-                </span>
-                <input
-                  type="email"
-                  required
-                  value={form.email}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, email: e.target.value }))
-                  }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                />
-              </label>
-              <fieldset>
-                <legend className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Roles
-                </legend>
-                <div className="flex flex-wrap gap-2">
-                  {ROLES.map((role) => {
-                    const selected = form.roles.includes(role);
-                    return (
-                      <button
-                        key={role}
-                        type="button"
-                        onClick={() => toggleRole(role)}
-                        aria-pressed={selected}
-                        className={`rounded-full border px-3 py-1 text-sm font-medium ${
-                          selected
-                            ? 'border-blue-600 bg-blue-600 text-white'
-                            : 'border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300'
-                        }`}
-                      >
-                        {role}
-                      </button>
-                    );
-                  })}
-                </div>
-              </fieldset>
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  New password (optional)
-                </span>
-                <input
-                  type="password"
-                  autoComplete="new-password"
-                  minLength={8}
-                  value={form.password}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, password: e.target.value }))
-                  }
-                  placeholder="Leave blank to keep current"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Staff notes
-                </span>
-                <textarea
-                  rows={3}
-                  maxLength={2000}
-                  value={form.adminNotes}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, adminNotes: e.target.value }))
-                  }
-                  placeholder="Internal only — never shown to the customer"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                />
-              </label>
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={() => setOpen(false)}
-                  className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
-                >
-                  {saving ? 'Saving…' : 'Save'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+          </form>
+        </FormDialog>
       )}
     </motion.div>
   );

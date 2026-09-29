@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Pencil, Trash2, Search, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search } from 'lucide-react';
 import {
   useAdminCoupons,
   useCreateCouponMutation,
@@ -19,6 +19,7 @@ import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useTableQuery } from '../hooks/useTableQuery';
 import { SortableHeader } from '../components/ui/SortableHeader';
 import { TablePagination } from '../components/ui/TablePagination';
+import { FormDialog } from '../components/ui/FormDialog';
 
 const emptyForm: CouponPayload = {
   code: '',
@@ -172,6 +173,7 @@ export default function Coupons() {
         <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
         <input
           type="search"
+          aria-label="Search by code or description"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by code or description…"
@@ -315,204 +317,194 @@ export default function Coupons() {
       )}
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800" role="dialog" aria-modal="true">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                {editing ? 'Edit coupon' : 'Create coupon'}
-              </h2>
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => setOpen(false)}
-                className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit} className="space-y-3">
+        <FormDialog
+          onClose={() => setOpen(false)}
+          title={editing ? 'Edit coupon' : 'Create coupon'}
+          busy={saving}
+          maxWidthClass="max-w-lg"
+        >
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                Code
+              </span>
+              <input
+                required
+                value={form.code}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    code: e.target.value.toUpperCase(),
+                  }))
+                }
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 font-mono uppercase dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              />
+            </label>
+            <div className="grid grid-cols-2 gap-3">
               <label className="block text-sm">
                 <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Code
+                  Type
                 </span>
-                <input
-                  required
-                  value={form.code}
+                <select
+                  value={form.discountType}
                   onChange={(e) =>
                     setForm((f) => ({
                       ...f,
-                      code: e.target.value.toUpperCase(),
+                      discountType: e.target.value as DiscountType,
                     }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 font-mono uppercase dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                />
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                >
+                  <option value="percentage">Percentage</option>
+                  <option value="fixed">Fixed amount</option>
+                </select>
               </label>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block text-sm">
-                  <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                    Type
-                  </span>
-                  <select
-                    value={form.discountType}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        discountType: e.target.value as DiscountType,
-                      }))
-                    }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                  >
-                    <option value="percentage">Percentage</option>
-                    <option value="fixed">Fixed amount</option>
-                  </select>
-                </label>
-                <label className="block text-sm">
-                  <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                    Value
-                  </span>
-                  <input
-                    type="number"
-                    min={0}
-                    max={form.discountType === 'percentage' ? 100 : undefined}
-                    step="0.01"
-                    required
-                    value={form.discountValue}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        discountValue: Number(e.target.value),
-                      }))
-                    }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                  />
-                </label>
-              </div>
               <label className="block text-sm">
                 <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Expiration date
+                  Value
                 </span>
                 <input
-                  type="date"
+                  type="number"
+                  min={0}
+                  max={form.discountType === 'percentage' ? 100 : undefined}
+                  step="0.01"
                   required
-                  value={form.expirationDate}
+                  value={form.discountValue}
                   onChange={(e) =>
                     setForm((f) => ({
                       ...f,
-                      expirationDate: e.target.value,
+                      discountValue: Number(e.target.value),
                     }))
                   }
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                 />
               </label>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block text-sm">
-                  <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                    Usage limit
-                  </span>
-                  <input
-                    type="number"
-                    min={1}
-                    step={1}
-                    placeholder="Unlimited"
-                    value={form.usageLimit ?? ''}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        usageLimit:
-                          e.target.value === ''
-                            ? null
-                            : Number(e.target.value),
-                      }))
-                    }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                  />
-                </label>
-                <label className="block text-sm">
-                  <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                    Min order ($)
-                  </span>
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={form.minimumOrderAmount ?? 0}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        minimumOrderAmount: Number(e.target.value),
-                      }))
-                    }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                  />
-                </label>
-              </div>
+            </div>
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                Expiration date
+              </span>
+              <input
+                type="date"
+                required
+                value={form.expirationDate}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    expirationDate: e.target.value,
+                  }))
+                }
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              />
+            </label>
+            <div className="grid grid-cols-2 gap-3">
               <label className="block text-sm">
                 <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Uses per customer
+                  Usage limit
                 </span>
                 <input
                   type="number"
                   min={1}
                   step={1}
                   placeholder="Unlimited"
-                  value={form.perCustomerLimit ?? ''}
+                  value={form.usageLimit ?? ''}
                   onChange={(e) =>
                     setForm((f) => ({
                       ...f,
-                      perCustomerLimit:
-                        e.target.value === '' ? null : Number(e.target.value),
+                      usageLimit:
+                        e.target.value === ''
+                          ? null
+                          : Number(e.target.value),
                     }))
                   }
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                 />
-                <span className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
-                  Counts each customer&apos;s paid orders with this code. Empty =
-                  no per-customer limit.
-                </span>
-              </label>
-              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                <input
-                  type="checkbox"
-                  checked={!!form.isActive}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, isActive: e.target.checked }))
-                  }
-                />
-                Active
               </label>
               <label className="block text-sm">
                 <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Description
+                  Min order ($)
                 </span>
-                <textarea
-                  rows={2}
-                  value={form.description || ''}
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={form.minimumOrderAmount ?? 0}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, description: e.target.value }))
+                    setForm((f) => ({
+                      ...f,
+                      minimumOrderAmount: Number(e.target.value),
+                    }))
                   }
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                 />
               </label>
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={() => setOpen(false)}
-                  className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
-                >
-                  {saving ? 'Saving…' : editing ? 'Save' : 'Create'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+            </div>
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                Uses per customer
+              </span>
+              <input
+                type="number"
+                min={1}
+                step={1}
+                placeholder="Unlimited"
+                value={form.perCustomerLimit ?? ''}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    perCustomerLimit:
+                      e.target.value === '' ? null : Number(e.target.value),
+                  }))
+                }
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              />
+              <span className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
+                Counts each customer&apos;s paid orders with this code. Empty =
+                no per-customer limit.
+              </span>
+            </label>
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+              <input
+                type="checkbox"
+                checked={!!form.isActive}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, isActive: e.target.checked }))
+                }
+              />
+              Active
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                Description
+              </span>
+              <textarea
+                rows={2}
+                value={form.description || ''}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, description: e.target.value }))
+                }
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              />
+            </label>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => setOpen(false)}
+                className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
+              >
+                {saving ? 'Saving…' : editing ? 'Save' : 'Create'}
+              </button>
+            </div>
+          </form>
+        </FormDialog>
       )}
     </motion.div>
   );

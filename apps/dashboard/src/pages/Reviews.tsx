@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MessageSquareReply, Search, Trash2, X } from 'lucide-react';
+import { MessageSquareReply, Search, Trash2 } from 'lucide-react';
 import {
   useAdminReviews,
   useDeleteAdminReviewMutation,
@@ -14,6 +14,7 @@ import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useTableQuery } from '../hooks/useTableQuery';
 import { SortableHeader } from '../components/ui/SortableHeader';
 import { TablePagination } from '../components/ui/TablePagination';
+import { FormDialog } from '../components/ui/FormDialog';
 
 function productLabel(review: AdminReview) {
   if (review.product && typeof review.product === 'object') {
@@ -131,6 +132,7 @@ export default function Reviews() {
           <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
           <input
             type="search"
+            aria-label="Search review comments"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search review comments…"
@@ -280,89 +282,74 @@ export default function Reviews() {
       )}
 
       {replying && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div
-            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800"
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                {replying.reply ? 'Edit reply' : 'Reply to review'}
-              </h2>
-              <button
-                type="button"
-                disabled={replyBusy}
-                onClick={() => setReplying(null)}
-                className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
-                aria-label="Close"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <blockquote className="mb-4 rounded-lg bg-gray-50 p-3 text-sm dark:bg-gray-900">
-              <p className="mb-1 text-xs text-gray-500">
-                {userLabel(replying)} · {productLabel(replying)} ·{' '}
-                <span className="text-amber-600 dark:text-amber-400">
-                  {replying.rating}/5
-                </span>
-              </p>
-              <p className="whitespace-pre-line text-gray-800 dark:text-gray-200">
-                {replying.comment || '—'}
-              </p>
-            </blockquote>
-            <form onSubmit={handleSaveReply} className="space-y-3">
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Store reply
-                </span>
-                <textarea
-                  rows={4}
-                  maxLength={1000}
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  aria-describedby="reply-help"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                />
-                <span id="reply-help" className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
-                  Shown publicly under the review, signed as the store.{' '}
-                  {replyText.length}/1000
-                </span>
-              </label>
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
-                {replying.reply ? (
-                  <button
-                    type="button"
-                    disabled={replyBusy}
-                    onClick={() => void handleRemoveReply()}
-                    className="rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-60 dark:text-red-400 dark:hover:bg-red-950/40"
-                  >
-                    Remove reply
-                  </button>
-                ) : (
-                  <span />
-                )}
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    disabled={replyBusy}
-                    onClick={() => setReplying(null)}
-                    className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={replyBusy}
-                    className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
-                  >
-                    {replyMut.isPending ? 'Saving…' : 'Publish reply'}
-                  </button>
-                </div>
+        <FormDialog
+          onClose={() => setReplying(null)}
+          title={replying.reply ? 'Edit reply' : 'Reply to review'}
+          busy={replyBusy}
+          maxWidthClass="max-w-lg"
+        >
+          <blockquote className="mb-4 rounded-lg bg-gray-50 p-3 text-sm dark:bg-gray-900">
+            <p className="mb-1 text-xs text-gray-500">
+              {userLabel(replying)} · {productLabel(replying)} ·{' '}
+              <span className="text-amber-600 dark:text-amber-400">
+                {replying.rating}/5
+              </span>
+            </p>
+            <p className="whitespace-pre-line text-gray-800 dark:text-gray-200">
+              {replying.comment || '—'}
+            </p>
+          </blockquote>
+          <form onSubmit={handleSaveReply} className="space-y-3">
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+                Store reply
+              </span>
+              <textarea
+                rows={4}
+                maxLength={1000}
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                aria-describedby="reply-help"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              />
+              <span id="reply-help" className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
+                Shown publicly under the review, signed as the store.{' '}
+                {replyText.length}/1000
+              </span>
+            </label>
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+              {replying.reply ? (
+                <button
+                  type="button"
+                  disabled={replyBusy}
+                  onClick={() => void handleRemoveReply()}
+                  className="rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-60 dark:text-red-400 dark:hover:bg-red-950/40"
+                >
+                  Remove reply
+                </button>
+              ) : (
+                <span />
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={replyBusy}
+                  onClick={() => setReplying(null)}
+                  className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={replyBusy}
+                  className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
+                >
+                  {replyMut.isPending ? 'Saving…' : 'Publish reply'}
+                </button>
               </div>
-            </form>
-          </div>
-        </div>
+            </div>
+          </form>
+        </FormDialog>
       )}
     </motion.div>
   );

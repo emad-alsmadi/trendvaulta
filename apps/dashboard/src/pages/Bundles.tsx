@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Pencil, Trash2, Search, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search } from 'lucide-react';
 import {
   useAdminBundles,
   useCreateBundleMutation,
@@ -14,6 +14,7 @@ import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useTableQuery } from '../hooks/useTableQuery';
 import { SortableHeader } from '../components/ui/SortableHeader';
 import { TablePagination } from '../components/ui/TablePagination';
+import { FormDialog } from '../components/ui/FormDialog';
 
 const emptyForm: BundlePayload = {
   primaryProduct: '',
@@ -194,6 +195,7 @@ export default function Bundles() {
         <Search className='absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400' />
         <input
           type='search'
+          aria-label='Search by primary product'
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder='Search by primary product…'
@@ -321,151 +323,141 @@ export default function Bundles() {
       )}
 
       {open && (
-        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4'>
-          <div className='max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800' role='dialog' aria-modal='true'>
-            <div className='mb-4 flex items-center justify-between'>
-              <h2 className='text-xl font-bold text-gray-900 dark:text-white'>
-                {editing ? 'Edit bundle' : 'Create bundle'}
-              </h2>
+        <FormDialog
+          onClose={() => setOpen(false)}
+          title={editing ? 'Edit bundle' : 'Create bundle'}
+          busy={saving}
+          maxWidthClass='max-w-2xl'
+        >
+          <form
+            onSubmit={handleSubmit}
+            className='space-y-3'
+          >
+            <label className='block text-sm'>
+              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
+                Primary Product ID
+              </span>
+              <input
+                required
+                value={form.primaryProduct}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, primaryProduct: e.target.value }))
+                }
+                placeholder='Product ID'
+                className='w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+              />
+            </label>
+            <div>
+              <span className='mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300'>
+                Bundle Items (at least 2)
+              </span>
+              {form.items.map((item, index) => (
+                <div
+                  key={index}
+                  className='mb-2 flex gap-2'
+                >
+                  <input
+                    required
+                    value={item.product}
+                    onChange={(e) =>
+                      updateItem(index, 'product', e.target.value)
+                    }
+                    placeholder='Product ID'
+                    className='flex-1 rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+                  />
+                  <input
+                    type='number'
+                    min={1}
+                    value={item.quantity}
+                    onChange={(e) =>
+                      updateItem(index, 'quantity', e.target.value)
+                    }
+                    placeholder='Qty'
+                    className='w-20 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+                  />
+                  {form.items.length > 2 && (
+                    <button
+                      type='button'
+                      onClick={() => removeItem(index)}
+                      className='rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-600 hover:bg-red-100 dark:border-red-700 dark:bg-red-950/40 dark:text-red-400'
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                type='button'
+                onClick={addItem}
+                className='mt-2 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300'
+              >
+                + Add item
+              </button>
+            </div>
+            <label className='block text-sm'>
+              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
+                Bundle Price
+              </span>
+              <input
+                required
+                type='number'
+                step='0.01'
+                min={0}
+                value={form.bundlePrice}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    bundlePrice: Number(e.target.value),
+                  }))
+                }
+                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+              />
+            </label>
+            <label className='block text-sm'>
+              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
+                Savings
+              </span>
+              <input
+                required
+                type='number'
+                step='0.01'
+                min={0}
+                value={form.savings}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, savings: Number(e.target.value) }))
+                }
+                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+              />
+            </label>
+            <label className='flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300'>
+              <input
+                type='checkbox'
+                checked={!!form.active}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, active: e.target.checked }))
+                }
+              />
+              Active
+            </label>
+            <div className='flex justify-end gap-2 pt-2'>
               <button
                 type='button'
                 disabled={saving}
                 onClick={() => setOpen(false)}
-                className='rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700'
+                className='rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
               >
-                <X className='h-5 w-5' />
+                Cancel
+              </button>
+              <button
+                type='submit'
+                disabled={saving}
+                className='rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60'
+              >
+                {saving ? 'Saving…' : editing ? 'Save' : 'Create'}
               </button>
             </div>
-            <form
-              onSubmit={handleSubmit}
-              className='space-y-3'
-            >
-              <label className='block text-sm'>
-                <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                  Primary Product ID
-                </span>
-                <input
-                  required
-                  value={form.primaryProduct}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, primaryProduct: e.target.value }))
-                  }
-                  placeholder='Product ID'
-                  className='w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                />
-              </label>
-              <div>
-                <span className='mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300'>
-                  Bundle Items (at least 2)
-                </span>
-                {form.items.map((item, index) => (
-                  <div
-                    key={index}
-                    className='mb-2 flex gap-2'
-                  >
-                    <input
-                      required
-                      value={item.product}
-                      onChange={(e) =>
-                        updateItem(index, 'product', e.target.value)
-                      }
-                      placeholder='Product ID'
-                      className='flex-1 rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                    />
-                    <input
-                      type='number'
-                      min={1}
-                      value={item.quantity}
-                      onChange={(e) =>
-                        updateItem(index, 'quantity', e.target.value)
-                      }
-                      placeholder='Qty'
-                      className='w-20 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                    />
-                    {form.items.length > 2 && (
-                      <button
-                        type='button'
-                        onClick={() => removeItem(index)}
-                        className='rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-600 hover:bg-red-100 dark:border-red-700 dark:bg-red-950/40 dark:text-red-400'
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                ))}
-                <button
-                  type='button'
-                  onClick={addItem}
-                  className='mt-2 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300'
-                >
-                  + Add item
-                </button>
-              </div>
-              <label className='block text-sm'>
-                <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                  Bundle Price
-                </span>
-                <input
-                  required
-                  type='number'
-                  step='0.01'
-                  min={0}
-                  value={form.bundlePrice}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      bundlePrice: Number(e.target.value),
-                    }))
-                  }
-                  className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                />
-              </label>
-              <label className='block text-sm'>
-                <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                  Savings
-                </span>
-                <input
-                  required
-                  type='number'
-                  step='0.01'
-                  min={0}
-                  value={form.savings}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, savings: Number(e.target.value) }))
-                  }
-                  className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                />
-              </label>
-              <label className='flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300'>
-                <input
-                  type='checkbox'
-                  checked={!!form.active}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, active: e.target.checked }))
-                  }
-                />
-                Active
-              </label>
-              <div className='flex justify-end gap-2 pt-2'>
-                <button
-                  type='button'
-                  disabled={saving}
-                  onClick={() => setOpen(false)}
-                  className='rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
-                >
-                  Cancel
-                </button>
-                <button
-                  type='submit'
-                  disabled={saving}
-                  className='rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60'
-                >
-                  {saving ? 'Saving…' : editing ? 'Save' : 'Create'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+          </form>
+        </FormDialog>
       )}
     </motion.div>
   );
