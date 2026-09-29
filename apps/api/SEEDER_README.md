@@ -65,14 +65,26 @@ NODE_ENV=production node apps/api/seeder.js -import --force
 
 ### Admin User
 
-Set these in `apps/api/.env` (see `.env.example`) and `-import` will create an
-admin account, or grant the `admin` role to an existing account with that email:
+Set these in `apps/api/.env` (see `.env.example`):
 
 ```bash
 SEED_ADMIN_EMAIL=admin@example.com
-SEED_ADMIN_PASSWORD=change-me-please
+SEED_ADMIN_PASSWORD=change-me-please   # at least 8 characters
 SEED_ADMIN_USERNAME=admin   # optional, defaults to "admin"
 ```
+
+**First admin / recovering admin access on production** — creates only the
+admin account and touches nothing else, so it needs no `--force`:
+
+```bash
+cd apps/api ; node seeder.js -admin
+```
+
+`-import` also creates the admin when the variables are set. If an account with
+that email already exists but is **not** an admin, it is left alone unless you
+pass `--promote-existing`; the account is then made admin, its password is reset
+to `SEED_ADMIN_PASSWORD` and its sessions are signed out (registration has no
+email verification, so the existing account may not be yours).
 
 The admin user is never deleted by `-remove`. When the variables are unset the
 step is skipped, so a plain `-import` still works with no extra setup.

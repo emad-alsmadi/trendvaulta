@@ -109,6 +109,54 @@ describe('rotateRefreshToken', () => {
   });
 });
 
+describe('rotateRefreshToken grace window', () => {
+  it('gives a concurrent refresh of a just-rotated token its own successor', async () => {
+    const doc = makeDoc({ revokedAt: new Date(), replacedByHash: 'hash-next' });
+    const RefreshToken = {
+      findOne: mock.fn(async () => doc),
+      create: mock.fn(async (data) => ({ ...data })),
+      updateMany: mock.fn(async () => ({ modifiedCount: 0 })),
+    };
+
+    const result = await rotateRefreshToken(RefreshToken, 'second-tab-token');
+
+    assert.equal(result.status, 'ok');
+    assert.ok(result.plaintext);
+    assert.equal(RefreshToken.create.mock.callCount(), 1);
+    assert.equal(RefreshToken.updateMany.mock.callCount(), 0, 'no session wipe');
+  });
+
+  it('still treats an old rotated token as reuse', async () => {
+    const doc = makeDoc({
+      revokedAt: new Date(Date.now() - 5 * 60 * 1000),
+      replacedByHash: 'hash-next',
+    });
+    const RefreshToken = {
+      findOne: mock.fn(async () => doc),
+      updateMany: mock.fn(async () => ({ modifiedCount: 2 })),
+    };
+
+    const result = await rotateRefreshToken(RefreshToken, 'replayed-token');
+
+    assert.equal(result.status, 'reused');
+    assert.equal(RefreshToken.updateMany.mock.callCount(), 1);
+  });
+
+  it('lets a concurrent loser of the atomic claim through the grace path', async () => {
+    const doc = makeDoc();
+    const RefreshToken = {
+      findOne: mock.fn(async () => doc),
+      findOneAndUpdate: mock.fn(async () => null), // another request rotated first
+      create: mock.fn(async (data) => ({ ...data })),
+    };
+
+    const result = await rotateRefreshToken(RefreshToken, 'raced-token');
+
+    assert.equal(result.status, 'ok');
+    assert.equal(RefreshToken.create.mock.callCount(), 1);
+  });
+});
+
 describe('revokeRefreshToken', () => {
   it('is a no-op for a missing token', async () => {
     const RefreshToken = { updateOne: mock.fn(async () => {}) };

@@ -2,7 +2,7 @@
 
 REST backend for the TrendVaulta retail e-commerce platform (beauty / fashion / lifestyle). Serves the Next.js storefront (`apps/website`) and the Vite admin dashboard (`apps/dashboard`).
 
-**Stack:** Node.js 20.9+, Express 5, MongoDB + Mongoose, Joi validation, JWT auth, bcryptjs, Stripe, Nodemailer, Helmet. No build step.
+**Stack:** Node.js 22.12+, Express 5, MongoDB + Mongoose, Joi validation, JWT auth, bcryptjs, Stripe, Nodemailer, Helmet. No build step.
 
 ## Run
 

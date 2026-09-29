@@ -4,6 +4,8 @@ const { Brand } = require('./models/Brand');
 const { Coupon } = require('./models/Coupon');
 const { Offer } = require('./models/Offer');
 const { User } = require('./models/User');
+const { RefreshToken } = require('./models/RefreshToken');
+const { revokeAllForUser } = require('./utils/refreshTokens');
 const Bundle = require('./models/Bundle');
 const Lookbook = require('./models/Lookbook');
 const Testimonial = require('./models/Testimonial');
@@ -29,6 +31,8 @@ require('dotenv').config();
 // Refuses to wipe collections outside development/test unless explicitly
 // overridden — deleteMany({}) on a production database is unrecoverable.
 const FORCE_FLAG = process.argv.includes('--force');
+// Allows seedAdminUser to take over an existing non-admin account.
+const PROMOTE_EXISTING_FLAG = process.argv.includes('--promote-existing');
 function assertSafeToWrite() {
   const env = process.env.NODE_ENV || 'development';
   if (env === 'production' && !FORCE_FLAG) {
@@ -60,17 +64,38 @@ async function seedAdminUser() {
     );
     return null;
   }
+  if (password.length < 8) {
+    throw new Error('SEED_ADMIN_PASSWORD must be at least 8 characters');
+  }
 
   const normalizedEmail = email.trim().toLowerCase();
   const existing = await User.findOne({ email: normalizedEmail });
   if (existing) {
-    if (!existing.roles?.includes('admin')) {
-      existing.roles = [...new Set([...(existing.roles || []), 'admin'])];
-      await existing.save();
-      console.log(`👑 Granted admin role to existing user ${normalizedEmail}`);
-    } else {
+    if (existing.roles?.includes('admin')) {
       console.log(`👑 Admin user ${normalizedEmail} already exists`);
+      return existing;
     }
+    // Registration has no email verification, so this account may belong to
+    // whoever signed up with the address first. Promoting it silently would
+    // hand them the admin role with THEIR password — require an explicit
+    // flag, and take the account over with the seed password.
+    if (!PROMOTE_EXISTING_FLAG) {
+      console.log(
+        `⚠️  ${normalizedEmail} is an existing non-admin account — not promoted.\n` +
+          '   Re-run with --promote-existing to make it admin (its password is reset to\n' +
+          '   SEED_ADMIN_PASSWORD and its sessions are signed out).',
+      );
+      return null;
+    }
+    const salt = await bcrypt.genSalt(10);
+    existing.password = await bcrypt.hash(password, salt);
+    existing.roles = [...new Set([...(existing.roles || []), 'admin'])];
+    existing.disabled = false;
+    await existing.save();
+    await revokeAllForUser(RefreshToken, existing._id);
+    console.log(
+      `👑 Promoted existing user ${normalizedEmail} to admin (password reset, sessions revoked)`,
+    );
     return existing;
   }
 
@@ -409,6 +434,26 @@ const removeData = async () => {
   }
 };
 
+// Create (or confirm) only the admin account — no other collection is
+// touched, so this is the safe way to bootstrap or recover the first admin
+// on a production database (no --force needed).
+const createAdmin = async () => {
+  try {
+    if (!process.env.SEED_ADMIN_EMAIL || !process.env.SEED_ADMIN_PASSWORD) {
+      console.error(
+        '❌ Set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD (and optionally SEED_ADMIN_USERNAME).',
+      );
+      process.exit(1);
+    }
+    await connectToDB();
+    const admin = await seedAdminUser();
+    process.exit(admin ? 0 : 1);
+  } catch (error) {
+    console.log('❌ Error:', error);
+    process.exit(1);
+  }
+};
+
 // Display usage information
 const showUsage = () => {
   console.log('📖 Seeder Usage:');
@@ -430,9 +475,12 @@ const showUsage = () => {
   console.log('  Safety:');
   console.log('    Refuses to run when NODE_ENV=production unless --force is passed.');
   console.log('');
-  console.log('  Admin user (optional):');
-  console.log('    Set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD to create/promote an admin');
-  console.log('    account during -import. SEED_ADMIN_USERNAME defaults to "admin".');
+  console.log('  Admin user only (safe on production — touches nothing else):');
+  console.log('    node seeder.js -admin');
+  console.log('    Needs SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD (SEED_ADMIN_USERNAME defaults');
+  console.log('    to "admin"). -import also creates it when those are set.');
+  console.log('    An existing NON-admin account with that email is only promoted with');
+  console.log('    --promote-existing (its password is reset to SEED_ADMIN_PASSWORD).');
   console.log('');
   console.log('  Show this help:');
   console.log('    node seeder.js -help');
@@ -444,6 +492,8 @@ if (process.argv[2] === '-import') {
   importData();
 } else if (process.argv[2] === '-remove') {
   removeData();
+} else if (process.argv[2] === '-admin') {
+  createAdmin();
 } else if (process.argv[2] === '-help' || !process.argv[2]) {
   showUsage();
 }

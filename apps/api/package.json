@@ -9,6 +9,9 @@
     "build": "echo 'No build step required for Express backend'",
     "test": "node --test app.test.js 'utils/**/*.test.js' 'middlewares/**/*.test.js' 'services/**/*.test.js' 'tests/**/*.test.js'"
   },
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "author": "",
   "license": "ISC",
   "dependencies": {

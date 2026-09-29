@@ -42,7 +42,10 @@ export function FrequentlyBoughtTogether({ primary }: Props) {
   const { t, formatPrice } = useTranslation();
   const cart = useCart();
   const bundlesQuery = useProductBundles(primary._id);
-  const apiItems = (bundlesQuery.data?.items ?? []) as BundleProduct[];
+  const apiItems = useMemo(
+    () => (bundlesQuery.data?.items ?? []) as BundleProduct[],
+    [bundlesQuery.data?.items],
+  );
   const useApi = bundlesQuery.isSuccess && apiItems.length > 0;
   const useFallback =
     bundlesQuery.isFetched &&

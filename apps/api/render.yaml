@@ -7,15 +7,22 @@ services:
     runtime: node
     # Blueprint is applied from the monorepo root (npm workspaces).
     rootDir: apps/api
-    buildCommand: npm install
+    # npm ci installs exactly what the root package-lock.json pins (npm finds
+    # the workspace root from apps/api), so deploys are reproducible.
+    buildCommand: npm ci
     startCommand: npm start
-    autoDeploy: true
+    # Deploy only after the GitHub checks (CI: lint → typecheck → test →
+    # build) pass on the pushed commit — a red main no longer reaches prod.
+    autoDeployTrigger: checksPass
     # Readiness: 200 only once Mongo is connected (routes/trendvaulta.js)
     healthCheckPath: /api/ready
     # Environment Variables (set secrets in Render Dashboard)
     envVars:
       - key: NODE_ENV
         value: production
+      # Same major as CI (.nvmrc); `node --test` globs need Node >= 21.
+      - key: NODE_VERSION
+        value: "22"
       - key: PORT
         value: 10000
       - key: MONGO_URL
@@ -24,7 +31,7 @@ services:
         value: trendvaulta
       - key: JWT_SECRET_KEY
         sync: false
-      # CORS / redirect origins (middlewares/cors.js, services/stripe.service.js)
+      # CORS / redirect origins (middlewares/corsAllowlist.js, services/stripe.service.js)
       - key: FRONTEND_URL
         sync: false
       - key: DASHBOARD_URL
@@ -34,7 +41,10 @@ services:
       # Fallback storefront URL for Stripe Checkout redirects when FRONTEND_URL is unset
       - key: PUBLIC_FRONTEND_URL
         sync: false
-      # Rate limiting (middlewares/rateLimit.js) — requests per IP per window
+      # Rate limiting (middlewares/rateLimit.js) — requests per IP per window.
+      # AUTH stays at 30/min until the Vercel→Render proxy hop count is known
+      # (all shoppers may share Vercel's IP); brute force is capped per
+      # account by utils/loginLockout.js regardless.
       - key: RATE_LIMIT_AUTH_MAX
         value: 30
       - key: RATE_LIMIT_PASSWORD_MAX

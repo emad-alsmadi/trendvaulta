@@ -6,7 +6,11 @@ const {
   resolveUnitPrice,
   resolveAvailableStock,
   matchVariant,
+  resolveFulfillment,
+  roundMoney,
+  computeOrderTotal,
 } = require('./commerce');
+const { zoneMatchesAddress } = require('../models/ShippingZone');
 
 describe('calculateCouponDiscount', () => {
   it('rejects inactive coupons', () => {
@@ -109,5 +113,64 @@ describe('variant helpers', () => {
     const simple = { price: 10, stock: 7, variants: [] };
     assert.equal(resolveAvailableStock(simple, null), 7);
     assert.equal(resolveUnitPrice(simple, null), 10);
+  });
+});
+
+describe('resolveFulfillment', () => {
+  it('treats delivery:false or method none as store pickup', () => {
+    assert.deepEqual(resolveFulfillment({ delivery: false, shippingMethod: 'standard' }), {
+      delivery: false,
+      shippingMethod: 'none',
+    });
+    assert.deepEqual(resolveFulfillment({ shippingMethod: 'none' }), {
+      delivery: false,
+      shippingMethod: 'none',
+    });
+    assert.deepEqual(resolveFulfillment({}), { delivery: false, shippingMethod: 'none' });
+  });
+
+  it('defaults a delivery to standard, including an empty method', () => {
+    assert.deepEqual(resolveFulfillment({ delivery: true, shippingMethod: '' }), {
+      delivery: true,
+      shippingMethod: 'standard',
+    });
+    assert.deepEqual(resolveFulfillment({ shippingMethod: 'express' }), {
+      delivery: true,
+      shippingMethod: 'express',
+    });
+  });
+});
+
+describe('roundMoney / computeOrderTotal', () => {
+  it('rounds to whole cents', () => {
+    assert.equal(roundMoney(53.4893), 53.49);
+    assert.equal(roundMoney(1.005), 1.01);
+    assert.equal(roundMoney(0.1 + 0.2), 0.3);
+  });
+
+  it('never returns a negative total', () => {
+    assert.equal(
+      computeOrderTotal({ itemsPrice: 10, discountAmount: 25, shippingPrice: 0, taxPrice: 0 }),
+      0,
+    );
+    assert.equal(
+      computeOrderTotal({ itemsPrice: 19.99, discountAmount: 2, shippingPrice: 5, taxPrice: 1.6 }),
+      24.59,
+    );
+  });
+});
+
+describe('zoneMatchesAddress', () => {
+  it('matches region/postal patterns case-insensitively', () => {
+    const zone = { _id: 'z1', regionPattern: '^dubai$', postalCodePattern: '' };
+    assert.equal(zoneMatchesAddress(zone, { region: 'Dubai' }), true);
+    assert.equal(zoneMatchesAddress(zone, { region: 'Sharjah' }), false);
+    // No input to test against: the pattern does not exclude the zone.
+    assert.equal(zoneMatchesAddress(zone, {}), true);
+  });
+
+  it('treats an uncompilable pattern as no match instead of throwing', () => {
+    const zone = { _id: 'z2', regionPattern: '[A-', postalCodePattern: '' };
+    assert.equal(zoneMatchesAddress(zone, { region: 'anything' }), false);
   });
 });

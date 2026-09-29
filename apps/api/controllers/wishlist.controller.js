@@ -81,11 +81,18 @@ const getMyWishlist = asyncHandler(async (req, res) => {
   const userId = req.user.id;
 
   const wishlist = await Wishlist.find({ user: userId })
-    .populate('product')
+    .populate({
+      path: 'product',
+      // Deleted products are deactivated (not removed): keep them out of the
+      // list rather than linking shoppers to a page they can't buy from.
+      match: { isActive: { $ne: false } },
+      // The card shows "by <brand>" — populate the name, not just the id.
+      populate: { path: 'brand', select: 'name slug' },
+    })
     .sort({ createdAt: -1 })
     .lean();
 
-  res.status(200).json(wishlist);
+  res.status(200).json(wishlist.filter((item) => item.product));
 });
 
 /**
