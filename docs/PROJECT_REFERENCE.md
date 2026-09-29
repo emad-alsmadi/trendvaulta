@@ -160,7 +160,8 @@ Notes:
 - Dependabot (`.github/dependabot.yml`) opens weekly grouped minor/patch PRs for npm and GitHub Actions; majors for `next`, `react`, `react-dom`, `tailwindcss` are ignored.
 - `NEXT_PUBLIC_API_URL` is set in CI for the website build only (placeholder).
 - Branch naming: `feature/*`, `fix/*`, `refactor/*`, `chore/*` — keep `main` releasable.
-- No dictionary key-parity check runs in CI today — a missing `ar.json` key silently falls back to English rather than failing a build.
+- Dictionary parity runs with the website tests (`src/messages/messages.test.ts`): a key missing from either `en.json` or `ar.json`, a `{placeholder}` that differs between them, or an empty string fails CI, and the failure names the key.
+- The API test script quotes its globs with double quotes, so `node --test` expands them itself on every OS. Single quotes reached `node` literally under Windows `cmd.exe` and only `app.test.js` ran. The integration harness (`tests/setup.js`) blanks the SMTP/EMAIL variables so a local `.env` can't make tests send real mail.
 
 ---
 
@@ -368,7 +369,7 @@ No server cart API — client cart only (`cartStore.ts`). Commerce entry point i
 | `Wishlist.js` | `wishlists` | Per-user saved products |
 | `Review.js` | `reviews` | Ratings/comments |
 | `StripeWebhookEvent.js` | `stripewebhookevents` | Webhook idempotency |
-| … | | 24 models in total — also `RefreshToken`, `StoreSettings`, `ShippingZone`, `Offer`, `Bundle`, `Category`, `Content`, `HelpTopic`, `Lookbook`, `Testimonial`, `StorefrontModule`, `GiftFinderConfig`, `ProductQA`, `RecentlyViewed`, `Subscriber`, `ContactMessage` (see `docs/audit/AUDIT_REPORT.md` §2.3) |
+| … | | 24 models in total — also `RefreshToken`, `StoreSettings`, `ShippingZone`, `Offer`, `Bundle`, `Category`, `Content`, `HelpTopic`, `Lookbook`, `Testimonial`, `StorefrontModule`, `GiftFinderConfig`, `ProductQA`, `RecentlyViewed`, `Subscriber`, `ContactMessage` (schemas in `apps/api/models/`) |
 
 No dedicated `Address` or server-side `Cart` model — addresses live on the user's saved address list (see `apps/website/src/components/account/AddressBook.tsx` + `hooks/profile/addressesQuery.ts`), cart is client-only.
 
