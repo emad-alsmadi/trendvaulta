@@ -13,6 +13,7 @@ import {
   XCircle,
   AlertCircle,
   Copy,
+  FileText,
 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
@@ -139,6 +140,34 @@ export default function OrderDetailPage() {
     }
   };
 
+  const hasInvoice =
+    order?.paymentStatus === 'paid' || order?.paymentStatus === 'refunded';
+
+  const openInvoice = async () => {
+    if (!order) return;
+    // A route handler returning a whole HTML document, not a Next page: it
+    // needs a full document load, never client-side routing.
+    const url = new URL(
+      `/user/orders/${order._id}/invoice?lang=${locale}`,
+      window.location.origin,
+    ).toString();
+    // Open the tab inside the click (popup blockers), then refetch the order:
+    // that renews an expired access token, which the invoice route reads
+    // from the cookie server-side.
+    const tab = window.open('', '_blank');
+    try {
+      await orderQuery.refetch();
+    } catch {
+      // The invoice route sends an expired session to login and back
+    }
+    if (tab) {
+      tab.opener = null;
+      tab.location.href = url;
+    } else {
+      window.location.assign(url);
+    }
+  };
+
   const copyId = async (value: string) => {
     try {
       await navigator.clipboard.writeText(value);
@@ -201,6 +230,28 @@ export default function OrderDetailPage() {
                       date: formatDate(order.createdAt, intlLocale(locale)),
                     })}
                   </p>
+                )}
+                {hasInvoice && (
+                  <div className='mt-3 flex flex-wrap items-center gap-3'>
+                    <Button
+                      type='button'
+                      variant='outline'
+                      size='sm'
+                      onClick={() => void openInvoice()}
+                      aria-describedby='invoice-hint'
+                    >
+                      <FileText className='me-1.5 h-4 w-4' aria-hidden='true' />
+                      {t('orders.detail.invoice')}
+                    </Button>
+                    {order.invoiceNumber && (
+                      <span className='text-xs font-semibold text-indigo-950/60'>
+                        {t('orders.detail.invoiceNumber', { number: order.invoiceNumber })}
+                      </span>
+                    )}
+                    <span id='invoice-hint' className='sr-only'>
+                      {t('orders.detail.invoiceHint')}
+                    </span>
+                  </div>
                 )}
               </div>
               <div className='flex flex-wrap gap-2'>
