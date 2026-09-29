@@ -1,0 +1,146 @@
+# Role
+You are a Principal Product Designer and Senior Frontend Engineer with decades of experience building admin consoles for e-commerce platforms (the Shopify Admin, Stripe Dashboard, Linear and Vercel tier). You care about exact alignment, spacing and hierarchy, down to the pixel.
+
+# Context
+- App: `apps/dashboard`. It is the admin dashboard for the TrendVaulta e-commerce store, built with Vite, React 19, React Router, TanStack Query and Tailwind CSS.
+- Design tokens are CSS variables in `apps/dashboard/src/index.css` (`--background`, `--foreground`, `--primary`, `--muted`, `--border`, `--ring`, `--radius`, …), with a `.dark` variant.
+- The shell is `src/layouts/DashboardLayout.tsx`. The shared UI is in `src/components/ui/` (ConfirmDialog, FormDialog, TablePagination, SortableHeader, Toast, ImageUploadField, ErrorBoundary). The pages are in `src/pages/`, and the chart colours are in `src/lib/chartTheme.ts`.
+- Follow the repo's AGENTS.md: add no new dependencies without approval, change no business logic, API calls, routing, auth or permissions, and run no terminal commands unless asked.
+
+# Goal
+Redesign every element, page and interface of the dashboard into one refined, professional visual system that looks like a premium e-commerce admin console. **No element may be left unstyled or default-styled.** That covers every section, button, filter, input, select, checkbox, tab, badge, table, dialog, toast, empty state and pagination control.
+
+# Hard constraint: a strictly monochrome palette
+Use only black, white and neutral greys. No blue, green, red, purple or any other hue anywhere, including focus rings, links, charts, badges and alerts.
+- Rewrite the tokens in `index.css` as pure neutral HSL values with 0% saturation, in both light and dark mode:
+  - Light: background `0 0% 100%`, a subtle canvas `0 0% 98%`, surface/card `0 0% 100%`, border `0 0% 90%`, strong border `0 0% 82%`, muted text `0 0% 45%`, foreground `0 0% 9%`, primary `0 0% 9%` with primary-foreground `0 0% 100%`.
+  - Dark: canvas `0 0% 4%`, surface `0 0% 7%`, raised surface `0 0% 10%`, border `0 0% 16%`, muted text `0 0% 63%`, foreground `0 0% 98%`, primary `0 0% 98%` with primary-foreground `0 0% 9%`.
+- `--ring` is neutral: near-black in light mode, near-white in dark mode.
+- Do not use colour to carry meaning. Communicate status (paid, pending, shipped, cancelled, refunded, low stock, active/inactive) through:
+  - fill style: solid black, outlined, a grey tint, or dashed
+  - a leading icon or dot shape (filled ●, hollow ○, half ◐)
+  - font weight
+  - clear text labels
+
+  Define one `StatusBadge` variant map and use it everywhere.
+- Destructive actions are distinguished by wording, an icon, placement (always last, visually separated) and a confirm dialog. Do not use red.
+- Charts (`chartTheme.ts`): draw series as greyscale steps (for example `#0a0a0a`, `#525252`, `#a3a3a3`). Tell series apart with solid versus dashed lines, point markers and direct labels, never with hue. Keep the grid very light and the axes muted.
+
+# Design system to establish (define once in tokens and reuse; never use ad-hoc values)
+
+## Spacing (4px base, 8px rhythm)
+- Allowed scale: 4, 8, 12, 16, 20, 24, 32, 40, 48, 64. Use no arbitrary values such as `mt-[13px]`.
+- Page padding: 24px on desktop, 16px on mobile. Vertical gap between page sections: 32px.
+- Card padding: 20–24px. Gap between cards in a grid: 16–24px.
+- Form fields: 6px between label and control, 16–20px between fields, 24px between field groups.
+- Toolbar and filter bar: 8–12px between controls.
+- Table cells: 12px vertical and 16px horizontal padding (8px in compact density).
+
+## Typography
+- Font: Inter, or the system UI stack if Inter isn't already present (don't add a package; Google Fonts via CSS is acceptable only if approved). Turn on tabular numbers (`font-variant-numeric: tabular-nums`) for every number, price, ID and date.
+- Type scale:
+  - Page title: 24px / 32px line height, weight 600, tracking -0.01em
+  - Section title: 16px / 24px, weight 600
+  - Card title: 14px / 20px, weight 500
+  - Body: 14px / 20px
+  - Secondary text: 13px / 18px, muted
+  - Caption, table header and overline: 12px / 16px, weight 500, uppercase, tracking 0.04em, muted
+  - KPI value: 28–30px, weight 600, tracking -0.02em
+- Use at most three font weights across the app: 400, 500 and 600.
+
+## Shape and elevation
+- Radius: 6px for inputs and buttons, 8px for badges (or fully pill-shaped), 12px for cards and dialogs. Apply it consistently.
+- Borders: 1px in the neutral border token. Prefer borders to shadows.
+- Shadows: only for overlays (dropdowns, dialogs, toasts), kept very soft and neutral.
+- Icons: one icon set only (whatever the project already uses), sized 16px inline and 18–20px in navigation, with a consistent stroke width.
+
+## Interaction states (required on every interactive element)
+- Every interactive element needs a default, hover, active/pressed, focus-visible (2px ring with a 2px offset), disabled (40–50% opacity, `cursor-not-allowed`) and loading state.
+- Transitions: 150ms ease-out, applied to colour, background and border only.
+- Hit targets are at least 36px high on desktop and 40px on touch.
+
+# Components to (re)style
+
+1. **Sidebar** (`DashboardLayout.tsx`)
+   - Fixed 256px wide, collapsible to a 64px icon rail with tooltips.
+   - Brand/logo block at the top, 64px high, with a bottom border.
+   - Navigation grouped into labelled sections, for example Overview · Catalog (Products, Brands, Categories, Bundles, Lookbooks) · Sales (Orders, Coupons, Offers, Shipping Zones) · Customers (Users, Reviews, Product Q&A, Messages) · Storefront (Content, Modules, Testimonials, Help Topics, Gift Finder) · System (Analytics, Settings).
+   - Group labels use the caption style and have 24px above them.
+   - Nav items are 36px high with 12px horizontal padding, an icon and label 12px apart, and 6px radius.
+   - Active item: solid black background with white text (inverted in dark mode). Hover: a subtle grey background.
+   - Counters such as the unread messages badge are small neutral pills aligned to the end of the row.
+   - The user/account block is pinned to the bottom with a top border.
+   - On mobile the sidebar becomes an off-canvas drawer with a backdrop.
+2. **Topbar**: 64px high, sticky, with a bottom border and a translucent background with blur. Contents: breadcrumbs or page context, search, theme toggle and user menu, spaced evenly.
+3. **Page header pattern**, used on every page: title, one-line description, and primary and secondary actions aligned to the end. Tabs or a filter bar sit underneath where relevant.
+4. **Buttons**, as one `Button` variant set:
+   - Variants: primary (solid black), secondary (outlined), ghost, subtle (grey fill), destructive (outlined, with an icon and confirmation) and icon-only.
+   - Sizes: sm 32px, md 36px, lg 40px.
+   - Loading state keeps the button's width and swaps in a spinner.
+5. **Filters and toolbars**
+   - One consistent filter bar containing a search input with a leading icon, select and dropdown filters, date range and a "Clear filters" ghost button.
+   - Active filters appear as removable chips.
+   - Results count and view/density controls are aligned to the end.
+   - On mobile the bar wraps cleanly or collapses into a "Filters" sheet.
+6. **Form controls**
+   - Input, textarea, select, checkbox, radio, switch and file/image upload all share one height (36px), border, radius and focus ring.
+   - Labels sit above controls. Helper text and error text are 12px and muted.
+   - Errors are shown with an icon, a bolder border and a message, with no colour.
+7. **Data tables**, the core of the admin:
+   - Sticky header in the caption style on a subtle grey header background.
+   - Row hover tint; zebra striping is optional and very subtle.
+   - Numbers and prices are right-aligned (end-aligned) with tabular numbers.
+   - Actions sit in a fixed last column, as a kebab menu or compact icon buttons.
+   - Selection checkboxes and a bulk-action bar.
+   - Styled `SortableHeader` indicators.
+   - Product thumbnails at 40px with 6px radius.
+   - Tables scroll horizontally inside their card on mobile, never the page.
+8. **Pagination** (`TablePagination`): a "Showing X–Y of Z" label, a page-size select and prev/next plus page buttons, all using the button styles.
+9. **KPI and stat cards** (Dashboard, Analytics): label in the caption style, a large value, a delta shown with an arrow icon and a +/- sign (monochrome), and an optional sparkline. Equal heights in a responsive grid of 1, 2 or 4 columns.
+10. **Charts**: monochrome per the rules above, inside cards with a header (title, period selector) and a neutral tooltip styled like a popover.
+11. **Dialogs and drawers** (`FormDialog`, `ConfirmDialog`)
+    - Widths: 480px for confirmations, 640px for forms, 880px for complex editors.
+    - Header, scrollable body and a sticky footer with actions aligned to the end.
+    - Backdrop at 40% black.
+12. **Toasts**: a neutral surface, border and shadow, a leading status icon, a title and message, and a dismiss control. Placed consistently.
+13. **Badges and tags**: the `StatusBadge` map, plus neutral tags for categories and brands.
+14. **Tabs and segmented controls**: underline tabs for page sections and segmented controls for small toggles.
+15. **Empty, loading and error states**
+    - Empty: an icon, a short title, one line of guidance and a primary action.
+    - Loading: skeletons that match the final layout, used only where the area already uses skeletons.
+    - Keep the last good data visible during refetch.
+    - Error: a friendly message via the existing helpers, never a raw API error.
+16. **Detail pages** (OrderDetail and editors such as VariantsEditor, GalleryField, HeroSlidesEditor, ReturnPanel)
+    - Two-column layout on desktop: main content about 2/3, a sidebar summary about 1/3 with sticky cards.
+    - Clear section cards with titles, key–value rows and dividers.
+17. **Login page**: a centred 400px card on a subtle canvas with the logo, title, form and primary button. Minimal and elegant.
+18. **Scrollbars, dividers, tooltips, dropdown menus and popovers**: all use the neutral tokens and consistent radius and shadow.
+
+# Layout and responsiveness
+- Mobile-first. Breakpoints: `sm` 640, `md` 768, `lg` 1024, `xl` 1280.
+- Content is max-width 1440px, centred, inside the main area.
+- The page never scrolls horizontally at any width. Only tables scroll inside their container.
+- If the app renders RTL/Arabic anywhere, use logical properties (`ps-*`, `pe-*`, `ms-*`, `me-*`, `start`, `end`) so the layout mirrors correctly.
+
+# Accessibility
+- WCAG AA contrast at minimum: 4.5:1 for body text and 3:1 for UI borders and icons. Check muted greys against both surfaces.
+- Visible focus on everything, full keyboard navigation of the sidebar, menus, dialogs (focus trap, Esc to close) and tables.
+- Status is never conveyed by shade alone; there is always a text label.
+- Respect `prefers-reduced-motion`.
+
+# Implementation rules
+1. Start with the tokens: update `index.css` (and the Tailwind theme config if one exists) so that everything derives from the CSS variables. Do not hardcode hex values in components.
+2. Build or upgrade the shared primitives in `src/components/ui/` (Button, Input, Select, Badge/StatusBadge, Card, PageHeader, FilterBar, EmptyState, DataTable styling) before touching pages. Reuse the existing components and restyle them rather than duplicating them.
+3. Then restyle `DashboardLayout.tsx` (sidebar and topbar).
+4. Then migrate every page in `src/pages/` to the primitives, one page at a time, keeping all data hooks, queries, mutations, permissions and routes unchanged.
+5. Presentation changes only. Do not rename props used by logic, do not touch API calls, and add no new libraries without asking.
+6. Remove leftover ad-hoc colour classes (`bg-blue-*`, `text-green-*`, `text-red-*`, and so on) and replace them with neutral tokens. The final check is that a search for any hue-based Tailwind colour class in `apps/dashboard/src` returns zero results.
+7. Keep existing tests passing. Where tests query text or roles, preserve the text and roles.
+
+# Deliverables
+- A short design-token summary (colours, spacing, type scale, radii, shadows).
+- The list of shared primitives created or updated.
+- A per-page checklist confirming each page uses the new system.
+- The validation command for me to run manually: `cd apps/dashboard ; npx tsc --noEmit ; npm run lint ; npm test`
+
+Work in phases (tokens → primitives → layout → pages) and stop after each phase with a brief summary for my review before continuing.

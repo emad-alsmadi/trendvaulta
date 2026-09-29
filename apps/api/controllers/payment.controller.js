@@ -119,10 +119,8 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
     });
   }
 
-  const userId = req.user?.id ?? req.user?._id;
-  if (!userId) {
-    return res.status(401).json({ message: 'Token is not valid!' });
-  }
+  // Signed in, or a guest (decision D2): optionalVerifyToken on the route
+  const userId = req.user?.id ?? req.user?._id ?? null;
 
   const { error, value } = validateCreateOrder(req.body);
   if (error) {
@@ -130,6 +128,14 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
   }
 
   const { items, shippingAddress, couponCode } = value;
+  // A guest's receipt and order link go to this address
+  const guestEmail = userId ? '' : value.email || '';
+  if (!userId && !guestEmail) {
+    return res.status(400).json({
+      code: 'GUEST_EMAIL_REQUIRED',
+      message: 'Enter your email address to check out as a guest.',
+    });
+  }
   // Priced AND stored from the same normalised values (pickup = 'none').
   const fulfillment = resolveFulfillment(value);
 
@@ -157,7 +163,7 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
     if (!result.valid) {
       return res.status(400).json({ message: result.message });
     }
-    const usage = await checkCouponUsage(coupon, userId);
+    const usage = await checkCouponUsage(coupon, { userId, email: guestEmail });
     if (!usage.valid) {
       return res.status(400).json({ message: usage.message });
     }
@@ -183,6 +189,7 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
 
   const order = await Order.create({
     user: userId,
+    guestEmail,
     items: normalizedItems,
     shippingAddress: {
       ...shippingAddress,
@@ -269,16 +276,18 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
       client_reference_id: String(order._id),
       metadata: {
         orderId: String(order._id),
-        userId: String(userId),
+        userId: userId ? String(userId) : '',
         kind: 'order_payment',
         totalPrice: String(totalPrice),
       },
       payment_intent_data: {
         metadata: {
           orderId: String(order._id),
-          userId: String(userId),
+          userId: userId ? String(userId) : '',
         },
       },
+      // Stripe prefills (and receipts to) the address the guest typed
+      ...(guestEmail ? { customer_email: guestEmail } : {}),
     };
 
     // Apply server-calculated discount via a one-time Stripe coupon (unit_amount cannot be negative)
@@ -325,6 +334,9 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
     url: session.url,
     orderId: String(order._id),
     sessionId: session.id,
+    // Lets the success page confirm payment and link to the order without
+    // an account; the same token is in the confirmation email.
+    ...(guestEmail ? { guestToken: guestOrderToken(order) } : {}),
   });
 });
 
