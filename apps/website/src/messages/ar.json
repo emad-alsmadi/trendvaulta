@@ -1456,7 +1456,9 @@
     "overview": {
       "wishlistDescription": "المنتجات التي حفظتها لوقت لاحق.",
       "reviewsDescription": "تقييماتك التي كتبتها، لتعديلها أو حذفها.",
-      "profileDescription": "اسم المستخدم والبريد الإلكتروني."
+      "profileDescription": "اسم المستخدم والبريد الإلكتروني.",
+      "latestOrder": "آخر طلب",
+      "viewOrder": "عرض الطلب"
     }
   },
   "demo": {

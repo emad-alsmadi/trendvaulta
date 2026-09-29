@@ -1456,7 +1456,9 @@
     "overview": {
       "wishlistDescription": "Products you saved for later.",
       "reviewsDescription": "Reviews you wrote, to edit or delete.",
-      "profileDescription": "Your username and email address."
+      "profileDescription": "Your username and email address.",
+      "latestOrder": "Latest order",
+      "viewOrder": "View order"
     }
   },
   "demo": {
