@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCart, formatVariantLabel } from '@/lib/cartStore';
+import { useToast } from '@/components/ui/Toast';
 import { FrequentlyBoughtTogether } from '@/components/products/FrequentlyBoughtTogether';
 import { ProductQaSection } from '@/components/products/ProductQaSection';
 import { ProductReviewsSection } from '@/components/products/ProductReviewsSection';
@@ -68,6 +69,7 @@ export function ProductDetailClient({ id }: { id: string }) {
     null,
   );
   const cart = useCart();
+  const { toast } = useToast();
   const { t, formatPrice } = useTranslation();
 
   // DEMO: local recently viewed — TODO(api): POST /api/me/recently-viewed
@@ -145,6 +147,9 @@ export function ProductDetailClient({ id }: { id: string }) {
       qty: Math.min(quantity, maxQty),
       variant,
       maxQty,
+    });
+    toast(t('product.addedToCart', { title: product.title }), {
+      variant: 'success',
     });
     return true;
   };

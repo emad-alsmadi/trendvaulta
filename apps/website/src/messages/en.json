@@ -94,7 +94,8 @@
     "size": "Size",
     "color": "Color",
     "sizeValue": "Size: {value}",
-    "colorValue": "Color: {value}"
+    "colorValue": "Color: {value}",
+    "addedToCart": "\"{title}\" added to your cart"
   },
   "checkout": {
     "shippingAddress": "Shipping Address",
@@ -185,7 +186,8 @@
     "trustSecureCheckout": "Secure checkout",
     "trustTrackedShipping": "Tracked shipping on every order",
     "trustEasyReturns": "Easy returns within policy",
-    "checkoutNote": "Coupons apply at checkout. Payment is processed securely when Stripe is configured."
+    "checkoutNote": "Coupons apply at checkout. Payment is processed securely when Stripe is configured.",
+    "shippingAtCheckout": "Calculated at checkout"
   },
   "checkoutPage": {
     "title": "Checkout",
@@ -890,7 +892,8 @@
       "bestseller": "Bestseller",
       "new": "New",
       "lowStock": "Low stock"
-    }
+    },
+    "chooseOptions": "Choose options"
   },
   "about": {
     "badge": "About TrendVaulta",

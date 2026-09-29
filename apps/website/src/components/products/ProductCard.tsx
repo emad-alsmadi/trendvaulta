@@ -7,6 +7,7 @@ import { WishlistButton } from '@/components/page/wishlist/WishlistButton';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import { useCart } from '@/lib/cartStore';
+import { useToast } from '@/components/ui/Toast';
 import { useTranslation } from '@/contexts/TranslationContext';
 import type { Brand, Product } from '@/types';
 
@@ -26,6 +27,7 @@ export type ProductCardProduct = Pick<
   | 'subcategory'
   | 'brand'
   | 'stock'
+  | 'variants'
 >;
 
 interface ProductCardProps {
@@ -41,8 +43,12 @@ function getBrandMeta(brand: Product['brand']): Brand | null {
 
 export function ProductCard({ product, badges = [] }: ProductCardProps) {
   const cart = useCart();
+  const { toast } = useToast();
   const { t, formatPrice } = useTranslation();
   const brand = getBrandMeta(product.brand);
+  // A size/colour must be picked on the product page: the server prices
+  // and stocks per variant, so a variant-less line would quote at $0.
+  const needsVariant = Boolean(product.variants && product.variants.length > 0);
 
   const handleAddToCart = () => {
     cart.addToCart({
@@ -52,6 +58,9 @@ export function ProductCard({ product, badges = [] }: ProductCardProps) {
       cover: product.cover,
       qty: 1,
       maxQty: typeof product.stock === 'number' ? product.stock : undefined,
+    });
+    toast(t('product.addedToCart', { title: product.title }), {
+      variant: 'success',
     });
   };
 
@@ -168,15 +177,24 @@ export function ProductCard({ product, badges = [] }: ProductCardProps) {
         </div>
 
         <div className='flex items-center gap-2'>
-          <Button
-            size='sm'
-            onClick={handleAddToCart}
-            disabled={!inStock}
-            className='flex-1 gap-1'
-          >
-            <ShoppingCart className='h-4 w-4' />
-            {t('productCard.add')}
-          </Button>
+          {needsVariant ? (
+            <Link
+              href={`/products/${product._id}`}
+              className='inline-flex h-9 flex-1 items-center justify-center gap-1 rounded-md border border-stone-200 px-3 text-sm font-medium text-gray-900 transition-colors hover:border-fuchsia-600 hover:text-fuchsia-600'
+            >
+              {t('productCard.chooseOptions')}
+            </Link>
+          ) : (
+            <Button
+              size='sm'
+              onClick={handleAddToCart}
+              disabled={!inStock}
+              className='flex-1 gap-1'
+            >
+              <ShoppingCart className='h-4 w-4' />
+              {t('productCard.add')}
+            </Button>
+          )}
           <WishlistButton
             productId={product._id}
             variant='icon'

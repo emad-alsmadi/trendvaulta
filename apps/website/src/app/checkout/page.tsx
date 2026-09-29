@@ -241,6 +241,11 @@ export default function CheckoutPage() {
     quote && appliedCoupon && quote.couponValid === false,
   );
   const presentKeys = new Set(items.map(getCartLineKey));
+  // Lines added without a size/colour quote at $0 and the server rejects
+  // them; hold the submit until the shopper picks one (the line says so).
+  const needsVariantChoice = Object.values(notices).some(
+    (n) => n.code === 'variant_required',
+  );
   const removedNotices = Object.entries(notices).filter(
     ([key]) => !presentKeys.has(key),
   );
@@ -821,7 +826,10 @@ export default function CheckoutPage() {
               type='submit'
               size='lg'
               disabled={
-                isSubmitting || createOrder.isPending || stripeRedirecting
+                isSubmitting ||
+                createOrder.isPending ||
+                stripeRedirecting ||
+                needsVariantChoice
               }
               className='w-full rounded-full bg-gradient-to-r from-indigo-600 via-fuchsia-600 to-cyan-500 text-white shadow-md transition hover:brightness-110 active:brightness-95'
             >

@@ -39,7 +39,6 @@ export default function CartPage() {
   const { quote, notices } = useCartQuoteSync({ items, shippingMethod: 'none' });
   const itemsPrice = quote?.itemsPrice ?? subtotal;
   const discountAmount = quote?.discountAmount ?? 0;
-  const shippingPrice = quote?.shippingPrice ?? 0;
   const taxPrice = quote?.taxPrice ?? 0;
   const totalPrice = quote?.totalPrice ?? subtotal;
   const presentKeys = new Set(items.map(getCartLineKey));
@@ -228,6 +227,17 @@ export default function CartPage() {
                               className='mt-1 text-xs font-semibold text-amber-700'
                             >
                               {cartNoticeMessage(notice, t)}
+                              {notice.code === 'variant_required' && (
+                                <>
+                                  {' '}
+                                  <Link
+                                    href={`/products/${item.productId}`}
+                                    className='underline underline-offset-2 hover:text-amber-900'
+                                  >
+                                    {t('productCard.chooseOptions')}
+                                  </Link>
+                                </>
+                              )}
                             </div>
                           )}
                         </div>
@@ -317,7 +327,8 @@ export default function CartPage() {
               )}
               <div className='flex items-center justify-between text-sm font-semibold text-indigo-950/70'>
                 <span>{t('checkout.shipping')}</span>
-                <span>{formatPrice(shippingPrice)}</span>
+                {/* Quoted as pickup here; the method is chosen at checkout. */}
+                <span>{t('cartPage.shippingAtCheckout')}</span>
               </div>
               <div className='flex items-center justify-between text-sm font-semibold text-indigo-950/70'>
                 <span>{t('checkout.tax')}</span>

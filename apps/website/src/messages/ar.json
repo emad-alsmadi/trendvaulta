@@ -94,7 +94,8 @@
     "size": "المقاس",
     "color": "اللون",
     "sizeValue": "المقاس: {value}",
-    "colorValue": "اللون: {value}"
+    "colorValue": "اللون: {value}",
+    "addedToCart": "تمت إضافة \"{title}\" إلى السلة"
   },
   "checkout": {
     "shippingAddress": "عنوان الشحن",
@@ -185,7 +186,8 @@
     "trustSecureCheckout": "دفع آمن",
     "trustTrackedShipping": "شحن قابل للتتبع لكل طلب",
     "trustEasyReturns": "إرجاع سهل وفق سياسة الإرجاع",
-    "checkoutNote": "تُطبَّق القسائم عند إتمام الطلب. تتم معالجة الدفع بأمان عند تفعيل Stripe."
+    "checkoutNote": "تُطبَّق القسائم عند إتمام الطلب. تتم معالجة الدفع بأمان عند تفعيل Stripe.",
+    "shippingAtCheckout": "تُحسب عند إتمام الطلب"
   },
   "checkoutPage": {
     "title": "إتمام الطلب",
@@ -890,7 +892,8 @@
       "bestseller": "الأكثر مبيعًا",
       "new": "جديد",
       "lowStock": "كمية محدودة"
-    }
+    },
+    "chooseOptions": "اختر المواصفات"
   },
   "about": {
     "badge": "عن TrendVaulta",
