@@ -254,7 +254,7 @@ export default function Orders() {
             className="inline-flex items-center rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
           >
             <RefreshCw
-              className={`mr-2 h-4 w-4 ${ordersQ.isFetching ? 'animate-spin' : ''}`}
+              className={`me-2 h-4 w-4 ${ordersQ.isFetching ? 'animate-spin' : ''}`}
             />
             Refresh
           </button>
@@ -283,14 +283,14 @@ export default function Orders() {
 
       <form onSubmit={onSearchSubmit} className="mb-6">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+          <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
           <input
             type="search"
             aria-label="Search by order id or customer email"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by order id or customer email…"
-            className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+            className="w-full rounded-lg border border-gray-300 bg-white py-2 ps-10 pe-4 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
           />
         </div>
       </form>
@@ -333,7 +333,7 @@ export default function Orders() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px]">
               <thead className="bg-gray-50 text-xs uppercase tracking-wider dark:bg-gray-700">
-                <tr className="[&>th]:px-4 [&>th]:py-3 [&>th]:text-left [&>th]:font-medium [&>th]:text-gray-500 dark:[&>th]:text-gray-300">
+                <tr className="[&>th]:px-4 [&>th]:py-3 [&>th]:text-start [&>th]:font-medium [&>th]:text-gray-500 dark:[&>th]:text-gray-300">
                   <th scope="col">Order</th>
                   <th scope="col">Customer</th>
                   <SortableHeader

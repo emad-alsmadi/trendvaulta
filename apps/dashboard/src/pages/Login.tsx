@@ -5,6 +5,7 @@ import {
   BarChart3,
   Eye,
   EyeOff,
+  Languages,
   Loader2,
   Lock,
   Mail,
@@ -16,14 +17,20 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { authApi, errorMessage } from '../lib/api';
 import { pickPrimaryRole, setAuthSession } from '../lib/auth';
 import { isStaffRole } from '../lib/permissions';
+import { useT } from '../i18n/I18nProvider';
+import type { MessageKey } from '../i18n/en';
 
-const NO_ACCESS = 'This account does not have dashboard access (staff role required).';
-const NO_TOKEN = 'Sign-in succeeded but no session was returned. Please try again.';
+/** Thrown by our own guards; the message is a translation key. */
+class LoginGuardError extends Error {
+  constructor(readonly key: MessageKey) {
+    super(key);
+  }
+}
 
 const HIGHLIGHTS = [
-  { icon: Package, text: 'Orders, returns and fulfilment in one queue' },
-  { icon: BarChart3, text: 'Sales and catalogue analytics' },
-  { icon: ShieldCheck, text: 'Role-based access for every staff member' },
+  { icon: Package, text: 'login.highlightOrders' },
+  { icon: BarChart3, text: 'login.highlightAnalytics' },
+  { icon: ShieldCheck, text: 'login.highlightAccess' },
 ] as const;
 
 const inputClass =
@@ -33,6 +40,7 @@ const inputClass =
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t, locale, setLocale } = useT();
   const locationState = (location.state ?? {}) as {
     from?: string;
     reason?: string;
@@ -42,9 +50,11 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
   const [remember, setRemember] = useState(true);
-  const [error, setError] = useState<string | null>(
-    locationState.reason === 'forbidden' ? NO_ACCESS : null,
+  // A key for our own messages, or already-resolved API text.
+  const [error, setError] = useState<{ key: MessageKey } | { text: string } | null>(
+    locationState.reason === 'forbidden' ? { key: 'login.errorNoAccess' } : null,
   );
+  const errorText = error ? ('key' in error ? t(error.key) : error.text) : null;
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -53,9 +63,9 @@ export default function Login() {
     setLoading(true);
     try {
       const data = await authApi.login({ email: email.trim(), password });
-      if (!data.token) throw new Error(NO_TOKEN);
+      if (!data.token) throw new LoginGuardError('login.errorNoToken');
       const role = pickPrimaryRole(data.roles);
-      if (!isStaffRole(role)) throw new Error(NO_ACCESS);
+      if (!isStaffRole(role)) throw new LoginGuardError('login.errorNoAccess');
       setAuthSession({
         token: data.token,
         role,
@@ -66,8 +76,11 @@ export default function Login() {
     } catch (err) {
       // Our own guard messages are user-facing; errorMessage() would replace
       // any plain Error with the fallback ("Invalid email or password").
-      const own = err instanceof Error && (err.message === NO_ACCESS || err.message === NO_TOKEN);
-      setError(own ? (err as Error).message : errorMessage(err, 'Invalid email or password'));
+      setError(
+        err instanceof LoginGuardError
+          ? { key: err.key }
+          : { text: errorMessage(err, t('login.errorInvalid')) },
+      );
     } finally {
       setLoading(false);
     }
@@ -98,13 +111,13 @@ export default function Login() {
           </span>
           <span className='text-lg font-bold tracking-tight'>TrendVaulta</span>
           <span className='ms-1 rounded-full border border-white/15 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider text-white/60'>
-            Admin
+            {t('login.brandBadge')}
           </span>
         </div>
 
         <div className='relative max-w-md'>
           <h2 className='text-4xl font-bold leading-tight tracking-tight'>
-            Run the store from one calm place.
+            {t('login.headline')}
           </h2>
           <ul className='mt-10 space-y-5'>
             {HIGHLIGHTS.map(({ icon: Icon, text }) => (
@@ -112,7 +125,7 @@ export default function Login() {
                 <span className='inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/10 ring-1 ring-white/10'>
                   <Icon className='h-5 w-5' aria-hidden />
                 </span>
-                {text}
+                {t(text)}
               </li>
             ))}
           </ul>
@@ -122,7 +135,17 @@ export default function Login() {
       </aside>
 
       {/* Form */}
-      <main className='flex items-center justify-center px-6 py-12 sm:px-10'>
+      <main className='relative flex items-center justify-center px-6 py-12 sm:px-10'>
+        <button
+          type='button'
+          onClick={() => setLocale(locale === 'en' ? 'ar' : 'en')}
+          aria-label={t('common.switchLanguageLabel')}
+          lang={locale === 'en' ? 'ar' : 'en'}
+          className='absolute end-4 top-4 inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800'
+        >
+          <Languages className='h-4 w-4' aria-hidden />
+          {t('common.switchLanguage')}
+        </button>
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -137,14 +160,14 @@ export default function Login() {
           </div>
 
           <h1 className='text-2xl font-bold tracking-tight text-gray-900 dark:text-white'>
-            Sign in
+            {t('login.title')}
           </h1>
           <p className='mt-2 text-sm text-gray-500 dark:text-gray-400'>
-            Use a staff account to access the dashboard.
+            {t('login.subtitle')}
           </p>
 
           <form onSubmit={handleLogin} className='mt-8 space-y-5'>
-            {error && (
+            {errorText && (
               <motion.div
                 role='alert'
                 initial={{ opacity: 0, y: -4 }}
@@ -152,13 +175,13 @@ export default function Login() {
                 className='flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200'
               >
                 <AlertCircle className='mt-0.5 h-4 w-4 shrink-0' aria-hidden />
-                {error}
+                {errorText}
               </motion.div>
             )}
 
             <div>
               <label htmlFor='admin-email' className='mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300'>
-                Email address
+                {t('login.email')}
               </label>
               <div className='relative'>
                 <Mail className='pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' aria-hidden />
@@ -171,6 +194,7 @@ export default function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder='admin@example.com'
+                  dir='ltr'
                   disabled={loading}
                   aria-invalid={Boolean(error) || undefined}
                   className={`${inputClass} pe-3 ${fieldBorder}`}
@@ -180,7 +204,7 @@ export default function Login() {
 
             <div>
               <label htmlFor='admin-password' className='mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300'>
-                Password
+                {t('login.password')}
               </label>
               <div className='relative'>
                 <Lock className='pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' aria-hidden />
@@ -205,7 +229,7 @@ export default function Login() {
                   onClick={() => setShowPassword((v) => !v)}
                   // Keep focus (and the caret) in the field while toggling.
                   onMouseDown={(e) => e.preventDefault()}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? t('login.hidePassword') : t('login.showPassword')}
                   aria-pressed={showPassword}
                   aria-controls='admin-password'
                   className='absolute inset-y-0 end-0 flex w-11 items-center justify-center rounded-e-lg text-gray-400 transition-colors hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 dark:hover:text-gray-200'
@@ -215,7 +239,7 @@ export default function Login() {
               </div>
               {capsLock && (
                 <p id='caps-lock-hint' className='mt-1.5 text-xs font-medium text-amber-600 dark:text-amber-400'>
-                  Caps Lock is on
+                  {t('login.capsLock')}
                 </p>
               )}
             </div>
@@ -227,7 +251,7 @@ export default function Login() {
                 onChange={(e) => setRemember(e.target.checked)}
                 className='h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600'
               />
-              Keep me signed in
+              {t('login.remember')}
             </label>
 
             <button
@@ -237,7 +261,7 @@ export default function Login() {
               className='inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-gray-900/20 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100'
             >
               {loading && <Loader2 className='h-4 w-4 animate-spin' aria-hidden />}
-              {loading ? 'Signing in…' : 'Sign in'}
+              {loading ? t('login.submitting') : t('login.submit')}
             </button>
           </form>
         </motion.div>

@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
+import { useT } from '../../i18n/I18nProvider';
 
 export type ConfirmOptions = {
   title?: string;
@@ -21,6 +22,7 @@ type Pending = { options: ConfirmOptions; resolve: (ok: boolean) => void };
  * (role=dialog, focus trap, Escape/backdrop to cancel).
  */
 export function ConfirmProvider({ children }: { children: React.ReactNode }) {
+  const { t } = useT();
   const [pending, setPending] = useState<Pending | null>(null);
   const pendingRef = useRef<Pending | null>(null);
 
@@ -77,7 +79,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                 onClick={() => settle(false)}
                 className='rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700'
               >
-                {o?.cancelLabel ?? 'Cancel'}
+                {o?.cancelLabel ?? t('common.cancel')}
               </button>
               <button
                 type='button'
@@ -88,7 +90,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                     : 'bg-blue-500 hover:bg-blue-600'
                 }`}
               >
-                {o?.confirmLabel ?? 'Confirm'}
+                {o?.confirmLabel ?? t('common.confirm')}
               </button>
             </div>
           </Dialog.Content>

@@ -178,7 +178,7 @@ export default function Bundles() {
             onClick={openCreate}
             className='inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600'
           >
-            <Plus className='mr-2 h-5 w-5' />
+            <Plus className='me-2 h-5 w-5' />
             Add bundle
           </button>
         )}
@@ -192,14 +192,14 @@ export default function Bundles() {
           resetPage();
         }}
       >
-        <Search className='absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400' />
+        <Search className='absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400' />
         <input
           type='search'
           aria-label='Search by primary product'
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder='Search by primary product…'
-          className='w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white'
+          className='w-full rounded-lg border border-gray-300 bg-white py-2 ps-10 pe-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white'
         />
       </form>
 
@@ -220,7 +220,7 @@ export default function Bundles() {
           <div className='overflow-x-auto'>
             <table className='w-full min-w-[800px]'>
               <thead className='bg-gray-50 text-xs uppercase tracking-wider dark:bg-gray-700'>
-                <tr className='[&>th]:px-4 [&>th]:py-3 [&>th]:text-left [&>th]:font-medium [&>th]:text-gray-500 dark:[&>th]:text-gray-300'>
+                <tr className='[&>th]:px-4 [&>th]:py-3 [&>th]:text-start [&>th]:font-medium [&>th]:text-gray-500 dark:[&>th]:text-gray-300'>
                   <th scope='col'>Primary Product</th>
                   <th scope='col'>Items</th>
                   <SortableHeader

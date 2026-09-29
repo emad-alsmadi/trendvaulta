@@ -61,7 +61,7 @@ function RestockRow({
 
   return (
     <tr className='align-middle'>
-      <td className='py-3 pr-3'>
+      <td className='py-3 pe-3'>
         <div className='flex items-center gap-3'>
           <div className='h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700'>
             {product.cover && (
@@ -79,13 +79,13 @@ function RestockRow({
           </div>
         </div>
       </td>
-      <td className='py-3 pr-3 text-sm text-gray-600 dark:text-gray-400'>
+      <td className='py-3 pe-3 text-sm text-gray-600 dark:text-gray-400'>
         {product.category || '—'}
       </td>
-      <td className='py-3 pr-3'>
+      <td className='py-3 pe-3'>
         <StockBadge stock={product.stock} />
       </td>
-      <td className='py-3 pr-3 text-right text-sm tabular-nums text-gray-900 dark:text-white'>
+      <td className='py-3 pe-3 text-end text-sm tabular-nums text-gray-900 dark:text-white'>
         ${Number(product.price || 0).toFixed(2)}
       </td>
       <td className='py-3'>
@@ -100,7 +100,7 @@ function RestockRow({
               min={0}
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              className='w-20 rounded-lg border border-gray-300 px-2 py-1.5 text-right text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+              className='w-20 rounded-lg border border-gray-300 px-2 py-1.5 text-end text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
             />
             <button
               type='button'
@@ -112,7 +112,7 @@ function RestockRow({
             </button>
           </div>
         ) : (
-          <p className='text-right text-xs text-gray-400'>Read only</p>
+          <p className='text-end text-xs text-gray-400'>Read only</p>
         )}
       </td>
     </tr>
@@ -166,7 +166,7 @@ export default function LowStock() {
             className='inline-flex items-center rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700'
           >
             <RefreshCw
-              className={`mr-2 h-4 w-4 ${q.isFetching ? 'animate-spin' : ''}`}
+              className={`me-2 h-4 w-4 ${q.isFetching ? 'animate-spin' : ''}`}
             />
             Refresh
           </button>
@@ -213,7 +213,7 @@ export default function LowStock() {
         ) : (
           <table className='w-full min-w-[640px] text-sm'>
             <thead>
-              <tr className='border-b border-gray-200 text-left text-gray-500 dark:border-gray-700'>
+              <tr className='border-b border-gray-200 text-start text-gray-500 dark:border-gray-700'>
                 <th scope='col' className='pb-2 font-medium'>
                   Product
                 </th>
@@ -223,10 +223,10 @@ export default function LowStock() {
                 <th scope='col' className='pb-2 font-medium'>
                   Stock
                 </th>
-                <th scope='col' className='pb-2 text-right font-medium'>
+                <th scope='col' className='pb-2 text-end font-medium'>
                   Price
                 </th>
-                <th scope='col' className='pb-2 text-right font-medium'>
+                <th scope='col' className='pb-2 text-end font-medium'>
                   Restock
                 </th>
               </tr>

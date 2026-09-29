@@ -176,7 +176,7 @@ export default function GiftFinderConfig() {
             onClick={openCreate}
             className='inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600'
           >
-            <Plus className='mr-2 h-5 w-5' />
+            <Plus className='me-2 h-5 w-5' />
             Add config
           </button>
         )}
@@ -209,7 +209,7 @@ export default function GiftFinderConfig() {
                   ].map((h) => (
                     <th
                       key={h}
-                      className='px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300'
+                      className='px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300'
                     >
                       {h}
                     </th>

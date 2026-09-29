@@ -211,7 +211,7 @@ export default function Settings() {
         {/* Account */}
         <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="mb-4 flex items-center">
-            <User className="mr-2 h-5 w-5 text-blue-500" />
+            <User className="me-2 h-5 w-5 text-blue-500" />
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
               Account
             </h2>
@@ -271,7 +271,7 @@ export default function Settings() {
               disabled={profileSaving || profileQ.isLoading}
               className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
             >
-              <Save className="mr-2 h-4 w-4" />
+              <Save className="me-2 h-4 w-4" />
               {profileSaving ? 'Saving…' : 'Save profile'}
             </button>
           </form>
@@ -280,7 +280,7 @@ export default function Settings() {
         {/* Appearance */}
         <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="mb-4 flex items-center">
-            <Palette className="mr-2 h-5 w-5 text-blue-500" />
+            <Palette className="me-2 h-5 w-5 text-blue-500" />
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
               Appearance
             </h2>
@@ -315,7 +315,7 @@ export default function Settings() {
         {canEditStoreSettings && (
           <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <div className="mb-4 flex items-center">
-              <Store className="mr-2 h-5 w-5 text-blue-500" />
+              <Store className="me-2 h-5 w-5 text-blue-500" />
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                 Store settings
               </h2>
@@ -493,7 +493,7 @@ export default function Settings() {
                 disabled={updateStoreSettingsMut.isPending || storeSettingsQ.isLoading}
                 className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
               >
-                <Save className="mr-2 h-4 w-4" />
+                <Save className="me-2 h-4 w-4" />
                 {updateStoreSettingsMut.isPending ? 'Saving…' : 'Save store settings'}
               </button>
             </form>
@@ -503,7 +503,7 @@ export default function Settings() {
         {/* Password */}
         <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="mb-4 flex items-center">
-            <Shield className="mr-2 h-5 w-5 text-blue-500" />
+            <Shield className="me-2 h-5 w-5 text-blue-500" />
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
               Password
             </h2>
@@ -623,7 +623,7 @@ export default function Settings() {
             onClick={() => void handleLogout()}
             className="inline-flex items-center rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/40"
           >
-            <LogOut className="mr-2 h-4 w-4" />
+            <LogOut className="me-2 h-4 w-4" />
             Log out
           </button>
         </section>

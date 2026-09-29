@@ -183,14 +183,14 @@ export default function Users() {
             resetPage();
           }}
         >
-          <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+          <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
           <input
             type="search"
             aria-label="Search by email or username"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by email or username…"
-            className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+            className="w-full rounded-lg border border-gray-300 bg-white py-2 ps-10 pe-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
           />
         </form>
         <select
@@ -224,7 +224,7 @@ export default function Users() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px]">
               <thead className="bg-gray-50 text-xs uppercase tracking-wider dark:bg-gray-700">
-                <tr className="[&>th]:px-4 [&>th]:py-3 [&>th]:text-left [&>th]:font-medium [&>th]:text-gray-500 dark:[&>th]:text-gray-300">
+                <tr className="[&>th]:px-4 [&>th]:py-3 [&>th]:text-start [&>th]:font-medium [&>th]:text-gray-500 dark:[&>th]:text-gray-300">
                   <SortableHeader
                     field="username"
                     active={table.sort}
@@ -292,7 +292,7 @@ export default function Users() {
                         {/* null = link not opened yet; no field = older, confirmed account */}
                         {user.emailVerifiedAt === null && (
                           <span
-                            className="ml-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200"
+                            className="ms-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200"
                             title="The customer has not opened the confirmation link yet. Reviews and returns stay blocked until they do."
                           >
                             Unconfirmed

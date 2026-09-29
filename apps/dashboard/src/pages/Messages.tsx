@@ -182,7 +182,7 @@ export default function Messages() {
                 }`}
               >
                 {f.label}
-                {count !== undefined && <span className="ml-1.5 opacity-80">{count}</span>}
+                {count !== undefined && <span className="ms-1.5 opacity-80">{count}</span>}
               </button>
             );
           })}
@@ -195,14 +195,14 @@ export default function Messages() {
             resetPage();
           }}
         >
-          <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+          <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
           <input
             type="search"
             aria-label="Search messages by sender or subject"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search name, email or subject…"
-            className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+            className="w-full rounded-lg border border-gray-300 bg-white py-2 ps-10 pe-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
           />
         </form>
       </div>
@@ -224,7 +224,7 @@ export default function Messages() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px]">
               <thead className="bg-gray-50 text-xs uppercase tracking-wider dark:bg-gray-700">
-                <tr className="[&>th]:px-4 [&>th]:py-3 [&>th]:text-left [&>th]:font-medium [&>th]:text-gray-500 dark:[&>th]:text-gray-300">
+                <tr className="[&>th]:px-4 [&>th]:py-3 [&>th]:text-start [&>th]:font-medium [&>th]:text-gray-500 dark:[&>th]:text-gray-300">
                   <th scope="col">From</th>
                   <th scope="col">Subject</th>
                   <SortableHeader
@@ -322,7 +322,7 @@ export default function Messages() {
             <dd>
               <StatusBadge status={viewing.status} />
               {viewing.handledAt && (
-                <span className="ml-2 text-xs text-gray-500">
+                <span className="ms-2 text-xs text-gray-500">
                   by {viewing.handledBy?.username || viewing.handledBy?.email || 'staff'},{' '}
                   {formatDate(viewing.handledAt)}
                 </span>

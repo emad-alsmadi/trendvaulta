@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { AlertCircle, AlertTriangle, CheckCircle2, Info, X } from 'lucide-react';
+import { useT } from '../../i18n/I18nProvider';
 
 type ToastVariant = 'success' | 'error' | 'warning' | 'info';
 
@@ -55,6 +56,7 @@ const MAX_VISIBLE = 4;
 function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: (id: number) => void }) {
   const [paused, setPaused] = useState(false);
   const reduceMotion = useReducedMotion();
+  const { t } = useT();
   const Icon = ICONS[item.variant];
   const accent = ACCENT[item.variant];
 
@@ -78,7 +80,7 @@ function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: (id: numbe
       <button
         type='button'
         onClick={() => onDismiss(item.id)}
-        aria-label='Dismiss notification'
+        aria-label={t('common.dismiss')}
         className='-m-1 rounded-md p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:bg-gray-700 dark:hover:text-gray-200'
       >
         <X className='h-4 w-4' aria-hidden />

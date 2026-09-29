@@ -200,9 +200,9 @@ export default function Analytics() {
             className='inline-flex items-center rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700'
           >
             {asTable ? (
-              <LineChartIcon className='mr-2 h-4 w-4' />
+              <LineChartIcon className='me-2 h-4 w-4' />
             ) : (
-              <Table2 className='mr-2 h-4 w-4' />
+              <Table2 className='me-2 h-4 w-4' />
             )}
             {asTable ? 'Charts' : 'Table'}
           </button>
@@ -212,7 +212,7 @@ export default function Analytics() {
             className='inline-flex items-center rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700'
           >
             <RefreshCw
-              className={`mr-2 h-4 w-4 ${q.isFetching ? 'animate-spin' : ''}`}
+              className={`me-2 h-4 w-4 ${q.isFetching ? 'animate-spin' : ''}`}
             />
             Refresh
           </button>
@@ -250,14 +250,14 @@ export default function Analytics() {
           </h2>
           <table className='w-full min-w-[420px] text-sm'>
             <thead>
-              <tr className='border-b border-gray-200 text-left text-gray-500 dark:border-gray-700'>
+              <tr className='border-b border-gray-200 text-start text-gray-500 dark:border-gray-700'>
                 <th scope='col' className='py-2 font-medium'>
                   Date
                 </th>
-                <th scope='col' className='py-2 text-right font-medium'>
+                <th scope='col' className='py-2 text-end font-medium'>
                   Revenue
                 </th>
-                <th scope='col' className='py-2 text-right font-medium'>
+                <th scope='col' className='py-2 text-end font-medium'>
                   Orders
                 </th>
               </tr>
@@ -268,10 +268,10 @@ export default function Analytics() {
                   <td className='py-2 text-gray-700 dark:text-gray-300'>
                     {p.date}
                   </td>
-                  <td className='py-2 text-right tabular-nums text-gray-900 dark:text-white'>
+                  <td className='py-2 text-end tabular-nums text-gray-900 dark:text-white'>
                     {money(p.revenue)}
                   </td>
-                  <td className='py-2 text-right tabular-nums text-gray-900 dark:text-white'>
+                  <td className='py-2 text-end tabular-nums text-gray-900 dark:text-white'>
                     {p.orders}
                   </td>
                 </tr>
