@@ -13,6 +13,7 @@ import {
   useUpdateStoreSettingsMutation,
 } from '../hooks/useAdminSettings';
 import { useToast } from '../components/ui/Toast';
+import { useT } from '../i18n/I18nProvider';
 
 const PROFILE_KEY = ['auth', 'profile'] as const;
 
@@ -22,6 +23,7 @@ export default function Settings() {
   const { theme, toggleTheme } = useTheme();
   const { can } = usePermissions();
   const toast = useToast();
+  const { t, tv, locale, formatNumber } = useT();
   const canEditStoreSettings = can('settings:write');
 
   const profileQ = useQuery({
@@ -107,9 +109,9 @@ export default function Settings() {
           prefix: invoicePrefix.trim().toUpperCase() || 'TV',
         },
       });
-      toast.success('Store settings updated.');
+      toast.success(t('settings.store.updated'));
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not update store settings'));
+      toast.error(errorMessage(err, t('settings.store.failed')));
     }
   }
 
@@ -118,7 +120,7 @@ export default function Settings() {
     setProfileMsg(null);
     setProfileErr(null);
     if (emailChanged && !profilePassword) {
-      setProfileErr('Enter your current password to change your email.');
+      setProfileErr(t('settings.account.needPassword'));
       return;
     }
     setProfileSaving(true);
@@ -130,9 +132,9 @@ export default function Settings() {
       });
       await qc.invalidateQueries({ queryKey: PROFILE_KEY });
       setProfilePassword('');
-      setProfileMsg('Profile updated.');
+      setProfileMsg(t('settings.account.updated'));
     } catch (err) {
-      setProfileErr(errorMessage(err, 'Could not update profile'));
+      setProfileErr(errorMessage(err, t('settings.account.failed')));
     } finally {
       setProfileSaving(false);
     }
@@ -144,15 +146,15 @@ export default function Settings() {
     setPasswordErr(null);
 
     if (!currentPassword) {
-      setPasswordErr('Enter your current password.');
+      setPasswordErr(t('settings.password.needCurrent'));
       return;
     }
     if (newPassword.length < 8) {
-      setPasswordErr('Password must be at least 8 characters.');
+      setPasswordErr(t('settings.password.tooShort'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPasswordErr('Passwords do not match.');
+      setPasswordErr(t('settings.password.mismatch'));
       return;
     }
 
@@ -163,10 +165,10 @@ export default function Settings() {
       // now instead of being logged out silently at the next token refresh.
       clearAuthSession();
       qc.clear();
-      toast.success('Password updated. Please sign in with your new password.');
+      toast.success(t('settings.password.updated'));
       navigate('/login');
     } catch (err) {
-      setPasswordErr(errorMessage(err, 'Could not update password'));
+      setPasswordErr(errorMessage(err, t('settings.password.failed')));
       setPasswordSaving(false);
     }
   }
@@ -178,7 +180,7 @@ export default function Settings() {
     navigate('/login');
   }
 
-  const apiBase = viteEnv.VITE_API_URL || '/api (Vite proxy)';
+  const apiBase = viteEnv.VITE_API_URL || t('settings.session.apiProxy');
 
   return (
     <motion.div
@@ -187,23 +189,22 @@ export default function Settings() {
       transition={{ duration: 0.4 }}
     >
       <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-white">
-        Settings
+        {t('settings.title')}
       </h1>
       <p className="mb-8 text-sm text-gray-600 dark:text-gray-400">
-        Account, appearance, and session — wired to the live API where
-        available.
+        {t('settings.subtitle')}
       </p>
 
       {profileQ.isLoading && (
         <div className="mb-6 flex items-center gap-2 text-sm text-gray-500">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Loading profile…
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+          {t('settings.loadingProfile')}
         </div>
       )}
 
       {profileQ.isError && (
         <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-          {errorMessage(profileQ.error, 'Failed to load profile')}
+          {errorMessage(profileQ.error, t('settings.profileLoadFailed'))}
         </div>
       )}
 
@@ -211,15 +212,15 @@ export default function Settings() {
         {/* Account */}
         <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="mb-4 flex items-center">
-            <User className="me-2 h-5 w-5 text-blue-500" />
+            <User className="me-2 h-5 w-5 text-blue-500" aria-hidden />
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Account
+              {t('settings.account.title')}
             </h2>
           </div>
           <form onSubmit={saveProfile} className="space-y-4">
             <div>
               <label htmlFor="settings-username" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Username
+                {t('settings.account.username')}
               </label>
               <input
                 id="settings-username"
@@ -231,11 +232,12 @@ export default function Settings() {
             </div>
             <div>
               <label htmlFor="settings-email" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Email
+                {t('settings.account.email')}
               </label>
               <input
                 id="settings-email"
                 type="email"
+                dir="ltr"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -245,7 +247,7 @@ export default function Settings() {
             {emailChanged && (
               <label className="block">
                 <span className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Current password (required to change your email)
+                  {t('settings.account.currentPassword')}
                 </span>
                 <input
                   type="password"
@@ -271,8 +273,8 @@ export default function Settings() {
               disabled={profileSaving || profileQ.isLoading}
               className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
             >
-              <Save className="me-2 h-4 w-4" />
-              {profileSaving ? 'Saving…' : 'Save profile'}
+              <Save className="me-2 h-4 w-4" aria-hidden />
+              {profileSaving ? t('common.saving') : t('settings.account.save')}
             </button>
           </form>
         </section>
@@ -280,31 +282,32 @@ export default function Settings() {
         {/* Appearance */}
         <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="mb-4 flex items-center">
-            <Palette className="me-2 h-5 w-5 text-blue-500" />
+            <Palette className="me-2 h-5 w-5 text-blue-500" aria-hidden />
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Appearance
+              {t('settings.appearance.title')}
             </h2>
           </div>
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-gray-900 dark:text-white">
-                Dark mode
+                {t('settings.appearance.darkMode')}
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Stored locally in this browser
+                {t('settings.appearance.darkModeHint')}
               </p>
             </div>
             <button
               type="button"
               onClick={toggleTheme}
               aria-pressed={theme === 'dark'}
+              aria-label={t('settings.appearance.darkMode')}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                 theme === 'dark' ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
               }`}
             >
               <span
                 className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                  theme === 'dark' ? 'translate-x-5' : 'translate-x-0.5'
+                  theme === 'dark' ? 'translate-x-5 rtl:-translate-x-5' : 'translate-x-0.5 rtl:-translate-x-0.5'
                 }`}
               />
             </button>
@@ -315,25 +318,25 @@ export default function Settings() {
         {canEditStoreSettings && (
           <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
             <div className="mb-4 flex items-center">
-              <Store className="me-2 h-5 w-5 text-blue-500" />
+              <Store className="me-2 h-5 w-5 text-blue-500" aria-hidden />
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                Store settings
+                {t('settings.store.title')}
               </h2>
             </div>
             <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
-              Shipping rates and tax rate applied at checkout, storefront-wide.
+              {t('settings.store.subtitle')}
             </p>
 
             {storeSettingsQ.isLoading && (
               <div className="mb-4 flex items-center gap-2 text-sm text-gray-500">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading store settings…
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                {t('settings.store.loading')}
               </div>
             )}
 
             {storeSettingsQ.isError && (
               <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-                {errorMessage(storeSettingsQ.error, 'Failed to load store settings')}
+                {errorMessage(storeSettingsQ.error, t('settings.store.loadFailed'))}
               </div>
             )}
 
@@ -341,22 +344,24 @@ export default function Settings() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label htmlFor="settings-store-name" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Store name
+                    {t('settings.store.name')}
                   </label>
                   <input
                     id="settings-store-name"
                     value={storeName}
+                    dir="auto"
                     onChange={(e) => setStoreName(e.target.value)}
                     className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                   />
                 </div>
                 <div>
                   <label htmlFor="settings-contact-email" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Contact email
+                    {t('settings.store.contactEmail')}
                   </label>
                   <input
                     id="settings-contact-email"
                     type="email"
+                    dir="ltr"
                     value={contactEmail}
                     onChange={(e) => setContactEmail(e.target.value)}
                     className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
@@ -364,7 +369,7 @@ export default function Settings() {
                 </div>
                 <div>
                   <label htmlFor="settings-standard-shipping" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Standard shipping ($)
+                    {t('settings.store.standardShipping')}
                   </label>
                   <input
                     id="settings-standard-shipping"
@@ -378,7 +383,7 @@ export default function Settings() {
                 </div>
                 <div>
                   <label htmlFor="settings-express-shipping" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Express shipping ($)
+                    {t('settings.store.expressShipping')}
                   </label>
                   <input
                     id="settings-express-shipping"
@@ -392,7 +397,7 @@ export default function Settings() {
                 </div>
                 <div>
                   <label htmlFor="settings-free-shipping-threshold-0-disabled" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Free shipping threshold ($, 0 = disabled)
+                    {t('settings.store.freeThreshold')}
                   </label>
                   <input
                     id="settings-free-shipping-threshold-0-disabled"
@@ -406,7 +411,7 @@ export default function Settings() {
                 </div>
                 <div>
                   <label htmlFor="settings-tax-rate" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Tax rate (%)
+                    {t('settings.store.taxRate')}
                   </label>
                   <input
                     id="settings-tax-rate"
@@ -423,15 +428,15 @@ export default function Settings() {
 
               <fieldset className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
                 <legend className="px-1 text-sm font-semibold text-gray-900 dark:text-white">
-                  Invoices
+                  {t('settings.store.invoices')}
                 </legend>
                 <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
-                  Printed as the seller on every invoice. Leave the legal name empty to use the store name.
+                  {t('settings.store.invoicesHint')}
                 </p>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <label htmlFor="settings-invoice-legal-name" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Legal business name
+                      {t('settings.store.legalName')}
                     </label>
                     <input
                       id="settings-invoice-legal-name"
@@ -444,19 +449,20 @@ export default function Settings() {
                   </div>
                   <div>
                     <label htmlFor="settings-invoice-tax-id" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Tax / VAT registration number
+                      {t('settings.store.taxId')}
                     </label>
                     <input
                       id="settings-invoice-tax-id"
                       maxLength={60}
                       value={invoiceTaxId}
+                      dir="ltr"
                       onChange={(e) => setInvoiceTaxId(e.target.value)}
                       className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                     />
                   </div>
                   <div className="sm:col-span-2">
                     <label htmlFor="settings-invoice-address" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Business address
+                      {t('settings.store.address')}
                     </label>
                     <textarea
                       id="settings-invoice-address"
@@ -470,20 +476,22 @@ export default function Settings() {
                   </div>
                   <div>
                     <label htmlFor="settings-invoice-prefix" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Invoice number prefix
+                      {t('settings.store.prefix')}
                     </label>
                     <input
                       id="settings-invoice-prefix"
                       maxLength={10}
                       pattern="[A-Za-z0-9]{1,10}"
                       value={invoicePrefix}
+                      dir="ltr"
                       onChange={(e) => setInvoicePrefix(e.target.value)}
                       aria-describedby="settings-invoice-prefix-help"
                       className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 uppercase text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                     />
                     <p id="settings-invoice-prefix-help" className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      Letters and digits, e.g. {(invoicePrefix || 'TV').toUpperCase()}-{new Date().getFullYear()}-000123.
-                      Issued numbers never change.
+                      {t('settings.store.prefixHint', {
+                        example: `${(invoicePrefix || 'TV').toUpperCase()}-${new Date().getFullYear()}-000123`,
+                      })}
                     </p>
                   </div>
                 </div>
@@ -493,8 +501,8 @@ export default function Settings() {
                 disabled={updateStoreSettingsMut.isPending || storeSettingsQ.isLoading}
                 className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
               >
-                <Save className="me-2 h-4 w-4" />
-                {updateStoreSettingsMut.isPending ? 'Saving…' : 'Save store settings'}
+                <Save className="me-2 h-4 w-4" aria-hidden />
+                {updateStoreSettingsMut.isPending ? t('common.saving') : t('settings.store.save')}
               </button>
             </form>
           </section>
@@ -503,19 +511,18 @@ export default function Settings() {
         {/* Password */}
         <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="mb-4 flex items-center">
-            <Shield className="me-2 h-5 w-5 text-blue-500" />
+            <Shield className="me-2 h-5 w-5 text-blue-500" aria-hidden />
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Password
+              {t('settings.password.title')}
             </h2>
           </div>
           <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
-            Changing your password signs you out of every device, including
-            this one.
+            {t('settings.password.hint')}
           </p>
           <form onSubmit={savePassword} className="space-y-4">
             <div>
               <label htmlFor="settings-current-password" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Current password
+                {t('settings.password.current')}
               </label>
               <input
                 id="settings-current-password"
@@ -528,7 +535,7 @@ export default function Settings() {
             </div>
             <div>
               <label htmlFor="settings-new-password" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                New password
+                {t('settings.password.new')}
               </label>
               <input
                 id="settings-new-password"
@@ -536,13 +543,13 @@ export default function Settings() {
                 autoComplete="new-password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="At least 8 characters"
+                placeholder={t('settings.password.newPlaceholder')}
                 className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
               />
             </div>
             <div>
               <label htmlFor="settings-confirm-new-password" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Confirm new password
+                {t('settings.password.confirm')}
               </label>
               <input
                 id="settings-confirm-new-password"
@@ -568,7 +575,7 @@ export default function Settings() {
               disabled={passwordSaving || !user}
               className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
             >
-              {passwordSaving ? 'Updating…' : 'Update password'}
+              {passwordSaving ? t('settings.password.updating') : t('settings.password.update')}
             </button>
           </form>
         </section>
@@ -576,31 +583,31 @@ export default function Settings() {
         {/* Session / env */}
         <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
-            Session
+            {t('settings.session.title')}
           </h2>
           <dl className="mb-4 space-y-2 text-sm">
             <div className="flex justify-between gap-4">
-              <dt className="text-gray-500">Role cookie</dt>
+              <dt className="text-gray-500">{t('settings.session.roleCookie')}</dt>
               <dd className="font-medium text-gray-900 dark:text-white">
-                {getAuthRole() || '—'}
+                {getAuthRole() ? tv('role', getAuthRole()) : '—'}
               </dd>
             </div>
             <div className="flex justify-between gap-4">
-              <dt className="text-gray-500">Roles</dt>
+              <dt className="text-gray-500">{t('settings.session.roles')}</dt>
               <dd className="font-medium text-gray-900 dark:text-white">
-                {(user?.roles || []).join(', ') || '—'}
+                {(user?.roles || []).map((r) => tv('role', r)).join(locale === 'ar' ? '، ' : ', ') || '—'}
               </dd>
             </div>
             <div className="flex justify-between gap-4">
-              <dt className="text-gray-500">API base</dt>
-              <dd className="font-mono text-xs text-gray-900 dark:text-white">
+              <dt className="text-gray-500">{t('settings.session.apiBase')}</dt>
+              <dd className="font-mono text-xs text-gray-900 dark:text-white" dir="ltr">
                 {apiBase}
               </dd>
             </div>
             {permissions.length > 0 && (
               <div>
-                <dt className="mb-1 text-gray-500">Permissions</dt>
-                <dd className="flex flex-wrap gap-1">
+                <dt className="mb-1 text-gray-500">{t('settings.session.permissions')}</dt>
+                <dd className="flex flex-wrap gap-1" dir="ltr">
                   {permissions.slice(0, 12).map((p) => (
                     <span
                       key={p}
@@ -611,7 +618,7 @@ export default function Settings() {
                   ))}
                   {permissions.length > 12 && (
                     <span className="text-xs text-gray-500">
-                      +{permissions.length - 12} more
+                      {t('settings.session.more', { count: formatNumber(permissions.length - 12) })}
                     </span>
                   )}
                 </dd>
@@ -623,8 +630,8 @@ export default function Settings() {
             onClick={() => void handleLogout()}
             className="inline-flex items-center rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/40"
           >
-            <LogOut className="me-2 h-4 w-4" />
-            Log out
+            <LogOut className="me-2 h-4 w-4 rtl:-scale-x-100" aria-hidden />
+            {t('settings.session.logout')}
           </button>
         </section>
       </div>
