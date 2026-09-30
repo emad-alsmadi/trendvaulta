@@ -29,12 +29,13 @@ const resolvePublicBaseUrl = (req) => {
  */
 const uploadImage = asyncHandler(async (req, res) => {
   if (!req.file) {
-    return res.status(400).json({ message: 'No image file was uploaded' });
+    return res.status(400).json({ code: 'UPLOAD_MISSING', message: 'No image file was uploaded' });
   }
 
   const { buffer, originalname, mimetype } = req.file;
   if (!matchesImageSignature(buffer, mimetype)) {
     return res.status(400).json({
+      code: 'UPLOAD_INVALID_IMAGE',
       message: 'This file is not a valid JPEG, PNG, WEBP, or GIF image',
     });
   }

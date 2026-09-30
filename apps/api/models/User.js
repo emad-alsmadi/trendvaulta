@@ -123,6 +123,13 @@ const UserSchema = new mongoose.Schema(
       default: false,
       index: true,
     },
+    // Language of this customer's emails (plan P1-02): the storefront
+    // language they last used while signed in (PUT /auth/locale).
+    locale: {
+      type: String,
+      enum: ['en', 'ar'],
+      default: 'en',
+    },
     // Email ownership (utils/emailVerification.js). No default on purpose:
     // accounts created before verification existed have no such field and
     // count as verified (grandfathered); new sign-ups and email changes set

@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler');
+const { validationBody } = require('../utils/errors');
 const {
   StoreSettings,
   SINGLETON_ID,
@@ -28,7 +29,7 @@ const getSettings = asyncHandler(async (_req, res) => {
 const updateSettings = asyncHandler(async (req, res) => {
   const { error, value } = validateUpdateStoreSettings(req.body || {});
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   const update = { ...value, updatedBy: req.user?.id ?? req.user?._id ?? null };

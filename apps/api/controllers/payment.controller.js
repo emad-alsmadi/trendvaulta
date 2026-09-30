@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler');
+const { validationBody } = require('../utils/errors');
 const mongoose = require('mongoose');
 const logger = require('../utils/logger');
 const {
@@ -65,7 +66,7 @@ function getPaymentsSetupStatus(_req, res) {
 const quoteOrder = asyncHandler(async (req, res) => {
   const { error, value } = validateQuote(req.body || {});
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   const { items, couponCode, shippingAddress } = value;
@@ -130,7 +131,7 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
 
   const { error, value } = validateCreateOrder(req.body);
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   const { items, shippingAddress, couponCode } = value;
@@ -167,11 +168,11 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
     const coupon = await loadValidCouponByCode(couponCode);
     const result = calculateCouponDiscount(coupon, itemsPrice);
     if (!result.valid) {
-      return res.status(400).json({ message: result.message });
+      return res.status(400).json({ code: result.code, ...(result.params && { params: result.params }), message: result.message });
     }
     const usage = await checkCouponUsage(coupon, { userId, email: guestEmail });
     if (!usage.valid) {
-      return res.status(400).json({ message: usage.message });
+      return res.status(400).json({ code: usage.code, ...(usage.params && { params: usage.params }), message: usage.message });
     }
     discountAmount = result.discountAmount;
     couponId = coupon._id;
@@ -196,6 +197,8 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
   const order = await Order.create({
     user: userId,
     guestEmail,
+    // A guest's emails follow the storefront language (P1-02)
+    locale: value.locale || 'en',
     items: normalizedItems,
     shippingAddress: {
       ...shippingAddress,
@@ -873,12 +876,12 @@ const verifyPaymentStatus = asyncHandler(async (req, res) => {
 
   const { orderId, guestToken } = req.body || {};
   if (!orderId || !mongoose.isValidObjectId(orderId)) {
-    return res.status(400).json({ message: 'Order ID is required' });
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Order ID is required' });
   }
 
   const order = await Order.findById(orderId);
   if (!order) {
-    return res.status(404).json({ message: 'Order not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
 
   const isOwner = Boolean(userId && order.user && String(order.user) === String(userId));

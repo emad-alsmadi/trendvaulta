@@ -20,7 +20,7 @@ const getProductQA = asyncHandler(async (req, res) => {
 
   const product = await Product.findById(id).select('_id').lean();
   if (!product) {
-    return res.status(404).json({ message: 'Product not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });
   }
 
   const qa = await ProductQA.find({
@@ -104,7 +104,7 @@ const getProductQAById = asyncHandler(async (req, res) => {
     .lean();
 
   if (!qa) {
-    return res.status(404).json({ message: 'Q&A not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Q&A not found' });
   }
 
   res.status(200).json({
@@ -138,7 +138,7 @@ const createProductQuestion = asyncHandler(async (req, res) => {
     .select('_id')
     .lean();
   if (!product) {
-    return res.status(404).json({ message: 'Product not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });
   }
 
   // A double-submit (or a retry) shouldn't queue the same question twice.
@@ -183,7 +183,7 @@ const answerProductQuestion = asyncHandler(async (req, res) => {
 
   const qa = await ProductQA.findById(id);
   if (!qa) {
-    return res.status(404).json({ message: 'Q&A not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Q&A not found' });
   }
 
   if (answer !== undefined) {
@@ -249,7 +249,7 @@ const markHelpful = asyncHandler(async (req, res) => {
     qa = await ProductQA.findOne({ _id: id, approved: true }, counts);
   }
   if (!qa) {
-    return res.status(404).json({ message: 'Q&A not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Q&A not found' });
   }
 
   res.status(200).json({
@@ -267,7 +267,7 @@ const deleteProductQA = asyncHandler(async (req, res) => {
 
   const qa = await ProductQA.findById(id);
   if (!qa) {
-    return res.status(404).json({ message: 'Q&A not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Q&A not found' });
   }
 
   await ProductQA.findByIdAndDelete(id);

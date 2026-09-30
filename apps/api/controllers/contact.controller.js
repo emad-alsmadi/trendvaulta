@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler');
+const { validationBody } = require('../utils/errors');
 const mongoose = require('mongoose');
 const {
   ContactMessage,
@@ -43,7 +44,7 @@ const createContactMessage = asyncHandler(async (req, res) => {
   });
 
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   const doc = await ContactMessage.create({
@@ -144,12 +145,12 @@ const getAdminContactMessages = asyncHandler(async (req, res) => {
  */
 const updateContactMessage = asyncHandler(async (req, res) => {
   if (!mongoose.isValidObjectId(req.params.id)) {
-    return res.status(404).json({ message: 'Message not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Message not found' });
   }
 
   const { error, value } = validateUpdateContactMessage(req.body || {});
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   const $set = {};
@@ -168,7 +169,7 @@ const updateContactMessage = asyncHandler(async (req, res) => {
     .populate('handledBy', 'username email')
     .lean();
   if (!data) {
-    return res.status(404).json({ message: 'Message not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Message not found' });
   }
 
   res.status(200).json({ data });

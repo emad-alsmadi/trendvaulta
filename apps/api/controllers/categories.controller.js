@@ -181,7 +181,7 @@ const updateCategory = asyncHandler(async (req, res) => {
     { new: true, runValidators: true },
   );
   if (!category) {
-    return res.status(404).json({ message: 'Category not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Category not found' });
   }
   res.status(200).json({ message: 'Category updated', data: category });
 });
@@ -198,10 +198,11 @@ const updateCategory = asyncHandler(async (req, res) => {
 const deleteCategory = asyncHandler(async (req, res) => {
   const category = await Category.findById(req.params.id);
   if (!category) {
-    return res.status(404).json({ message: 'Category not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Category not found' });
   }
   if (!category.parent) {
     return res.status(400).json({
+      code: 'TOP_CATEGORY_LOCKED',
       message: 'Top-level categories cannot be deleted. Hide it instead.',
     });
   }
@@ -211,6 +212,8 @@ const deleteCategory = asyncHandler(async (req, res) => {
   });
   if (inUse > 0) {
     return res.status(409).json({
+      code: 'CATEGORY_IN_USE',
+      params: { count: inUse },
       message: `${inUse} product${inUse === 1 ? ' uses' : 's use'} this subcategory. Move them first, or hide it instead.`,
     });
   }

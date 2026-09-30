@@ -55,12 +55,12 @@ const trackRecentlyViewed = asyncHandler(async (req, res) => {
   const productId = req.body?.productId;
 
   if (!productId || typeof productId !== 'string') {
-    return res.status(400).json({ message: 'productId is required' });
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'productId is required' });
   }
 
   const product = await Product.findById(productId).select('_id').lean();
   if (!product) {
-    return res.status(404).json({ message: 'Product not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });
   }
 
   let doc = await RecentlyViewed.findOne({ user: userId });

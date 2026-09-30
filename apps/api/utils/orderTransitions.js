@@ -33,15 +33,17 @@ function getAllowedNextStatuses(currentStatus) {
  */
 function canTransitionOrderStatus(fromStatus, toStatus) {
   if (!ORDER_STATUSES.includes(toStatus)) {
-    return { ok: false, message: `Invalid status: ${toStatus}` };
+    return { ok: false, code: 'INVALID_STATUS', message: `Invalid status: ${toStatus}` };
   }
   if (fromStatus === toStatus) {
-    return { ok: false, message: 'Order already has this status' };
+    return { ok: false, code: 'STATUS_UNCHANGED', message: 'Order already has this status' };
   }
   const allowed = getAllowedNextStatuses(fromStatus);
   if (!allowed.includes(toStatus)) {
     return {
       ok: false,
+      code: 'TRANSITION_NOT_ALLOWED',
+      params: { from: fromStatus, to: toStatus },
       message: `Cannot transition from '${fromStatus}' to '${toStatus}'`,
     };
   }
@@ -68,14 +70,16 @@ function canCustomerCancel(order) {
   if (order.status === 'shipped' || order.status === 'delivered') {
     return {
       ok: false,
+      code: 'ORDER_ALREADY_SHIPPED',
       message: 'This order has already shipped. You can request a return once it is delivered.',
     };
   }
   if (order.status === 'canceled' || order.status === 'refunded') {
-    return { ok: false, message: 'This order is already canceled.' };
+    return { ok: false, code: 'ORDER_ALREADY_CANCELED', message: 'This order is already canceled.' };
   }
   return {
     ok: false,
+    code: 'CANCEL_NOT_ALLOWED',
     message: 'This order can no longer be canceled online. Please contact support.',
   };
 }

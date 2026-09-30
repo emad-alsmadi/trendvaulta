@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler');
+const { validationBody } = require('../utils/errors');
 const {
   Review,
   validateCreateReview,
@@ -70,13 +71,13 @@ const createReview = asyncHandler(async (req, res) => {
   // Validate input
   const error = validateCreateReview({ product, rating, comment });
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   // Verify product exists
   const productDoc = await Product.findById(product);
   if (!productDoc) {
-    return res.status(404).json({ message: 'Product not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });
   }
 
   // Check if user already reviewed this product
@@ -147,13 +148,13 @@ const updateReview = asyncHandler(async (req, res) => {
   // Validate input
   const error = validateUpdateReview({ rating, comment });
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   // Find review and verify ownership
   const review = await Review.findById(reviewId);
   if (!review) {
-    return res.status(404).json({ message: 'Review not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Review not found' });
   }
 
   if (review.user.toString() !== userId) {
@@ -193,7 +194,7 @@ const deleteReview = asyncHandler(async (req, res) => {
   // Find review and verify ownership
   const review = await Review.findById(reviewId);
   if (!review) {
-    return res.status(404).json({ message: 'Review not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Review not found' });
   }
 
   if (review.user.toString() !== userId) {
@@ -335,7 +336,7 @@ const getAdminReviews = asyncHandler(async (req, res) => {
 const replyToReview = asyncHandler(async (req, res) => {
   const error = validateReviewReply(req.body);
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
   const review = await Review.findByIdAndUpdate(
     req.params.reviewId,
@@ -354,7 +355,7 @@ const replyToReview = asyncHandler(async (req, res) => {
     .populate('product', 'title cover sku')
     .lean();
   if (!review) {
-    return res.status(404).json({ message: 'Review not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Review not found' });
   }
   res.status(200).json({ message: 'Reply saved', data: review });
 });
@@ -371,7 +372,7 @@ const deleteReviewReply = asyncHandler(async (req, res) => {
     { new: true },
   ).lean();
   if (!review) {
-    return res.status(404).json({ message: 'Review not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Review not found' });
   }
   res.status(200).json({ message: 'Reply removed' });
 });
@@ -385,7 +386,7 @@ const adminDeleteReview = asyncHandler(async (req, res) => {
   const { reviewId } = req.params;
   const review = await Review.findById(reviewId);
   if (!review) {
-    return res.status(404).json({ message: 'Review not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Review not found' });
   }
 
   const productId = review.product;

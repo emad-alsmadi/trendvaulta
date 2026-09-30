@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler');
+const { validationBody } = require('../utils/errors');
 const {
   Subscriber,
   validateSubscribe,
@@ -41,7 +42,7 @@ const subscribe = asyncHandler(async (req, res) => {
   });
 
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   const email = String(value.email).toLowerCase().trim();

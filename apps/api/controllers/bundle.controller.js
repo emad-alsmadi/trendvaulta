@@ -22,7 +22,7 @@ const getProductBundles = asyncHandler(async (req, res) => {
   const primary = await Product.findById(req.params.id);
 
   if (!primary || primary.isActive === false) {
-    return res.status(404).json({ message: 'Product not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });
   }
 
   // Try to find a configured bundle for this product
@@ -155,7 +155,7 @@ const getBundleById = asyncHandler(async (req, res) => {
     .lean();
 
   if (!bundle) {
-    return res.status(404).json({ message: 'Bundle not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Bundle not found' });
   }
 
   res.status(200).json({
@@ -186,14 +186,14 @@ const createBundle = asyncHandler(async (req, res) => {
   // Validate primary product exists
   const primary = await Product.findById(primaryProduct);
   if (!primary) {
-    return res.status(404).json({ message: 'Primary product not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Primary product not found' });
   }
 
   // Validate all items exist
   const productIds = items.map((item) => item.product);
   const products = await Product.find({ _id: { $in: productIds } });
   if (products.length !== productIds.length) {
-    return res.status(400).json({ message: 'One or more products not found' });
+    return res.status(400).json({ code: 'BUNDLE_PRODUCTS_MISSING', message: 'One or more products not found' });
   }
 
   const bundle = await Bundle.create({
@@ -228,13 +228,13 @@ const updateBundle = asyncHandler(async (req, res) => {
 
   const bundle = await Bundle.findById(id);
   if (!bundle) {
-    return res.status(404).json({ message: 'Bundle not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Bundle not found' });
   }
 
   if (primaryProduct !== undefined) {
     const primary = await Product.findById(primaryProduct);
     if (!primary) {
-      return res.status(404).json({ message: 'Primary product not found' });
+      return res.status(404).json({ code: 'NOT_FOUND', message: 'Primary product not found' });
     }
     bundle.primaryProduct = primaryProduct;
   }
@@ -250,7 +250,7 @@ const updateBundle = asyncHandler(async (req, res) => {
     if (products.length !== productIds.length) {
       return res
         .status(400)
-        .json({ message: 'One or more products not found' });
+        .json({ code: 'BUNDLE_PRODUCTS_MISSING', message: 'One or more products not found' });
     }
     bundle.items = items;
   }
@@ -284,7 +284,7 @@ const deleteBundle = asyncHandler(async (req, res) => {
 
   const bundle = await Bundle.findById(id);
   if (!bundle) {
-    return res.status(404).json({ message: 'Bundle not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Bundle not found' });
   }
 
   // Soft delete - deactivate

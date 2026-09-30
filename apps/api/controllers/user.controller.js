@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const { validationBody } = require('../utils/errors');
 const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcryptjs');
 const { User, validateUpdateUser } = require('../models/User');
@@ -100,7 +101,7 @@ const getUserById = asyncHandler(async (req, res) => {
   if (user) {
     res.status(200).json(user);
   } else {
-    res.status(404).json({ message: 'User not found' });
+    res.status(404).json({ code: 'NOT_FOUND', message: 'User not found' });
   }
 });
 
@@ -116,7 +117,7 @@ const getUserById = asyncHandler(async (req, res) => {
 const updateUser = asyncHandler(async (req, res) => {
   const { error } = validateUpdateUser(req.body);
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   const update = {};
@@ -152,6 +153,7 @@ const updateUser = asyncHandler(async (req, res) => {
       }
       if (await isLastAdmin(req.params.id)) {
         return res.status(400).json({
+          code: 'LAST_ADMIN',
           message: 'This is the last active admin. Make someone else an admin first.',
         });
       }
@@ -163,6 +165,7 @@ const updateUser = asyncHandler(async (req, res) => {
     // through /password/change, which checks the current one first.
     if (String(req.params.id) === String(req.user?.id)) {
       return res.status(400).json({
+        code: 'OWN_PASSWORD_VIA_SETTINGS',
         message: 'Change your own password from Settings (current password required)',
       });
     }
@@ -177,7 +180,7 @@ const updateUser = asyncHandler(async (req, res) => {
   ).select('-password +adminNotes');
 
   if (!updatedUser) {
-    return res.status(404).json({ message: 'User not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'User not found' });
   }
 
   // Disabling, a new password or a role change ends every session now:
@@ -201,15 +204,16 @@ const updateUser = asyncHandler(async (req, res) => {
  */
 const deleteUser = asyncHandler(async (req, res) => {
   if (String(req.params.id) === String(req.user?.id)) {
-    return res.status(400).json({ message: 'You cannot delete your own account' });
+    return res.status(400).json({ code: 'CANNOT_DELETE_SELF', message: 'You cannot delete your own account' });
   }
 
   const user = await User.findById(req.params.id).select('email roles').lean();
   if (!user) {
-    return res.status(404).json({ message: 'User not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'User not found' });
   }
   if (user.roles?.includes('admin') && (await isLastAdmin(user._id))) {
     return res.status(400).json({
+      code: 'LAST_ADMIN',
       message: 'This is the last active admin. Make someone else an admin first.',
     });
   }

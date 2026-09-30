@@ -1,5 +1,5 @@
 const Joi = require('joi');
-const { ValidationError } = require('../utils/errors');
+const { ValidationError, joiDetails } = require('../utils/errors');
 
 /**
  * Validation middleware factory
@@ -13,11 +13,7 @@ const validate = (schema) => {
     });
 
     if (error) {
-      const details = error.details.map((detail) => ({
-        field: detail.path.join('.'),
-        message: detail.message,
-      }));
-      throw new ValidationError('Validation failed', details);
+      throw new ValidationError('Validation failed', joiDetails(error));
     }
 
     // Replace request body with validated value

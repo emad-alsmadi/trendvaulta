@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler');
+const { validationBody } = require('../utils/errors');
 const mongoose = require('mongoose');
 const logger = require('../utils/logger');
 const Joi = require('joi');
@@ -68,6 +69,7 @@ const createOrder = asyncHandler(async (req, res) => {
 
   if (stripeKey && !allowDirectDev) {
     return res.status(400).json({
+      code: 'DIRECT_ORDER_DISABLED',
       message:
         'Direct order creation is disabled when Stripe is configured. Use checkout to pay securely. For local development you may set DEV_ALLOW_DIRECT_ORDERS=true on the backend.',
     });
@@ -75,12 +77,12 @@ const createOrder = asyncHandler(async (req, res) => {
 
   const userId = req.user?.id ?? req.user?._id;
   if (!userId) {
-    return res.status(401).json({ message: 'Token is not valid!' });
+    return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
   }
 
   const { error, value } = validateCreateOrder(req.body);
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   const { items, shippingAddress, couponCode } = value;
@@ -99,11 +101,11 @@ const createOrder = asyncHandler(async (req, res) => {
     const coupon = await loadValidCouponByCode(couponCode);
     const result = calculateCouponDiscount(coupon, itemsPrice);
     if (!result.valid) {
-      return res.status(400).json({ message: result.message });
+      return res.status(400).json({ code: result.code, ...(result.params && { params: result.params }), message: result.message });
     }
     const usage = await checkCouponUsage(coupon, userId);
     if (!usage.valid) {
-      return res.status(400).json({ message: usage.message });
+      return res.status(400).json({ code: usage.code, ...(usage.params && { params: usage.params }), message: usage.message });
     }
     discountAmount = result.discountAmount;
     couponId = coupon._id;
@@ -151,7 +153,7 @@ const createOrder = asyncHandler(async (req, res) => {
 const getMyOrders = asyncHandler(async (req, res) => {
   const userId = req.user?.id ?? req.user?._id;
   if (!userId) {
-    return res.status(401).json({ message: 'Token is not valid!' });
+    return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
   }
 
   const orders = await Order.find({ user: userId })
@@ -173,7 +175,7 @@ function returnEligibility(order) {
 const getOrderById = asyncHandler(async (req, res) => {
   const userId = req.user?.id ?? req.user?._id;
   if (!userId) {
-    return res.status(401).json({ message: 'Token is not valid!' });
+    return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
   }
 
   const isStaff =
@@ -186,7 +188,7 @@ const getOrderById = asyncHandler(async (req, res) => {
 
   const order = await Order.findOne(query).lean();
   if (!order) {
-    return res.status(404).json({ message: 'Order not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
 
   const serialized = serializeOrder(order);
@@ -322,12 +324,12 @@ const updateOrderTracking = asyncHandler(async (req, res) => {
   });
   const { error, value } = schema.validate(req.body || {});
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   const order = await Order.findById(req.params.id);
   if (!order) {
-    return res.status(404).json({ message: 'Order not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
 
   const hadTrackingNumber = Boolean(order.trackingNumber);
@@ -396,18 +398,18 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   });
   const { error, value } = schema.validate(req.body || {});
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   // Reassigned to the claimed (post-transition) document below.
   let order = await Order.findById(req.params.id);
   if (!order) {
-    return res.status(404).json({ message: 'Order not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
 
   const transition = canTransitionOrderStatus(order.status, value.status);
   if (!transition.ok) {
-    return res.status(400).json({ message: transition.message });
+    return res.status(400).json({ code: transition.code, ...(transition.params && { params: transition.params }), message: transition.message });
   }
 
   const paymentCaptured =
@@ -415,6 +417,7 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
 
   if (value.status === 'paid' && order.paymentStatus !== 'paid') {
     return res.status(400).json({
+      code: 'ORDER_NOT_PAID',
       message:
         'This order has not been paid. Payment status is set by Stripe only.',
     });
@@ -422,6 +425,7 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
 
   if (value.status === 'refunded' && !paymentCaptured) {
     return res.status(400).json({
+      code: 'NO_PAYMENT_TO_REFUND',
       message: 'This order has no captured payment to refund',
     });
   }
@@ -430,6 +434,7 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   if (value.status === 'canceled' && order.status === 'pending') {
     if (order.paymentStatus === 'paid') {
       return res.status(400).json({
+        code: 'CANCEL_PAID_PENDING',
         message: 'Cannot cancel a paid order from pending state',
       });
     }
@@ -458,6 +463,7 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   );
   if (!claimed) {
     return res.status(409).json({
+      code: 'STALE_UPDATE',
       message: 'This order was just updated. Refresh and try again.',
     });
   }
@@ -485,6 +491,7 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
       );
       if (stockErr?.statusCode !== 409) throw stockErr;
       return res.status(409).json({
+        code: 'OUT_OF_STOCK_AFTER_PAYMENT',
         message: `${stockErr.message}. Restock the product or refund the order.`,
       });
     }
@@ -649,7 +656,7 @@ const getGuestOrder = asyncHandler(async (req, res) => {
   const { orderId, token } = req.body || {};
   const order = mongoose.isValidObjectId(orderId) ? await Order.findById(orderId) : null;
   if (!isValidGuestToken(order, token)) {
-    return res.status(404).json({ message: 'Order not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
   res.status(200).json({
     ...serializeOrder(order),
@@ -662,18 +669,18 @@ const getGuestOrder = asyncHandler(async (req, res) => {
 const cancelOrder = asyncHandler(async (req, res) => {
   const guestToken = req.body?.guestToken;
   if (!req.user?.id && !guestToken) {
-    return res.status(401).json({ message: 'Token is not valid!' });
+    return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
   }
   // Owner- or token-scoped: someone else's order is "not found", not
   // "forbidden", so the endpoint does not confirm which ids exist.
   const order = await findCustomerOrder(req, req.params.id, guestToken);
   if (!order) {
-    return res.status(404).json({ message: 'Order not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
 
   const allowed = canCustomerCancel(order);
   if (!allowed.ok) {
-    return res.status(400).json({ message: allowed.message });
+    return res.status(400).json({ code: allowed.code, ...(allowed.params && { params: allowed.params }), message: allowed.message });
   }
 
   const claimed = await Order.findOneAndUpdate(
@@ -687,6 +694,7 @@ const cancelOrder = asyncHandler(async (req, res) => {
   );
   if (!claimed) {
     return res.status(409).json({
+      code: 'STALE_UPDATE',
       message: 'This order was just updated. Please refresh and try again.',
     });
   }
@@ -770,11 +778,11 @@ const cancelOrder = asyncHandler(async (req, res) => {
  */
 const getOrderInvoice = asyncHandler(async (req, res) => {
   if (!mongoose.isValidObjectId(req.params.id)) {
-    return res.status(404).json({ message: 'Order not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
   const guestToken = req.get('x-guest-token');
   if (!req.user?.id && !guestToken) {
-    return res.status(401).json({ message: 'Token is not valid!' });
+    return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
   }
   const isStaff = hasPermission(getUserPermissions(req.user?.roles), 'orders:read');
   // Someone else's order is "not found", so ids can't be probed
@@ -783,7 +791,7 @@ const getOrderInvoice = asyncHandler(async (req, res) => {
     : await findCustomerOrder(req, req.params.id, guestToken);
   const order = found ? found.toObject() : null;
   if (!order) {
-    return res.status(404).json({ message: 'Order not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
 
   if (!INVOICEABLE_PAYMENT_STATUSES.includes(order.paymentStatus)) {

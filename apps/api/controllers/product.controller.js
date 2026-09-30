@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler');
+const { validationBody } = require('../utils/errors');
 const {
   Product,
   validateCreateProduct,
@@ -53,7 +54,7 @@ const {
 const getAllProducts = asyncHandler(async (req, res) => {
   const { value: query, error } = validateProductListQuery(req.query);
   if (error) {
-    return res.status(400).json({ message: error });
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: error });
   }
 
   const isStaff =
@@ -128,14 +129,14 @@ const getProductById = asyncHandler(async (req, res) => {
   ]);
 
   if (!product) {
-    return res.status(404).json({ message: 'Product not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });
   }
 
   const isStaff =
     Array.isArray(req.user?.roles) &&
     req.user.roles.some((r) => r === 'admin' || r === 'moderator');
   if (product.isActive === false && !isStaff) {
-    return res.status(404).json({ message: 'Product not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });
   }
 
   const payload = product.toObject();
@@ -155,7 +156,7 @@ const getProductById = asyncHandler(async (req, res) => {
 const createProduct = asyncHandler(async (req, res) => {
   const error = validateCreateProduct(req.body);
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   const product = new Product({
@@ -199,7 +200,7 @@ const createProduct = asyncHandler(async (req, res) => {
 const updateProduct = asyncHandler(async (req, res) => {
   const error = validateUpdateProduct(req.body);
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   // averageRating, reviewCount and salesCount are computed from reviews and
@@ -240,7 +241,7 @@ const updateProduct = asyncHandler(async (req, res) => {
         code: 'PRODUCT_CHANGED',
       });
     }
-    return res.status(404).json({ message: 'Product not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });
   }
 
   const lean = product.toObject ? product.toObject() : product;
@@ -271,7 +272,7 @@ const deleteProduct = asyncHandler(async (req, res) => {
   );
 
   if (!product) {
-    return res.status(404).json({ message: 'Product not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });
   }
 
   res.status(200).json({ message: 'Product has been deactivated' });

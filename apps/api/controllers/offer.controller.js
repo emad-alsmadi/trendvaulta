@@ -85,7 +85,7 @@ const getOfferById = asyncHandler(async (req, res) => {
   const offer = await Offer.findById(req.params.id);
 
   if (!offer) {
-    return res.status(404).json({ message: 'Offer not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Offer not found' });
   }
 
   res.status(200).json(offer);
@@ -153,7 +153,7 @@ function parseOfferBody(body, { partial = false } = {}) {
 const createOffer = asyncHandler(async (req, res) => {
   const { data, errors } = parseOfferBody(req.body, { partial: false });
   if (errors.length) {
-    return res.status(400).json({ message: errors[0] });
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: errors[0] });
   }
 
   const offer = new Offer({
@@ -180,11 +180,11 @@ const createOffer = asyncHandler(async (req, res) => {
 const updateOffer = asyncHandler(async (req, res) => {
   const { data, errors } = parseOfferBody(req.body, { partial: true });
   if (errors.length) {
-    return res.status(400).json({ message: errors[0] });
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: errors[0] });
   }
 
   if (Object.keys(data).length === 0) {
-    return res.status(400).json({ message: 'No fields to update' });
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'No fields to update' });
   }
 
   const offer = await Offer.findByIdAndUpdate(req.params.id, data, {
@@ -192,7 +192,7 @@ const updateOffer = asyncHandler(async (req, res) => {
   });
 
   if (!offer) {
-    return res.status(404).json({ message: 'Offer not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Offer not found' });
   }
 
   res.status(200).json(offer);
@@ -212,7 +212,7 @@ const deleteOffer = asyncHandler(async (req, res) => {
   );
 
   if (!offer) {
-    return res.status(404).json({ message: 'Offer not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Offer not found' });
   }
 
   res.status(200).json({ message: 'Offer has been deactivated' });

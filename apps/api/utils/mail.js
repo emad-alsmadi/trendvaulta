@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 const logger = require('./logger');
+const { renderEmail, resolveEmailLocale } = require('./emailTemplates');
 
 function createTransporter() {
   const transportOptions = process.env.SMTP_HOST
@@ -51,53 +52,71 @@ function orderPageUrl(orderId, override) {
 }
 
 /**
- * Send order confirmation email. Fail-soft: logs and returns false on error.
- * @param {{ to: string, orderId: string, totalPrice: number, items?: Array<{ title?: string, qty?: number }> }} opts
+ * The language a recipient reads (plan P1-02). An order's email goes out in
+ * its account's language, or for a guest the language they checked out in;
+ * an account email in that account's language. English when unknown.
  */
-async function sendOrderConfirmationEmail(opts) {
-  const { to, orderId, totalPrice, items = [] } = opts;
-  if (!to) return false;
+async function localeForOrder(orderId) {
+  try {
+    const { Order } = require('../models/Order');
+    const order = await Order.findById(orderId)
+      .select('locale user')
+      .populate('user', 'locale')
+      .lean();
+    return resolveEmailLocale(order?.user?.locale || order?.locale);
+  } catch {
+    return 'en';
+  }
+}
 
-  const hasCreds =
-    process.env.SMTP_HOST || process.env.EMAIL_USER || process.env.SMTP_USER;
-  if (!hasCreds) {
-    logger.warn(
-      '[mail] Skipping order confirmation — SMTP/EMAIL credentials not configured',
-    );
+async function localeForEmail(email) {
+  try {
+    const { User } = require('../models/User');
+    const user = await User.findOne({ email: String(email).toLowerCase() }).select('locale').lean();
+    return resolveEmailLocale(user?.locale);
+  } catch {
+    return 'en';
+  }
+}
+
+/**
+ * Render a template in the recipient's language and send it as text + HTML.
+ * Fail-soft: never throws; returns whether the mail was handed to SMTP.
+ * @param {{ to: string, kind: string, locale?: string, vars?: object, label: string }} opts
+ */
+async function deliver({ to, kind, locale, vars = {}, label }) {
+  if (!to) return false;
+  if (!mailConfigured()) {
+    logger.warn(`[mail] Skipping ${label} — SMTP/EMAIL credentials not configured`);
     return false;
   }
-
-  const lines = items
-    .slice(0, 20)
-    .map((it) => `- ${it.title || 'Item'} × ${it.qty || 1}`)
-    .join('\n');
-
-  const text = [
-    'Thank you for your TrendVaulta order!',
-    '',
-    `Order ID: ${orderId}`,
-    `Total: $${Number(totalPrice || 0).toFixed(2)}`,
-    '',
-    lines ? `Items:\n${lines}` : '',
-    '',
-    `View your order: ${orderPageUrl(orderId, opts.orderUrl)}`,
-  ]
-    .filter(Boolean)
-    .join('\n');
-
   try {
-    const transporter = createTransporter();
-    await transporter.sendMail({
-      from: getFromAddress(),
-      to,
-      subject: `Order confirmed — ${orderId}`,
-      text,
-    });
+    const { subject, text, html } = renderEmail(kind, locale, vars);
+    await createTransporter().sendMail({ from: getFromAddress(), to, subject, text, html });
     return true;
   } catch (err) {
-    logger.error({ err }, '[mail] Order confirmation failed');
+    logger.error({ err, template: kind }, `[mail] ${label} failed`);
     return false;
   }
+}
+
+/** Common vars + language for every order email. */
+async function orderMail(opts, kind, label, extra = {}) {
+  return deliver({
+    to: opts.to,
+    kind,
+    label,
+    locale: opts.locale || (await localeForOrder(opts.orderId)),
+    vars: { orderId: opts.orderId, orderUrl: orderPageUrl(opts.orderId, opts.orderUrl), ...extra },
+  });
+}
+
+/**
+ * Order confirmation (payment captured). Fail-soft.
+ * @param {{ to: string, orderId: string, totalPrice: number, orderUrl?: string, locale?: string }} opts
+ */
+async function sendOrderConfirmationEmail(opts) {
+  return orderMail(opts, 'orderConfirmed', 'order confirmation', { totalPrice: opts.totalPrice });
 }
 
 /**
@@ -207,191 +226,58 @@ async function sendNewsletterConfirmEmail(opts) {
 }
 
 /**
- * Send order shipped email. Fail-soft: logs and returns false on error.
- * @param {{ to: string, orderId: string, trackingNumber?: string, trackingCarrier?: string }} opts
+ * Order shipped (with tracking when known). Fail-soft.
+ * @param {{ to: string, orderId: string, trackingNumber?: string, trackingCarrier?: string, orderUrl?: string, locale?: string }} opts
  */
 async function sendOrderShippedEmail(opts) {
-  const { to, orderId, trackingNumber, trackingCarrier } = opts;
-  if (!to) return false;
-
-  const hasCreds =
-    process.env.SMTP_HOST || process.env.EMAIL_USER || process.env.SMTP_USER;
-  if (!hasCreds) {
-    logger.warn(
-      '[mail] Skipping order shipped notification — SMTP/EMAIL credentials not configured',
-    );
-    return false;
-  }
-
-  const text = [
-    'Your TrendVaulta order has been shipped!',
-    '',
-    `Order ID: ${orderId}`,
-    trackingNumber ? `Tracking Number: ${trackingNumber}` : '',
-    trackingCarrier ? `Carrier: ${trackingCarrier}` : '',
-    '',
-    `Track your order: ${orderPageUrl(orderId, opts.orderUrl)}`,
-  ]
-    .filter(Boolean)
-    .join('\n');
-
-  try {
-    const transporter = createTransporter();
-    await transporter.sendMail({
-      from: getFromAddress(),
-      to,
-      subject: `Order shipped — ${orderId}`,
-      text,
-    });
-    return true;
-  } catch (err) {
-    logger.error(
-      { err },
-      '[mail] Order shipped notification failed',
-    );
-    return false;
-  }
+  return orderMail(opts, 'orderShipped', 'order shipped notification', {
+    trackingNumber: opts.trackingNumber,
+    trackingCarrier: opts.trackingCarrier,
+  });
 }
 
 /**
- * Send order delivered email. Fail-soft: logs and returns false on error.
- * @param {{ to: string, orderId: string }} opts
+ * Order delivered. Fail-soft.
+ * @param {{ to: string, orderId: string, orderUrl?: string, locale?: string }} opts
  */
 async function sendOrderDeliveredEmail(opts) {
-  const { to, orderId } = opts;
-  if (!to) return false;
-
-  const hasCreds =
-    process.env.SMTP_HOST || process.env.EMAIL_USER || process.env.SMTP_USER;
-  if (!hasCreds) {
-    logger.warn(
-      '[mail] Skipping order delivered notification — SMTP/EMAIL credentials not configured',
-    );
-    return false;
-  }
-
-  const text = [
-    'Your TrendVaulta order has been delivered!',
-    '',
-    `Order ID: ${orderId}`,
-    '',
-    `View your order: ${orderPageUrl(orderId, opts.orderUrl)}`,
-    '',
-    'Thank you for shopping with us!',
-  ].join('\n');
-
-  try {
-    const transporter = createTransporter();
-    await transporter.sendMail({
-      from: getFromAddress(),
-      to,
-      subject: `Order delivered — ${orderId}`,
-      text,
-    });
-    return true;
-  } catch (err) {
-    logger.error(
-      { err },
-      '[mail] Order delivered notification failed',
-    );
-    return false;
-  }
+  return orderMail(opts, 'orderDelivered', 'order delivered notification');
 }
 
 /**
- * Send order canceled email. Fail-soft: logs and returns false on error.
- * @param {{ to: string, orderId: string }} opts
+ * Order canceled. Fail-soft.
+ * @param {{ to: string, orderId: string, orderUrl?: string, locale?: string }} opts
  */
 async function sendOrderCanceledEmail(opts) {
-  const { to, orderId } = opts;
-  if (!to) return false;
-
-  const hasCreds =
-    process.env.SMTP_HOST || process.env.EMAIL_USER || process.env.SMTP_USER;
-  if (!hasCreds) {
-    logger.warn(
-      '[mail] Skipping order canceled notification — SMTP/EMAIL credentials not configured',
-    );
-    return false;
-  }
-
-  const text = [
-    'Your TrendVaulta order has been canceled.',
-    '',
-    `Order ID: ${orderId}`,
-    '',
-    'If you have any questions, please contact our support team.',
-    '',
-    `View your order: ${orderPageUrl(orderId, opts.orderUrl)}`,
-  ].join('\n');
-
-  try {
-    const transporter = createTransporter();
-    await transporter.sendMail({
-      from: getFromAddress(),
-      to,
-      subject: `Order canceled — ${orderId}`,
-      text,
-    });
-    return true;
-  } catch (err) {
-    logger.error(
-      { err },
-      '[mail] Order canceled notification failed',
-    );
-    return false;
-  }
+  return orderMail(opts, 'orderCanceled', 'order canceled notification');
 }
 
 /**
- * Send order refunded email. Fail-soft: logs and returns false on error.
- * @param {{ to: string, orderId: string, refundAmount?: number }} opts
+ * Refund issued. Fail-soft.
+ * @param {{ to: string, orderId: string, refundAmount?: number, orderUrl?: string, locale?: string }} opts
  */
 async function sendOrderRefundedEmail(opts) {
-  const { to, orderId, refundAmount } = opts;
-  if (!to) return false;
+  return orderMail(opts, 'orderRefunded', 'order refunded notification', {
+    refundAmount: opts.refundAmount,
+  });
+}
 
-  const hasCreds =
-    process.env.SMTP_HOST || process.env.EMAIL_USER || process.env.SMTP_USER;
-  if (!hasCreds) {
-    logger.warn(
-      '[mail] Skipping order refunded notification — SMTP/EMAIL credentials not configured',
-    );
-    return false;
-  }
+const RETURN_KINDS = {
+  requested: 'returnRequested',
+  approved: 'returnApproved',
+  rejected: 'returnRejected',
+  received: 'returnReceived',
+};
 
-  const amountText = refundAmount
-    ? `Refund amount: $${Number(refundAmount).toFixed(2)}`
-    : '';
-  const text = [
-    'Your TrendVaulta order has been refunded.',
-    '',
-    `Order ID: ${orderId}`,
-    amountText,
-    '',
-    'The refund has been processed to your original payment method.',
-    '',
-    `View your order: ${orderPageUrl(orderId, opts.orderUrl)}`,
-  ]
-    .filter(Boolean)
-    .join('\n');
-
-  try {
-    const transporter = createTransporter();
-    await transporter.sendMail({
-      from: getFromAddress(),
-      to,
-      subject: `Order refunded — ${orderId}`,
-      text,
-    });
-    return true;
-  } catch (err) {
-    logger.error(
-      { err },
-      '[mail] Order refunded notification failed',
-    );
-    return false;
-  }
+/**
+ * A return moved to a new step (requested, approved, rejected, received).
+ * The refunded step sends sendOrderRefundedEmail instead. Fail-soft.
+ * @param {{ to: string, orderId: string, status: string, note?: string, orderUrl?: string, locale?: string }} opts
+ */
+async function sendReturnUpdateEmail(opts) {
+  const kind = RETURN_KINDS[opts.status];
+  if (!kind) return false;
+  return orderMail(opts, kind, `return ${opts.status} notification`, { note: opts.note || '' });
 }
 
 function mailConfigured() {
@@ -400,93 +286,60 @@ function mailConfigured() {
   );
 }
 
+function frontendUrl() {
+  return process.env.FRONTEND_URL || 'http://localhost:3001';
+}
+
 /** Storefront link that confirms an email address (utils/emailVerification.js). */
 function verifyEmailUrl(token) {
-  const frontend = process.env.FRONTEND_URL || 'http://localhost:3001';
-  return `${frontend}/auth/verify-email?token=${encodeURIComponent(token)}`;
+  return `${frontendUrl()}/auth/verify-email?token=${encodeURIComponent(token)}`;
 }
 
 /**
- * Ask the owner of an address to confirm it. English and Arabic in one
- * message until users have a stored language (plan P1-02). Fail-soft.
- * @param {{ to: string, token: string, username?: string }} opts
+ * Ask the owner of an address to confirm it, in the account's language.
+ * Fail-soft.
+ * @param {{ to: string, token: string, username?: string, locale?: string }} opts
  */
 async function sendEmailVerificationEmail(opts) {
-  const { to, token, username } = opts;
-  if (!to || !token) return false;
-  if (!mailConfigured()) {
-    logger.warn('[mail] Skipping email verification — SMTP/EMAIL credentials not configured');
-    return false;
-  }
-
-  const link = verifyEmailUrl(token);
-  const text = [
-    `Hi${username ? ` ${username}` : ''},`,
-    '',
-    'Please confirm your email address for your TrendVaulta account:',
-    link,
-    '',
-    'The link works once and expires in 24 hours. If you did not create an account, you can ignore this email.',
-    '',
-    '—',
-    '',
-    'يرجى تأكيد بريدك الإلكتروني لحسابك في TrendVaulta:',
-    link,
-    '',
-    'يعمل الرابط مرة واحدة وتنتهي صلاحيته خلال 24 ساعة. إن لم تُنشئ حسابًا فتجاهل هذه الرسالة.',
-  ].join('\n');
-
-  try {
-    await createTransporter().sendMail({
-      from: getFromAddress(),
-      to,
-      subject: 'Confirm your email — تأكيد بريدك الإلكتروني',
-      text,
-    });
-    return true;
-  } catch (err) {
-    logger.error({ err }, '[mail] Email verification failed');
-    return false;
-  }
+  if (!opts.token) return false;
+  return deliver({
+    to: opts.to,
+    kind: 'emailVerification',
+    label: 'email verification',
+    locale: opts.locale || (await localeForEmail(opts.to)),
+    vars: { name: opts.username, link: verifyEmailUrl(opts.token) },
+  });
 }
 
 /**
  * Tell the previous address that the account's email was changed, so a
  * takeover doesn't go unnoticed. Fail-soft.
- * @param {{ to: string, newEmail: string }} opts
+ * @param {{ to: string, newEmail: string, locale?: string }} opts
  */
 async function sendEmailChangedNotice(opts) {
-  const { to, newEmail } = opts;
-  if (!to) return false;
-  if (!mailConfigured()) {
-    logger.warn('[mail] Skipping email-changed notice — SMTP/EMAIL credentials not configured');
-    return false;
-  }
+  return deliver({
+    to: opts.to,
+    kind: 'emailChanged',
+    label: 'email-changed notice',
+    // The old address no longer maps to the account: look up the new one
+    locale: opts.locale || (await localeForEmail(opts.newEmail)),
+    vars: { newEmail: opts.newEmail },
+  });
+}
 
-  const text = [
-    `The email address of your TrendVaulta account was changed to ${newEmail}.`,
-    '',
-    'If you made this change, no action is needed. If you did not, reset your password right away and contact us.',
-    '',
-    '—',
-    '',
-    `تم تغيير البريد الإلكتروني لحسابك في TrendVaulta إلى ${newEmail}.`,
-    '',
-    'إن كنت أنت من غيّره فلا حاجة لأي إجراء. وإن لم تكن أنت، فأعد تعيين كلمة المرور فورًا وتواصل معنا.',
-  ].join('\n');
-
-  try {
-    await createTransporter().sendMail({
-      from: getFromAddress(),
-      to,
-      subject: 'Your email address was changed — تم تغيير بريدك الإلكتروني',
-      text,
-    });
-    return true;
-  } catch (err) {
-    logger.error({ err }, '[mail] Email-changed notice failed');
-    return false;
-  }
+/**
+ * The account password was changed or reset: a heads-up with a way back
+ * in if it was not the owner. Fail-soft.
+ * @param {{ to: string, locale?: string }} opts
+ */
+async function sendPasswordChangedEmail(opts) {
+  return deliver({
+    to: opts.to,
+    kind: 'passwordChanged',
+    label: 'password-changed notice',
+    locale: opts.locale || (await localeForEmail(opts.to)),
+    vars: { resetUrl: `${frontendUrl()}/password/forgot-password` },
+  });
 }
 
 module.exports = {
@@ -502,4 +355,8 @@ module.exports = {
   sendOrderDeliveredEmail,
   sendOrderCanceledEmail,
   sendOrderRefundedEmail,
+  sendReturnUpdateEmail,
+  sendPasswordChangedEmail,
+  localeForOrder,
+  localeForEmail,
 };

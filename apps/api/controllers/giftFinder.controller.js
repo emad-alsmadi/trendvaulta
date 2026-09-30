@@ -81,7 +81,7 @@ const getGiftFinderConfigById = asyncHandler(async (req, res) => {
   const config = await GiftFinderConfig.findById(id).lean();
 
   if (!config) {
-    return res.status(404).json({ message: 'Gift finder config not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Gift finder config not found' });
   }
 
   res.status(200).json({
@@ -125,7 +125,7 @@ const updateGiftFinderConfig = asyncHandler(async (req, res) => {
 
   const config = await GiftFinderConfig.findById(id);
   if (!config) {
-    return res.status(404).json({ message: 'Gift finder config not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Gift finder config not found' });
   }
 
   if (occasions !== undefined) config.occasions = occasions;
@@ -160,7 +160,7 @@ const deleteGiftFinderConfig = asyncHandler(async (req, res) => {
 
   const config = await GiftFinderConfig.findById(id);
   if (!config) {
-    return res.status(404).json({ message: 'Gift finder config not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Gift finder config not found' });
   }
 
   await GiftFinderConfig.findByIdAndDelete(id);

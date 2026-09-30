@@ -71,7 +71,7 @@ const getLookbookById = asyncHandler(async (req, res) => {
   const lookbook = await Lookbook.findById(id).lean();
 
   if (!lookbook) {
-    return res.status(404).json({ message: 'Lookbook not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Lookbook not found' });
   }
 
   res.status(200).json({
@@ -143,7 +143,7 @@ const updateLookbook = asyncHandler(async (req, res) => {
 
   const lookbook = await Lookbook.findById(id);
   if (!lookbook) {
-    return res.status(404).json({ message: 'Lookbook not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Lookbook not found' });
   }
 
   if (eyebrow !== undefined) lookbook.eyebrow = eyebrow;
@@ -173,7 +173,7 @@ const deleteLookbook = asyncHandler(async (req, res) => {
 
   const lookbook = await Lookbook.findById(id);
   if (!lookbook) {
-    return res.status(404).json({ message: 'Lookbook not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Lookbook not found' });
   }
 
   // Soft delete - deactivate

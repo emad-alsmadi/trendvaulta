@@ -1,6 +1,8 @@
 const asyncHandler = require('express-async-handler');
+const { validationBody } = require('../utils/errors');
 const logger = require('../utils/logger');
 const nodemailer = require('nodemailer');
+const { sendPasswordChangedEmail } = require('../utils/mail');
 const Joi = require('joi');
 const { User } = require('../models/User');
 const { RefreshToken } = require('../models/RefreshToken');
@@ -48,7 +50,7 @@ const sendForgotPasswordLink = asyncHandler(async (req, res) => {
   try {
     const { error, value } = forgotPasswordSchema.validate(req.body || {});
     if (error) {
-      return res.status(400).json({ message: 'A valid email is required' });
+      return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'A valid email is required' });
     }
     const { email } = value;
 
@@ -142,19 +144,20 @@ const resetPassword = asyncHandler(async (req, res) => {
     { stripUnknown: true },
   );
   if (paramsError) {
-    return res.status(400).json({ message: RESET_LINK_INVALID_MESSAGE });
+    return res.status(400).json({ code: 'RESET_LINK_INVALID', message: RESET_LINK_INVALID_MESSAGE });
   }
 
   const { error: bodyError } = resetPasswordBodySchema.validate(req.body ?? {});
   if (bodyError) {
     return res.status(400).json({
+      code: 'VALIDATION_ERROR',
       message: 'Password is required and must be 8-128 characters',
     });
   }
 
   const user = await User.findById(params.userId);
   if (!user) {
-    return res.status(400).json({ message: RESET_LINK_INVALID_MESSAGE });
+    return res.status(400).json({ code: 'RESET_LINK_INVALID', message: RESET_LINK_INVALID_MESSAGE });
   }
   const secret = process.env.JWT_SECRET_KEY + user.password;
 
@@ -164,13 +167,15 @@ const resetPassword = asyncHandler(async (req, res) => {
     user.password = await bcrypt.hash(req.body.password, await bcrypt.genSalt(10));
     await user.save();
   } catch {
-    return res.status(400).json({ message: RESET_LINK_INVALID_MESSAGE });
+    return res.status(400).json({ code: 'RESET_LINK_INVALID', message: RESET_LINK_INVALID_MESSAGE });
   }
 
   // Every existing session must re-authenticate with the new password
   await revokeAllForUser(RefreshToken, user._id).catch((revokeErr) => {
     logger.error({ err: revokeErr }, 'Failed to revoke sessions after password reset');
   });
+  // Heads-up to the owner, in their language (P1-02). Best effort.
+  await sendPasswordChangedEmail({ to: user.email }).catch(() => {});
 
   return res.status(200).json({ message: 'Password updated successfully' });
 });
@@ -187,7 +192,7 @@ const resetPassword = asyncHandler(async (req, res) => {
 const changePassword = asyncHandler(async (req, res) => {
   const userId = req.user?.id ?? req.user?._id;
   if (!userId) {
-    return res.status(401).json({ message: 'Token is not valid!' });
+    return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
   }
 
   const schema = Joi.object({
@@ -197,17 +202,17 @@ const changePassword = asyncHandler(async (req, res) => {
 
   const { error, value } = schema.validate(req.body || {});
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   const user = await User.findById(userId);
   if (!user) {
-    return res.status(404).json({ message: 'User not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'User not found' });
   }
 
   const isMatch = await bcrypt.compare(value.currentPassword, user.password);
   if (!isMatch) {
-    return res.status(400).json({ message: 'Current password is incorrect' });
+    return res.status(400).json({ code: 'CURRENT_PASSWORD_INCORRECT', message: 'Current password is incorrect' });
   }
 
   const salt = await bcrypt.genSalt(10);
@@ -217,6 +222,7 @@ const changePassword = asyncHandler(async (req, res) => {
   await revokeAllForUser(RefreshToken, user._id).catch((revokeErr) => {
     logger.error({ err: revokeErr }, 'Failed to revoke sessions after password change');
   });
+  await sendPasswordChangedEmail({ to: user.email }).catch(() => {});
 
   return res.status(200).json({ message: 'Password updated successfully' });
 });

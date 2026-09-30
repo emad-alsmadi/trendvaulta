@@ -62,7 +62,7 @@ const getTestimonialById = asyncHandler(async (req, res) => {
   const testimonial = await Testimonial.findById(id).lean();
 
   if (!testimonial) {
-    return res.status(404).json({ message: 'Testimonial not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Testimonial not found' });
   }
 
   res.status(200).json({
@@ -110,7 +110,7 @@ const updateTestimonial = asyncHandler(async (req, res) => {
 
   const testimonial = await Testimonial.findById(id);
   if (!testimonial) {
-    return res.status(404).json({ message: 'Testimonial not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Testimonial not found' });
   }
 
   if (name !== undefined) testimonial.name = name;
@@ -137,7 +137,7 @@ const deleteTestimonial = asyncHandler(async (req, res) => {
 
   const testimonial = await Testimonial.findById(id);
   if (!testimonial) {
-    return res.status(404).json({ message: 'Testimonial not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Testimonial not found' });
   }
 
   // Soft delete - deactivate

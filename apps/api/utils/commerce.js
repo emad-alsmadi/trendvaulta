@@ -207,18 +207,19 @@ async function resolveTaxPrice(itemsPrice = 0) {
 function calculateCouponDiscount(coupon, orderAmount) {
   const amount = Math.max(0, Number(orderAmount) || 0);
   if (!coupon) {
-    return { discountAmount: 0, valid: false, message: 'Coupon not found' };
+    return { discountAmount: 0, valid: false, code: 'COUPON_INVALID', message: 'Coupon not found' };
   }
   if (!coupon.isActive) {
-    return { discountAmount: 0, valid: false, message: 'Coupon is inactive' };
+    return { discountAmount: 0, valid: false, code: 'COUPON_INACTIVE', message: 'Coupon is inactive' };
   }
   if (new Date(coupon.expirationDate) < new Date()) {
-    return { discountAmount: 0, valid: false, message: 'Coupon has expired' };
+    return { discountAmount: 0, valid: false, code: 'COUPON_EXPIRED', message: 'Coupon has expired' };
   }
   if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
     return {
       discountAmount: 0,
       valid: false,
+      code: 'COUPON_LIMIT_REACHED',
       message: 'Coupon usage limit has been reached',
     };
   }
@@ -226,6 +227,8 @@ function calculateCouponDiscount(coupon, orderAmount) {
     return {
       discountAmount: 0,
       valid: false,
+      code: 'COUPON_MIN_ORDER',
+      params: { amount: Number(coupon.minimumOrderAmount) },
       message: `Minimum order amount of $${coupon.minimumOrderAmount} required`,
     };
   }
@@ -254,7 +257,7 @@ const OPEN_CHECKOUT_WINDOW_MS = 31 * 60 * 1000;
  * @returns {Promise<{ valid: boolean, message?: string }>}
  */
 async function checkCouponUsage(coupon, customer) {
-  if (!coupon) return { valid: false, message: 'Coupon not found' };
+  if (!coupon) return { valid: false, code: 'COUPON_INVALID', message: 'Coupon not found' };
   const { Order } = require('../models/Order');
   // Accepts a user id (signed-in callers) or { userId, email } (guests too)
   const { userId = null, email = '' } =
@@ -273,7 +276,7 @@ async function checkCouponUsage(coupon, customer) {
     else if (guestEmail) openFilter.guestEmail = { $ne: guestEmail };
     const openCheckouts = await Order.countDocuments(openFilter);
     if (Number(coupon.usedCount || 0) + openCheckouts >= coupon.usageLimit) {
-      return { valid: false, message: 'Coupon usage limit has been reached' };
+      return { valid: false, code: 'COUPON_LIMIT_REACHED', message: 'Coupon usage limit has been reached' };
     }
   }
 
@@ -300,7 +303,7 @@ async function checkCouponUsage(coupon, customer) {
       ],
     });
     if (usedByCustomer >= coupon.perCustomerLimit) {
-      return { valid: false, message: 'You have already used this coupon' };
+      return { valid: false, code: 'COUPON_ALREADY_USED', message: 'You have already used this coupon' };
     }
   }
 

@@ -110,6 +110,13 @@ const OrderSchema = new mongoose.Schema(
       maxlength: 100,
       default: '',
     },
+    // Storefront language at checkout: a guest's emails use it (an account's
+    // emails use the account's language) — plan P1-02.
+    locale: {
+      type: String,
+      enum: ['en', 'ar'],
+      default: 'en',
+    },
     items: {
       type: [OrderItemSchema],
       validate: [
@@ -466,6 +473,8 @@ const validateCreateOrder = (obj) => {
     // Guest checkout only (no session): where the receipt and order link go.
     // Ignored for signed-in shoppers, whose account email is used.
     email: Joi.string().trim().lowercase().email().max(100).optional(),
+    // Storefront language, for a guest's order emails
+    locale: Joi.string().valid('en', 'ar').optional(),
     shippingPrice: Joi.any().strip(),
     taxPrice: Joi.any().strip(),
   });

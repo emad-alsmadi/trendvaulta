@@ -80,7 +80,7 @@ const getHelpTopicById = asyncHandler(async (req, res) => {
   const topic = await HelpTopic.findById(req.params.id);
 
   if (!topic) {
-    return res.status(404).json({ message: 'Help topic not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Help topic not found' });
   }
 
   res.status(200).json(topic);
@@ -139,7 +139,7 @@ function parseHelpTopicBody(body, { partial = false } = {}) {
 const createHelpTopic = asyncHandler(async (req, res) => {
   const { data, errors } = parseHelpTopicBody(req.body, { partial: false });
   if (errors.length) {
-    return res.status(400).json({ message: errors[0] });
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: errors[0] });
   }
 
   const topic = new HelpTopic({
@@ -165,11 +165,11 @@ const createHelpTopic = asyncHandler(async (req, res) => {
 const updateHelpTopic = asyncHandler(async (req, res) => {
   const { data, errors } = parseHelpTopicBody(req.body, { partial: true });
   if (errors.length) {
-    return res.status(400).json({ message: errors[0] });
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: errors[0] });
   }
 
   if (Object.keys(data).length === 0) {
-    return res.status(400).json({ message: 'No fields to update' });
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'No fields to update' });
   }
 
   const topic = await HelpTopic.findByIdAndUpdate(req.params.id, data, {
@@ -177,7 +177,7 @@ const updateHelpTopic = asyncHandler(async (req, res) => {
   });
 
   if (!topic) {
-    return res.status(404).json({ message: 'Help topic not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Help topic not found' });
   }
 
   res.status(200).json(topic);
@@ -197,7 +197,7 @@ const deleteHelpTopic = asyncHandler(async (req, res) => {
   );
 
   if (!topic) {
-    return res.status(404).json({ message: 'Help topic not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Help topic not found' });
   }
 
   res.status(200).json({ message: 'Help topic has been deactivated' });

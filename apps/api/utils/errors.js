@@ -49,7 +49,36 @@ class BadRequestError extends AppError {
   }
 }
 
+/**
+ * Joi error → response details a client can translate: the rule (`type`, e.g.
+ * `string.min`) and its `limit` travel with the English message. Only `limit`
+ * is copied from Joi's context — the rest can echo user input (passwords).
+ */
+function joiDetails(error) {
+  return error.details.map((detail) => ({
+    field: detail.path.join('.'),
+    message: detail.message,
+    type: detail.type,
+    ...(detail.context && detail.context.limit !== undefined && { limit: detail.context.limit }),
+  }));
+}
+
+/**
+ * Body for a controller that validates inline (400). `message` stays the
+ * first Joi message so existing clients are unaffected; `code` + `details`
+ * let the dashboard show it in the reader's language.
+ */
+function validationBody(error) {
+  return {
+    message: error.details[0].message,
+    code: 'VALIDATION_ERROR',
+    details: joiDetails(error),
+  };
+}
+
 module.exports = {
+  joiDetails,
+  validationBody,
   AppError,
   ValidationError,
   NotFoundError,

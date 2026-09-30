@@ -42,22 +42,24 @@ function hasOpenOrPastReturn(order) {
  */
 function canCustomerReturn(order, now = new Date()) {
   if (order.status !== 'delivered') {
-    return { ok: false, message: 'Only delivered orders can be returned.' };
+    return { ok: false, code: 'RETURN_NOT_DELIVERED', message: 'Only delivered orders can be returned.' };
   }
   if (order.paymentStatus !== 'paid') {
-    return { ok: false, message: 'This order has already been refunded.' };
+    return { ok: false, code: 'ORDER_ALREADY_REFUNDED', message: 'This order has already been refunded.' };
   }
   if (hasOpenOrPastReturn(order)) {
-    return { ok: false, message: 'A return has already been requested for this order.' };
+    return { ok: false, code: 'RETURN_EXISTS', message: 'A return has already been requested for this order.' };
   }
   const deliveredAt = getDeliveredAt(order);
   if (!deliveredAt) {
-    return { ok: false, message: 'This order can no longer be returned online. Please contact support.' };
+    return { ok: false, code: 'RETURN_NOT_ALLOWED', message: 'This order can no longer be returned online. Please contact support.' };
   }
   const windowEndsAt = new Date(deliveredAt.getTime() + returnWindowDays() * 86_400_000);
   if (now > windowEndsAt) {
     return {
       ok: false,
+      code: 'RETURN_WINDOW_CLOSED',
+      params: { days: returnWindowDays() },
       message: `The ${returnWindowDays()}-day return window for this order has closed.`,
       windowEndsAt,
     };
@@ -71,7 +73,7 @@ function canCustomerReturn(order, now = new Date()) {
 function canTransitionReturn(from, to) {
   const allowed = RETURN_TRANSITIONS[from] || [];
   if (!allowed.includes(to)) {
-    return { ok: false, message: `A ${from} return cannot be marked ${to}.` };
+    return { ok: false, code: 'RETURN_TRANSITION_NOT_ALLOWED', params: { from, to }, message: `A ${from} return cannot be marked ${to}.` };
   }
   return { ok: true };
 }

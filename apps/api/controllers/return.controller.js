@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler');
+const { validationBody } = require('../utils/errors');
 const logger = require('../utils/logger');
 const Joi = require('joi');
 const { Order } = require('../models/Order');
@@ -11,7 +12,7 @@ const {
 } = require('../services/stripe.service');
 const { canTransitionOrderStatus } = require('../utils/orderTransitions');
 const { canCustomerReturn, canTransitionReturn } = require('../utils/returns');
-const { sendOrderRefundedEmail } = require('../utils/mail');
+const { sendOrderRefundedEmail, sendReturnUpdateEmail } = require('../utils/mail');
 const { EMAIL_NOT_VERIFIED, hasVerifiedEmail } = require('../utils/emailVerification');
 const { orderEmailTarget } = require('../utils/guestOrders');
 
@@ -51,18 +52,18 @@ function toCents(amount) {
 const createReturnRequest = asyncHandler(async (req, res) => {
   const { error, value } = validateReturnRequest(req.body);
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   // Owner-scoped: another customer's order is simply not found.
   const order = await Order.findOne({ _id: req.params.id, user: req.user?.id });
   if (!order) {
-    return res.status(404).json({ message: 'Order not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
 
   const eligible = canCustomerReturn(order);
   if (!eligible.ok) {
-    return res.status(400).json({ message: eligible.message });
+    return res.status(400).json({ code: eligible.code, ...(eligible.params && { params: eligible.params }), message: eligible.message });
   }
 
   // Refund updates go to this address, so it must be confirmed (plan D5)
@@ -89,10 +90,11 @@ const createReturnRequest = asyncHandler(async (req, res) => {
   for (const [productId, { qty }] of requested) {
     const line = ordered.get(productId);
     if (!line) {
-      return res.status(400).json({ message: 'Some items are not part of this order' });
+      return res.status(400).json({ code: 'RETURN_ITEMS_INVALID', message: 'Some items are not part of this order' });
     }
     if (qty > line.qty) {
       return res.status(400).json({
+        code: 'RETURN_QTY_EXCEEDED',
         message: `You can return at most ${line.qty} of "${line.title}".`,
       });
     }
@@ -125,9 +127,14 @@ const createReturnRequest = asyncHandler(async (req, res) => {
   );
   if (!updated) {
     return res.status(409).json({
+      code: 'RETURN_EXISTS',
       message: 'A return has already been requested for this order.',
     });
   }
+
+  // Acknowledge in the customer's language (P1-02). Best effort.
+  const requestedTo = await orderEmailTarget(updated, User);
+  await sendReturnUpdateEmail({ ...requestedTo, orderId: updated._id, status: 'requested' }).catch(() => {});
 
   res.status(201).json({
     message: 'Return request submitted',
@@ -146,11 +153,11 @@ const getReturnRequest = asyncHandler(async (req, res) => {
     : { _id: req.params.id, user: req.user?.id };
   const order = await Order.findOne(query).lean();
   if (!order) {
-    return res.status(404).json({ message: 'Order not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
 
   if (!order.returnRequest || order.returnRequest.status === 'none') {
-    return res.status(404).json({ message: 'No return request found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'No return request found' });
   }
 
   res.status(200).json({ data: order.returnRequest });
@@ -179,21 +186,21 @@ const updateReturnRequest = asyncHandler(async (req, res) => {
   });
   const { error, value } = schema.validate(req.body);
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   const order = await Order.findById(req.params.id);
   if (!order) {
-    return res.status(404).json({ message: 'Order not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
   const current = order.returnRequest?.status;
   if (!current || current === 'none') {
-    return res.status(404).json({ message: 'No return request found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'No return request found' });
   }
 
   const transition = canTransitionReturn(current, value.status);
   if (!transition.ok) {
-    return res.status(400).json({ message: transition.message });
+    return res.status(400).json({ code: transition.code, ...(transition.params && { params: transition.params }), message: transition.message });
   }
 
   if (value.status === 'refunded') {
@@ -206,6 +213,7 @@ const updateReturnRequest = asyncHandler(async (req, res) => {
   if (value.status === 'approved') {
     if (!value.instructions) {
       return res.status(400).json({
+        code: 'RETURN_INSTRUCTIONS_REQUIRED',
         message: 'Add return instructions so the customer knows where to send the items.',
       });
     }
@@ -226,6 +234,7 @@ const updateReturnRequest = asyncHandler(async (req, res) => {
   );
   if (!updated) {
     return res.status(409).json({
+      code: 'STALE_UPDATE',
       message: 'This return was just updated by someone else. Refresh and try again.',
     });
   }
@@ -248,6 +257,16 @@ const updateReturnRequest = asyncHandler(async (req, res) => {
     }
   }
 
+  // Tell the customer about the new step: instructions when approved, the
+  // reason when rejected (P1-02). Best effort.
+  const stepTo = await orderEmailTarget(updated, User);
+  await sendReturnUpdateEmail({
+    ...stepTo,
+    orderId: updated._id,
+    status: value.status,
+    note: value.status === 'approved' ? value.instructions : value.notes,
+  }).catch(() => {});
+
   res.status(200).json({
     message: `Return ${value.status}`,
     data: updated.returnRequest,
@@ -262,11 +281,13 @@ const updateReturnRequest = asyncHandler(async (req, res) => {
 async function refundReturn(req, res, order, value) {
   if (order.paymentStatus !== 'paid') {
     return res.status(400).json({
+      code: 'NO_PAYMENT_TO_REFUND',
       message: 'This order has no captured payment left to refund.',
     });
   }
   if (!order.paymentIntentId) {
     return res.status(400).json({
+      code: 'NO_STRIPE_PAYMENT',
       message: 'This order has no Stripe payment on record. Refund it manually in Stripe.',
     });
   }
@@ -278,10 +299,11 @@ async function refundReturn(req, res, order, value) {
   const refundableCents = toCents(capturedAmount) - toCents(order.refundAmount || 0);
   const amountCents = toCents(value.refundAmount);
   if (!amountCents) {
-    return res.status(400).json({ message: 'Enter the amount to refund.' });
+    return res.status(400).json({ code: 'REFUND_AMOUNT_REQUIRED', message: 'Enter the amount to refund.' });
   }
   if (amountCents > refundableCents) {
     return res.status(400).json({
+      code: 'REFUND_AMOUNT_TOO_HIGH',
       message: `At most ${(refundableCents / 100).toFixed(2)} can still be refunded on this order.`,
     });
   }
@@ -301,6 +323,7 @@ async function refundReturn(req, res, order, value) {
   );
   if (!claimed) {
     return res.status(409).json({
+      code: 'STALE_UPDATE',
       message: 'This return was just updated by someone else. Refresh and try again.',
     });
   }

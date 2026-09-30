@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler');
+const { validationBody } = require('../utils/errors');
 const {
   Brand,
   validateCreateBrand,
@@ -135,7 +136,7 @@ const getBrandById = asyncHandler(async (req, res) => {
     Array.isArray(req.user?.roles) &&
     req.user.roles.some((r) => r === 'admin' || r === 'moderator');
   if (!brand || (brand.isActive === false && !isStaff)) {
-    return res.status(404).json({ message: 'Brand not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Brand not found' });
   }
 
   res.status(200).json(brand);
@@ -153,7 +154,7 @@ const getBrandById = asyncHandler(async (req, res) => {
 const createBrand = asyncHandler(async (req, res) => {
   const error = validateCreateBrand(req.body);
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   const brand = new Brand({
@@ -183,7 +184,7 @@ const createBrand = asyncHandler(async (req, res) => {
 const updateBrand = asyncHandler(async (req, res) => {
   const error = validateUpdateBrand(req.body);
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   const updateData = {};
@@ -205,7 +206,7 @@ const updateBrand = asyncHandler(async (req, res) => {
   );
 
   if (!brand) {
-    return res.status(404).json({ message: 'Brand not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Brand not found' });
   }
 
   res.status(200).json(brand);
@@ -229,7 +230,7 @@ const deleteBrand = asyncHandler(async (req, res) => {
   );
 
   if (!brand) {
-    return res.status(404).json({ message: 'Brand not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Brand not found' });
   }
 
   res.status(200).json({ message: 'Brand has been deactivated' });

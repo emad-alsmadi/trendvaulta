@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler');
+const { validationBody } = require('../utils/errors');
 const {
   ShippingZone,
   validateShippingZone,
@@ -42,7 +43,7 @@ const getAllShippingZonesAdmin = asyncHandler(async (req, res) => {
 const getShippingZoneById = asyncHandler(async (req, res) => {
   const zone = await ShippingZone.findById(req.params.id).lean();
   if (!zone) {
-    return res.status(404).json({ message: 'Shipping zone not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Shipping zone not found' });
   }
   res.status(200).json({ message: 'ok', data: zone });
 });
@@ -50,7 +51,7 @@ const getShippingZoneById = asyncHandler(async (req, res) => {
 const createShippingZone = asyncHandler(async (req, res) => {
   const { error, value } = validateShippingZone(req.body);
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   const zone = await ShippingZone.create(value);
@@ -60,7 +61,7 @@ const createShippingZone = asyncHandler(async (req, res) => {
 const updateShippingZone = asyncHandler(async (req, res) => {
   const { error, value } = validateShippingZone(req.body);
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   const zone = await ShippingZone.findByIdAndUpdate(
@@ -70,7 +71,7 @@ const updateShippingZone = asyncHandler(async (req, res) => {
   ).lean();
 
   if (!zone) {
-    return res.status(404).json({ message: 'Shipping zone not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Shipping zone not found' });
   }
 
   invalidateStoreSettingsCache();
@@ -80,7 +81,7 @@ const updateShippingZone = asyncHandler(async (req, res) => {
 const deleteShippingZone = asyncHandler(async (req, res) => {
   const zone = await ShippingZone.findByIdAndDelete(req.params.id);
   if (!zone) {
-    return res.status(404).json({ message: 'Shipping zone not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Shipping zone not found' });
   }
 
   invalidateStoreSettingsCache();
@@ -90,17 +91,17 @@ const deleteShippingZone = asyncHandler(async (req, res) => {
 const addShippingMethod = asyncHandler(async (req, res) => {
   const { error, value } = validateShippingMethod(req.body);
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   const zone = await ShippingZone.findById(req.params.id);
   if (!zone) {
-    return res.status(404).json({ message: 'Shipping zone not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Shipping zone not found' });
   }
 
   const handleExists = zone.methods.some((m) => m.handle === value.handle);
   if (handleExists) {
-    return res.status(409).json({ message: 'Method handle already exists in this zone' });
+    return res.status(409).json({ code: 'SHIPPING_HANDLE_TAKEN', message: 'Method handle already exists in this zone' });
   }
 
   zone.methods.push(value);
@@ -113,23 +114,23 @@ const addShippingMethod = asyncHandler(async (req, res) => {
 const updateShippingMethod = asyncHandler(async (req, res) => {
   const { error, value } = validateShippingMethod(req.body);
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   const zone = await ShippingZone.findById(req.params.id);
   if (!zone) {
-    return res.status(404).json({ message: 'Shipping zone not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Shipping zone not found' });
   }
 
   const method = zone.methods.id(req.params.methodId);
   if (!method) {
-    return res.status(404).json({ message: 'Shipping method not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Shipping method not found' });
   }
 
   if (value.handle !== method.handle) {
     const handleExists = zone.methods.some((m) => m.handle === value.handle);
     if (handleExists) {
-      return res.status(409).json({ message: 'Method handle already exists in this zone' });
+      return res.status(409).json({ code: 'SHIPPING_HANDLE_TAKEN', message: 'Method handle already exists in this zone' });
     }
   }
 
@@ -143,12 +144,12 @@ const updateShippingMethod = asyncHandler(async (req, res) => {
 const deleteShippingMethod = asyncHandler(async (req, res) => {
   const zone = await ShippingZone.findById(req.params.id);
   if (!zone) {
-    return res.status(404).json({ message: 'Shipping zone not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Shipping zone not found' });
   }
 
   const method = zone.methods.id(req.params.methodId);
   if (!method) {
-    return res.status(404).json({ message: 'Shipping method not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Shipping method not found' });
   }
 
   method.deleteOne();
@@ -162,7 +163,7 @@ const getShippingMethodsForAddress = asyncHandler(async (req, res) => {
   const { country, zip, region } = req.query;
 
   if (!country) {
-    return res.status(400).json({ message: 'Country is required' });
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Country is required' });
   }
 
   const countryCode = String(country).toUpperCase();

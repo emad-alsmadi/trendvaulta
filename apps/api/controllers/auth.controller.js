@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler');
+const { validationBody } = require('../utils/errors');
 const bcrypt = require('bcryptjs');
 const logger = require('../utils/logger');
 const { Order } = require('../models/Order');
@@ -56,16 +57,16 @@ function normalizeEmail(email) {
  */
 const registerUser = asyncHandler(async (req, res) => {
   if (!req.body) {
-    return res.status(400).json({ message: 'Request body is required' });
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Request body is required' });
   }
   const { error } = validateRegisterUser(req.body);
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
   const email = normalizeEmail(req.body.email);
   let user = await User.findOne({ email });
   if (user) {
-    return res.status(400).json({ message: 'This user already registered' });
+    return res.status(400).json({ code: 'EMAIL_TAKEN', message: 'This user already registered' });
   }
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(req.body.password, salt);
@@ -107,11 +108,11 @@ const registerUser = asyncHandler(async (req, res) => {
  */
 const loginUser = asyncHandler(async (req, res) => {
   if (!req.body) {
-    return res.status(400).json({ message: 'Request body is required' });
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Request body is required' });
   }
   const { error } = validateLoginUser(req.body);
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
   const user = await User.findOne({
     email: normalizeEmail(req.body.email),
@@ -120,7 +121,7 @@ const loginUser = asyncHandler(async (req, res) => {
     // Same bcrypt cost as a real account, so timing doesn't reveal which
     // emails are registered.
     await bcrypt.compare(req.body.password, DUMMY_PASSWORD_HASH);
-    return res.status(400).json({ message: 'invalid email or password' });
+    return res.status(400).json({ code: 'INVALID_CREDENTIALS', message: 'invalid email or password' });
   }
 
   // Locked accounts don't even test the password, so guessing stops here.
@@ -134,7 +135,7 @@ const loginUser = asyncHandler(async (req, res) => {
   );
   if (!isPasswordMatch) {
     await recordFailedPassword(User, user._id);
-    return res.status(400).json({ message: 'invalid email or password' });
+    return res.status(400).json({ code: 'INVALID_CREDENTIALS', message: 'invalid email or password' });
   }
 
   await clearFailedPasswords(User, user);
@@ -180,13 +181,13 @@ const loginUser = asyncHandler(async (req, res) => {
 const refreshAccessToken = asyncHandler(async (req, res) => {
   const presented = req.body?.refreshToken;
   if (!presented || typeof presented !== 'string') {
-    return res.status(400).json({ message: 'refreshToken is required' });
+    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'refreshToken is required' });
   }
 
   const result = await rotateRefreshToken(RefreshToken, presented);
 
   if (result.status === 'invalid' || result.status === 'expired') {
-    return res.status(401).json({ message: 'Refresh token is not valid' });
+    return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Refresh token is not valid' });
   }
   if (result.status === 'reused') {
     return res.status(401).json({
@@ -197,7 +198,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
   const user = await User.findById(result.userId).select('-password');
   if (!user || user.disabled) {
-    return res.status(401).json({ message: 'Refresh token is not valid' });
+    return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Refresh token is not valid' });
   }
 
   const token = user.generateToken();
@@ -256,7 +257,7 @@ const resendVerificationEmail = asyncHandler(async (req, res) => {
     .select('email username emailVerifiedAt +emailVerificationSentAt')
     .lean();
   if (!user) {
-    return res.status(404).json({ message: 'User not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'User not found' });
   }
   if (isEmailVerified(user)) {
     return res.status(200).json({ message: 'Email already confirmed', emailVerified: true });

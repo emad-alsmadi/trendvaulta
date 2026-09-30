@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler');
+const { validationBody } = require('../utils/errors');
 const { parsePagination } = require('../utils/pagination');
 const { buildSort } = require('../utils/sort');
 const { normalizeSearchTerm } = require('../utils/search');
@@ -82,7 +83,7 @@ const getCouponById = asyncHandler(async (req, res) => {
   const coupon = await Coupon.findById(req.params.id);
 
   if (!coupon) {
-    return res.status(404).json({ message: 'Coupon not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Coupon not found' });
   }
 
   res.status(200).json(coupon);
@@ -110,7 +111,7 @@ const getCouponByCode = asyncHandler(async (req, res) => {
     .lean();
 
   if (!coupon) {
-    return res.status(404).json({ message: 'Coupon not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Coupon not found' });
   }
 
   res.status(200).json(coupon);
@@ -128,7 +129,7 @@ const getCouponByCode = asyncHandler(async (req, res) => {
 const createCoupon = asyncHandler(async (req, res) => {
   const error = validateCreateCoupon(req.body);
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   // Check if coupon code already exists
@@ -136,7 +137,7 @@ const createCoupon = asyncHandler(async (req, res) => {
     code: req.body.code.toUpperCase(),
   });
   if (existingCoupon) {
-    return res.status(409).json({ message: 'Coupon code already exists' });
+    return res.status(409).json({ code: 'COUPON_CODE_TAKEN', message: 'Coupon code already exists' });
   }
 
   const coupon = new Coupon({
@@ -167,7 +168,7 @@ const createCoupon = asyncHandler(async (req, res) => {
 const updateCoupon = asyncHandler(async (req, res) => {
   const error = validateUpdateCoupon(req.body);
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   // If updating code, check if it already exists
@@ -177,7 +178,7 @@ const updateCoupon = asyncHandler(async (req, res) => {
       _id: { $ne: req.params.id },
     });
     if (existingCoupon) {
-      return res.status(409).json({ message: 'Coupon code already exists' });
+      return res.status(409).json({ code: 'COUPON_CODE_TAKEN', message: 'Coupon code already exists' });
     }
   }
 
@@ -188,7 +189,7 @@ const updateCoupon = asyncHandler(async (req, res) => {
       .select('discountType discountValue')
       .lean();
     if (!current) {
-      return res.status(404).json({ message: 'Coupon not found' });
+      return res.status(404).json({ code: 'NOT_FOUND', message: 'Coupon not found' });
     }
     const type = req.body.discountType ?? current.discountType;
     const value = req.body.discountValue ?? current.discountValue;
@@ -226,7 +227,7 @@ const updateCoupon = asyncHandler(async (req, res) => {
   );
 
   if (!coupon) {
-    return res.status(404).json({ message: 'Coupon not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Coupon not found' });
   }
 
   res.status(200).json(coupon);
@@ -249,7 +250,7 @@ const deleteCoupon = asyncHandler(async (req, res) => {
   );
 
   if (!coupon) {
-    return res.status(404).json({ message: 'Coupon not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Coupon not found' });
   }
 
   res.status(200).json({ message: 'Coupon has been deactivated' });
@@ -267,7 +268,7 @@ const deleteCoupon = asyncHandler(async (req, res) => {
 const validateCoupon = asyncHandler(async (req, res) => {
   const error = validateCouponCode(req.body);
   if (error) {
-    return res.status(400).json({ message: error.details[0].message });
+    return res.status(400).json(validationBody(error));
   }
 
   const { code, orderAmount } = req.body;
@@ -278,6 +279,7 @@ const validateCoupon = asyncHandler(async (req, res) => {
 
   if (!coupon) {
     return res.status(404).json({
+      code: 'COUPON_INVALID',
       valid: false,
       message: 'Invalid coupon code',
     });
@@ -285,13 +287,13 @@ const validateCoupon = asyncHandler(async (req, res) => {
 
   const result = calculateCouponDiscount(coupon, orderAmount);
   if (!result.valid) {
-    return res.status(400).json({ valid: false, message: result.message });
+    return res.status(400).json({ valid: false, code: result.code, ...(result.params && { params: result.params }), message: result.message });
   }
 
   const userId = req.user?.id ?? req.user?._id;
   const usage = await checkCouponUsage(coupon, userId);
   if (!usage.valid) {
-    return res.status(400).json({ valid: false, message: usage.message });
+    return res.status(400).json({ valid: false, code: usage.code, ...(usage.params && { params: usage.params }), message: usage.message });
   }
 
   const { discountAmount } = result;
@@ -325,7 +327,7 @@ const incrementCouponUsage = asyncHandler(async (req, res) => {
   );
 
   if (!coupon) {
-    return res.status(404).json({ message: 'Coupon not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Coupon not found' });
   }
 
   res.status(200).json(coupon);

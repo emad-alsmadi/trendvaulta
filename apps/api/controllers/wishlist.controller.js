@@ -18,7 +18,7 @@ const addToWishlist = asyncHandler(async (req, res) => {
   // Verify product exists
   const product = await Product.findById(productId);
   if (!product) {
-    return res.status(404).json({ message: 'Product not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });
   }
 
   // Check if already in wishlist (duplicate prevention)
@@ -28,7 +28,7 @@ const addToWishlist = asyncHandler(async (req, res) => {
   });
 
   if (existingWishlist) {
-    return res.status(400).json({ message: 'Product already in wishlist' });
+    return res.status(400).json({ code: 'WISHLIST_DUPLICATE', message: 'Product already in wishlist' });
   }
 
   // Create wishlist item
@@ -62,7 +62,7 @@ const removeFromWishlist = asyncHandler(async (req, res) => {
   });
 
   if (!wishlist) {
-    return res.status(404).json({ message: 'Wishlist item not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Wishlist item not found' });
   }
 
   res.status(200).json({ message: 'Product removed from wishlist' });

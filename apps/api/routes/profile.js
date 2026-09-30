@@ -10,6 +10,7 @@ const {
   deleteAddress,
   setDefaultAddress,
 } = require('../controllers/profile.controller');
+const { updateLocale } = require('../controllers/locale.controller');
 
 /**
  * @desc Get current user profile
@@ -26,6 +27,14 @@ router.get('/auth/profile', verfiyToken, getProfile);
  * @access private
  */
 router.put('/auth/profile', verfiyToken, updateProfile);
+
+/**
+ * @desc Remember the storefront language for the customer's emails (P1-02)
+ * @route /api/auth/locale
+ * @method PUT
+ * @access private
+ */
+router.put('/auth/locale', verfiyToken, updateLocale);
 
 /**
  * @desc Address book for the current user

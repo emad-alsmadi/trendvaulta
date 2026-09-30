@@ -68,6 +68,9 @@ app.use(
     index: false,
     setHeaders: (res) => {
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      // helmet defaults CORP to same-origin; the storefront and dashboard
+      // load these images from their own origins.
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     },
   }),
 );
