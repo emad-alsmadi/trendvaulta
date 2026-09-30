@@ -26,6 +26,8 @@ import GiftFinderConfig from './pages/GiftFinderConfig';
 import ProductQA from './pages/ProductQA';
 import Settings from './pages/Settings';
 import ShippingZones from './pages/ShippingZones';
+import Messages from './pages/Messages';
+import Subscribers from './pages/Subscribers';
 import Login from './pages/Login';
 
 const queryClient = new QueryClient({
@@ -136,6 +138,14 @@ function App() {
               <Route
                 path='shipping-zones'
                 element={<ShippingZones />}
+              />
+              <Route
+                path='messages'
+                element={<Messages />}
+              />
+              <Route
+                path='subscribers'
+                element={<Subscribers />}
               />
               <Route
                 path='settings'

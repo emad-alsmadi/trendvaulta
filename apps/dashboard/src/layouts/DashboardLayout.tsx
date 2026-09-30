@@ -29,6 +29,8 @@ import {
   PackageOpen,
   Gift,
   MessageCircle,
+  Inbox,
+  Mail,
   Settings,
   LogOut,
   Menu,
@@ -66,6 +68,8 @@ const sidebarItems = [
   { icon: PackageOpen, label: 'Bundles', path: '/bundles', permission: 'content:read' },
   { icon: Gift, label: 'Gift Finder', path: '/gift-finder-config', permission: 'content:read' },
   { icon: MessageCircle, label: 'Product Q&A', path: '/product-qa', permission: 'content:read' },
+  { icon: Inbox, label: 'Messages', path: '/messages', permission: 'content:read' },
+  { icon: Mail, label: 'Subscribers', path: '/subscribers', permission: 'content:read' },
   { icon: Settings, label: 'Settings', path: '/settings' },
 ];
 

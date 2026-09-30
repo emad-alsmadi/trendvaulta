@@ -1702,3 +1702,66 @@ export const adminSettingsApi = {
     return data;
   },
 };
+
+export type ContactMessageStatus = 'new' | 'read' | 'closed';
+
+export type AdminContactMessage = {
+  _id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  status: ContactMessageStatus;
+  createdAt: string;
+  updatedAt?: string;
+};
+
+export type SubscriberStatus = 'pending' | 'subscribed' | 'unsubscribed';
+
+export type AdminSubscriber = {
+  _id: string;
+  email: string;
+  source: 'footer' | 'checkout' | 'other';
+  status: SubscriberStatus;
+  confirmedAt?: string;
+  createdAt: string;
+};
+
+type InboxListQuery<S> = { page?: number; limit?: number; status?: S };
+
+/** Contact form messages — GET/PATCH /api/contact/admin (content:*). */
+export const adminContactApi = {
+  getMessages: async (
+    params: InboxListQuery<ContactMessageStatus> = {},
+  ): Promise<PaginatedList<AdminContactMessage>> => {
+    const { data } = await api.get<PaginatedList<AdminContactMessage>>(
+      '/contact/admin',
+      { params },
+    );
+    return data;
+  },
+
+  updateStatus: async (
+    id: string,
+    status: ContactMessageStatus,
+  ): Promise<AdminContactMessage> => {
+    const { data } = await api.patch<{ data: AdminContactMessage }>(
+      `/contact/admin/${id}`,
+      { status },
+    );
+    return data.data;
+  },
+};
+
+/** Newsletter subscribers — GET /api/newsletter/admin (content:read). */
+export const adminSubscribersApi = {
+  getSubscribers: async (
+    params: InboxListQuery<SubscriberStatus> = {},
+  ): Promise<PaginatedList<AdminSubscriber>> => {
+    const { data } = await api.get<PaginatedList<AdminSubscriber>>(
+      '/newsletter/admin',
+      { params },
+    );
+    return data;
+  },
+};
