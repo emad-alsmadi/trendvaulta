@@ -16,6 +16,8 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { FormDialog } from '../components/ui/FormDialog';
+import { useT } from '../i18n/I18nProvider';
+import type { MessageKey } from '../i18n/en';
 
 /** Method row as edited in the form (numbers kept as strings until save). */
 type MethodForm = {
@@ -61,10 +63,12 @@ const emptyForm: ZoneForm = {
 const inputClass =
   'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white';
 
-/** Build the API payload, or return a user-facing error. */
-function toPayload(form: ZoneForm): ShippingZonePayload | string {
+type ZoneError = { error: MessageKey; vars?: Record<string, string | number> };
+
+/** Build the API payload, or return the problem as a message key + values. */
+function toPayload(form: ZoneForm): ShippingZonePayload | ZoneError {
   const name = form.name.trim();
-  if (!name) return 'Zone name is required.';
+  if (!name) return { error: 'shippingZones.errors.nameRequired' };
 
   const countries = form.countries
     .split(/[\s,]+/)
@@ -72,18 +76,18 @@ function toPayload(form: ZoneForm): ShippingZonePayload | string {
     .filter(Boolean);
   const badCountry = countries.find((c) => !/^[A-Z]{2}$/.test(c));
   if (badCountry) {
-    return `"${badCountry}" is not a 2-letter country code (e.g. US, AE, SA).`;
+    return { error: 'shippingZones.errors.badCountry', vars: { code: badCountry } };
   }
 
-  for (const [label, pattern] of [
-    ['Region pattern', form.regionPattern],
-    ['Postal code pattern', form.postalCodePattern],
+  for (const [error, pattern] of [
+    ['shippingZones.errors.badRegion', form.regionPattern],
+    ['shippingZones.errors.badPostal', form.postalCodePattern],
   ] as const) {
     if (!pattern.trim()) continue;
     try {
       new RegExp(pattern.trim(), 'i');
     } catch {
-      return `${label} is not a valid regular expression.`;
+      return { error };
     }
   }
 
@@ -91,18 +95,18 @@ function toPayload(form: ZoneForm): ShippingZonePayload | string {
   const methods: ShippingZonePayload['methods'] = [];
   for (const [index, m] of form.methods.entries()) {
     const handle = m.handle.trim().toLowerCase();
-    const row = `Method ${index + 1}`;
-    if (!m.name.trim() || !handle) return `${row}: name and handle are required.`;
-    if (handles.has(handle)) return `${row}: handle "${handle}" is used twice.`;
+    const n = index + 1;
+    if (!m.name.trim() || !handle) return { error: 'shippingZones.errors.methodRequired', vars: { n } };
+    if (handles.has(handle)) return { error: 'shippingZones.errors.methodDuplicate', vars: { n, handle } };
     handles.add(handle);
     const priceUsd = Number(m.priceUsd);
     if (!Number.isFinite(priceUsd) || priceUsd < 0) {
-      return `${row}: price must be 0 or more.`;
+      return { error: 'shippingZones.errors.methodPrice', vars: { n } };
     }
     const min = Number(m.estimatedDaysMin);
     const max = Number(m.estimatedDaysMax);
     if (!Number.isInteger(min) || !Number.isInteger(max) || min < 0 || max < min) {
-      return `${row}: delivery days must be whole numbers with min ≤ max.`;
+      return { error: 'shippingZones.errors.methodDays', vars: { n } };
     }
     methods.push({
       name: m.name.trim(),
@@ -131,6 +135,7 @@ export default function ShippingZones() {
   const { can } = usePermissions();
   const toast = useToast();
   const confirm = useConfirm();
+  const { t, formatCurrency, formatNumber } = useT();
   const zonesQ = useAdminShippingZones({ limit: 100 });
   const createMut = useCreateShippingZoneMutation();
   const updateMut = useUpdateShippingZoneMutation();
@@ -198,36 +203,36 @@ export default function ShippingZones() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const payload = toPayload(form);
-    if (typeof payload === 'string') {
-      toast.error(payload);
+    if ('error' in payload) {
+      toast.error(t(payload.error, payload.vars));
       return;
     }
     try {
       if (editing) {
         await updateMut.mutateAsync({ id: editing._id, payload });
-        toast.success('Shipping zone updated.');
+        toast.success(t('shippingZones.updated'));
       } else {
         await createMut.mutateAsync(payload);
-        toast.success('Shipping zone created.');
+        toast.success(t('shippingZones.created'));
       }
       setOpen(false);
       setEditing(null);
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not save shipping zone'));
+      toast.error(errorMessage(err, t('shippingZones.saveFailed')));
     }
   }
 
   async function handleDelete(zone: AdminShippingZone) {
     const ok = await confirm({
-      message: `Permanently delete shipping zone "${zone.name}"? Checkout falls back to the flat rates in Settings for its countries.`,
+      message: t('shippingZones.confirmDelete', { name: zone.name }),
       danger: true,
-      confirmLabel: 'Delete',
+      confirmLabel: t('common.delete'),
     });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(zone._id);
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not delete shipping zone'));
+      toast.error(errorMessage(err, t('shippingZones.deleteFailed')));
     }
   }
 
@@ -240,12 +245,10 @@ export default function ShippingZones() {
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Shipping Zones
+            {t('shippingZones.title')}
           </h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Delivery methods and prices by destination. The first active zone
-            (by order) that matches the address wins; unmatched addresses use
-            the flat rates in Settings.
+            {t('shippingZones.subtitle')}
           </p>
         </div>
         {canWrite && (
@@ -254,33 +257,33 @@ export default function ShippingZones() {
             onClick={openCreate}
             className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
           >
-            <Plus className="me-2 h-5 w-5" />
-            Add zone
+            <Plus className="me-2 h-5 w-5" aria-hidden />
+            {t('shippingZones.add')}
           </button>
         )}
       </div>
 
       <div className="relative mb-6">
-        <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+        <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" aria-hidden />
         <input
           type="search"
-          aria-label="Search shipping zones"
+          aria-label={t('shippingZones.searchLabel')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name or country code…"
+          placeholder={t('shippingZones.searchPlaceholder')}
           className="w-full rounded-lg border border-gray-300 bg-white py-2 ps-10 pe-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
         />
       </div>
 
       {zonesQ.isLoading && (
         <p className="py-10 text-center text-sm text-gray-500">
-          Loading shipping zones…
+          {t('shippingZones.loading')}
         </p>
       )}
 
       {zonesQ.isError && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-          {errorMessage(zonesQ.error, 'Failed to load shipping zones')}
+          {errorMessage(zonesQ.error, t('shippingZones.loadFailed'))}
         </div>
       )}
 
@@ -290,7 +293,14 @@ export default function ShippingZones() {
             <table className="w-full min-w-[800px]">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                  {['Name', 'Countries', 'Methods', 'Order', 'Status', 'Actions'].map((h) => (
+                  {[
+                    t('shippingZones.columns.name'),
+                    t('shippingZones.columns.countries'),
+                    t('shippingZones.columns.methods'),
+                    t('shippingZones.columns.order'),
+                    t('common.status'),
+                    t('common.actions'),
+                  ].map((h) => (
                     <th
                       key={h}
                       className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300"
@@ -304,18 +314,17 @@ export default function ShippingZones() {
                 {filtered.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-500">
-                      No shipping zones yet — checkout uses the flat rates in
-                      Settings for every address.
+                      {t('shippingZones.empty')}
                     </td>
                   </tr>
                 ) : (
                   filtered.map((zone) => (
                     <tr key={zone._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/60">
-                      <td className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-white">
+                      <td className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-white" dir="auto">
                         {zone.name}
                       </td>
                       <td className="px-4 py-3 font-mono text-xs text-gray-600 dark:text-gray-400">
-                        {zone.countries.length ? zone.countries.join(', ') : 'All countries'}
+                        {zone.countries.length ? <span dir="ltr">{zone.countries.join(', ')}</span> : t('shippingZones.allCountries')}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
                         {zone.methods.length === 0
@@ -323,12 +332,12 @@ export default function ShippingZones() {
                           : zone.methods
                               .map(
                                 (m) =>
-                                  `${m.name} ($${Number(m.priceUsd).toFixed(2)})${m.isActive === false ? ' · off' : ''}`,
+                                  `${m.name} (${formatCurrency(Number(m.priceUsd))})${m.isActive === false ? t('shippingZones.methodOff') : ''}`,
                               )
                               .join(', ')}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                        {zone.sortOrder ?? 0}
+                        {formatNumber(zone.sortOrder ?? 0)}
                       </td>
                       <td className="px-4 py-3">
                         <span
@@ -338,7 +347,7 @@ export default function ShippingZones() {
                               : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                           }`}
                         >
-                          {zone.isActive ? 'Active' : 'Inactive'}
+                          {zone.isActive ? t('common.active') : t('common.inactive')}
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -348,18 +357,18 @@ export default function ShippingZones() {
                               type="button"
                               onClick={() => openEdit(zone)}
                               className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600"
-                              aria-label={`Edit ${zone.name}`}
+                              aria-label={t('common.editItem', { name: zone.name })}
                             >
-                              <Pencil className="h-4 w-4 text-gray-500" />
+                              <Pencil className="h-4 w-4 text-gray-500" aria-hidden />
                             </button>
                             <button
                               type="button"
                               onClick={() => void handleDelete(zone)}
                               disabled={deleteMut.isPending}
                               className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
-                              aria-label={`Delete ${zone.name}`}
+                              aria-label={t('common.deleteItem', { name: zone.name })}
                             >
-                              <Trash2 className="h-4 w-4 text-red-500" />
+                              <Trash2 className="h-4 w-4 text-red-500" aria-hidden />
                             </button>
                           </div>
                         )}
@@ -376,7 +385,7 @@ export default function ShippingZones() {
       {open && (
         <FormDialog
           onClose={() => setOpen(false)}
-          title={editing ? 'Edit shipping zone' : 'Create shipping zone'}
+          title={editing ? t('shippingZones.form.editTitle') : t('shippingZones.form.createTitle')}
           busy={saving}
           maxWidthClass="max-w-2xl"
         >
@@ -384,44 +393,47 @@ export default function ShippingZones() {
           <form onSubmit={handleSubmit} className="space-y-3">
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Name
+                {t('shippingZones.form.name')}
               </span>
               <input
                 required
                 maxLength={200}
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="Gulf countries"
+                placeholder={t('shippingZones.form.namePlaceholder')}
+                dir="auto"
                 className={inputClass}
               />
             </label>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Countries (2-letter codes, comma separated; empty = all)
+                {t('shippingZones.form.countries')}
               </span>
               <input
                 value={form.countries}
                 onChange={(e) => setForm((f) => ({ ...f, countries: e.target.value }))}
                 placeholder="AE, SA, KW"
+                dir="ltr"
                 className={`${inputClass} font-mono uppercase`}
               />
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm">
                 <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  City/region pattern (optional regex)
+                  {t('shippingZones.form.region')}
                 </span>
                 <input
                   maxLength={200}
                   value={form.regionPattern}
                   onChange={(e) => setForm((f) => ({ ...f, regionPattern: e.target.value }))}
                   placeholder="^(dubai|sharjah)$"
+                  dir="ltr"
                   className={`${inputClass} font-mono`}
                 />
               </label>
               <label className="block text-sm">
                 <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Postal code pattern (optional regex)
+                  {t('shippingZones.form.postal')}
                 </span>
                 <input
                   maxLength={200}
@@ -430,6 +442,7 @@ export default function ShippingZones() {
                     setForm((f) => ({ ...f, postalCodePattern: e.target.value }))
                   }
                   placeholder="^9\d{4}$"
+                  dir="ltr"
                   className={`${inputClass} font-mono`}
                 />
               </label>
@@ -437,7 +450,7 @@ export default function ShippingZones() {
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm">
                 <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Order (lower matches first)
+                  {t('shippingZones.form.order')}
                 </span>
                 <input
                   type="number"
@@ -454,18 +467,16 @@ export default function ShippingZones() {
                   checked={form.isActive}
                   onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
                 />
-                Active
+                {t('common.active')}
               </label>
             </div>
 
             <fieldset className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
               <legend className="px-1 text-sm font-semibold text-gray-900 dark:text-white">
-                Methods
+                {t('shippingZones.form.methods')}
               </legend>
               <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
-                Shoppers pick one of these at checkout. A price of 0 means
-                free. Use the handles “standard” / “express” to override the
-                Settings flat rates for this zone.
+                {t('shippingZones.form.methodsHint')}
               </p>
               <div className="space-y-3">
                 {form.methods.map((m, index) => (
@@ -476,10 +487,11 @@ export default function ShippingZones() {
                     <div className="grid gap-2 sm:grid-cols-3">
                       <label className="block text-xs">
                         <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                          Name
+                          {t('shippingZones.form.methodName')}
                         </span>
                         <input
                           value={m.name}
+                          dir="auto"
                           maxLength={100}
                           onChange={(e) => updateMethod(index, { name: e.target.value })}
                           className={inputClass}
@@ -487,10 +499,11 @@ export default function ShippingZones() {
                       </label>
                       <label className="block text-xs">
                         <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                          Handle
+                          {t('shippingZones.form.handle')}
                         </span>
                         <input
                           value={m.handle}
+                          dir="ltr"
                           maxLength={50}
                           onChange={(e) => updateMethod(index, { handle: e.target.value })}
                           className={`${inputClass} font-mono`}
@@ -498,7 +511,7 @@ export default function ShippingZones() {
                       </label>
                       <label className="block text-xs">
                         <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                          Price (USD)
+                          {t('shippingZones.form.price')}
                         </span>
                         <input
                           type="number"
@@ -511,7 +524,7 @@ export default function ShippingZones() {
                       </label>
                       <label className="block text-xs">
                         <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                          Min days
+                          {t('shippingZones.form.minDays')}
                         </span>
                         <input
                           type="number"
@@ -526,7 +539,7 @@ export default function ShippingZones() {
                       </label>
                       <label className="block text-xs">
                         <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                          Max days
+                          {t('shippingZones.form.maxDays')}
                         </span>
                         <input
                           type="number"
@@ -548,7 +561,7 @@ export default function ShippingZones() {
                               updateMethod(index, { isActive: e.target.checked })
                             }
                           />
-                          Active
+                          {t('common.active')}
                         </label>
                         <button
                           type="button"
@@ -559,18 +572,19 @@ export default function ShippingZones() {
                             }))
                           }
                           className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
-                          aria-label={`Remove method ${m.name || index + 1}`}
+                          aria-label={t('shippingZones.form.removeMethod', { name: m.name || index + 1 })}
                         >
-                          <Trash2 className="h-4 w-4 text-red-500" />
+                          <Trash2 className="h-4 w-4 text-red-500" aria-hidden />
                         </button>
                       </div>
                     </div>
                     <label className="mt-2 block text-xs">
                       <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                        Description (optional)
+                        {t('shippingZones.form.description')}
                       </span>
                       <input
                         value={m.description}
+                        dir="auto"
                         maxLength={500}
                         onChange={(e) => updateMethod(index, { description: e.target.value })}
                         className={inputClass}
@@ -586,8 +600,8 @@ export default function ShippingZones() {
                 }
                 className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
               >
-                <Plus className="h-4 w-4" />
-                Add method
+                <Plus className="h-4 w-4" aria-hidden />
+                {t('shippingZones.form.addMethod')}
               </button>
             </fieldset>
 
@@ -598,14 +612,14 @@ export default function ShippingZones() {
                 onClick={() => setOpen(false)}
                 className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={saving}
                 className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
               >
-                {saving ? 'Saving…' : editing ? 'Save' : 'Create'}
+                {saving ? t('common.saving') : editing ? t('common.save') : t('common.create')}
               </button>
             </div>
           </form>
