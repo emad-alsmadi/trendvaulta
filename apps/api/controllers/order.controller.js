@@ -696,6 +696,16 @@ const cancelOrder = asyncHandler(async (req, res) => {
   });
 });
 
+/** Escape a value for safe interpolation into HTML text. */
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 /**
  * Generate invoice for an order
  * @route GET /api/orders/:id/invoice
@@ -713,8 +723,10 @@ const getOrderInvoice = asyncHandler(async (req, res) => {
     return res.status(403).json({ message: 'Not authorized' });
   }
 
-  // Generate HTML invoice
+  // Generate HTML invoice. Names, addresses and product titles are user or
+  // staff input, so every interpolated string is escaped.
   const frontend = process.env.FRONTEND_URL || 'http://localhost:3001';
+  const address = order.shippingAddress || {};
   const invoiceHtml = `
 <!DOCTYPE html>
 <html>
@@ -747,10 +759,10 @@ const getOrderInvoice = asyncHandler(async (req, res) => {
 
   <div class="section">
     <h3>Bill To</h3>
-    <p><strong>${order.shippingAddress.name}</strong></p>
-    <p>${order.shippingAddress.address}</p>
-    <p>${order.shippingAddress.city}, ${order.shippingAddress.zip}</p>
-    <p>${order.shippingAddress.phone}</p>
+    <p><strong>${escapeHtml(address.name)}</strong></p>
+    <p>${escapeHtml(address.address)}</p>
+    <p>${escapeHtml(address.city)}, ${escapeHtml(address.zip)}</p>
+    <p>${escapeHtml(address.phone)}</p>
   </div>
 
   <div class="section">
@@ -769,7 +781,7 @@ const getOrderInvoice = asyncHandler(async (req, res) => {
           .map(
             (item) => `
           <tr>
-            <td>${item.title}</td>
+            <td>${escapeHtml(item.title)}</td>
             <td>${item.qty}</td>
             <td>$${item.price.toFixed(2)}</td>
             <td>$${(item.price * item.qty).toFixed(2)}</td>
@@ -815,13 +827,18 @@ const getOrderInvoice = asyncHandler(async (req, res) => {
 
   <div class="footer">
     <p>Thank you for your order!</p>
-    <p>${frontend}</p>
+    <p>${escapeHtml(frontend)}</p>
   </div>
 </body>
 </html>
   `;
 
-  res.setHeader('Content-Type', 'text/html');
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  // Static document: no scripts, only the inline stylesheet above.
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'none'; style-src 'unsafe-inline'",
+  );
   res.send(invoiceHtml);
 });
 

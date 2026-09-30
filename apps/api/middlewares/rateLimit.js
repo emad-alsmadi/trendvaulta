@@ -182,8 +182,26 @@ const contactRateLimit = rateLimit({
   message: 'Too many messages sent. Please try again later.',
 });
 
+// Product Q&A (signed-in, keyed per user + IP): questions land in the
+// moderation queue, votes reorder the public list.
+const qaQuestionRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.RATE_LIMIT_QA_QUESTION_MAX) || 5,
+  keyPrefix: 'qa-question',
+  message: 'Too many questions. Please try again later.',
+});
+
+const qaVoteRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.RATE_LIMIT_QA_VOTE_MAX) || 60,
+  keyPrefix: 'qa-vote',
+  message: 'Too many votes. Please try again later.',
+});
+
 module.exports = {
   rateLimit,
+  qaQuestionRateLimit,
+  qaVoteRateLimit,
   getClientKey,
   authRateLimit,
   passwordRateLimit,

@@ -6,6 +6,7 @@ const { newsletterRateLimit } = require('../middlewares/rateLimit');
 
 const {
   subscribe,
+  confirm,
   unsubscribe,
   getAdminSubscribers,
 } = require('../controllers/newsletter.controller');
@@ -20,6 +21,7 @@ router.get(
 
 // Public
 router.post('/newsletter', newsletterRateLimit, subscribe);
+router.post('/newsletter/confirm', newsletterRateLimit, confirm);
 router.post('/newsletter/unsubscribe', newsletterRateLimit, unsubscribe);
 
 module.exports = router;

@@ -13,7 +13,7 @@ const {
 } = require('../controllers/brand.controller');
 
 router.get('/brands', optionalVerifyToken, getAllBrands);
-router.get('/brands/:id', getBrandById);
+router.get('/brands/:id', optionalVerifyToken, getBrandById);
 
 router.post(
   '/brands',

@@ -203,13 +203,20 @@ const getLowStockProducts = asyncHandler(async (req, res) => {
   );
   const limit = Math.min(200, Math.max(1, parseInt(req.query.limit, 10) || 50));
 
+  // Checkout sells a variant product from its variants' stock, so it needs
+  // restocking as soon as any one option runs low, not only its total.
   const products = await Product.find({
     isActive: true,
-    stock: { $lte: threshold },
+    $or: [
+      { 'variants.0': { $exists: false }, stock: { $lte: threshold } },
+      { variants: { $elemMatch: { stock: { $lte: threshold } } } },
+    ],
   })
     .sort({ stock: 1, title: 1 })
     .limit(limit)
-    .select('title slug cover price stock sku category subcategory brand')
+    .select(
+      'title slug cover price stock sku category subcategory brand variants updatedAt',
+    )
     .populate('brand', 'name')
     .lean();
 

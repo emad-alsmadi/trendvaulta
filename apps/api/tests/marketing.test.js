@@ -2,7 +2,7 @@
  * K5 verified-purchase reviews + K8 newsletter/contact endpoints.
  *
  * Focus is on the rules that are easy to regress silently: the purchase gate
- * and its staff bypass, the non-enumerating newsletter responses, and the
+ * and its staff bypass, the non-enumerating double opt-in newsletter, and the
  * contact honeypot (which must look exactly like a success while persisting
  * nothing).
  */
@@ -29,6 +29,10 @@ const {
 } = require('./setup');
 
 const { Subscriber } = require('../models/Subscriber');
+const {
+  createConfirmToken,
+  createUnsubscribeToken,
+} = require('../utils/newsletterTokens');
 const { ContactMessage } = require('../models/ContactMessage');
 const { Review } = require('../models/Review');
 
@@ -163,53 +167,91 @@ describe('K8 — newsletter', () => {
   after(disconnectDb);
   beforeEach(clearDb);
 
-  dbIt('subscribes a new address', async () => {
+  dbIt('stores a new address as pending until it is confirmed', async () => {
     const res = await request(app)
       .post('/api/newsletter')
       .send({ email: 'New@Example.com' });
 
     assert.equal(res.status, 200);
-    assert.equal(res.body.message, 'Subscribed');
+    assert.equal(res.body.message, 'Check your inbox to confirm');
 
     const doc = await Subscriber.findOne({ email: 'new@example.com' }).lean();
     assert.ok(doc);
-    assert.equal(doc.status, 'subscribed');
+    assert.equal(doc.status, 'pending');
     assert.equal(doc.source, 'footer');
   });
 
   dbIt('answers identically for an address that already exists', async () => {
-    await request(app).post('/api/newsletter').send({ email: 'dup@example.com' });
+    await Subscriber.create({ email: 'dup@example.com', status: 'subscribed' });
     const res = await request(app)
       .post('/api/newsletter')
       .send({ email: 'dup@example.com' });
 
     assert.equal(res.status, 200);
-    assert.equal(res.body.message, 'Subscribed');
+    assert.equal(res.body.message, 'Check your inbox to confirm');
     assert.equal(await Subscriber.countDocuments({ email: 'dup@example.com' }), 1);
+    const doc = await Subscriber.findOne({ email: 'dup@example.com' }).lean();
+    assert.equal(doc.status, 'subscribed');
   });
 
-  dbIt('re-subscribes a previously unsubscribed address', async () => {
+  dbIt('a previously unsubscribed address must confirm again', async () => {
     await Subscriber.create({ email: 'back@example.com', status: 'unsubscribed' });
 
     await request(app).post('/api/newsletter').send({ email: 'back@example.com' });
 
     const doc = await Subscriber.findOne({ email: 'back@example.com' }).lean();
-    assert.equal(doc.status, 'subscribed');
+    assert.equal(doc.status, 'pending');
   });
 
-  dbIt('unsubscribes, and stays generic for an unknown address', async () => {
-    await request(app).post('/api/newsletter').send({ email: 'bye@example.com' });
+  dbIt('confirms only with a valid, unexpired signed link', async () => {
+    await request(app).post('/api/newsletter').send({ email: 'ok@example.com' });
+    const { exp, token } = createConfirmToken('ok@example.com');
+
+    const tampered = await request(app)
+      .post('/api/newsletter/confirm')
+      .send({ email: 'other@example.com', exp, token });
+    assert.equal(tampered.status, 400);
+    assert.equal(tampered.body.code, 'NEWSLETTER_LINK_INVALID');
+
+    const old = createConfirmToken('ok@example.com', Date.now() - 8 * 86400000);
+    const expired = await request(app)
+      .post('/api/newsletter/confirm')
+      .send({ email: 'ok@example.com', ...old });
+    assert.equal(expired.status, 400);
+
     const res = await request(app)
+      .post('/api/newsletter/confirm')
+      .send({ email: 'ok@example.com', exp, token });
+    assert.equal(res.status, 200);
+    const doc = await Subscriber.findOne({ email: 'ok@example.com' }).lean();
+    assert.equal(doc.status, 'subscribed');
+    assert.ok(doc.confirmedAt);
+  });
+
+  dbIt('unsubscribes only with the signed token, generic for unknown', async () => {
+    await Subscriber.create({ email: 'bye@example.com', status: 'subscribed' });
+
+    const noToken = await request(app)
       .post('/api/newsletter/unsubscribe')
       .send({ email: 'bye@example.com' });
+    assert.equal(noToken.status, 400);
+    const forged = await request(app)
+      .post('/api/newsletter/unsubscribe')
+      .send({ email: 'bye@example.com', token: createUnsubscribeToken('x@example.com') });
+    assert.equal(forged.status, 400);
+    let doc = await Subscriber.findOne({ email: 'bye@example.com' }).lean();
+    assert.equal(doc.status, 'subscribed');
 
+    const res = await request(app)
+      .post('/api/newsletter/unsubscribe')
+      .send({ email: 'bye@example.com', token: createUnsubscribeToken('bye@example.com') });
     assert.equal(res.status, 200);
-    const doc = await Subscriber.findOne({ email: 'bye@example.com' }).lean();
+    doc = await Subscriber.findOne({ email: 'bye@example.com' }).lean();
     assert.equal(doc.status, 'unsubscribed');
 
     const unknown = await request(app)
       .post('/api/newsletter/unsubscribe')
-      .send({ email: 'never@example.com' });
+      .send({ email: 'never@example.com', token: createUnsubscribeToken('never@example.com') });
     assert.equal(unknown.status, 200);
   });
 

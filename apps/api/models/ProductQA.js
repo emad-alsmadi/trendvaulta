@@ -11,10 +11,12 @@ const ProductQASchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      maxlength: 500,
     },
     answer: {
       type: String,
       trim: true,
+      maxlength: 2000,
     },
     askedBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -31,6 +33,16 @@ const ProductQASchema = new mongoose.Schema(
     notHelpful: {
       type: Number,
       default: 0,
+    },
+    // Who voted which way — one vote per user, switchable. Hidden from reads
+    // so the public list doesn't ship voter ids.
+    helpfulVoters: {
+      type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+      select: false,
+    },
+    notHelpfulVoters: {
+      type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+      select: false,
     },
     approved: {
       type: Boolean,

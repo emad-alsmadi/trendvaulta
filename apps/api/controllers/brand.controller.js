@@ -84,7 +84,10 @@ const getAllBrands = asyncHandler(async (req, res) => {
   );
 
   const pageNum = Math.max(1, parseInt(page, 10) || 1);
-  const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
+  // Staff get a higher cap so the dashboard's product form can list every
+  // brand in its picker; the public storefront stays at 50 per page.
+  const maxLimit = isStaff ? 500 : 50;
+  const limitNum = Math.min(maxLimit, Math.max(1, parseInt(limit, 10) || 20));
   const skip = (pageNum - 1) * limitNum;
 
   const [brands, total] = await Promise.all([
@@ -126,7 +129,12 @@ const getBrandById = asyncHandler(async (req, res) => {
       : { slug: idOrSlug },
   );
 
-  if (!brand) {
+  // Deactivated brands are hidden from shoppers (as in the list), but staff
+  // can still open them.
+  const isStaff =
+    Array.isArray(req.user?.roles) &&
+    req.user.roles.some((r) => r === 'admin' || r === 'moderator');
+  if (!brand || (brand.isActive === false && !isStaff)) {
     return res.status(404).json({ message: 'Brand not found' });
   }
 

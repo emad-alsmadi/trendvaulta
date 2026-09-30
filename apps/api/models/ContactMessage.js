@@ -62,7 +62,15 @@ const validateContactMessage = (obj) => {
   return schema.validate(obj);
 };
 
+const validateContactStatus = (obj) => {
+  const schema = Joi.object({
+    status: Joi.string().valid('new', 'read', 'closed').required(),
+  });
+  return schema.validate(obj);
+};
+
 module.exports = {
+  validateContactStatus,
   ContactMessage,
   validateContactMessage,
 };

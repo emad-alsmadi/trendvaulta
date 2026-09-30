@@ -7,6 +7,7 @@ const { contactRateLimit } = require('../middlewares/rateLimit');
 const {
   createContactMessage,
   getAdminContactMessages,
+  updateContactMessageStatus,
 } = require('../controllers/contact.controller');
 
 // Admin (static segment first)
@@ -15,6 +16,12 @@ router.get(
   verfiyToken,
   checkRolePermission('content:read'),
   getAdminContactMessages,
+);
+router.patch(
+  '/contact/admin/:id',
+  verfiyToken,
+  checkRolePermission('content:write'),
+  updateContactMessageStatus,
 );
 
 // Public

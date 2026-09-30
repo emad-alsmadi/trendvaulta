@@ -98,12 +98,14 @@ async function sendOrderConfirmationEmail(opts) {
 /**
  * Send a best-effort notification to the store inbox when a contact form is
  * submitted. Fail-soft: logs and returns false on error, never throws.
- * @param {{ name: string, email: string, subject: string, message: string }} opts
+ * @param {{ name: string, email: string, subject: string, message: string, inbox?: string }} opts
  */
 async function sendContactNotificationEmail(opts) {
   const { name, email, subject, message } = opts;
 
+  // Settings → Contact email (editable in the dashboard) wins over env.
   const inbox =
+    opts.inbox ||
     process.env.CONTACT_INBOX_EMAIL ||
     process.env.SMTP_USER ||
     process.env.EMAIL_USER;
@@ -145,6 +147,56 @@ async function sendContactNotificationEmail(opts) {
     return true;
   } catch (err) {
     logger.error({ err }, '[mail] Contact notification failed');
+    return false;
+  }
+}
+
+/**
+ * Newsletter double opt-in mail (English + Arabic). Fail-soft: logs and
+ * returns false on error. Outside production, an unconfigured mailer logs
+ * the link instead so the flow can be completed locally.
+ * @param {{ to: string, confirmUrl: string, unsubscribeUrl: string }} opts
+ */
+async function sendNewsletterConfirmEmail(opts) {
+  const { to, confirmUrl, unsubscribeUrl } = opts;
+
+  const hasCreds =
+    process.env.SMTP_HOST || process.env.EMAIL_USER || process.env.SMTP_USER;
+  if (!hasCreds) {
+    if (process.env.NODE_ENV !== 'production') {
+      logger.info({ confirmUrl }, '[mail] Newsletter confirm link (mail not configured)');
+    } else {
+      logger.warn('[mail] Skipping newsletter confirmation — SMTP/EMAIL credentials not configured');
+    }
+    return false;
+  }
+
+  const text = [
+    'Please confirm your TrendVaulta newsletter subscription:',
+    confirmUrl,
+    '',
+    "If you didn't sign up, ignore this email and you won't be subscribed.",
+    '',
+    'يرجى تأكيد اشتراكك في نشرة TrendVaulta البريدية:',
+    confirmUrl,
+    '',
+    'إذا لم تشترك بنفسك، تجاهل هذه الرسالة ولن يتم اشتراكك.',
+    '',
+    `Unsubscribe / إلغاء الاشتراك: ${unsubscribeUrl}`,
+  ].join('\n');
+
+  try {
+    const transporter = createTransporter();
+    await transporter.sendMail({
+      from: getFromAddress(),
+      to,
+      subject: 'Confirm your subscription · تأكيد الاشتراك',
+      text,
+      headers: { 'List-Unsubscribe': `<${unsubscribeUrl}>` },
+    });
+    return true;
+  } catch (err) {
+    logger.error({ err }, '[mail] Newsletter confirmation failed');
     return false;
   }
 }
@@ -338,6 +390,7 @@ async function sendOrderRefundedEmail(opts) {
 }
 
 module.exports = {
+  sendNewsletterConfirmEmail,
   createTransporter,
   getFromAddress,
   sendOrderConfirmationEmail,

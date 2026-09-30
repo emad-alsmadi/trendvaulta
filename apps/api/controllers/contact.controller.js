@@ -1,8 +1,11 @@
 const asyncHandler = require('express-async-handler');
+const mongoose = require('mongoose');
 const {
   ContactMessage,
   validateContactMessage,
+  validateContactStatus,
 } = require('../models/ContactMessage');
+const { StoreSettings, SINGLETON_ID } = require('../models/StoreSettings');
 const { sendContactNotificationEmail } = require('../utils/mail');
 const { parsePagination } = require('../utils/pagination');
 
@@ -52,7 +55,11 @@ const createContactMessage = asyncHandler(async (req, res) => {
   // Best effort: the message is already persisted, so a dead SMTP server
   // must never turn a saved enquiry into an error for the sender.
   try {
+    const settings = await StoreSettings.findById(SINGLETON_ID)
+      .select('contactEmail')
+      .lean();
     await sendContactNotificationEmail({
+      inbox: settings?.contactEmail || undefined,
       name: doc.name,
       email: doc.email,
       subject: doc.subject,
@@ -105,8 +112,39 @@ const getAdminContactMessages = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * Admin: move a contact message through its workflow (new → read → closed).
+ *
+ * @route PATCH /api/contact/admin/:id
+ * @access Private (content:write)
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<void>} JSON `{ message, data }`
+ */
+const updateContactMessageStatus = asyncHandler(async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return res.status(404).json({ message: 'Message not found' });
+  }
+  const { error, value } = validateContactStatus({ status: req.body?.status });
+  if (error) {
+    return res.status(400).json({ message: error.details[0].message });
+  }
+
+  const doc = await ContactMessage.findByIdAndUpdate(
+    req.params.id,
+    { $set: { status: value.status } },
+    { new: true },
+  ).lean();
+  if (!doc) {
+    return res.status(404).json({ message: 'Message not found' });
+  }
+
+  res.status(200).json({ message: 'Message updated', data: doc });
+});
+
 module.exports = {
   createContactMessage,
   getAdminContactMessages,
+  updateContactMessageStatus,
   CONTACT_SUCCESS_MESSAGE,
 };

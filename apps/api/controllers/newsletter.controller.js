@@ -2,16 +2,31 @@ const asyncHandler = require('express-async-handler');
 const {
   Subscriber,
   validateSubscribe,
+  validateConfirm,
   validateUnsubscribe,
 } = require('../models/Subscriber');
 const { parsePagination } = require('../utils/pagination');
+const {
+  newsletterLinks,
+  verifyConfirmToken,
+  verifyUnsubscribeToken,
+} = require('../utils/newsletterTokens');
+const { sendNewsletterConfirmEmail } = require('../utils/mail');
+
+const invalidLink = (res) =>
+  res.status(400).json({
+    message: 'This link is invalid or has expired',
+    code: 'NEWSLETTER_LINK_INVALID',
+  });
 
 /**
- * Subscribe an email to the newsletter.
+ * Start a newsletter subscription (double opt-in).
  *
- * Responds 200 with the same generic body whether the address was new,
- * already subscribed, or resurrected from `unsubscribed`. Varying the
- * response would turn this public endpoint into a subscriber-list oracle.
+ * The address is stored as `pending` and a signed confirmation link is
+ * mailed to it; it only becomes `subscribed` when that link is used, so
+ * nobody can sign up a third party. Responds with the same generic body
+ * whether the address was new, pending, subscribed or unsubscribed, and the
+ * mail is sent in the background so timing doesn't tell them apart either.
  *
  * @route POST /api/newsletter
  * @access Public
@@ -32,40 +47,80 @@ const subscribe = asyncHandler(async (req, res) => {
   const email = String(value.email).toLowerCase().trim();
   const source = value.source || 'footer';
 
-  // Upsert: creates on first signup, and re-subscribes a previously
-  // unsubscribed address without duplicating the row.
-  await Subscriber.findOneAndUpdate(
-    { email },
-    {
-      $set: { status: 'subscribed' },
-      $setOnInsert: { email, source },
-    },
-    { upsert: true, new: true, setDefaultsOnInsert: true },
-  );
+  const existing = await Subscriber.findOne({ email }).select('status').lean();
+  if (existing?.status !== 'subscribed') {
+    try {
+      await Subscriber.updateOne(
+        { email },
+        { $set: { status: 'pending' }, $setOnInsert: { source } },
+        { upsert: true },
+      );
+    } catch (err) {
+      // A concurrent signup for the same address won the insert.
+      if (err?.code !== 11000) throw err;
+    }
+    void sendNewsletterConfirmEmail({ to: email, ...newsletterLinks(email) });
+  }
 
-  res.status(200).json({ message: 'Subscribed' });
+  res.status(200).json({ message: 'Check your inbox to confirm' });
 });
 
 /**
- * Unsubscribe an email from the newsletter.
+ * Confirm a pending subscription from the emailed link.
  *
- * Always 200 with a generic message, even for an address that was never
- * subscribed — same non-enumeration reasoning as `subscribe`.
+ * @route POST /api/newsletter/confirm
+ * @access Public (signed link)
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<void>} JSON `{ message }`
+ */
+const confirm = asyncHandler(async (req, res) => {
+  const { error, value } = validateConfirm({
+    email: req.body?.email,
+    exp: req.body?.exp,
+    token: req.body?.token,
+  });
+  if (error) return invalidLink(res);
+
+  const email = String(value.email).toLowerCase().trim();
+  if (!verifyConfirmToken(email, value.exp, value.token)) {
+    return invalidLink(res);
+  }
+
+  // Only a pending address is confirmed: an old link must not undo a later
+  // unsubscribe. Clicking twice is harmless.
+  await Subscriber.updateOne(
+    { email, status: 'pending' },
+    { $set: { status: 'subscribed', confirmedAt: new Date() } },
+  );
+
+  res.status(200).json({ message: 'Subscription confirmed' });
+});
+
+/**
+ * Unsubscribe via the signed per-address link included in every mail.
+ *
+ * Always 200 for a valid link, even for an address that was never
+ * subscribed. Without a valid token nothing changes, so nobody can
+ * unsubscribe someone else by knowing their address.
  *
  * @route POST /api/newsletter/unsubscribe
- * @access Public
+ * @access Public (signed link)
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  * @returns {Promise<void>} JSON `{ message }`
  */
 const unsubscribe = asyncHandler(async (req, res) => {
-  const { error, value } = validateUnsubscribe({ email: req.body?.email });
-
-  if (error) {
-    return res.status(400).json({ message: error.details[0].message });
-  }
+  const { error, value } = validateUnsubscribe({
+    email: req.body?.email,
+    token: req.body?.token,
+  });
+  if (error) return invalidLink(res);
 
   const email = String(value.email).toLowerCase().trim();
+  if (!verifyUnsubscribeToken(email, value.token)) {
+    return invalidLink(res);
+  }
 
   await Subscriber.updateOne({ email }, { $set: { status: 'unsubscribed' } });
 
@@ -87,7 +142,7 @@ const getAdminSubscribers = asyncHandler(async (req, res) => {
   });
 
   const filter = {};
-  if (req.query.status === 'subscribed' || req.query.status === 'unsubscribed') {
+  if (['pending', 'subscribed', 'unsubscribed'].includes(req.query.status)) {
     filter.status = req.query.status;
   }
 
@@ -113,6 +168,7 @@ const getAdminSubscribers = asyncHandler(async (req, res) => {
 
 module.exports = {
   subscribe,
+  confirm,
   unsubscribe,
   getAdminSubscribers,
 };

@@ -13,6 +13,10 @@ const { verfiyToken } = require('../middlewares/verfiyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 const { validate } = require('../middlewares/validate');
 const {
+  qaQuestionRateLimit,
+  qaVoteRateLimit,
+} = require('../middlewares/rateLimit');
+const {
   createProductQuestionSchema,
   answerProductQASchema,
   markHelpfulSchema,
@@ -25,6 +29,7 @@ router.get('/products/:id/qa', getProductQA);
 router.post(
   '/products/:id/qa',
   verfiyToken,
+  qaQuestionRateLimit,
   validate(createProductQuestionSchema),
   createProductQuestion,
 );
@@ -33,6 +38,7 @@ router.post(
 router.post(
   '/qa/:id/helpful',
   verfiyToken,
+  qaVoteRateLimit,
   validate(markHelpfulSchema),
   markHelpful,
 );

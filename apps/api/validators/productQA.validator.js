@@ -4,11 +4,12 @@ const Joi = require('joi');
 // clients that still send it. The controller enforces presence.
 const createProductQuestionSchema = Joi.object({
   productId: Joi.string(),
-  question: Joi.string().required(),
+  // Same bounds as the storefront form (ProductQaSection).
+  question: Joi.string().trim().min(10).max(500).required(),
 });
 
 const answerProductQASchema = Joi.object({
-  answer: Joi.string().allow('', null),
+  answer: Joi.string().trim().max(2000).allow('', null),
   approved: Joi.boolean(),
 }).min(1);
 

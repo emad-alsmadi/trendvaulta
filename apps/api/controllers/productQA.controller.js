@@ -129,9 +129,29 @@ const createProductQuestion = asyncHandler(async (req, res) => {
       .json({ message: 'productId and question are required' });
   }
 
-  const product = await Product.findById(productId).select('_id').lean();
+  // Deactivated products are hidden from the storefront; don't collect
+  // questions for them.
+  const product = await Product.findOne({
+    _id: productId,
+    isActive: { $ne: false },
+  })
+    .select('_id')
+    .lean();
   if (!product) {
     return res.status(404).json({ message: 'Product not found' });
+  }
+
+  // A double-submit (or a retry) shouldn't queue the same question twice.
+  const duplicate = await ProductQA.exists({
+    product: productId,
+    askedBy: userId,
+    question,
+  });
+  if (duplicate) {
+    return res.status(409).json({
+      message: 'You have already asked this question',
+      code: 'QA_DUPLICATE',
+    });
   }
 
   const qa = await ProductQA.create({
@@ -193,19 +213,44 @@ const answerProductQuestion = asyncHandler(async (req, res) => {
 const markHelpful = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { helpful } = req.body;
+  const userId = req.user?.id;
 
-  const qa = await ProductQA.findById(id);
+  const [mine, other] = helpful
+    ? ['helpful', 'notHelpful']
+    : ['notHelpful', 'helpful'];
+  const counts = { helpful: 1, notHelpful: 1 };
+  const opts = { new: true, projection: counts };
+
+  // One vote per user, applied atomically. First try switching an opposite
+  // vote, then a first-time vote; if neither matches, the user already voted
+  // this way and the call is a no-op. Only approved (public) Q&A is votable.
+  let qa = await ProductQA.findOneAndUpdate(
+    { _id: id, approved: true, [`${other}Voters`]: userId },
+    {
+      $pull: { [`${other}Voters`]: userId },
+      $addToSet: { [`${mine}Voters`]: userId },
+      $inc: { [mine]: 1, [other]: -1 },
+    },
+    opts,
+  );
+  if (!qa) {
+    qa = await ProductQA.findOneAndUpdate(
+      {
+        _id: id,
+        approved: true,
+        helpfulVoters: { $ne: userId },
+        notHelpfulVoters: { $ne: userId },
+      },
+      { $addToSet: { [`${mine}Voters`]: userId }, $inc: { [mine]: 1 } },
+      opts,
+    );
+  }
+  if (!qa) {
+    qa = await ProductQA.findOne({ _id: id, approved: true }, counts);
+  }
   if (!qa) {
     return res.status(404).json({ message: 'Q&A not found' });
   }
-
-  if (helpful === true) {
-    qa.helpful += 1;
-  } else if (helpful === false) {
-    qa.notHelpful += 1;
-  }
-
-  await qa.save();
 
   res.status(200).json({
     message: 'Feedback saved successfully',
