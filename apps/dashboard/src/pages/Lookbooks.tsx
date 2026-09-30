@@ -245,7 +245,7 @@ export default function Lookbooks() {
                                 : 'bg-stone-100 text-stone-800 dark:bg-stone-900 dark:text-stone-200'
                           }`}
                         >
-                          {tv('lookbookTone', lookbook.tone)}
+                          {tv('tone', lookbook.tone)}
                         </span>
                       </td>
                       <td className='px-4 py-3 text-sm text-gray-600 dark:text-gray-400'>
@@ -436,7 +436,7 @@ export default function Lookbooks() {
                     key={tone}
                     value={tone}
                   >
-                    {tv('lookbookTone', tone)}
+                    {tv('tone', tone)}
                   </option>
                 ))}
               </select>

@@ -51,7 +51,8 @@ type ValueGroup =
   | 'role'
   | 'contactStatus'
   | 'contentType'
-  | 'lookbookTone';
+  | 'tone'
+  | 'moduleType';
 
 type I18n = {
   locale: Locale;

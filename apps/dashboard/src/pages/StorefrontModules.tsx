@@ -19,6 +19,7 @@ import { useConfirm } from '../components/ui/ConfirmDialog';
 import { HeroSlidesEditor } from '../components/storefront/HeroSlidesEditor';
 import { validateHeroSlides } from '../lib/heroSlides';
 import { FormDialog } from '../components/ui/FormDialog';
+import { useT } from '../i18n/I18nProvider';
 
 const MODULE_TYPES: StorefrontModuleType[] = [
   'hero_carousel',
@@ -49,6 +50,7 @@ export default function StorefrontModules() {
   const { can } = usePermissions();
   const toast = useToast();
   const confirm = useConfirm();
+  const { t, tv, formatNumber } = useT();
   const modulesQ = useAdminStorefrontModules({ limit: 100 });
   const createMut = useCreateStorefrontModuleMutation();
   const updateMut = useUpdateStorefrontModuleMutation();
@@ -99,14 +101,14 @@ export default function StorefrontModules() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.key.trim() || !form.type) {
-      toast.error('Key and type are required.');
+      toast.error(t('storefrontModules.required'));
       return;
     }
 
     const isHero = form.type === 'hero_carousel';
     const slideError = isHero ? validateHeroSlides(form.slides || []) : null;
     if (slideError) {
-      toast.error(slideError);
+      toast.error(t(slideError.key, slideError.vars));
       return;
     }
 
@@ -131,17 +133,17 @@ export default function StorefrontModules() {
       setOpen(false);
       setEditing(null);
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not save module'));
+      toast.error(errorMessage(err, t('storefrontModules.saveFailed')));
     }
   }
 
   async function handleDelete(module: AdminStorefrontModule) {
-    const ok = await confirm({ message: `Deactivate module "${module.key}" (${module.type})?`, danger: true, confirmLabel: 'Delete' });
+    const ok = await confirm({ message: t('storefrontModules.confirmDelete', { key: module.key, type: tv('moduleType', module.type) }), danger: true, confirmLabel: t('common.delete') });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(module._id);
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not delete module'));
+      toast.error(errorMessage(err, t('storefrontModules.deleteFailed')));
     }
   }
 
@@ -154,10 +156,10 @@ export default function StorefrontModules() {
       <div className='mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
         <div>
           <h1 className='text-3xl font-bold text-gray-900 dark:text-white'>
-            Storefront Modules
+            {t('storefrontModules.title')}
           </h1>
           <p className='mt-1 text-sm text-gray-600 dark:text-gray-400'>
-            Homepage sections and content blocks.
+            {t('storefrontModules.subtitle')}
           </p>
         </div>
         {can('content:write') && (
@@ -166,33 +168,33 @@ export default function StorefrontModules() {
             onClick={openCreate}
             className='inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600'
           >
-            <Plus className='me-2 h-5 w-5' />
-            Add module
+            <Plus className='me-2 h-5 w-5' aria-hidden />
+            {t('storefrontModules.add')}
           </button>
         )}
       </div>
 
       <div className='relative mb-6'>
-        <Search className='absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400' />
+        <Search className='absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400' aria-hidden />
         <input
           type='search'
-          aria-label='Search by key, type, or title'
+          aria-label={t('storefrontModules.searchLabel')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder='Search by key, type, or title…'
+          placeholder={t('storefrontModules.searchPlaceholder')}
           className='w-full rounded-lg border border-gray-300 bg-white py-2 ps-10 pe-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white'
         />
       </div>
 
       {modulesQ.isLoading && (
         <p className='py-10 text-center text-sm text-gray-500'>
-          Loading modules…
+          {t('storefrontModules.loading')}
         </p>
       )}
 
       {modulesQ.isError && (
         <div className='rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200'>
-          {errorMessage(modulesQ.error, 'Failed to load modules')}
+          {errorMessage(modulesQ.error, t('storefrontModules.loadFailed'))}
         </div>
       )}
 
@@ -202,7 +204,14 @@ export default function StorefrontModules() {
             <table className='w-full min-w-[800px]'>
               <thead className='bg-gray-50 dark:bg-gray-700'>
                 <tr>
-                  {['Key', 'Type', 'Title', 'Order', 'Status', 'Actions'].map(
+                  {[
+                    t('storefrontModules.columns.key'),
+                    t('storefrontModules.columns.type'),
+                    t('storefrontModules.columns.title'),
+                    t('storefrontModules.columns.order'),
+                    t('common.status'),
+                    t('common.actions'),
+                  ].map(
                     (h) => (
                       <th
                         key={h}
@@ -221,7 +230,7 @@ export default function StorefrontModules() {
                       colSpan={6}
                       className='px-4 py-10 text-center text-sm text-gray-500'
                     >
-                      No modules found.
+                      {t('storefrontModules.empty')}
                     </td>
                   </tr>
                 ) : (
@@ -230,19 +239,19 @@ export default function StorefrontModules() {
                       key={module._id}
                       className='hover:bg-gray-50 dark:hover:bg-gray-700/60'
                     >
-                      <td className='px-4 py-3 font-mono text-sm text-gray-600 dark:text-gray-400'>
+                      <td className='px-4 py-3 font-mono text-sm text-gray-600 dark:text-gray-400' dir='ltr'>
                         {module.key}
                       </td>
                       <td className='px-4 py-3'>
                         <span className='inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200'>
-                          {module.type}
+                          {tv('moduleType', module.type)}
                         </span>
                       </td>
-                      <td className='px-4 py-3 text-sm text-gray-900 dark:text-white'>
+                      <td className='px-4 py-3 text-sm text-gray-900 dark:text-white' dir='auto'>
                         {module.title || '—'}
                       </td>
                       <td className='px-4 py-3 text-sm text-gray-600 dark:text-gray-400'>
-                        {module.sortOrder}
+                        {formatNumber(module.sortOrder)}
                       </td>
                       <td className='px-4 py-3'>
                         <span
@@ -252,7 +261,7 @@ export default function StorefrontModules() {
                               : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                           }`}
                         >
-                          {module.active ? 'Active' : 'Inactive'}
+                          {module.active ? t('common.active') : t('common.inactive')}
                         </span>
                       </td>
                       <td className='px-4 py-3'>
@@ -262,9 +271,9 @@ export default function StorefrontModules() {
                               type='button'
                               onClick={() => openEdit(module)}
                               className='rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600'
-                              aria-label={`Edit ${module.key}`}
+                              aria-label={t('common.editItem', { name: module.title || module.key })}
                             >
-                              <Pencil className='h-4 w-4 text-gray-500' />
+                              <Pencil className='h-4 w-4 text-gray-500' aria-hidden />
                             </button>
                           )}
                           {can('content:delete') && (
@@ -273,9 +282,9 @@ export default function StorefrontModules() {
                               onClick={() => void handleDelete(module)}
                               disabled={deleteMut.isPending}
                               className='rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40'
-                              aria-label={`Delete ${module.key}`}
+                              aria-label={t('common.deleteItem', { name: module.title || module.key })}
                             >
-                              <Trash2 className='h-4 w-4 text-red-500' />
+                              <Trash2 className='h-4 w-4 text-red-500' aria-hidden />
                             </button>
                           )}
                         </div>
@@ -288,7 +297,10 @@ export default function StorefrontModules() {
           </div>
           {modulesQ.data?.meta && (
             <p className='border-t border-gray-200 px-4 py-3 text-xs text-gray-500 dark:border-gray-700'>
-              Showing {filtered.length} of {modulesQ.data.meta.total} modules
+              {t('storefrontModules.showing', {
+                shown: formatNumber(filtered.length),
+                total: formatNumber(modulesQ.data.meta.total),
+              })}
             </p>
           )}
         </div>
@@ -297,7 +309,7 @@ export default function StorefrontModules() {
       {open && (
         <FormDialog
           onClose={() => setOpen(false)}
-          title={editing ? 'Edit module' : 'Create module'}
+          title={editing ? t('storefrontModules.form.editTitle') : t('storefrontModules.form.createTitle')}
           busy={saving}
           maxWidthClass='max-w-3xl'
         >
@@ -307,7 +319,7 @@ export default function StorefrontModules() {
           >
             <label className='block text-sm'>
               <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                Key
+                {t('storefrontModules.form.key')}
               </span>
               <input
                 required
@@ -316,12 +328,13 @@ export default function StorefrontModules() {
                   setForm((f) => ({ ...f, key: e.target.value }))
                 }
                 placeholder='hero'
+                dir='ltr'
                 className='w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
               />
             </label>
             <label className='block text-sm'>
               <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                Type
+                {t('storefrontModules.form.type')}
               </span>
               <select
                 required
@@ -339,17 +352,18 @@ export default function StorefrontModules() {
                     key={type}
                     value={type}
                   >
-                    {type}
+                    {tv('moduleType', type)}
                   </option>
                 ))}
               </select>
             </label>
             <label className='block text-sm'>
               <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                Title
+                {t('storefrontModules.form.title')}
               </span>
               <input
                 value={form.title || ''}
+                dir='auto'
                 onChange={(e) =>
                   setForm((f) => ({ ...f, title: e.target.value }))
                 }
@@ -358,7 +372,7 @@ export default function StorefrontModules() {
             </label>
             <label className='block text-sm'>
               <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                Sort order
+                {t('storefrontModules.form.sortOrder')}
               </span>
               <input
                 type='number'
@@ -380,7 +394,7 @@ export default function StorefrontModules() {
                   setForm((f) => ({ ...f, active: e.target.checked }))
                 }
               />
-              Active
+              {t('common.active')}
             </label>
             {form.type === 'hero_carousel' && (
               <HeroSlidesEditor
@@ -395,14 +409,14 @@ export default function StorefrontModules() {
                 onClick={() => setOpen(false)}
                 className='rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type='submit'
                 disabled={saving}
                 className='rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60'
               >
-                {saving ? 'Saving…' : editing ? 'Save' : 'Create'}
+                {saving ? t('common.saving') : editing ? t('common.save') : t('common.create')}
               </button>
             </div>
           </form>
