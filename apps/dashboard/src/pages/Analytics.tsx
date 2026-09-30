@@ -71,6 +71,7 @@ function LeaderChart({
   const t = chartTheme(ink);
   const i18n = useT();
   const tag = intlLocale(i18n.locale);
+  const rtl = i18n.dir === 'rtl';
 
   if (rows.length === 0) {
     return (
@@ -86,11 +87,18 @@ function LeaderChart({
 
   return (
     <ResponsiveContainer width='100%' height={Math.max(180, data.length * 38)}>
-      <BarChart data={data} layout='vertical' margin={{ left: 4, right: 56 }}>
-        <XAxis type='number' hide />
+      {/* SVG ignores dir="rtl": mirror by hand — names on the inline-start
+          edge, bars growing toward the inline end. */}
+      <BarChart
+        data={data}
+        layout='vertical'
+        margin={rtl ? { left: 56, right: 4 } : { left: 4, right: 56 }}
+      >
+        <XAxis type='number' hide reversed={rtl} />
         <YAxis
           type='category'
           dataKey='name'
+          orientation={rtl ? 'right' : 'left'}
           width={132}
           tick={{ fill: t.muted, fontSize: 12 }}
           tickLine={false}
@@ -114,7 +122,7 @@ function LeaderChart({
         <Bar
           isAnimationActive={false}
           dataKey='revenue'
-          radius={[0, 4, 4, 0]}
+          radius={rtl ? [4, 0, 0, 4] : [0, 4, 4, 0]}
           barSize={14}
         >
           {data.map((row) => (
@@ -122,7 +130,7 @@ function LeaderChart({
           ))}
           <LabelList
             dataKey='revenue'
-            position='right'
+            position={rtl ? 'left' : 'right'}
             formatter={(v: number) => money(v, tag)}
             style={{ fill: t.muted, fontSize: 11 }}
           />
@@ -137,6 +145,7 @@ export default function Analytics() {
   const t = chartTheme(theme);
   const i18n = useT();
   const tag = intlLocale(i18n.locale);
+  const rtl = i18n.dir === 'rtl';
   const fmtMoney = (n: number) => money(n, tag);
   const [days, setDays] = useState(30);
   const [asTable, setAsTable] = useState(false);
@@ -165,7 +174,10 @@ export default function Analytics() {
     axisLine: { stroke: t.axis },
     // A 90-day window cannot fit 90 labels; let recharts thin them out.
     minTickGap: 24,
+    // Time reads right-to-left in Arabic (SVG ignores dir="rtl").
+    reversed: rtl,
   };
+  const valueAxisSide = rtl ? ('right' as const) : ('left' as const);
 
   return (
     <motion.div
@@ -305,6 +317,7 @@ export default function Analytics() {
                 <CartesianGrid stroke={t.grid} vertical={false} />
                 <XAxis {...axis} />
                 <YAxis
+                  orientation={valueAxisSide}
                   tick={{ fill: t.muted, fontSize: 11 }}
                   tickLine={false}
                   axisLine={false}
@@ -350,6 +363,7 @@ export default function Analytics() {
                 <CartesianGrid stroke={t.grid} vertical={false} />
                 <XAxis {...axis} />
                 <YAxis
+                  orientation={valueAxisSide}
                   tick={{ fill: t.muted, fontSize: 11 }}
                   tickLine={false}
                   axisLine={false}

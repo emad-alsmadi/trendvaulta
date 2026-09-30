@@ -5,6 +5,16 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TrendVaulta Admin</title>
+    <!-- Set lang/dir before first paint so Arabic doesn't flash LTR while the
+         app loads. Same key as I18nProvider (STORAGE_KEY). -->
+    <script>
+      try {
+        if (localStorage.getItem('tv_admin_locale') === 'ar') {
+          document.documentElement.lang = 'ar';
+          document.documentElement.dir = 'rtl';
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>
