@@ -16,6 +16,7 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { FormDialog } from '../components/ui/FormDialog';
+import { useT } from '../i18n/I18nProvider';
 
 const emptyForm: OfferPayload = {
   title: '',
@@ -37,6 +38,7 @@ export default function Offers() {
   const { can } = usePermissions();
   const toast = useToast();
   const confirm = useConfirm();
+  const { t, formatDate, formatNumber } = useT();
   const offersQ = useAdminOffers({ limit: 100 });
   const createMut = useCreateOfferMutation();
   const updateMut = useUpdateOfferMutation();
@@ -86,7 +88,7 @@ export default function Offers() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.title.trim() || !form.href.trim()) {
-      toast.error('Title and href are required.');
+      toast.error(t('offers.required'));
       return;
     }
 
@@ -111,17 +113,17 @@ export default function Offers() {
       setOpen(false);
       setEditing(null);
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not save offer'));
+      toast.error(errorMessage(err, t('offers.saveFailed')));
     }
   }
 
   async function handleDelete(offer: AdminOffer) {
-    const ok = await confirm({ message: `Deactivate / delete offer "${offer.title}"?`, danger: true, confirmLabel: 'Delete' });
+    const ok = await confirm({ message: t('offers.confirmDelete', { title: offer.title }), danger: true, confirmLabel: t('common.delete') });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(offer._id);
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not delete offer'));
+      toast.error(errorMessage(err, t('offers.deleteFailed')));
     }
   }
 
@@ -134,10 +136,10 @@ export default function Offers() {
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Offers
+            {t('offers.title')}
           </h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Merchandising deals shown on the storefront. Delete deactivates.
+            {t('offers.subtitle')}
           </p>
         </div>
         {can('offers:write') && (
@@ -146,33 +148,33 @@ export default function Offers() {
             onClick={openCreate}
             className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
           >
-            <Plus className="me-2 h-5 w-5" />
-            Add offer
+            <Plus className="me-2 h-5 w-5" aria-hidden />
+            {t('offers.add')}
           </button>
         )}
       </div>
 
       <div className="relative mb-6">
-        <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+        <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" aria-hidden />
         <input
           type="search"
-          aria-label="Search by title, badge, or href"
+          aria-label={t('offers.searchLabel')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by title, badge, or href…"
+          placeholder={t('offers.searchPlaceholder')}
           className="w-full rounded-lg border border-gray-300 bg-white py-2 ps-10 pe-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
         />
       </div>
 
       {offersQ.isLoading && (
         <p className="py-10 text-center text-sm text-gray-500">
-          Loading offers…
+          {t('offers.loading')}
         </p>
       )}
 
       {offersQ.isError && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-          {errorMessage(offersQ.error, 'Failed to load offers')}
+          {errorMessage(offersQ.error, t('offers.loadFailed'))}
         </div>
       )}
 
@@ -183,13 +185,13 @@ export default function Offers() {
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
                   {[
-                    'Title',
-                    'Badge',
-                    'Href',
-                    'Ends',
-                    'Order',
-                    'Status',
-                    'Actions',
+                    t('offers.columns.title'),
+                    t('offers.columns.badge'),
+                    t('offers.columns.href'),
+                    t('offers.columns.ends'),
+                    t('offers.columns.order'),
+                    t('common.status'),
+                    t('common.actions'),
                   ].map((h) => (
                     <th
                       key={h}
@@ -207,7 +209,7 @@ export default function Offers() {
                       colSpan={7}
                       className="px-4 py-10 text-center text-sm text-gray-500"
                     >
-                      No offers found.
+                      {t('offers.empty')}
                     </td>
                   </tr>
                 ) : (
@@ -217,26 +219,28 @@ export default function Offers() {
                       className="hover:bg-gray-50 dark:hover:bg-gray-700/60"
                     >
                       <td className="px-4 py-3">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-white" dir="auto">
                           {offer.title}
                         </div>
                         {offer.subtitle ? (
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                          <div className="text-xs text-gray-500 dark:text-gray-400" dir="auto">
                             {offer.subtitle}
                           </div>
                         ) : null}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                      <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300" dir="auto">
                         {offer.badge || '—'}
                       </td>
-                      <td className="max-w-[220px] truncate px-4 py-3 font-mono text-xs text-gray-600 dark:text-gray-400">
+                      <td className="max-w-[220px] truncate px-4 py-3 font-mono text-xs text-gray-600 dark:text-gray-400" dir="ltr">
                         {offer.href}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                        {toDateInput(offer.endsAt) || '—'}
+                        {toDateInput(offer.endsAt)
+                          ? formatDate(`${toDateInput(offer.endsAt)}T00:00:00`)
+                          : '—'}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                        {offer.sortOrder ?? 0}
+                        {formatNumber(offer.sortOrder ?? 0)}
                       </td>
                       <td className="px-4 py-3">
                         <span
@@ -246,7 +250,7 @@ export default function Offers() {
                               : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                           }`}
                         >
-                          {offer.active ? 'Active' : 'Inactive'}
+                          {offer.active ? t('common.active') : t('common.inactive')}
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -256,9 +260,9 @@ export default function Offers() {
                               type="button"
                               onClick={() => openEdit(offer)}
                               className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600"
-                              aria-label={`Edit ${offer.title}`}
+                              aria-label={t('common.editItem', { name: offer.title })}
                             >
-                              <Pencil className="h-4 w-4 text-gray-500" />
+                              <Pencil className="h-4 w-4 text-gray-500" aria-hidden />
                             </button>
                           )}
                           {can('offers:delete') && (
@@ -267,9 +271,9 @@ export default function Offers() {
                               onClick={() => void handleDelete(offer)}
                               disabled={deleteMut.isPending}
                               className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
-                              aria-label={`Delete ${offer.title}`}
+                              aria-label={t('common.deleteItem', { name: offer.title })}
                             >
-                              <Trash2 className="h-4 w-4 text-red-500" />
+                              <Trash2 className="h-4 w-4 text-red-500" aria-hidden />
                             </button>
                           )}
                         </div>
@@ -282,7 +286,10 @@ export default function Offers() {
           </div>
           {offersQ.data?.meta && (
             <p className="border-t border-gray-200 px-4 py-3 text-xs text-gray-500 dark:border-gray-700">
-              Showing {filtered.length} of {offersQ.data.meta.total} offers
+              {t('offers.showing', {
+                shown: formatNumber(filtered.length),
+                total: formatNumber(offersQ.data.meta.total),
+              })}
             </p>
           )}
         </div>
@@ -291,18 +298,19 @@ export default function Offers() {
       {open && (
         <FormDialog
           onClose={() => setOpen(false)}
-          title={editing ? 'Edit offer' : 'Create offer'}
+          title={editing ? t('offers.form.editTitle') : t('offers.form.createTitle')}
           busy={saving}
           maxWidthClass="max-w-lg"
         >
           <form onSubmit={handleSubmit} className="space-y-3">
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Title
+                {t('offers.form.title')}
               </span>
               <input
                 required
                 value={form.title}
+                dir="auto"
                 onChange={(e) =>
                   setForm((f) => ({ ...f, title: e.target.value }))
                 }
@@ -311,10 +319,11 @@ export default function Offers() {
             </label>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Subtitle
+                {t('offers.form.subtitle')}
               </span>
               <input
                 value={form.subtitle || ''}
+                dir="auto"
                 onChange={(e) =>
                   setForm((f) => ({ ...f, subtitle: e.target.value }))
                 }
@@ -324,10 +333,11 @@ export default function Offers() {
             <div className="grid grid-cols-2 gap-3">
               <label className="block text-sm">
                 <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Badge
+                  {t('offers.form.badge')}
                 </span>
                 <input
                   value={form.badge || ''}
+                  dir="auto"
                   onChange={(e) =>
                     setForm((f) => ({ ...f, badge: e.target.value }))
                   }
@@ -336,7 +346,7 @@ export default function Offers() {
               </label>
               <label className="block text-sm">
                 <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Sort order
+                  {t('offers.form.sortOrder')}
                 </span>
                 <input
                   type="number"
@@ -353,7 +363,7 @@ export default function Offers() {
             </div>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Href
+                {t('offers.form.href')}
               </span>
               <input
                 required
@@ -362,15 +372,17 @@ export default function Offers() {
                   setForm((f) => ({ ...f, href: e.target.value }))
                 }
                 placeholder="/products?deal=…"
+                dir="ltr"
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
               />
             </label>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Image URL
+                {t('offers.form.imageUrl')}
               </span>
               <input
                 value={form.imageUrl || ''}
+                dir="ltr"
                 onChange={(e) =>
                   setForm((f) => ({ ...f, imageUrl: e.target.value }))
                 }
@@ -379,7 +391,7 @@ export default function Offers() {
             </label>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Ends at
+                {t('offers.form.endsAt')}
               </span>
               <input
                 type="date"
@@ -398,7 +410,7 @@ export default function Offers() {
                   setForm((f) => ({ ...f, active: e.target.checked }))
                 }
               />
-              Active
+              {t('common.active')}
             </label>
             <div className="flex justify-end gap-2 pt-2">
               <button
@@ -407,14 +419,14 @@ export default function Offers() {
                 onClick={() => setOpen(false)}
                 className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={saving}
                 className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
               >
-                {saving ? 'Saving…' : editing ? 'Save' : 'Create'}
+                {saving ? t('common.saving') : editing ? t('common.save') : t('common.create')}
               </button>
             </div>
           </form>
