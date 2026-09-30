@@ -11,11 +11,15 @@ export function getSiteUrl(): string {
   return raw.replace(/\/+$/, '');
 }
 
-/** Server-side API base for metadata/sitemap fetches (no trailing slash). */
+/**
+ * Server-side API origin for metadata/sitemap fetches: no trailing slash and
+ * no `/api` suffix, since callers append `/api/...`. The env value may be set
+ * either way (`.env` omits `/api`, CI includes it).
+ */
 export function getServerApiBase(): string {
   const raw =
     process.env.API_INTERNAL_URL ||
     process.env.NEXT_PUBLIC_API_URL ||
     'http://localhost:3000';
-  return raw.replace(/\/+$/, '');
+  return raw.replace(/\/+$/, '').replace(/\/api$/, '');
 }

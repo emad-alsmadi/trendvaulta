@@ -109,8 +109,10 @@ const nextConfig: NextConfig = {
     ];
   },
   async rewrites() {
-    const apiBaseUrl =
-      process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+    // Origin only: the value may or may not end in /api (see lib/site.ts).
+    const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000')
+      .replace(/\/+$/, '')
+      .replace(/\/api$/, '');
     return [
       {
         source: '/api/:path*',
