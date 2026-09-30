@@ -148,11 +148,11 @@ export default function DashboardLayout() {
       {/* Sidebar */}
       <aside
         aria-label={t('nav.label')}
-        className={`fixed start-0 top-0 z-50 h-full w-64 max-w-[85vw] border-e border-gray-200 bg-white transition-[transform,width] duration-200 dark:border-gray-700 dark:bg-gray-800 md:translate-x-0 md:rtl:translate-x-0 md:max-w-none ${
+        className={`fixed start-0 top-0 z-50 flex h-full w-64 flex-col max-w-[85vw] border-e border-gray-200 bg-white transition-[transform,width] duration-200 dark:border-gray-700 dark:bg-gray-800 md:translate-x-0 md:rtl:translate-x-0 md:max-w-none ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full'
         } ${isSidebarOpen ? 'md:w-64' : 'md:w-20'}`}
       >
-        <div className='flex items-center justify-between p-4'>
+        <div className='flex shrink-0 items-center justify-between p-4'>
           <h1 className='text-xl font-bold text-gray-900 dark:text-white'>
             {showLabels ? 'TrendVaulta' : 'TV'}
           </h1>
@@ -166,7 +166,7 @@ export default function DashboardLayout() {
           </button>
         </div>
 
-        <nav className='mt-4 max-h-[calc(100vh-11rem)] overflow-y-auto'>
+        <nav className='mt-4 min-h-0 flex-1 overflow-y-auto'>
           {visibleItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
@@ -203,7 +203,7 @@ export default function DashboardLayout() {
           })}
         </nav>
 
-        <div className='absolute inset-x-0 bottom-4 px-2'>
+        <div className='shrink-0 border-t border-gray-200 px-2 py-4 dark:border-gray-700'>
           <button
             type='button'
             onClick={toggleTheme}

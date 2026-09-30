@@ -1,5 +1,8 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useT } from '../../i18n/I18nProvider';
+import { cn } from '../../lib/cn';
+import { Select } from './Field';
+import { buttonVariants } from './styles';
 
 export type PageMeta = {
   total: number;
@@ -10,22 +13,36 @@ export type PageMeta = {
 
 const PAGE_SIZES = [10, 25, 50, 100];
 
+/** 1 … 4 5 [6] 7 8 … 20 — first, last and two either side of the current page. */
+function pageList(page: number, pages: number): Array<number | 'gap'> {
+  const out: Array<number | 'gap'> = [];
+  for (let p = 1; p <= pages; p++) {
+    if (p === 1 || p === pages || Math.abs(p - page) <= 1) out.push(p);
+    else if (out[out.length - 1] !== 'gap') out.push('gap');
+  }
+  return out;
+}
+
 /**
  * Pager for a server-paginated table.
  *
- * Deliberately shows "x–y of n" rather than a numbered page strip: the row
- * range is what tells an admin where they are in a list they are scanning.
+ * The "x–y of n" range leads: it tells an admin where they are in a list
+ * they are scanning. Page buttons follow on wider screens; phones keep
+ * prev / "page / pages" / next.
  */
 export function TablePagination({
   meta,
   onPage,
   onLimit,
   busy = false,
+  className = 'mt-4 border-t border-border pt-4',
 }: {
   meta?: PageMeta;
   onPage: (page: number) => void;
   onLimit?: (limit: number) => void;
   busy?: boolean;
+  /** The default separates it from a bare table; pass '' inside <TableCard footer>. */
+  className?: string;
 }) {
   const { t, formatNumber } = useT();
   if (!meta || meta.total === 0) return null;
@@ -35,17 +52,16 @@ export function TablePagination({
   const canPrev = meta.page > 1;
   const canNext = meta.page < meta.pages;
 
-  const arrow =
-    'inline-flex items-center rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700';
+  const square = buttonVariants({ variant: 'ghost', size: 'icon-sm' });
 
   return (
     <nav
       aria-label={t('pagination.label')}
-      className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4 dark:border-gray-700"
+      className={cn('flex flex-wrap items-center justify-between gap-3', className)}
     >
       <p
-        className="text-sm text-gray-600 dark:text-gray-400"
-        aria-live="polite"
+        className='text-body-sm tabular-nums text-muted-foreground'
+        aria-live='polite'
         // Screen readers should hear the new range once the rows have settled,
         // not on every keystroke of an in-flight refetch.
         aria-busy={busy}
@@ -57,45 +73,75 @@ export function TablePagination({
         })}
       </p>
 
-      <div className="flex items-center gap-2">
+      <div className='flex flex-wrap items-center gap-3'>
         {onLimit && (
-          <label className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
-            <span className="sr-only sm:not-sr-only">{t('pagination.rows')}</span>
-            <select
+          <label className='flex items-center gap-2 text-body-sm text-muted-foreground'>
+            <span className='sr-only sm:not-sr-only'>{t('pagination.rows')}</span>
+            <Select
               value={meta.limit}
               onChange={(e) => onLimit(Number(e.target.value))}
               aria-label={t('pagination.rowsPerPage')}
-              className="rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+              className='h-control-sm w-auto'
             >
               {PAGE_SIZES.map((n) => (
                 <option key={n} value={n}>
                   {n}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
         )}
-        <button
-          type="button"
-          onClick={() => onPage(meta.page - 1)}
-          disabled={!canPrev}
-          aria-label={t('pagination.previous')}
-          className={arrow}
-        >
-          <ChevronLeft className="h-4 w-4 rtl:-scale-x-100" aria-hidden />
-        </button>
-        <span className="text-sm tabular-nums text-gray-600 dark:text-gray-400">
-          {meta.page} / {meta.pages}
-        </span>
-        <button
-          type="button"
-          onClick={() => onPage(meta.page + 1)}
-          disabled={!canNext}
-          aria-label={t('pagination.next')}
-          className={arrow}
-        >
-          <ChevronRight className="h-4 w-4 rtl:-scale-x-100" aria-hidden />
-        </button>
+
+        <div className='flex items-center gap-1'>
+          <button
+            type='button'
+            onClick={() => onPage(meta.page - 1)}
+            disabled={!canPrev}
+            aria-label={t('pagination.previous')}
+            className={cn(buttonVariants({ variant: 'secondary', size: 'icon-sm' }))}
+          >
+            <ChevronLeft className='rtl:-scale-x-100' aria-hidden />
+          </button>
+
+          <ul className='hidden items-center gap-1 sm:flex'>
+            {pageList(meta.page, meta.pages).map((p, i) =>
+              p === 'gap' ? (
+                <li key={`gap-${i}`} aria-hidden className='w-8 text-center text-body-sm text-muted-foreground'>
+                  …
+                </li>
+              ) : (
+                <li key={p}>
+                  <button
+                    type='button'
+                    onClick={() => onPage(p)}
+                    aria-label={t('pagination.page', { page: formatNumber(p) })}
+                    aria-current={p === meta.page ? 'page' : undefined}
+                    className={cn(
+                      square,
+                      'text-body-sm tabular-nums',
+                      p === meta.page && 'bg-primary text-primary-foreground hover:bg-primary/90',
+                    )}
+                  >
+                    {formatNumber(p)}
+                  </button>
+                </li>
+              ),
+            )}
+          </ul>
+          <span className='px-2 text-body-sm tabular-nums text-muted-foreground sm:hidden'>
+            {meta.page} / {meta.pages}
+          </span>
+
+          <button
+            type='button'
+            onClick={() => onPage(meta.page + 1)}
+            disabled={!canNext}
+            aria-label={t('pagination.next')}
+            className={cn(buttonVariants({ variant: 'secondary', size: 'icon-sm' }))}
+          >
+            <ChevronRight className='rtl:-scale-x-100' aria-hidden />
+          </button>
+        </div>
       </div>
     </nav>
   );

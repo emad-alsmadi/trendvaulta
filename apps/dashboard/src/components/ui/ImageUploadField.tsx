@@ -3,6 +3,7 @@ import { Loader2, Upload, ImageOff } from 'lucide-react';
 import { uploadsApi, errorMessage } from '../../lib/api';
 import { useToast } from './Toast';
 import { useT } from '../../i18n/I18nProvider';
+import { buttonVariants, inputClass, labelClass } from './styles';
 
 type ImageUploadFieldProps = {
   label: string;
@@ -47,12 +48,12 @@ export function ImageUploadField({
   };
 
   return (
-    <div className="block text-sm">
-      <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+    <div className="block space-y-1.5 text-sm">
+      <span className={labelClass}>
         {label}
       </span>
       <div className="flex items-center gap-3">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-900">
+        <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-control border border-border bg-muted">
           {value && !imageError ? (
             <img
               src={value}
@@ -61,7 +62,7 @@ export function ImageUploadField({
               onError={() => setImageError(true)}
             />
           ) : (
-            <ImageOff className="h-5 w-5 text-gray-400" aria-hidden />
+            <ImageOff className="size-5 text-muted-foreground" aria-hidden />
           )}
         </div>
         <div className="flex flex-1 flex-col gap-2">
@@ -76,7 +77,7 @@ export function ImageUploadField({
             }}
             placeholder={t('imageUpload.placeholder')}
             dir="ltr"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+            className={inputClass}
           />
           <div>
             <input
@@ -90,12 +91,12 @@ export function ImageUploadField({
               type="button"
               disabled={uploading}
               onClick={() => fileInputRef.current?.click()}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+              className={buttonVariants({ variant: "secondary", size: "sm" })}
             >
               {uploading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                <Loader2 className="animate-spin" aria-hidden />
               ) : (
-                <Upload className="h-3.5 w-3.5" aria-hidden />
+                <Upload aria-hidden />
               )}
               {uploading ? t('imageUpload.uploading') : t('imageUpload.upload')}
             </button>

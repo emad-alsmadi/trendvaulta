@@ -1,9 +1,11 @@
 /**
- * Chart ink and series colours.
+ * Chart ink — greyscale only, mirroring the monochrome tokens in index.css
+ * (recharts needs literal colours, so the steps live here).
  *
- * The two modes are separately stepped for their own surface, not flipped, and
- * each pair was validated for colour-vision separation and contrast against
- * that surface. Change a value here only alongside re-running that check.
+ * Series are told apart by lightness step plus stroke pattern (solid vs
+ * dashed), point markers and direct labels, never by hue. Every series step
+ * is at least 3:1 against its card surface; `muted` (tick text) matches
+ * --muted-foreground so axis labels meet 4.5:1.
  */
 export type ChartTheme = {
   revenue: string;
@@ -15,30 +17,37 @@ export type ChartTheme = {
   muted: string;
   surface: string;
   border: string;
+  /** strokeDasharray per series: primary stays solid, secondary is dashed. */
+  revenueDash: string;
+  ordersDash: string;
 };
 
 const LIGHT: ChartTheme = {
-  revenue: '#2a78d6',
-  orders: '#1baf7a',
-  bar: '#2a78d6',
-  barAlt: '#4a3aa7',
-  grid: '#e1e0d9',
-  axis: '#c3c2b7',
-  muted: '#898781',
+  revenue: '#0a0a0a',
+  orders: '#525252',
+  bar: '#171717',
+  barAlt: '#525252',
+  grid: '#f0f0f0',
+  axis: '#d4d4d4',
+  muted: '#6b6b6b',
   surface: '#ffffff',
-  border: 'rgba(11,11,11,0.10)',
+  border: 'rgba(0,0,0,0.08)',
+  revenueDash: '0',
+  ordersDash: '5 4',
 };
 
 const DARK: ChartTheme = {
-  revenue: '#3987e5',
-  orders: '#199e70',
-  bar: '#3987e5',
-  barAlt: '#9085e9',
-  grid: '#2c2c2a',
-  axis: '#383835',
-  muted: '#898781',
-  surface: '#1f2937',
+  revenue: '#fafafa',
+  orders: '#a3a3a3',
+  bar: '#e5e5e5',
+  barAlt: '#a3a3a3',
+  grid: '#1f1f1f',
+  axis: '#333333',
+  muted: '#a1a1a1',
+  surface: '#121212',
   border: 'rgba(255,255,255,0.10)',
+  revenueDash: '0',
+  ordersDash: '5 4',
 };
 
 export const chartTheme = (theme: 'light' | 'dark'): ChartTheme =>

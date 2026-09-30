@@ -1,12 +1,15 @@
 import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
 import type { SortOrder } from '../../hooks/useTableQuery';
+import { cn } from '../../lib/cn';
+import { table } from './styles';
 
 /**
- * A sortable `<th>`.
+ * A sortable `<th>` in the table header style.
  *
  * `aria-sort` on the cell is what conveys the ordering to assistive tech; the
- * arrow is the sighted equivalent, and the inactive column keeps a faint
- * double-arrow so it reads as sortable rather than decorative.
+ * arrow is the sighted equivalent. Inactive columns keep a faint double arrow
+ * so they read as sortable rather than decorative; the active one is full
+ * strength in the foreground colour.
  */
 export function SortableHeader({
   field,
@@ -14,6 +17,7 @@ export function SortableHeader({
   order,
   onSort,
   align = 'left',
+  className,
   children,
 }: {
   field: string;
@@ -21,6 +25,7 @@ export function SortableHeader({
   order: SortOrder;
   onSort: (field: string) => void;
   align?: 'left' | 'right';
+  className?: string;
   children: React.ReactNode;
 }) {
   const isActive = active === field;
@@ -28,24 +33,27 @@ export function SortableHeader({
 
   return (
     <th
-      scope="col"
+      scope='col'
       aria-sort={isActive ? (order === 'asc' ? 'ascending' : 'descending') : 'none'}
-      className={align === 'right' ? 'text-end' : 'text-start'}
+      className={cn(table.th, align === 'right' ? 'text-end' : 'text-start', className)}
     >
       <button
-        type="button"
+        type='button'
         onClick={() => onSort(field)}
-        className={`group inline-flex items-center gap-1 py-2 font-medium transition hover:text-gray-900 dark:hover:text-white ${
-          isActive
-            ? 'text-gray-900 dark:text-white'
-            : 'text-gray-500 dark:text-gray-400'
-        } ${align === 'right' ? 'flex-row-reverse' : ''}`}
+        className={cn(
+          'group -mx-1 inline-flex items-center gap-1 rounded px-1 py-1 uppercase transition-colors duration-150',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          isActive ? 'text-foreground' : 'hover:text-foreground',
+          align === 'right' && 'flex-row-reverse',
+        )}
       >
         {children}
         <Icon
-          className={`h-3.5 w-3.5 ${
-            isActive ? '' : 'opacity-0 transition group-hover:opacity-60'
-          }`}
+          aria-hidden
+          className={cn(
+            'size-3.5 shrink-0 transition-opacity duration-150',
+            isActive ? 'opacity-100' : 'opacity-40 group-hover:opacity-100',
+          )}
         />
       </button>
     </th>

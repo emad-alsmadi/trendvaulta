@@ -35,12 +35,15 @@ const ICONS = {
   info: Info,
 } as const;
 
-/** Neutral card + a coloured accent (icon, edge, countdown) per variant. */
-const ACCENT: Record<ToastVariant, { icon: string; edge: string; bar: string }> = {
-  success: { icon: 'text-emerald-600 dark:text-emerald-400', edge: 'before:bg-emerald-500', bar: 'bg-emerald-500/60' },
-  error: { icon: 'text-red-600 dark:text-red-400', edge: 'before:bg-red-500', bar: 'bg-red-500/60' },
-  warning: { icon: 'text-amber-600 dark:text-amber-400', edge: 'before:bg-amber-500', bar: 'bg-amber-500/60' },
-  info: { icon: 'text-blue-600 dark:text-blue-400', edge: 'before:bg-blue-500', bar: 'bg-blue-500/60' },
+/**
+ * Neutral card per variant; the icon tells them apart, and errors/warnings
+ * get a full-strength edge and message weight instead of a colour.
+ */
+const ACCENT: Record<ToastVariant, { icon: string; edge: string; bar: string; text: string }> = {
+  success: { icon: 'text-foreground', edge: 'before:bg-border-strong', bar: 'bg-foreground/25', text: '' },
+  error: { icon: 'text-foreground', edge: 'before:bg-foreground', bar: 'bg-foreground/50', text: 'font-medium' },
+  warning: { icon: 'text-foreground', edge: 'before:bg-foreground', bar: 'bg-foreground/50', text: 'font-medium' },
+  info: { icon: 'text-muted-foreground', edge: 'before:bg-border-strong', bar: 'bg-foreground/25', text: '' },
 };
 
 /** Errors stay longer — they usually need reading and acting on. */
@@ -73,17 +76,17 @@ function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: (id: numbe
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
-      className={`pointer-events-auto relative flex items-start gap-3 overflow-hidden rounded-xl border border-gray-200 bg-white py-3 pe-3 ps-4 text-sm text-gray-900 shadow-lg shadow-gray-900/5 before:absolute before:inset-y-0 before:start-0 before:w-1 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 ${accent.edge}`}
+      className={`pointer-events-auto relative flex items-start gap-3 overflow-hidden rounded-card border border-border bg-popover py-3 pe-3 ps-4 text-sm text-popover-foreground shadow-overlay before:absolute before:inset-y-0 before:start-0 before:w-1 ${accent.edge}`}
     >
-      <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${accent.icon}`} aria-hidden />
-      <p className='flex-1 leading-relaxed'>{item.message}</p>
+      <Icon className={`mt-0.5 size-4 shrink-0 ${accent.icon}`} aria-hidden />
+      <p className={`flex-1 leading-5 ${accent.text}`}>{item.message}</p>
       <button
         type='button'
         onClick={() => onDismiss(item.id)}
         aria-label={t('common.dismiss')}
-        className='-m-1 rounded-md p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:bg-gray-700 dark:hover:text-gray-200'
+        className='-m-1 rounded-control p-1 text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
       >
-        <X className='h-4 w-4' aria-hidden />
+        <X className='size-4' aria-hidden />
       </button>
       {/* Countdown: its animationend dismisses the toast, so hover/focus
           pause the timer exactly where it is. */}

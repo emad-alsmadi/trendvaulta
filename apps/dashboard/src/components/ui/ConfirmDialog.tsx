@@ -1,13 +1,16 @@
 import { createContext, useCallback, useContext, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
+import { AlertTriangle, Trash2 } from 'lucide-react';
 import { useT } from '../../i18n/I18nProvider';
+import { Button } from './Button';
+import { text } from './styles';
 
 export type ConfirmOptions = {
   title?: string;
   message: string;
   confirmLabel?: string;
   cancelLabel?: string;
-  /** Red confirm button for destructive actions */
+  /** Destructive: warning mark, trash icon on confirm — wording, not colour, carries it */
   danger?: boolean;
 };
 
@@ -55,9 +58,9 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
         }}
       >
         <Dialog.Portal>
-          <Dialog.Overlay className='fixed inset-0 z-[90] bg-black/40' />
+          <Dialog.Overlay className='fixed inset-0 z-[90] bg-backdrop' />
           <Dialog.Content
-            className='fixed left-1/2 top-1/2 z-[95] w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-6 shadow-xl focus:outline-none dark:bg-gray-800'
+            className='fixed left-1/2 top-1/2 z-[95] w-[calc(100vw-2rem)] max-w-dialog-confirm -translate-x-1/2 -translate-y-1/2 rounded-card border border-border bg-card p-6 text-card-foreground shadow-overlay focus:outline-none'
             onOpenAutoFocus={(e) => {
               // Focus the cancel button so Enter never confirms by accident.
               e.preventDefault();
@@ -66,32 +69,30 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
               )?.querySelector<HTMLButtonElement>('[data-cancel]')?.focus();
             }}
           >
-            <Dialog.Title className='text-lg font-bold text-gray-900 dark:text-white'>
-              {o?.title ?? 'Are you sure?'}
-            </Dialog.Title>
-            <Dialog.Description className='mt-2 text-sm text-gray-600 dark:text-gray-300'>
-              {o?.message}
-            </Dialog.Description>
-            <div className='mt-6 flex justify-end gap-2'>
-              <button
-                type='button'
-                data-cancel
-                onClick={() => settle(false)}
-                className='rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700'
-              >
+            <div className='flex items-start gap-4'>
+              {o?.danger && (
+                <span className='flex size-10 shrink-0 items-center justify-center rounded-full border border-foreground text-foreground'>
+                  <AlertTriangle className='size-5' aria-hidden />
+                </span>
+              )}
+              <div className='min-w-0 space-y-2'>
+                <Dialog.Title className={text.section}>{o?.title ?? 'Are you sure?'}</Dialog.Title>
+                <Dialog.Description className='text-sm text-muted-foreground'>
+                  {o?.message}
+                </Dialog.Description>
+              </div>
+            </div>
+            <div className='mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end'>
+              <Button data-cancel onClick={() => settle(false)}>
                 {o?.cancelLabel ?? t('common.cancel')}
-              </button>
-              <button
-                type='button'
+              </Button>
+              <Button
+                variant='primary'
                 onClick={() => settle(true)}
-                className={`rounded-lg px-4 py-2 text-sm font-medium text-white ${
-                  o?.danger
-                    ? 'bg-red-600 hover:bg-red-700'
-                    : 'bg-blue-500 hover:bg-blue-600'
-                }`}
+                icon={o?.danger ? <Trash2 aria-hidden /> : undefined}
               >
                 {o?.confirmLabel ?? t('common.confirm')}
-              </button>
+              </Button>
             </div>
           </Dialog.Content>
         </Dialog.Portal>

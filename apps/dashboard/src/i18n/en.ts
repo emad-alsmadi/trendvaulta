@@ -25,6 +25,13 @@ export const en = {
     unlimited: 'Unlimited',
     editItem: 'Edit {name}',
     deleteItem: 'Delete {name}',
+    // Shared primitives (components/ui).
+    loading: 'Loading…',
+    clearFilters: 'Clear filters',
+    removeFilter: 'Remove filter: {name}',
+    selected: '{count} selected',
+    clearSelection: 'Clear selection',
+    moreActions: 'More actions',
   },
   nav: {
     label: 'Dashboard navigation',
@@ -87,6 +94,7 @@ export const en = {
     rowsPerPage: 'Rows per page',
     previous: 'Previous page',
     next: 'Next page',
+    page: 'Page {page}',
   },
   // API error `code` → copy (errorMessage(), non-English locales; English
   // shows the API's own message). `{…}` come from the response's `params`.

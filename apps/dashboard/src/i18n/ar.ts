@@ -22,6 +22,12 @@ export const ar: Messages = {
     unlimited: 'غير محدود',
     editItem: 'تعديل {name}',
     deleteItem: 'حذف {name}',
+    loading: 'جارٍ التحميل…',
+    clearFilters: 'مسح عوامل التصفية',
+    removeFilter: 'إزالة عامل التصفية: {name}',
+    selected: 'تم تحديد {count}',
+    clearSelection: 'إلغاء التحديد',
+    moreActions: 'إجراءات أخرى',
   },
   nav: {
     label: 'التنقل في لوحة التحكم',
@@ -84,6 +90,7 @@ export const ar: Messages = {
     rowsPerPage: 'عدد الصفوف في الصفحة',
     previous: 'الصفحة السابقة',
     next: 'الصفحة التالية',
+    page: 'الصفحة {page}',
   },
   apiErrors: {
     NOT_FOUND: 'هذا العنصر لم يعد موجودًا. حدّث الصفحة وحاول مرة أخرى.',

@@ -1,7 +1,9 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
-import { AlertCircle } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import { useT } from '../../i18n/I18nProvider';
 import { reportError } from '../../lib/sentry';
+import { Button } from './Button';
+import { Alert } from './Alert';
 
 type Props = { children: ReactNode };
 type State = { error: Error | null };
@@ -10,23 +12,17 @@ type State = { error: Error | null };
 function ErrorFallback({ onRetry }: { onRetry: () => void }) {
   const { t } = useT();
   return (
-    <div
-      role='alert'
-      className='rounded-xl border border-red-200 bg-red-50 p-6 text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200'
+    <Alert
+      tone='error'
+      title={t('errorBoundary.title')}
+      action={
+        <Button variant='primary' size='sm' icon={<RotateCcw aria-hidden />} onClick={onRetry}>
+          {t('errorBoundary.retry')}
+        </Button>
+      }
     >
-      <div className='mb-2 flex items-center gap-2 font-semibold'>
-        <AlertCircle className='h-5 w-5' aria-hidden='true' />
-        {t('errorBoundary.title')}
-      </div>
-      <p className='mb-4 text-sm'>{t('errorBoundary.body')}</p>
-      <button
-        type='button'
-        onClick={onRetry}
-        className='rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700'
-      >
-        {t('errorBoundary.retry')}
-      </button>
-    </div>
+      {t('errorBoundary.body')}
+    </Alert>
   );
 }
 
