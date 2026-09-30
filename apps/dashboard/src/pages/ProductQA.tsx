@@ -17,11 +17,13 @@ import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useTableQuery, type SortOrder } from '../hooks/useTableQuery';
 import { TablePagination } from '../components/ui/TablePagination';
 import { FormDialog } from '../components/ui/FormDialog';
+import { useT } from '../i18n/I18nProvider';
 
 export default function ProductQA() {
   const { can } = usePermissions();
   const toast = useToast();
   const confirm = useConfirm();
+  const { t, formatNumber } = useT();
   const table = useTableQuery({ limit: 25, sort: 'createdAt', order: 'desc' });
   const { resetPage } = table;
   const [search, setSearch] = useState('');
@@ -63,13 +65,13 @@ export default function ProductQA() {
   async function handleApprove(qa: AdminProductQA, approved: boolean) {
     const payload: ProductQAAnswerPayload = { approved };
     if (!qa.answer && approved) {
-      toast.error('Please provide an answer before approving.');
+      toast.error(t('productQa.needAnswer'));
       return;
     }
     try {
       await answerMut.mutateAsync({ id: qa._id, payload });
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not update Q&A'));
+      toast.error(errorMessage(err, t('productQa.updateFailed')));
     }
   }
 
@@ -83,17 +85,17 @@ export default function ProductQA() {
       await answerMut.mutateAsync({ id: editing._id, payload });
       closeEdit();
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not save answer'));
+      toast.error(errorMessage(err, t('productQa.saveFailed')));
     }
   }
 
   async function handleDelete(qa: AdminProductQA) {
-    const ok = await confirm({ message: 'Delete this Q&A?', danger: true, confirmLabel: 'Delete' });
+    const ok = await confirm({ message: t('productQa.confirmDelete'), danger: true, confirmLabel: t('common.delete') });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(qa._id);
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not delete Q&A'));
+      toast.error(errorMessage(err, t('productQa.deleteFailed')));
     }
   }
 
@@ -106,10 +108,10 @@ export default function ProductQA() {
       <div className='mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
         <div>
           <h1 className='text-3xl font-bold text-gray-900 dark:text-white'>
-            Product Q&A
+            {t('productQa.title')}
           </h1>
           <p className='mt-1 text-sm text-gray-600 dark:text-gray-400'>
-            Moderate and answer customer questions.
+            {t('productQa.subtitle')}
           </p>
         </div>
       </div>
@@ -123,13 +125,13 @@ export default function ProductQA() {
             resetPage();
           }}
         >
-          <Search className='absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400' />
+          <Search className='absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400' aria-hidden />
           <input
             type='search'
-            aria-label='Search questions and answers'
+            aria-label={t('productQa.searchLabel')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder='Search questions and answers…'
+            placeholder={t('productQa.searchPlaceholder')}
             className='w-full rounded-lg border border-gray-300 bg-white py-2 ps-10 pe-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white'
           />
         </form>
@@ -139,12 +141,12 @@ export default function ProductQA() {
             setFilterApproved(e.target.value);
             resetPage();
           }}
-          aria-label='Filter by status'
+          aria-label={t('productQa.filterStatus')}
           className='rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white'
         >
-          <option value=''>All</option>
-          <option value='pending'>Pending</option>
-          <option value='approved'>Approved</option>
+          <option value=''>{t('productQa.all')}</option>
+          <option value='pending'>{t('productQa.pending')}</option>
+          <option value='approved'>{t('productQa.approved')}</option>
         </select>
         <select
           value={`${table.sort}:${table.order}`}
@@ -152,22 +154,22 @@ export default function ProductQA() {
             const [field, order] = e.target.value.split(':');
             table.setSort(field, order as SortOrder);
           }}
-          aria-label='Sort questions'
+          aria-label={t('productQa.sortLabel')}
           className='rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white'
         >
-          <option value='createdAt:desc'>Newest first</option>
-          <option value='createdAt:asc'>Oldest first</option>
-          <option value='helpful:desc'>Most helpful</option>
+          <option value='createdAt:desc'>{t('productQa.newest')}</option>
+          <option value='createdAt:asc'>{t('productQa.oldest')}</option>
+          <option value='helpful:desc'>{t('productQa.mostHelpful')}</option>
         </select>
       </div>
 
       {qaQ.isLoading && (
-        <p className='py-10 text-center text-sm text-gray-500'>Loading Q&A…</p>
+        <p className='py-10 text-center text-sm text-gray-500'>{t('productQa.loading')}</p>
       )}
 
       {qaQ.isError && (
         <div className='rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200'>
-          {errorMessage(qaQ.error, 'Failed to load Q&A')}
+          {errorMessage(qaQ.error, t('productQa.loadFailed'))}
         </div>
       )}
 
@@ -175,7 +177,7 @@ export default function ProductQA() {
         <div className='space-y-4'>
           {items.length === 0 ? (
             <p className='py-10 text-center text-sm text-gray-500'>
-              No Q&A found.
+              {t('productQa.empty')}
             </p>
           ) : (
             items.map((qa) => (
@@ -185,25 +187,27 @@ export default function ProductQA() {
               >
                 <div className='mb-4 flex items-start justify-between gap-4'>
                   <div className='flex-1'>
-                    <p className='text-sm text-gray-600 dark:text-gray-400'>
+                    <p className='text-sm text-gray-600 dark:text-gray-400' dir='auto'>
                       {/* Products are hard-deleted — product can be null. */}
-                      {qa.product?.title || 'Deleted product'}
+                      {qa.product?.title || t('productQa.deletedProduct')}
                     </p>
                     <p className='mt-2 font-medium text-gray-900 dark:text-white'>
-                      Q: {qa.question}
+                      {t('productQa.question', { text: '' })}
+                      <bdi>{qa.question}</bdi>
                     </p>
                     {qa.answer && (
                       <p className='mt-2 text-gray-700 dark:text-gray-300'>
-                        A: {qa.answer}
+                        {t('productQa.answer', { text: '' })}
+                        <bdi>{qa.answer}</bdi>
                       </p>
                     )}
                     <div className='mt-2 flex items-center gap-4 text-xs text-gray-500'>
-                      <span>Asked by: {qa.askedBy?.username || 'Anonymous'}</span>
+                      <span>{t('productQa.askedBy', { name: qa.askedBy?.username || t('productQa.anonymous') })}</span>
                       {qa.answeredBy && (
-                        <span>Answered by: {qa.answeredBy.username}</span>
+                        <span>{t('productQa.answeredBy', { name: qa.answeredBy.username })}</span>
                       )}
-                      <span>Helpful: {qa.helpful}</span>
-                      <span>Not helpful: {qa.notHelpful}</span>
+                      <span>{t('productQa.helpful', { count: formatNumber(qa.helpful) })}</span>
+                      <span>{t('productQa.notHelpful', { count: formatNumber(qa.notHelpful) })}</span>
                     </div>
                   </div>
                   <div className='flex gap-2'>
@@ -212,9 +216,9 @@ export default function ProductQA() {
                         type='button'
                         onClick={() => openEdit(qa)}
                         className='rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700'
-                        aria-label='Edit answer'
+                        aria-label={t('productQa.editAnswer')}
                       >
-                        <MessageSquare className='h-4 w-4 text-gray-500' />
+                        <MessageSquare className='h-4 w-4 text-gray-500' aria-hidden />
                       </button>
                     )}
                     {can('content:delete') && (
@@ -223,9 +227,9 @@ export default function ProductQA() {
                         onClick={() => void handleDelete(qa)}
                         disabled={deleteMut.isPending}
                         className='rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40'
-                        aria-label='Delete'
+                        aria-label={t('common.delete')}
                       >
-                        <Trash2 className='h-4 w-4 text-red-500' />
+                        <Trash2 className='h-4 w-4 text-red-500' aria-hidden />
                       </button>
                     )}
                   </div>
@@ -238,7 +242,7 @@ export default function ProductQA() {
                         : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
                     }`}
                   >
-                    {qa.approved ? 'Approved' : 'Pending'}
+                    {qa.approved ? t('productQa.approved') : t('productQa.pending')}
                   </span>
                   {!qa.approved && (
                     <button
@@ -246,7 +250,7 @@ export default function ProductQA() {
                       onClick={() => void handleApprove(qa, true)}
                       className='rounded-lg bg-green-500 px-3 py-1 text-xs font-medium text-white hover:bg-green-600'
                     >
-                      Approve
+                      {t('productQa.approve')}
                     </button>
                   )}
                   {qa.approved && (
@@ -255,7 +259,7 @@ export default function ProductQA() {
                       onClick={() => void handleApprove(qa, false)}
                       className='rounded-lg bg-gray-500 px-3 py-1 text-xs font-medium text-white hover:bg-gray-600'
                     >
-                      Unapprove
+                      {t('productQa.unapprove')}
                     </button>
                   )}
                 </div>
@@ -274,28 +278,30 @@ export default function ProductQA() {
       {editing && (
         <FormDialog
           onClose={closeEdit}
-          title='Answer Question'
+          title={t('productQa.form.title')}
           busy={saving}
           maxWidthClass='max-w-2xl'
         >
           <div className='space-y-4'>
             <div>
-              <p className='text-sm text-gray-600 dark:text-gray-400'>
-                {editing.product?.title || 'Deleted product'}
+              <p className='text-sm text-gray-600 dark:text-gray-400' dir='auto'>
+                {editing.product?.title || t('productQa.deletedProduct')}
               </p>
               <p className='mt-2 font-medium text-gray-900 dark:text-white'>
-                Q: {editing.question}
+                {t('productQa.question', { text: '' })}
+                <bdi>{editing.question}</bdi>
               </p>
             </div>
             <label className='block text-sm'>
               <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                Your Answer
+                {t('productQa.form.answer')}
               </span>
               <textarea
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
                 rows={4}
-                placeholder='Type your answer here...'
+                placeholder={t('productQa.form.placeholder')}
+                dir='auto'
                 className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
               />
             </label>
@@ -318,7 +324,7 @@ export default function ProductQA() {
                 htmlFor='approve'
                 className='text-sm text-gray-700 dark:text-gray-300'
               >
-                Approve and publish
+                {t('productQa.form.approve')}
               </label>
             </div>
             <div className='flex justify-end gap-2 pt-2'>
@@ -328,7 +334,7 @@ export default function ProductQA() {
                 onClick={closeEdit}
                 className='rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type='button'
@@ -336,7 +342,7 @@ export default function ProductQA() {
                 onClick={handleSaveAnswer}
                 className='rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60'
               >
-                {saving ? 'Saving…' : 'Save Answer'}
+                {saving ? t('common.saving') : t('productQa.form.save')}
               </button>
             </div>
           </div>

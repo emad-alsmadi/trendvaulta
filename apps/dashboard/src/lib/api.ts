@@ -6,6 +6,7 @@ import {
   setRefreshedTokens,
 } from './auth';
 import { viteEnv } from './viteEnv';
+import { translate } from '../i18n/I18nProvider';
 
 /**
  * Dashboard API client — uses Vite proxy `/api` → API server in dev.
@@ -340,14 +341,15 @@ function errorMessage(err: unknown, fallback: string) {
   if (data?.message) return humanizeValidationMessage(data.message);
 
   const status = ax?.response?.status;
+  // Our own transport messages follow the dashboard language.
   if (ax?.code === 'ECONNABORTED' || ax?.code === 'ETIMEDOUT') {
-    return 'The server is taking too long to respond. Please try again.';
+    return translate('requestErrors.timeout');
   }
   if (!ax?.response && ax?.request) {
-    return 'Could not reach the server. Check your connection and try again.';
+    return translate('requestErrors.network');
   }
-  if (status === 429) return 'Too many requests. Please wait a moment and try again.';
-  if (status && status >= 500) return 'The server had a problem. Please try again.';
+  if (status === 429) return translate('requestErrors.tooMany');
+  if (status && status >= 500) return translate('requestErrors.server');
   return fallback;
 }
 

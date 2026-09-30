@@ -102,6 +102,17 @@ function build(locale: Locale, setLocale: (l: Locale) => void): I18n {
 // Default = English, so components still render outside the provider (tests).
 const I18nContext = createContext<I18n>(build('en', () => {}));
 
+/**
+ * The provider's locale for code outside React (e.g. errorMessage() in
+ * lib/api.ts). English until a provider mounts — tests render without one.
+ */
+let activeLocale: Locale = 'en';
+
+// eslint-disable-next-line react-refresh/only-export-components -- non-hook translator for plain modules
+export function translate(key: MessageKey, vars?: Vars) {
+  return translator(activeLocale)(key, vars);
+}
+
 function readStoredLocale(): Locale {
   try {
     return localStorage.getItem(STORAGE_KEY) === 'ar' ? 'ar' : 'en';
@@ -123,6 +134,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(() => build(locale, setLocale), [locale, setLocale]);
+  // Idempotent: keeps translate() in step with the rendered locale.
+  activeLocale = locale;
 
   // <html lang dir> drives RTL layout (logical Tailwind classes + rtl: variants).
   useEffect(() => {
