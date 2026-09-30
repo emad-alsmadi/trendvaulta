@@ -21,7 +21,7 @@ import { useConfirm } from '../components/ui/ConfirmDialog';
 import { ImageUploadField } from '../components/ui/ImageUploadField';
 import { GalleryField } from '../components/products/GalleryField';
 import { VariantsEditor } from '../components/products/VariantsEditor';
-import { validateVariants } from '../lib/variants';
+import { cleanVariant, validateVariants } from '../lib/variants';
 import { useTableQuery } from '../hooks/useTableQuery';
 import { useAdminCategories } from '../hooks/useAdminCategories';
 import { TablePagination } from '../components/ui/TablePagination';
@@ -80,21 +80,6 @@ function cleanDimensions(d?: ProductDimensions): ProductDimensions {
     const v = d?.[key];
     if (typeof v === 'number' && Number.isFinite(v) && v >= 0) out[key] = v;
   }
-  return out;
-}
-
-/** Only the keys the API's variant schema accepts, with blanks dropped
- *  (Joi.string() rejects ''), and never the stored subdocument `_id`. */
-function cleanVariant(v: ProductVariant): ProductVariant {
-  const out: ProductVariant = { stock: Math.max(0, Math.floor(Number(v.stock) || 0)) };
-  const size = v.size?.trim();
-  const color = v.color?.trim();
-  const sku = v.sku?.trim();
-  if (size) out.size = size;
-  if (color) out.color = color;
-  if (color && v.colorCode) out.colorCode = v.colorCode;
-  if (sku) out.sku = sku;
-  if (typeof v.price === 'number' && Number.isFinite(v.price)) out.price = v.price;
   return out;
 }
 
@@ -191,7 +176,8 @@ export default function Products() {
     q: appliedQ || undefined,
     category: category || undefined,
   });
-  const brandsQ = useAdminBrands({ limit: 100 });
+  // The API caps staff brand lists at 500; one page feeds the picker below.
+  const brandsQ = useAdminBrands({ limit: 500 });
   const createMut = useCreateProductMutation();
   const updateMut = useUpdateProductMutation();
   const deleteMut = useDeleteProductMutation();
@@ -269,7 +255,10 @@ export default function Products() {
     const payload = toProductPayload(form);
     try {
       if (editing) {
-        await updateMut.mutateAsync({ id: editing._id, payload });
+        await updateMut.mutateAsync({
+          id: editing._id,
+          payload: { ...payload, expectedUpdatedAt: editing.updatedAt },
+        });
       } else {
         await createMut.mutateAsync(payload);
       }
@@ -520,6 +509,17 @@ export default function Products() {
                     {b.name}
                   </option>
                 ))}
+                {/* Keep the edited product's brand selectable even if the
+                    list didn't include it, instead of showing "Select brand". */}
+                {form.brand &&
+                  !brands.some((b) => b._id === form.brand) && (
+                    <option value={form.brand}>
+                      {(editing &&
+                        typeof editing.brand === 'object' &&
+                        editing.brand?.name) ||
+                        form.brand}
+                    </option>
+                  )}
               </select>
             </label>
             <div className="grid grid-cols-2 gap-3">

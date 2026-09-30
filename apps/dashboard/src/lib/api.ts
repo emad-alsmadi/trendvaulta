@@ -500,6 +500,8 @@ export type LowStockProduct = {
   category?: string;
   subcategory?: string;
   brand?: { _id: string; name: string } | null;
+  variants?: ProductVariant[];
+  updatedAt?: string;
 };
 
 export const adminStatsApi = {
@@ -597,6 +599,12 @@ export type AdminProduct = ProductDetailFields & {
   isActive?: boolean;
   featured?: boolean;
   brand?: string | { _id?: string; name?: string; slug?: string };
+  updatedAt?: string;
+};
+
+/** Update body; `expectedUpdatedAt` makes the API reject a stale edit (409). */
+export type ProductUpdatePayload = Partial<ProductFormPayload> & {
+  expectedUpdatedAt?: string;
 };
 
 export type ProductFormPayload = ProductDetailFields & {
@@ -680,7 +688,7 @@ export const adminProductsApi = {
 
   updateProduct: async (
     id: string,
-    payload: Partial<ProductFormPayload>,
+    payload: ProductUpdatePayload,
   ): Promise<AdminProduct> => {
     const { data } = await api.put<AdminProduct>(`/products/${id}`, payload);
     return data;

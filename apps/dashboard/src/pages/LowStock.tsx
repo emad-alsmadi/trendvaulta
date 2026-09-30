@@ -7,6 +7,7 @@ import { useUpdateProductMutation } from '../hooks/useAdminCatalog';
 import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { errorMessage, type LowStockProduct } from '../lib/api';
+import { cleanVariant, variantLabel } from '../lib/variants';
 
 const THRESHOLDS = [5, 10, 25];
 
@@ -29,35 +30,89 @@ function StockBadge({ stock }: { stock: number }) {
 
 function RestockRow({
   product,
+  threshold,
   canWrite,
   onDone,
 }: {
   product: LowStockProduct;
+  threshold: number;
   canWrite: boolean;
   onDone: () => void;
 }) {
   const toast = useToast();
   const updateMut = useUpdateProductMutation();
-  const [value, setValue] = useState(String(product.stock));
+  const variants = product.variants ?? [];
+  const hasVariants = variants.length > 0;
+  // Checkout sells from variant stock, so a variant product is restocked per
+  // option (its total is kept as their sum) — never through `stock` alone.
+  const lowIndexes = variants
+    .map((v, i) => ((Number(v.stock) || 0) <= threshold ? i : -1))
+    .filter((i) => i >= 0);
+  const initial = (): Record<number, string> =>
+    hasVariants
+      ? Object.fromEntries(
+          lowIndexes.map((i) => [i, String(variants[i].stock ?? 0)]),
+        )
+      : { [-1]: String(product.stock) };
+  const [values, setValues] = useState<Record<number, string>>(initial);
 
-  // The row is keyed by product id, so remounting after a refetch resets the
-  // input; only a stale in-place value needs guarding against.
-  const dirty = value !== String(product.stock);
+  // Rows are keyed by id + updatedAt, so a refetch after a save (or a sale)
+  // remounts with fresh values; this only tracks unsaved edits.
+  const base = initial();
+  const dirty = Object.keys(values).some((k) => values[+k] !== base[+k]);
 
   async function save() {
-    const stock = Number(value);
-    if (!Number.isInteger(stock) || stock < 0) {
+    const parsed = Object.entries(values).map(([k, raw]) => [+k, Number(raw)]);
+    if (parsed.some(([, n]) => !Number.isInteger(n) || n < 0)) {
       toast.error('Stock must be a whole number of 0 or more.');
       return;
     }
+    const next = Object.fromEntries(parsed) as Record<number, number>;
+    const payload = hasVariants
+      ? (() => {
+          const nextVariants = variants.map((v, i) =>
+            cleanVariant(i in next ? { ...v, stock: next[i] } : v),
+          );
+          return {
+            variants: nextVariants,
+            stock: nextVariants.reduce((sum, v) => sum + v.stock, 0),
+          };
+        })()
+      : { stock: next[-1] };
     try {
-      await updateMut.mutateAsync({ id: product._id, payload: { stock } });
-      toast.success(`${product.title} set to ${stock} in stock.`);
+      await updateMut.mutateAsync({
+        id: product._id,
+        payload: { ...payload, expectedUpdatedAt: product.updatedAt },
+      });
+      toast.success(`${product.title} restocked (${payload.stock} in stock).`);
       onDone();
     } catch (err) {
       toast.error(errorMessage(err, 'Could not update stock'));
     }
   }
+
+  const stockInput = (key: number, label: string, text: string) => (
+    <div key={key} className='flex items-center justify-end gap-2'>
+      {text && (
+        <span className='truncate text-xs text-gray-500 dark:text-gray-400'>
+          {text}
+        </span>
+      )}
+      <label className='sr-only' htmlFor={`stock-${product._id}-${key}`}>
+        {label}
+      </label>
+      <input
+        id={`stock-${product._id}-${key}`}
+        type='number'
+        min={0}
+        value={values[key] ?? ''}
+        onChange={(e) =>
+          setValues((prev) => ({ ...prev, [key]: e.target.value }))
+        }
+        className='w-20 rounded-lg border border-gray-300 px-2 py-1.5 text-right text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+      />
+    </div>
+  );
 
   return (
     <tr className='align-middle'>
@@ -84,24 +139,31 @@ function RestockRow({
       </td>
       <td className='py-3 pr-3'>
         <StockBadge stock={product.stock} />
+        {hasVariants && (
+          <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
+            {lowIndexes.length} of {variants.length} options low
+          </p>
+        )}
       </td>
       <td className='py-3 pr-3 text-right text-sm tabular-nums text-gray-900 dark:text-white'>
         ${Number(product.price || 0).toFixed(2)}
       </td>
       <td className='py-3'>
         {canWrite ? (
-          <div className='flex items-center justify-end gap-2'>
-            <label className='sr-only' htmlFor={`stock-${product._id}`}>
-              New stock for {product.title}
-            </label>
-            <input
-              id={`stock-${product._id}`}
-              type='number'
-              min={0}
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              className='w-20 rounded-lg border border-gray-300 px-2 py-1.5 text-right text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-            />
+          <div className='flex items-end justify-end gap-2'>
+            <div className='space-y-1'>
+              {hasVariants
+                ? lowIndexes.map((i) => {
+                    const name =
+                      variantLabel(variants[i]) || `Option ${i + 1}`;
+                    return stockInput(
+                      i,
+                      `New stock for ${product.title}, ${name}`,
+                      name,
+                    );
+                  })
+                : stockInput(-1, `New stock for ${product.title}`, '')}
+            </div>
             <button
               type='button'
               onClick={() => void save()}
@@ -139,7 +201,7 @@ export default function LowStock() {
             Low stock
           </h1>
           <p className='mt-1 text-sm text-gray-600 dark:text-gray-400'>
-            Active products at or below the threshold, most urgent first.
+            Active products (or any of their size/colour options) at or below the threshold, most urgent first.
           </p>
         </div>
         <div className='flex flex-wrap items-center gap-2'>
@@ -234,8 +296,9 @@ export default function LowStock() {
             <tbody className='divide-y divide-gray-100 dark:divide-gray-700'>
               {products.map((product) => (
                 <RestockRow
-                  key={product._id}
+                  key={`${product._id}:${product.updatedAt ?? ''}`}
                   product={product}
+                  threshold={threshold}
                   canWrite={can('products:write')}
                   onDone={() => void q.refetch()}
                 />

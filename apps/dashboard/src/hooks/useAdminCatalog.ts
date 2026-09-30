@@ -9,6 +9,7 @@ import {
   adminProductsApi,
   type BrandFormPayload,
   type ProductFormPayload,
+  type ProductUpdatePayload,
 } from '../lib/api';
 
 export const ADMIN_BRANDS_KEY = ['admin', 'brands'] as const;
@@ -105,9 +106,10 @@ export function useUpdateProductMutation() {
       payload,
     }: {
       id: string;
-      payload: Partial<ProductFormPayload>;
+      payload: ProductUpdatePayload;
     }) => adminProductsApi.updateProduct(id, payload),
-    onSuccess: async () => {
+    // Refetch on failure too: a 409 means the list holds stale stock.
+    onSettled: async () => {
       await qc.invalidateQueries({ queryKey: ADMIN_PRODUCTS_KEY });
     },
   });
