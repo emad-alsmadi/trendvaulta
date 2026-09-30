@@ -6,7 +6,7 @@ import {
   setRefreshedTokens,
 } from './auth';
 import { viteEnv } from './viteEnv';
-import { translate } from '../i18n/I18nProvider';
+import { activeLanguage, translate, translateIfExists } from '../i18n/I18nProvider';
 
 /**
  * Dashboard API client — uses Vite proxy `/api` → API server in dev.
@@ -308,13 +308,16 @@ export type LoginResponse = {
   roles?: string[];
 };
 
+/** `items[0].usageLimit` → `Usage limit`. */
+function humanizeField(path: string) {
+  const key = path.split('.').pop() || path;
+  const words = key.replace(/\[\d+\]/g, '').replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+  return words.charAt(0).toUpperCase() + words.slice(1).toLowerCase();
+}
+
 /** `"usageLimit" must be…` → `Usage limit must be…` (Joi quotes the key). */
 function humanizeValidationMessage(message: string) {
-  return message.replace(/"([\w.[\]]+)"/g, (_, path: string) => {
-    const key = path.split('.').pop() || path;
-    const words = key.replace(/\[\d+\]/g, '').replace(/([a-z0-9])([A-Z])/g, '$1 $2');
-    return words.charAt(0).toUpperCase() + words.slice(1).toLowerCase();
-  });
+  return message.replace(/"([\w.[\]]+)"/g, (_, path: string) => humanizeField(path));
 }
 
 /**
@@ -329,13 +332,35 @@ function errorMessage(err: unknown, fallback: string) {
       status?: number;
       data?: {
         message?: string;
-        details?: Array<{ field?: string; message?: string }>;
+        code?: string;
+        params?: Record<string, string | number>;
+        details?: Array<{ field?: string; message?: string; type?: string; limit?: number }>;
       };
     };
     request?: unknown;
     code?: string;
   };
   const data = ax?.response?.data;
+
+  // The API's messages are English. Other languages translate by the stable
+  // `code` / Joi rule `type` it sends alongside, and otherwise use the
+  // caller's (already translated) fallback rather than show English text.
+  if (data && activeLanguage() !== 'en') {
+    const rule = data.details?.find((d) => d?.type);
+    if (rule?.type) {
+      const text = translateIfExists(`apiValidation.${rule.type.replace(/\./g, '_')}`, {
+        field: humanizeField(rule.field || ''),
+        limit: rule.limit ?? '',
+      });
+      if (text) return text;
+    }
+    if (data.code) {
+      const text = translateIfExists(`apiErrors.${data.code}`, data.params);
+      if (text) return text;
+    }
+    if (data.message || data.details?.length) return fallback;
+  }
+
   const detail = data?.details?.find((d) => d?.message)?.message;
   if (detail) return humanizeValidationMessage(detail);
   if (data?.message) return humanizeValidationMessage(data.message);

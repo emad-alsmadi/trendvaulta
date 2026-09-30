@@ -113,6 +113,23 @@ export function translate(key: MessageKey, vars?: Vars) {
   return translator(activeLocale)(key, vars);
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- non-hook helper for plain modules
+export function activeLanguage(): Locale {
+  return activeLocale;
+}
+
+/**
+ * Like translate(), for keys built from runtime data (API error codes):
+ * undefined when the key doesn't exist instead of echoing it back.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- non-hook helper for plain modules
+export function translateIfExists(key: string, vars?: Vars): string | undefined {
+  const template = lookup(MESSAGES[activeLocale], key);
+  if (template === undefined) return undefined;
+  if (!vars) return template;
+  return template.replace(/\{(\w+)\}/g, (m, name: string) => (name in vars ? String(vars[name]) : m));
+}
+
 function readStoredLocale(): Locale {
   try {
     return localStorage.getItem(STORAGE_KEY) === 'ar' ? 'ar' : 'en';
