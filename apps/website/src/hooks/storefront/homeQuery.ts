@@ -185,7 +185,6 @@ export function useStorefrontHome() {
       return storefrontHomeApi.getHome();
     },
     staleTime: 60_000,
-    retry: 1,
     // Wait for modules to settle either way (success OR error); before, an
     // error left this disabled forever and the page silently used demo keys.
     enabled: !modulesQ.isPending,

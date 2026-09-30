@@ -18,7 +18,6 @@ export function useMyWishlist() {
       return await wishlistApi.getMyWishlist();
     },
     staleTime: 30_000,
-    retry: 1,
     enabled: isAuthenticated,
   });
 }
@@ -34,7 +33,6 @@ export function useCheckWishlist(productId?: string) {
     },
     enabled: Boolean(productId),
     staleTime: 30_000,
-    retry: 1,
   });
 }
 

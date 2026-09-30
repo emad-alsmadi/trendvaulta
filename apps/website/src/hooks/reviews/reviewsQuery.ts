@@ -16,7 +16,6 @@ export function useProductReviews(productId: string) {
       return await reviewsApi.getProductReviews(productId);
     },
     staleTime: 30_000,
-    retry: 1,
   });
 }
 
@@ -29,7 +28,6 @@ export function useMyReviews() {
       return await reviewsApi.getMyReviews();
     },
     staleTime: 30_000,
-    retry: 1,
     enabled: isAuthenticated,
   });
 }

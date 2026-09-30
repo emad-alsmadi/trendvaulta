@@ -13,6 +13,5 @@ export function useTestimonials() {
       return Array.isArray(res.results) ? res.results : [];
     },
     staleTime: 60_000,
-    retry: 1,
   });
 }

@@ -20,6 +20,22 @@ export function useSubscribeNewsletter() {
   });
 }
 
+/** Newsletter double opt-in confirmation — POST /api/newsletter/confirm. */
+export function useConfirmNewsletter() {
+  return useMutation({
+    mutationFn: (payload: { email: string; exp: string; token: string }) =>
+      newsletterApi.confirm(payload),
+  });
+}
+
+/** Signed unsubscribe link — POST /api/newsletter/unsubscribe. */
+export function useUnsubscribeNewsletter() {
+  return useMutation({
+    mutationFn: (payload: { email: string; token: string }) =>
+      newsletterApi.unsubscribe(payload),
+  });
+}
+
 /** Contact form — POST /api/contact. */
 export function useSendContactMessage() {
   return useMutation({

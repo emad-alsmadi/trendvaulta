@@ -40,7 +40,6 @@ export function useActiveOffers(limit = 12) {
       return (res.results ?? []).map(mapOfferToDeal);
     },
     staleTime: 60_000,
-    retry: 1,
   });
 }
 
@@ -55,6 +54,5 @@ export function useOffersList(limit = 24) {
       return res.results ?? [];
     },
     staleTime: 60_000,
-    retry: 1,
   });
 }

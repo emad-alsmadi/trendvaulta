@@ -14,6 +14,5 @@ export function useStorefrontModules() {
       return res.modules;
     },
     staleTime: 300_000, // 5 minutes - modules change rarely
-    retry: 1,
   });
 }

@@ -11,6 +11,5 @@ export function useValidateCoupon() {
     mutationFn: async ({ code, orderAmount }: { code: string; orderAmount: number }) => {
       return await couponsApi.validateCoupon(code, orderAmount);
     },
-    retry: 1,
   });
 }

@@ -13,6 +13,5 @@ export function useWhyChooseUs() {
       return Array.isArray(res.items) ? res.items : [];
     },
     staleTime: 60_000,
-    retry: 1,
   });
 }

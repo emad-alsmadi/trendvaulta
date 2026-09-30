@@ -24,7 +24,6 @@ export function useRecentlyViewed() {
     queryFn: () => recentlyViewedApi.getRecentlyViewed(),
     enabled: isAuthenticated,
     staleTime: 30_000,
-    retry: 1,
   });
 
   // getRecentlyViewed() reads localStorage (SSR-safe, returns [] on the

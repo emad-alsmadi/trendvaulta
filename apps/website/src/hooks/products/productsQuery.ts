@@ -32,7 +32,6 @@ export function useProducts(
       return await productsApi.getProducts(query);
     },
     staleTime: 30_000,
-    retry: 1,
     placeholderData: keepPreviousData,
     enabled: options?.enabled ?? true,
   });
@@ -47,7 +46,6 @@ export function useProductById(id?: string) {
     },
     enabled: Boolean(id),
     staleTime: 60_000,
-    retry: 1,
   });
 }
 
@@ -60,6 +58,5 @@ export function useProductBundles(id?: string) {
     },
     enabled: Boolean(id),
     staleTime: 60_000,
-    retry: 1,
   });
 }

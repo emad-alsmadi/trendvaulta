@@ -14,6 +14,5 @@ export function useContent(type: ContentType) {
       return res.data;
     },
     staleTime: 300_000, // 5 minutes - content changes rarely
-    retry: 1,
   });
 }

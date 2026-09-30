@@ -56,7 +56,6 @@ export function useGiftFinderConfig() {
       }
     },
     staleTime: 60_000,
-    retry: 1,
     placeholderData: { config: DEMO_GIFT_FINDER, fromApi: false },
   });
 }

@@ -19,7 +19,6 @@ export function useRecommendations(params: RecommendationsQuery = {}) {
     queryKey: recommendationsKey(params),
     queryFn: () => recommendationsApi.getRecommendations(params),
     staleTime: 60_000,
-    retry: 1,
   });
 }
 

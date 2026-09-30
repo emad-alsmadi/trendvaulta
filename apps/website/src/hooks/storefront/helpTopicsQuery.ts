@@ -35,6 +35,5 @@ export function useHelpTopics(params: HelpTopicsQueryParams = { active: true }) 
       return (res.topics ?? []).map(mapHelpTopicToDemo);
     },
     staleTime: 60_000,
-    retry: 1,
   });
 }

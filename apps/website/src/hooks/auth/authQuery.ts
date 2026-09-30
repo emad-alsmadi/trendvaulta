@@ -89,7 +89,6 @@ export function useMe() {
       return res as MeResponse;
     },
     enabled: Boolean(token),
-    retry: 1,
     staleTime: 30_000,
   });
 }

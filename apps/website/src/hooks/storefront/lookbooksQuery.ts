@@ -34,6 +34,5 @@ export function useLookbooks() {
       return (res.results ?? []).map(mapLookbookToStory);
     },
     staleTime: 60_000,
-    retry: 1,
   });
 }

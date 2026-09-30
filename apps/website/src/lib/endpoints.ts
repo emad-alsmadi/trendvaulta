@@ -82,6 +82,8 @@ export const endpoints = {
   },
   newsletter: {
     subscribe: '/newsletter',
+    confirm: '/newsletter/confirm',
+    unsubscribe: '/newsletter/unsubscribe',
   },
   contact: {
     send: '/contact',

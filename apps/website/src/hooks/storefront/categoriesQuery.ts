@@ -99,6 +99,5 @@ export function useStorefrontCategories() {
         .filter((item): item is DemoCategoryShortcut => item != null);
     },
     staleTime: 60_000,
-    retry: 1,
   });
 }

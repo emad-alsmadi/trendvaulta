@@ -1214,7 +1214,8 @@ export const storefrontHomeApi = {
  */
 export const newsletterApi = {
   /**
-   * POST /api/newsletter — subscribe (or re-subscribe) an email.
+   * POST /api/newsletter — start a (double opt-in) subscription; the
+   * address is subscribed only after the emailed link is confirmed.
    * Always resolves with a generic message; never reveals whether the
    * address was already known.
    */
@@ -1223,6 +1224,25 @@ export const newsletterApi = {
     source?: 'footer' | 'checkout' | 'other';
   }): Promise<{ message: string }> => {
     const { data } = await api.post(endpoints.newsletter.subscribe, payload);
+    return data;
+  },
+
+  /** POST /api/newsletter/confirm — the double opt-in link from the email. */
+  confirm: async (payload: {
+    email: string;
+    exp: string;
+    token: string;
+  }): Promise<{ message: string }> => {
+    const { data } = await api.post(endpoints.newsletter.confirm, payload);
+    return data;
+  },
+
+  /** POST /api/newsletter/unsubscribe — needs the signed token from an email. */
+  unsubscribe: async (payload: {
+    email: string;
+    token: string;
+  }): Promise<{ message: string }> => {
+    const { data } = await api.post(endpoints.newsletter.unsubscribe, payload);
     return data;
   },
 };

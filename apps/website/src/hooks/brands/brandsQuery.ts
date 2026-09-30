@@ -47,7 +47,6 @@ export function useBrands() {
       return all;
     },
     staleTime: 60_000,
-    retry: 1,
   });
 }
 
@@ -60,7 +59,6 @@ export function useFeaturedBrands(limit = 8) {
       return normalizeBrandsList(res);
     },
     staleTime: 60_000,
-    retry: 1,
   });
 }
 
@@ -73,6 +71,5 @@ export function useBrandById(id?: string) {
     },
     enabled: Boolean(id),
     staleTime: 60_000,
-    retry: 1,
   });
 }

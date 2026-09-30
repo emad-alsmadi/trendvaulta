@@ -16,7 +16,6 @@ export function useProductQA(productId: string) {
     queryFn: () => productQAApi.getProductQA(productId),
     enabled: !!productId,
     staleTime: 60_000,
-    retry: 1,
   });
 }
 

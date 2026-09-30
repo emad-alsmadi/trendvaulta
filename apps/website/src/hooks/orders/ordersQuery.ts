@@ -36,7 +36,6 @@ export function useMyOrders() {
       return await ordersApi.getMyOrders();
     },
     staleTime: 30_000,
-    retry: 1,
     enabled: isAuthenticated,
     placeholderData: keepPreviousData,
   });
@@ -51,7 +50,6 @@ export function useOrderById(id?: string) {
     },
     enabled: Boolean(id),
     staleTime: 30_000,
-    retry: 1,
   });
 }
 

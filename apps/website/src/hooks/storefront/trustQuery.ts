@@ -48,6 +48,5 @@ export function useStorefrontTrust() {
         .filter((item): item is DemoTrustItem => item != null);
     },
     staleTime: 60_000,
-    retry: 1,
   });
 }

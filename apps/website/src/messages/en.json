@@ -63,7 +63,7 @@
   "footer": {
     "newsletter": "Get deals in your inbox",
     "subscribe": "Subscribe",
-    "subscribed": "You're subscribed! Watch your inbox for deals.",
+    "subscribed": "Almost done! Check your inbox and confirm your subscription.",
     "newsletterError": "Enter a valid email address",
     "subscribeFailed": "Could not subscribe right now",
     "tagline": "Beauty, fashion, and lifestyle retail — curated products, clear pricing, and secure checkout.",
@@ -1793,5 +1793,18 @@
         "p1": "If you have any questions about these Terms of Service, please contact us at support@trendvaulta.com"
       }
     }
+  },
+  "newsletterPage": {
+    "confirmTitle": "Confirm your subscription",
+    "confirming": "Confirming your subscription…",
+    "confirmed": "You're subscribed! Watch your inbox for deals.",
+    "unsubscribeTitle": "Unsubscribe from the newsletter",
+    "unsubscribePrompt": "Stop sending newsletter emails to {email}?",
+    "unsubscribeButton": "Unsubscribe",
+    "unsubscribing": "Unsubscribing…",
+    "unsubscribed": "You've been unsubscribed. You won't receive newsletter emails anymore.",
+    "invalidLink": "This link is invalid or has expired. Sign up again from the footer to get a new one.",
+    "error": "Something went wrong. Please try again.",
+    "backHome": "Back to the store"
   }
 }
