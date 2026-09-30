@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "start": "npm run dev",
-    "dev":"concurrently \"npm run dev:website\" \"npm run dev:dashboard\" \"npm run dev:api\"",
+    "dev": "concurrently \"npm run dev:website\" \"npm run dev:dashboard\" \"npm run dev:api\"",
     "dev:website": "npm run dev --workspace=apps/website",
     "dev:dashboard": "npm run dev --workspace=apps/dashboard",
     "dev:api": "npm run dev --workspace=apps/api",
@@ -18,11 +18,13 @@
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "test:api": "npm run test --workspace=apps/api",
+    "test:e2e": "playwright test",
     "typecheck:website": "npx --workspace=apps/website tsc --noEmit",
     "typecheck:dashboard": "npx --workspace=apps/dashboard tsc --noEmit",
     "clean": "npm run clean --workspaces --if-present && rm -rf node_modules"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "concurrently": "^8.2.2"
   },
   "engines": {

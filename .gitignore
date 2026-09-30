@@ -22,6 +22,11 @@ pids
 *.seed
 *.pid.lock
 
+# Playwright (npm run test:e2e) output
+test-results/
+playwright-report/
+.playwright-mcp/
+
 # Coverage directory used by tools like istanbul
 coverage/
 *.lcov

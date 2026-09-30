@@ -141,6 +141,22 @@ Workflow: `.github/workflows/ci.yml`. Triggers on PRs and pushes to `main`.
 | **Website** | root `npm ci` → lint → `tsc --noEmit` → vitest → `next build` |
 | **Dashboard** | root `npm ci` → lint → jest → `tsc && vite build` |
 | **Dependency audit** | root `npm ci` → `npm audit --audit-level=critical` (fails only on critical advisories) |
+| **End-to-end** (after the three above) | root `npm ci` → `npx playwright install --with-deps chromium` → `npm run test:e2e`; report uploaded on failure |
+
+**E2E (`playwright.config.ts`, `e2e/`)**
+- Starts the real API on a seeded in-memory MongoDB (`e2e/support/api-server.js`, which never touches a developer database), plus production builds of the storefront and dashboard.
+- Everything runs on ports 3110/3111/3112, so a running `npm run dev` is unaffected.
+- Stripe and mail are off.
+- What it covers:
+  - the catalogue loads from the API
+  - EN→AR flips the page to RTL and survives a reload
+  - guest checkout asks for an email
+  - `/user` redirects to login
+  - dashboard sign-in and handling a message
+  - a wrong password is refused
+- To reuse the last builds, run `E2E_SKIP_BUILD=1 npm run test:e2e`.
+- The e2e builds bake the e2e API URL into `.next`/`dist`, so run `npm run build` again before deploying from the same checkout.
+- The API unit/integration suite runs with `--test-concurrency=4`. Every test file starts its own MongoDB, and unbounded parallelism caused intermittent timeouts on loaded machines.
 
 Local equivalents:
 
@@ -591,7 +607,7 @@ Hard rules: never trust client price/discount/stock/role/paymentStatus; never sk
 Everything else described in the old phase-by-phase plan (critical recovery, security hardening, store/dashboard workflow fixes, revenue features, dashboard enhancements) is **done** — see git history for how. What's still open:
 
 - **Arabic manual QA** — a real-browser pass across home, PLP+filters, PDP, cart, checkout, account, at phone width. Static audit (no physical direction classes, icons flip, no hardcoded English JSX) is already done.
-- **Deploy automation** — API/website/dashboard deploys are still triggered by each host's own Git integration, not from CI. No E2E test suite exists yet.
+- **Deploy automation** — API/website/dashboard deploys are still triggered by each host's own Git integration, not from CI (Render waits for green checks via `autoDeployTrigger: checksPass`). A staging environment and running the E2E suite against it after each deploy are still open.
 - **Observability** — Sentry (or equivalent) is not wired up. Pino logging, request IDs, and graceful shutdown are already in place.
 - **Tech debt (low priority)** — ~178 `express-async-handler` wraps could be simplified now that the underlying Express version handles async errors natively; response contracts across controllers aren't fully standardized.
 - **Security hardening backlog** — see §7's "Known open hardening items."

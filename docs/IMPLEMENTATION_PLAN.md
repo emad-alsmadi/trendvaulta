@@ -700,7 +700,7 @@ Each item needs its own short design note before it gets a task ID:
 | P0-07 | Durable media storage | P0 | S | — | — | ✅ (migration dry-run checked on the local DB: 2 product covers; `--apply` not run, needs your Cloudinary keys) | 2026-09-29 | |
 | P0-08 | Backups and DR runbook | P0 | S | — | D7 | ⬜ | | |
 | P0-09 | Rate limiting behind proxy | P0 | M | — | D4 | ⬜ | | |
-| P0-10 | E2E, staging, CI-gated deploys | P0 | M | P0-00 | — | ⬜ | | |
+| P0-10 | E2E, staging, CI-gated deploys | P0 | M | P0-00 | — | 🟡 E2E suite + CI job done; staging env and Vercel deploy gating need platform setup | 2026-09-30 | |
 | P1-01 | Payment abstraction + COD | P1 | L | P0-01 | D1 | ⬜ | | |
 | P1-02 | Localised, complete emails | P1 | M | P0-02 | — | ⬜ | | |
 | P1-03 | Tax by zone | P1 | M | — | D6 | ⬜ | | |
