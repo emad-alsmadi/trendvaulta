@@ -148,7 +148,7 @@ export default function DashboardLayout() {
       {/* Sidebar */}
       <aside
         aria-label={t('nav.label')}
-        className={`fixed start-0 top-0 z-50 h-full w-64 max-w-[85vw] border-e border-gray-200 bg-white transition-[transform,width] duration-200 dark:border-gray-700 dark:bg-gray-800 md:translate-x-0 md:max-w-none ${
+        className={`fixed start-0 top-0 z-50 h-full w-64 max-w-[85vw] border-e border-gray-200 bg-white transition-[transform,width] duration-200 dark:border-gray-700 dark:bg-gray-800 md:translate-x-0 md:rtl:translate-x-0 md:max-w-none ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full'
         } ${isSidebarOpen ? 'md:w-64' : 'md:w-20'}`}
       >

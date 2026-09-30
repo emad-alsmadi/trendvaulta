@@ -283,7 +283,7 @@ export default function LowStock() {
         </div>
       )}
 
-      <section className='overflow-x-auto rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800'>
+      <section className='relative overflow-x-auto rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800'>
         {q.isLoading ? (
           <p className='py-10 text-center text-sm text-gray-500'>{t('lowStock.loading')}</p>
         ) : products.length === 0 ? (
