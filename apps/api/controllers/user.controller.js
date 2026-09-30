@@ -145,6 +145,13 @@ const updateUser = asyncHandler(async (req, res) => {
   }
 
   if (req.body.password) {
+    // Admins may reset other accounts, but their own password must go
+    // through /password/change, which checks the current one first.
+    if (String(req.params.id) === String(req.user?.id)) {
+      return res.status(400).json({
+        message: 'Change your own password from Settings (current password required)',
+      });
+    }
     const salt = await bcrypt.genSalt(10);
     update.password = await bcrypt.hash(req.body.password, salt);
   }

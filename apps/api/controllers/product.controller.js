@@ -176,7 +176,6 @@ const createProduct = asyncHandler(async (req, res) => {
     sku: req.body.sku,
     isActive: req.body.isActive !== undefined ? req.body.isActive : true,
     featured: req.body.featured || false,
-    salesCount: req.body.salesCount || 0,
     badges: req.body.badges || [],
   });
 
@@ -203,27 +202,44 @@ const updateProduct = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: error.details[0].message });
   }
 
+  // averageRating, reviewCount and salesCount are computed from reviews and
+  // paid orders, so staff can't set them.
   const updateData = {};
   const allowedFields = [
     'title', 'brand', 'description', 'price', 'cover', 'images',
     'category', 'subcategory', 'variants', 'material', 'weight',
-    'dimensions', 'shippingInfo', 'stock', 'sku', 'averageRating',
-    'reviewCount', 'isActive', 'featured', 'salesCount', 'badges',
+    'dimensions', 'shippingInfo', 'stock', 'sku', 'isActive', 'featured',
+    'badges',
   ];
-  
+
   allowedFields.forEach((field) => {
     if (req.body[field] !== undefined) {
       updateData[field] = req.body[field];
     }
   });
 
-  const product = await Product.findByIdAndUpdate(
-    req.params.id,
-    updateData,
-    { new: true },
-  );
+  // Stock is written as an absolute value from the editor's form. When the
+  // editor says which version it loaded, only write if nothing (e.g. a paid
+  // order's decrement) changed the product since — otherwise the sale would
+  // be undone and the item oversold.
+  const filter = { _id: req.params.id };
+  if (req.body.expectedUpdatedAt) {
+    filter.updatedAt = new Date(req.body.expectedUpdatedAt);
+  }
+
+  const product = await Product.findOneAndUpdate(filter, updateData, {
+    new: true,
+    runValidators: true,
+  });
 
   if (!product) {
+    if (filter.updatedAt && (await Product.exists({ _id: req.params.id }))) {
+      return res.status(409).json({
+        message:
+          'This product changed since you opened it (stock may have sold). Reopen it to load the current values, then save again.',
+        code: 'PRODUCT_CHANGED',
+      });
+    }
     return res.status(404).json({ message: 'Product not found' });
   }
 

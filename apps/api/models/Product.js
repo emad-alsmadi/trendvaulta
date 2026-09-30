@@ -270,7 +270,6 @@ const validateCreateProduct = (obj) => {
     sku: Joi.string().trim(),
     isActive: Joi.boolean().default(true),
     featured: Joi.boolean().default(false),
-    salesCount: Joi.number().min(0).default(0),
     badges: Joi.array().items(Joi.string().valid(...MERCHANDISING_BADGES)),
   });
   const { error } = schema.validate(obj);
@@ -313,12 +312,12 @@ const validateUpdateProduct = (obj) => {
     }),
     stock: Joi.number().min(0),
     sku: Joi.string().trim(),
-    averageRating: Joi.number().min(0).max(5),
-    reviewCount: Joi.number().min(0),
     isActive: Joi.boolean(),
     featured: Joi.boolean(),
-    salesCount: Joi.number().min(0),
     badges: Joi.array().items(Joi.string().valid(...MERCHANDISING_BADGES)),
+    // The product's `updatedAt` when the editor loaded it. Checkout bumps it
+    // on every stock decrement, so a mismatch means the form is stale.
+    expectedUpdatedAt: Joi.date().iso(),
   });
   const { error } = schema.validate(obj);
   return error;
