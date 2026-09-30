@@ -17,6 +17,20 @@ const APP_ROLES = ['user', 'admin', 'moderator'];
 const USER_SORT_FIELDS = ['createdAt', 'username', 'email'];
 
 /**
+ * Projection for staff who can read but not manage users (moderators):
+ * enough for the user table, without addresses, phones, Stripe ids or the
+ * internal admin notes.
+ */
+const USER_READ_ONLY_FIELDS = 'username email roles disabled createdAt updatedAt';
+
+/** Full admin view, or the read-only projection when the caller lacks users:write. */
+function userProjection(req) {
+  return req.userPermissions?.includes('users:write')
+    ? '-password +adminNotes'
+    : USER_READ_ONLY_FIELDS;
+}
+
+/**
  * True when no OTHER enabled admin exists — removing admin rights from (or
  * disabling/deleting) `userId` would lock the store out of the dashboard.
  */
@@ -62,7 +76,7 @@ const getAllUsers = asyncHandler(async (req, res) => {
   }
 
   const [users, total] = await Promise.all([
-    User.find(query).select('-password +adminNotes').sort(sort).skip(skip).limit(limit).lean(),
+    User.find(query).select(userProjection(req)).sort(sort).skip(skip).limit(limit).lean(),
     User.countDocuments(query),
   ]);
 
@@ -82,7 +96,7 @@ const getAllUsers = asyncHandler(async (req, res) => {
  * @returns {Promise<void>} JSON user document (password excluded)
  */
 const getUserById = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id).select('-password +adminNotes');
+  const user = await User.findById(req.params.id).select(userProjection(req));
   if (user) {
     res.status(200).json(user);
   } else {
