@@ -37,7 +37,13 @@ function triggersRefund(order: AdminOrder, next: string) {
   );
 }
 
-function customerLabel(order: AdminOrder, fallback: string) {
+function customerLabel(
+  order: AdminOrder,
+  fallback: string,
+  guestLabel: (email: string) => string = (email) => email,
+) {
+  // A guest order (no account) is known by its email
+  if (!order.user && order.guestEmail) return guestLabel(order.guestEmail);
   if (order.user && typeof order.user === 'object') {
     return order.user.email || order.user.username || fallback;
   }
@@ -352,7 +358,9 @@ export default function Orders() {
                           </Link>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300" dir="auto">
-                          {customerLabel(order, customerFallback)}
+                          {customerLabel(order, customerFallback, (email) =>
+                            t('orders.guestCustomer', { email }),
+                          )}
                         </td>
                         <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
                           {formatCurrency(Number(order.totalPrice || 0))}

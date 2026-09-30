@@ -29,6 +29,7 @@ const {
   getUserPermissions,
   hasPermission,
 } = require('../middlewares/rolePermissions');
+const { isValidGuestToken, orderEmailTarget } = require('../utils/guestOrders');
 const {
   sendOrderShippedEmail,
   sendOrderDeliveredEmail,
@@ -239,7 +240,11 @@ const getAllOrders = asyncHandler(async (req, res) => {
         .select('_id')
         .limit(200)
         .lean();
-      query.user = { $in: customers.map((u) => u._id) };
+      // Account orders of matching customers, and guest orders by email
+      query.$or = [
+        { user: { $in: customers.map((u) => u._id) } },
+        { guestEmail: { $regex: term, $options: 'i' } },
+      ];
     }
   }
 
@@ -353,10 +358,11 @@ const updateOrderTracking = asyncHandler(async (req, res) => {
     !hadTrackingNumber &&
     order.trackingNumber
   ) {
-    await order.populate('user', 'email');
-    if (order.user?.email) {
+    const { to, orderUrl } = await orderEmailTarget(order, User);
+    if (to) {
       await sendOrderShippedEmail({
-        to: order.user.email,
+        to,
+        orderUrl,
         orderId: order._id,
         trackingNumber: order.trackingNumber,
         trackingCarrier: order.trackingCarrier,
@@ -545,14 +551,14 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
 
   await order.save();
 
-  // Send email notifications based on status change. (populate() resolves
-  // to the order itself — the address is on order.user.)
-  await order.populate('user', 'email');
-  const userEmail = order.user?.email;
+  // Send email notifications based on status change: the account email,
+  // or the guest's with their order link.
+  const { to: userEmail, orderUrl } = await orderEmailTarget(order, User);
   if (userEmail) {
     if (value.status === 'shipped' && order.trackingNumber) {
       await sendOrderShippedEmail({
         to: userEmail,
+        orderUrl,
         orderId: order._id,
         trackingNumber: order.trackingNumber,
         trackingCarrier: order.trackingCarrier,
@@ -560,16 +566,19 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     } else if (value.status === 'delivered') {
       await sendOrderDeliveredEmail({
         to: userEmail,
+        orderUrl,
         orderId: order._id,
       }).catch(() => {});
     } else if (value.status === 'canceled') {
       await sendOrderCanceledEmail({
         to: userEmail,
+        orderUrl,
         orderId: order._id,
       }).catch(() => {});
     } else if (value.status === 'refunded' && order.refundAmount > 0) {
       await sendOrderRefundedEmail({
         to: userEmail,
+        orderUrl,
         orderId: order._id,
         refundAmount: order.refundAmount,
       }).catch(() => {});
@@ -614,11 +623,50 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
  * @route POST /api/orders/:id/cancel
  * @access Private (order owner)
  */
+/**
+ * The order behind a customer action: the caller's own order, or a guest
+ * order whose token matches (utils/guestOrders.js). null otherwise.
+ */
+async function findCustomerOrder(req, orderId, guestToken) {
+  if (!mongoose.isValidObjectId(orderId)) return null;
+  if (req.user?.id) {
+    const own = await Order.findOne({ _id: orderId, user: req.user.id });
+    if (own) return own;
+  }
+  if (!guestToken) return null;
+  const order = await Order.findById(orderId);
+  return isValidGuestToken(order, guestToken) ? order : null;
+}
+
+/**
+ * Guest order page: the order behind an emailed (or checkout) link.
+ * Returns are not offered to guests: they need a confirmed email (D5),
+ * which registering with the same address provides.
+ * @route POST /api/orders/guest/lookup
+ * @access Public, with { orderId, token }
+ */
+const getGuestOrder = asyncHandler(async (req, res) => {
+  const { orderId, token } = req.body || {};
+  const order = mongoose.isValidObjectId(orderId) ? await Order.findById(orderId) : null;
+  if (!isValidGuestToken(order, token)) {
+    return res.status(404).json({ message: 'Order not found' });
+  }
+  res.status(200).json({
+    ...serializeOrder(order),
+    canCancel: canCustomerCancel(order).ok,
+    canReturn: false,
+    returnNeedsAccount: canCustomerReturn(order).ok,
+  });
+});
+
 const cancelOrder = asyncHandler(async (req, res) => {
-  const userId = req.user?.id;
-  // Scoped to the owner: someone else's order is "not found", not
+  const guestToken = req.body?.guestToken;
+  if (!req.user?.id && !guestToken) {
+    return res.status(401).json({ message: 'Token is not valid!' });
+  }
+  // Owner- or token-scoped: someone else's order is "not found", not
   // "forbidden", so the endpoint does not confirm which ids exist.
-  const order = await Order.findOne({ _id: req.params.id, user: userId });
+  const order = await findCustomerOrder(req, req.params.id, guestToken);
   if (!order) {
     return res.status(404).json({ message: 'Order not found' });
   }
@@ -690,12 +738,9 @@ const cancelOrder = asyncHandler(async (req, res) => {
   const stockRestoredNow = await restoreStockOnce(Order, Product, claimed);
   if (stockRestoredNow) claimed.stockRestored = true;
 
-  const owner = await User.findById(userId).select('email').lean();
-  if (owner?.email) {
-    await sendOrderCanceledEmail({
-      to: owner.email,
-      orderId: claimed._id,
-    }).catch(() => {});
+  const { to, orderUrl } = await orderEmailTarget(claimed, User);
+  if (to) {
+    await sendOrderCanceledEmail({ to, orderUrl, orderId: claimed._id }).catch(() => {});
   }
 
   let message = 'Order canceled.';
@@ -727,11 +772,16 @@ const getOrderInvoice = asyncHandler(async (req, res) => {
   if (!mongoose.isValidObjectId(req.params.id)) {
     return res.status(404).json({ message: 'Order not found' });
   }
+  const guestToken = req.get('x-guest-token');
+  if (!req.user?.id && !guestToken) {
+    return res.status(401).json({ message: 'Token is not valid!' });
+  }
   const isStaff = hasPermission(getUserPermissions(req.user?.roles), 'orders:read');
   // Someone else's order is "not found", so ids can't be probed
-  const order = await Order.findOne(
-    isStaff ? { _id: req.params.id } : { _id: req.params.id, user: req.user?.id },
-  ).lean();
+  const found = isStaff
+    ? await Order.findById(req.params.id)
+    : await findCustomerOrder(req, req.params.id, guestToken);
+  const order = found ? found.toObject() : null;
   if (!order) {
     return res.status(404).json({ message: 'Order not found' });
   }
@@ -768,6 +818,7 @@ module.exports = {
   createOrder,
   getMyOrders,
   getOrderById,
+  getGuestOrder,
   getAllOrders,
   updateOrderStatus,
   updateOrderTracking,

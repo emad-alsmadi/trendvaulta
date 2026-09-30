@@ -35,6 +35,7 @@ export const endpoints = {
     my: '/orders/my',
     details: (id: string) => `/orders/${id}`,
     cancel: (id: string) => `/orders/${id}/cancel`,
+    guestLookup: '/orders/guest/lookup',
     returnRequest: (id: string) => `/orders/${id}/return`,
   },
   payments: {

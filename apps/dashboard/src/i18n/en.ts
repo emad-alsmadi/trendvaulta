@@ -672,6 +672,7 @@ export const en = {
     selectedCustomer: 'selected customer',
     showAllCustomers: 'Show all customers',
     customerFallback: 'Customer',
+    guestCustomer: 'Guest · {email}',
     searchLabel: 'Search by order id or customer email',
     searchPlaceholder: 'Search by order id or customer email…',
     signInHint: 'Sign in with an admin account that has {read} / {write}.',

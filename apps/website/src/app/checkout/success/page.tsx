@@ -1,10 +1,11 @@
 'use client';
 
-import { Suspense, useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { useOrderById } from '@/hooks/orders/ordersQuery';
+import { useGuestOrder, useOrderById } from '@/hooks/orders/ordersQuery';
+import { guestOrderHref, readGuestToken } from '@/lib/guestOrder';
 import { clearCart } from '@/lib/cartStore';
 import { paymentsApi } from '@/lib/api';
 import { useTranslation } from '@/contexts/TranslationContext';
@@ -15,8 +16,14 @@ function CheckoutSuccessInner() {
   const orderId = sp.get('order_id');
   const sessionId = sp.get('session_id');
 
-  const q = useOrderById(orderId ?? undefined);
+  // A guest came back from Stripe with the token saved at checkout (P0-03)
+  const [guestToken] = useState(() => readGuestToken(orderId));
+  const accountQ = useOrderById(guestToken ? undefined : (orderId ?? undefined));
+  const guestQ = useGuestOrder(guestToken ? orderId : null, guestToken);
+  const q = guestToken ? guestQ : accountQ;
   const order = q.data;
+  const orderHref =
+    orderId && guestToken ? guestOrderHref(orderId, guestToken) : `/user/orders/${orderId}`;
 
   // Clear cart when order is confirmed paid
   useEffect(() => {
@@ -57,7 +64,7 @@ function CheckoutSuccessInner() {
     const tick = async () => {
       if (cancelled || isSettled()) return;
       try {
-        const result = await paymentsApi.verifyPaymentStatus(orderId);
+        const result = await paymentsApi.verifyPaymentStatus(orderId, guestToken ?? undefined);
         if (
           result.verified ||
           result.alreadyPaid ||
@@ -87,7 +94,7 @@ function CheckoutSuccessInner() {
       if (timer !== undefined) window.clearTimeout(timer);
     };
     // Depends only on the order/session reference; status is read via refs.
-  }, [orderId, sessionId]);
+  }, [orderId, sessionId, guestToken]);
 
   if (!orderId) {
     return (
@@ -146,7 +153,7 @@ function CheckoutSuccessInner() {
         ) : null}
         <div className='mt-6 flex flex-wrap gap-3'>
           <Link
-            href={`/user/orders/${order._id}`}
+            href={orderHref}
             className='inline-flex items-center justify-center rounded-full bg-gradient-to-r from-indigo-600 via-fuchsia-600 to-cyan-500 px-5 py-3 text-sm font-extrabold text-white shadow-md transition hover:brightness-110'
           >
             {t('orderResult.success.viewOrder')}

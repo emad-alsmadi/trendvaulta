@@ -282,6 +282,14 @@
       "loginRequiredTitle": "Login required",
       "loginToContinue": "Please log in to continue.",
       "cartEmpty": "Your cart is empty."
+    },
+    "guest": {
+      "email": "Email for your receipt",
+      "emailRequired": "Enter your email to check out as a guest",
+      "emailInvalid": "Enter a valid email address",
+      "emailHelp": "We'll send your receipt and a link to track or cancel your order.",
+      "haveAccount": "Have an account?",
+      "signIn": "Sign in"
     }
   },
   "orderResult": {
@@ -1138,6 +1146,12 @@
     "unavailable": "Shipping policy not available at this time.",
     "helpPrompt": "Need help with a shipment? Visit the {helpLink} or {contactLink}.",
     "contactSupport": "contact support"
+  },
+  "guestOrder": {
+    "notFound": "We couldn't open this order. Use the link in your order email.",
+    "sentTo": "Updates are sent to {email}.",
+    "returnNeedsAccount": "To request a return, create an account with {email}; this order will move into it.",
+    "createAccount": "Create an account"
   },
   "errors": {
     "loading": "Loading…",

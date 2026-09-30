@@ -4,7 +4,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { ordersApi, type OrderCheckoutPayload } from '@/lib/api';
+import { ordersApi, type GuestOrder, type OrderCheckoutPayload } from '@/lib/api';
 import type { Order, ReturnRequestPayload } from '@/types';
 import { useHasAuthToken } from '@/hooks/auth/useHasAuthToken';
 
@@ -50,6 +50,20 @@ export function useOrderById(id?: string) {
       return await ordersApi.getOrderById(id);
     },
     enabled: Boolean(id),
+    staleTime: 30_000,
+    retry: 1,
+  });
+}
+
+/** A guest order by its token (guest order page, guest checkout success). */
+export function useGuestOrder(orderId?: string | null, token?: string | null) {
+  return useQuery<GuestOrder>({
+    queryKey: ['orders', 'guest', orderId ?? 'missing'],
+    queryFn: async () => {
+      if (!orderId || !token) throw new Error('Missing order link');
+      return await ordersApi.getGuestOrder(orderId, token);
+    },
+    enabled: Boolean(orderId && token),
     staleTime: 30_000,
     retry: 1,
   });

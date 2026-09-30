@@ -171,7 +171,9 @@ export type AdminOrder = {
   createdAt?: string;
   allowedNextStatuses?: string[];
   returnRequest?: AdminReturnRequest | null;
-  user?: string | AdminOrderCustomer;
+  /** null on a guest order, which has guestEmail instead. */
+  user?: string | AdminOrderCustomer | null;
+  guestEmail?: string;
   attentionReason?: AdminOrderAttentionReason | string;
   refundId?: string;
   refundedAt?: string;

@@ -1,6 +1,8 @@
 const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcryptjs');
 const logger = require('../utils/logger');
+const { Order } = require('../models/Order');
+const { attachGuestOrders } = require('../utils/guestOrders');
 const {
   isEmailVerified,
   startEmailVerification,
@@ -144,6 +146,13 @@ const loginUser = asyncHandler(async (req, res) => {
       code: 'ACCOUNT_DISABLED',
     });
   }
+  // Guest orders placed with this email join the account, once the account
+  // has proven it owns the address. Best effort, never blocks sign-in.
+  if (isEmailVerified(user)) {
+    await attachGuestOrders(Order, user._id, user.email).catch((err) =>
+      logger.error({ err }, 'Could not attach guest orders at login'),
+    );
+  }
   const token = user.generateToken();
   const { plaintext: refreshToken } = await issueRefreshToken(
     RefreshToken,
@@ -227,7 +236,12 @@ const verifyEmail = asyncHandler(async (req, res) => {
       message: 'This confirmation link is invalid or has expired. Request a new one from your account.',
     });
   }
-  res.status(200).json({ message: 'Email confirmed', emailVerified: true });
+  // The address is now proven: its earlier guest orders join the account
+  const attachedOrders = await attachGuestOrders(Order, user._id, user.email).catch((err) => {
+    logger.error({ err }, 'Could not attach guest orders after email confirmation');
+    return 0;
+  });
+  res.status(200).json({ message: 'Email confirmed', emailVerified: true, attachedOrders });
 });
 
 /**

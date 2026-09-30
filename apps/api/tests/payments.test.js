@@ -124,13 +124,15 @@ describe('payments API', () => {
       assert.equal(stripeMock.calls.sessionsCreate.length, 0);
     });
 
-    dbIt('requires authentication (401)', async () => {
+    // Guests may check out (P0-03, D2) but must give an email for the receipt
+    dbIt('asks a signed-out shopper for an email (400) and creates nothing', async () => {
       const product = await createProduct();
       const res = await request(app)
         .post('/api/payments/checkout-session')
         .send(checkoutBody([{ productId: String(product._id), qty: 1 }]));
 
-      assert.equal(res.status, 401);
+      assert.equal(res.status, 400);
+      assert.equal(res.body.code, 'GUEST_EMAIL_REQUIRED');
       assert.equal(await Order.countDocuments(), 0);
     });
   });

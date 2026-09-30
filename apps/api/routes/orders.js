@@ -2,12 +2,15 @@ const express = require('express');
 const router = express.Router();
 
 const { verfiyToken } = require('../middlewares/verfiyToken');
+const { optionalVerifyToken } = require('../middlewares/optionalVerifyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
+const { verifyPaymentRateLimit } = require('../middlewares/rateLimit');
 
 const {
   createOrder,
   getMyOrders,
   getOrderById,
+  getGuestOrder,
   getAllOrders,
   updateOrderStatus,
   updateOrderTracking,
@@ -44,17 +47,25 @@ router.patch(
   updateOrderTracking,
 );
 
+/**
+ * @desc Guest order page (plan P0-03): { orderId, token } from the emailed
+ * link. POST so the token stays out of URLs and access logs.
+ */
+router.post('/orders/guest/lookup', verifyPaymentRateLimit, getGuestOrder);
+
 router.get('/orders/:id', verfiyToken, getOrderById);
 
 /**
- * @desc Customer cancel their own order
+ * @desc Customer cancel their own order: the owner's session, or a guest's
+ * `guestToken` in the body
  */
-router.post('/orders/:id/cancel', verfiyToken, cancelOrder);
+router.post('/orders/:id/cancel', verifyPaymentRateLimit, optionalVerifyToken, cancelOrder);
 
 /**
- * @desc Get order invoice
+ * @desc Get order invoice: owner/staff session, or a guest's
+ * `X-Guest-Token` header
  */
-router.get('/orders/:id/invoice', verfiyToken, getOrderInvoice);
+router.get('/orders/:id/invoice', optionalVerifyToken, getOrderInvoice);
 
 /**
  * @desc Return request routes

@@ -13,6 +13,7 @@ const { canTransitionOrderStatus } = require('../utils/orderTransitions');
 const { canCustomerReturn, canTransitionReturn } = require('../utils/returns');
 const { sendOrderRefundedEmail } = require('../utils/mail');
 const { EMAIL_NOT_VERIFIED, hasVerifiedEmail } = require('../utils/emailVerification');
+const { orderEmailTarget } = require('../utils/guestOrders');
 
 const returnItemSchema = Joi.object({
   productId: Joi.string().hex().length(24).required(),
@@ -346,10 +347,11 @@ async function refundReturn(req, res, order, value) {
   }
   const updated = await Order.findByIdAndUpdate(order._id, { $set }, { new: true });
 
-  const owner = await User.findById(order.user).select('email').lean();
-  if (owner?.email) {
+  const { to, orderUrl } = await orderEmailTarget(order, User);
+  if (to) {
     await sendOrderRefundedEmail({
-      to: owner.email,
+      to,
+      orderUrl,
       orderId: order._id,
       refundAmount: amountCents / 100,
     }).catch(() => {});

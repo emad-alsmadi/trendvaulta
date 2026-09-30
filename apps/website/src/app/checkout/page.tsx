@@ -29,7 +29,9 @@ import {
   getUserFacingErrorMessage,
   logErrorForDev,
 } from '@/lib/userFacingError';
-import { getAuthToken } from '@/lib/authCookies';
+import Link from 'next/link';
+import { useHasAuthToken } from '@/hooks/auth/useHasAuthToken';
+import { rememberGuestToken } from '@/lib/guestOrder';
 import { useConfirm } from '@/components/confirm/ConfirmProvider';
 import { useAddresses, useCreateAddress } from '@/hooks/profile/addressesQuery';
 import type { Address, CouponValidationResponse } from '@/types';
@@ -38,6 +40,8 @@ import { useTranslation } from '@/contexts/TranslationContext';
 type AppliedCoupon = NonNullable<CouponValidationResponse['coupon']>;
 
 type CheckoutValues = {
+  /** Guest checkout only (no session). */
+  email?: string;
   name: string;
   phone: string;
   address: string;
@@ -78,6 +82,8 @@ export default function CheckoutPage() {
   const createOrder = useCreateOrderMutation();
   const confirm = useConfirm();
   const [stripeRedirecting, setStripeRedirecting] = useState(false);
+  // Guests check out with an email instead of an account (plan P0-03, D2)
+  const isGuest = !useHasAuthToken();
   // Saved address book: only for signed-in shoppers; guests see the plain form.
   const addressesQuery = useAddresses();
   const createAddress = useCreateAddress();
@@ -319,12 +325,14 @@ export default function CheckoutPage() {
         appliedCoupon && !couponRejectedByServer
           ? appliedCoupon.code
           : undefined,
+      ...(isGuest && values.email ? { email: values.email.trim() } : {}),
     };
 
     // Best-effort: save a brand-new address to the book before we leave for
     // Stripe (or complete the dev-mode order below). Never blocks checkout —
     // a failed save is silent since the order itself is what matters here.
-    if (selectedAddressId === null && saveNewAddress) {
+    // Guests have no address book.
+    if (!isGuest && selectedAddressId === null && saveNewAddress) {
       createAddress
         .mutateAsync({
           name: values.name,
@@ -362,6 +370,8 @@ export default function CheckoutPage() {
       } else {
         try {
           const session = await paymentsApi.createCheckoutSession(payload);
+          // The success page confirms a guest's payment with this token
+          if (session?.guestToken) rememberGuestToken(session.orderId, session.guestToken);
           if (session?.url) {
             window.location.assign(session.url);
             return;
@@ -427,6 +437,16 @@ export default function CheckoutPage() {
         return;
       }
 
+      // Dev-only direct orders (no Stripe) still need an account
+      if (isGuest) {
+        toast(t('checkoutPage.toast.loginToContinue'), {
+          title: t('checkoutPage.toast.loginRequiredTitle'),
+          variant: 'info',
+        });
+        router.push('/auth/login?redirect=/checkout');
+        return;
+      }
+
       const order = await createOrder.mutateAsync(payload);
 
       cart.clearCart();
@@ -452,16 +472,6 @@ export default function CheckoutPage() {
   };
 
   const onSubmit = handleSubmit((values) => {
-    const token = getAuthToken();
-    if (!token) {
-      toast(t('checkoutPage.toast.loginToContinue'), {
-        title: t('checkoutPage.toast.loginRequiredTitle'),
-        variant: 'info',
-      });
-      router.push('/auth/login?redirect=/checkout');
-      return;
-    }
-
     if (items.length === 0) {
       toast(t('checkoutPage.toast.cartEmpty'), {
         title: t('checkoutPage.title'),
@@ -566,6 +576,50 @@ export default function CheckoutPage() {
                   </label>
                 </div>
               </fieldset>
+            )}
+
+            {isGuest && (
+              <div className='rounded-2xl border border-white/40 bg-white/40 p-4'>
+                <label htmlFor='checkout-email' className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+                  {t('checkoutPage.guest.email')}
+                </label>
+                <Input
+                  id='checkout-email'
+                  type='email'
+                  autoComplete='email'
+                  inputMode='email'
+                  dir='ltr'
+                  aria-invalid={errors.email ? true : undefined}
+                  aria-describedby={errors.email ? 'checkout-email-error' : 'checkout-email-help'}
+                  placeholder='you@example.com'
+                  {...register('email', {
+                    required: t('checkoutPage.guest.emailRequired'),
+                    pattern: {
+                      value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                      message: t('checkoutPage.guest.emailInvalid'),
+                    },
+                    maxLength: {
+                      value: 100,
+                      message: t('checkoutPage.validation.maxChars', { count: 100 }),
+                    },
+                  })}
+                />
+                {errors.email?.message ? (
+                  <div id='checkout-email-error' role='alert' className='mt-2 text-sm font-semibold text-rose-700'>
+                    {errors.email.message}
+                  </div>
+                ) : (
+                  <p id='checkout-email-help' className='mt-2 text-xs font-semibold text-indigo-950/60'>
+                    {t('checkoutPage.guest.emailHelp')}
+                  </p>
+                )}
+                <p className='mt-2 text-sm font-semibold text-indigo-950/80'>
+                  {t('checkoutPage.guest.haveAccount')}{' '}
+                  <Link href='/auth/login?redirect=/checkout' className='font-extrabold text-indigo-700 underline'>
+                    {t('checkoutPage.guest.signIn')}
+                  </Link>
+                </p>
+              </div>
             )}
 
             <div>

@@ -17,7 +17,7 @@ export function proxy(request: NextRequest) {
     // (next.config.ts); redirects run before this proxy, so the guard sits
     // on the destination.
     { path: '/user', role: ['user', 'admin', 'moderator'] },
-    { path: '/checkout', role: ['user', 'admin', 'moderator'] },
+    // /checkout is open: guests check out with an email (plan P0-03, D2)
   ];
 
   const protectedPath = protectedPaths.find((p) => path.startsWith(p.path));

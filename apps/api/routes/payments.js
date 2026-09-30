@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { optionalVerifyToken } = require('../middlewares/optionalVerifyToken');
 const {
   checkoutRateLimit,
   verifyPaymentRateLimit,
@@ -19,17 +19,19 @@ router.get('/payments/setup-status', getPaymentsSetupStatus);
 // Public: price a cart server-side (no order is created)
 router.post('/payments/quote', quoteRateLimit, quoteOrder);
 
+// Signed in or guest (plan P0-03): a guest sends `email` instead
 router.post(
   '/payments/checkout-session',
   checkoutRateLimit,
-  verfiyToken,
+  optionalVerifyToken,
   createCheckoutSession,
 );
 
+// The owner's session, or a guest's `guestToken` for that order
 router.post(
   '/payments/verify-payment',
   verifyPaymentRateLimit,
-  verfiyToken,
+  optionalVerifyToken,
   verifyPaymentStatus,
 );
 

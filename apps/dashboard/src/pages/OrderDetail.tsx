@@ -396,7 +396,9 @@ export default function OrderDetail() {
                   {t('orderDetail.customer')}
                 </h2>
                 <p className='text-sm font-medium text-gray-900 dark:text-white'>
-                  {customerLabel(order.user)}
+                  {!order.user && order.guestEmail
+                    ? t('orders.guestCustomer', { email: order.guestEmail })
+                    : customerLabel(order.user ?? undefined)}
                 </p>
                 {typeof order.user === 'object' && order.user?.email && (
                   <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>

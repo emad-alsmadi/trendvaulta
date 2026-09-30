@@ -413,13 +413,33 @@ export const ordersApi = {
     return data.data;
   },
 
-  /** Cancel an unshipped order; paid orders are refunded server-side. */
-  cancelOrder: async (id: string): Promise<OrderCancelResult> => {
+  /**
+   * Cancel an unshipped order; paid orders are refunded server-side. A guest
+   * passes the order's token instead of being signed in.
+   */
+  cancelOrder: async (id: string, guestToken?: string): Promise<OrderCancelResult> => {
     const { data } = await api.post<OrderCancelResult>(
       endpoints.orders.cancel(id),
+      guestToken ? { guestToken } : undefined,
     );
     return data;
   },
+
+  /** A guest order, by the token from the checkout or the order email. */
+  getGuestOrder: async (orderId: string, token: string): Promise<GuestOrder> => {
+    const { data } = await api.post<GuestOrder>(endpoints.orders.guestLookup, {
+      orderId,
+      token,
+    });
+    return data;
+  },
+};
+
+/** Guest order page payload: the order, plus what the guest may do with it. */
+export type GuestOrder = Order & {
+  canCancel?: boolean;
+  /** Eligible for a return, which needs an account with this email (D5). */
+  returnNeedsAccount?: boolean;
 };
 
 /**
@@ -441,7 +461,7 @@ export const paymentsApi = {
    */
   createCheckoutSession: async (
     payload: OrderCheckoutPayload,
-  ): Promise<{ url: string; orderId: string; sessionId: string }> => {
+  ): Promise<{ url: string; orderId: string; sessionId: string; guestToken?: string }> => {
     const { data } = await api.post(
       endpoints.payments.checkoutSession,
       payload,
@@ -456,6 +476,7 @@ export const paymentsApi = {
    */
   verifyPaymentStatus: async (
     orderId: string,
+    guestToken?: string,
   ): Promise<{
     paymentStatus: string;
     verified?: boolean;
@@ -464,6 +485,7 @@ export const paymentsApi = {
   }> => {
     const { data } = await api.post(endpoints.payments.verifyPayment, {
       orderId,
+      ...(guestToken ? { guestToken } : {}),
     });
     return data;
   },
@@ -547,6 +569,8 @@ export type OrderCheckoutPayload = {
     zip: string;
     notes?: string;
   };
+  /** Guest checkout only: where the receipt and order link are sent. */
+  email?: string;
   /** Physical shipping intent — server sets shippingPrice */
   delivery?: boolean;
   shippingMethod?: 'none' | 'standard' | 'express';

@@ -39,8 +39,13 @@ function getFromAddress() {
   );
 }
 
-/** Storefront order page (the account area lives under /user/*). */
-function orderPageUrl(orderId) {
+/**
+ * Storefront order page (the account area lives under /user/*). Callers
+ * pass `opts.orderUrl` when the order needs another link, e.g. a guest
+ * order's tokenised page (utils/guestOrders.js orderEmailTarget).
+ */
+function orderPageUrl(orderId, override) {
+  if (override) return override;
   const frontend = process.env.FRONTEND_URL || 'http://localhost:3001';
   return `${frontend}/user/orders/${orderId}`;
 }
@@ -75,7 +80,7 @@ async function sendOrderConfirmationEmail(opts) {
     '',
     lines ? `Items:\n${lines}` : '',
     '',
-    `View your order: ${orderPageUrl(orderId)}`,
+    `View your order: ${orderPageUrl(orderId, opts.orderUrl)}`,
   ]
     .filter(Boolean)
     .join('\n');
@@ -173,7 +178,7 @@ async function sendOrderShippedEmail(opts) {
     trackingNumber ? `Tracking Number: ${trackingNumber}` : '',
     trackingCarrier ? `Carrier: ${trackingCarrier}` : '',
     '',
-    `Track your order: ${orderPageUrl(orderId)}`,
+    `Track your order: ${orderPageUrl(orderId, opts.orderUrl)}`,
   ]
     .filter(Boolean)
     .join('\n');
@@ -218,7 +223,7 @@ async function sendOrderDeliveredEmail(opts) {
     '',
     `Order ID: ${orderId}`,
     '',
-    `View your order: ${orderPageUrl(orderId)}`,
+    `View your order: ${orderPageUrl(orderId, opts.orderUrl)}`,
     '',
     'Thank you for shopping with us!',
   ].join('\n');
@@ -265,7 +270,7 @@ async function sendOrderCanceledEmail(opts) {
     '',
     'If you have any questions, please contact our support team.',
     '',
-    `View your order: ${orderPageUrl(orderId)}`,
+    `View your order: ${orderPageUrl(orderId, opts.orderUrl)}`,
   ].join('\n');
 
   try {
@@ -314,7 +319,7 @@ async function sendOrderRefundedEmail(opts) {
     '',
     'The refund has been processed to your original payment method.',
     '',
-    `View your order: ${orderPageUrl(orderId)}`,
+    `View your order: ${orderPageUrl(orderId, opts.orderUrl)}`,
   ]
     .filter(Boolean)
     .join('\n');

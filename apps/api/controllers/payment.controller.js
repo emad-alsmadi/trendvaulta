@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler');
+const mongoose = require('mongoose');
 const logger = require('../utils/logger');
 const {
   Order,
@@ -28,6 +29,11 @@ const {
   getStoreSettings,
 } = require('../utils/commerce');
 const { ensureInvoiceNumber } = require('../utils/invoice');
+const {
+  guestOrderToken,
+  isValidGuestToken,
+  orderEmailTarget,
+} = require('../utils/guestOrders');
 const {
   canTransitionOrderStatus,
   hasOrderShipped,
@@ -378,9 +384,10 @@ async function sendConfirmationEmailOnce(order) {
   // concurrent webhook + verify-payment can't both email the customer.
   if (!(await leaseOrderFlag(order._id, 'confirmationEmailSent'))) return;
   try {
-    const user = await User.findById(order.user).select('email').lean();
+    const { to, orderUrl } = await orderEmailTarget(order, User);
     const sent = await sendOrderConfirmationEmail({
-      to: user?.email,
+      to,
+      orderUrl,
       orderId: String(order._id),
       totalPrice: order.totalPrice,
       items: order.items,
@@ -861,13 +868,11 @@ const stripeWebhook = asyncHandler(async (req, res) => {
 
 const verifyPaymentStatus = asyncHandler(async (req, res) => {
   const stripe = getStripeOrThrow();
-  const userId = req.user?.id ?? req.user?._id;
-  if (!userId) {
-    return res.status(401).json({ message: 'Token is not valid!' });
-  }
+  // The owner's session, or a guest's order token (optionalVerifyToken)
+  const userId = req.user?.id ?? req.user?._id ?? null;
 
-  const { orderId } = req.body;
-  if (!orderId) {
+  const { orderId, guestToken } = req.body || {};
+  if (!orderId || !mongoose.isValidObjectId(orderId)) {
     return res.status(400).json({ message: 'Order ID is required' });
   }
 
@@ -876,9 +881,10 @@ const verifyPaymentStatus = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: 'Order not found' });
   }
 
-  if (order.user.toString() !== String(userId)) {
+  const isOwner = Boolean(userId && order.user && String(order.user) === String(userId));
+  if (!isOwner && !isValidGuestToken(order, guestToken)) {
     return res
-      .status(403)
+      .status(userId || guestToken ? 403 : 401)
       .json({ message: 'Not authorized to access this order' });
   }
 

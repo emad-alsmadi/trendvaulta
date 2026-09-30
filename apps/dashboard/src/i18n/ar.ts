@@ -666,6 +666,7 @@ export const ar: Messages = {
     selectedCustomer: 'العميل المحدد',
     showAllCustomers: 'عرض كل العملاء',
     customerFallback: 'عميل',
+    guestCustomer: 'ضيف · {email}',
     searchLabel: 'ابحث برقم الطلب أو بريد العميل',
     searchPlaceholder: 'ابحث برقم الطلب أو بريد العميل…',
     signInHint: 'سجّل الدخول بحساب مسؤول لديه الصلاحيتان {read} / {write}.',
