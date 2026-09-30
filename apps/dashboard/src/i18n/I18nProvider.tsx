@@ -50,7 +50,8 @@ type ValueGroup =
   | 'productCategory'
   | 'role'
   | 'contactStatus'
-  | 'contentType';
+  | 'contentType'
+  | 'lookbookTone';
 
 type I18n = {
   locale: Locale;
