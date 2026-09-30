@@ -16,6 +16,7 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { FormDialog } from '../components/ui/FormDialog';
+import { useT } from '../i18n/I18nProvider';
 
 const emptyForm: HelpTopicPayload = {
   id: '',
@@ -31,6 +32,7 @@ export default function HelpTopics() {
   const { can } = usePermissions();
   const toast = useToast();
   const confirm = useConfirm();
+  const { t, formatNumber } = useT();
   const helpTopicsQ = useAdminHelpTopics({ limit: 100 });
   const createMut = useCreateHelpTopicMutation();
   const updateMut = useUpdateHelpTopicMutation();
@@ -48,11 +50,11 @@ export default function HelpTopics() {
     const q = search.trim().toLowerCase();
     if (!q) return list;
     return list.filter(
-      (t) =>
-        t.title.toLowerCase().includes(q) ||
-        (t.description || '').toLowerCase().includes(q) ||
-        t.id.toLowerCase().includes(q) ||
-        t.href.toLowerCase().includes(q),
+      (topic) =>
+        topic.title.toLowerCase().includes(q) ||
+        (topic.description || '').toLowerCase().includes(q) ||
+        topic.id.toLowerCase().includes(q) ||
+        topic.href.toLowerCase().includes(q),
     );
   }, [helpTopicsQ.data, search]);
 
@@ -79,7 +81,7 @@ export default function HelpTopics() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.id.trim() || !form.title.trim() || !form.href.trim()) {
-      toast.error('ID, title, and href are required.');
+      toast.error(t('helpTopics.required'));
       return;
     }
 
@@ -103,17 +105,17 @@ export default function HelpTopics() {
       setOpen(false);
       setEditing(null);
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not save help topic'));
+      toast.error(errorMessage(err, t('helpTopics.saveFailed')));
     }
   }
 
   async function handleDelete(topic: AdminHelpTopic) {
-    const ok = await confirm({ message: `Deactivate / delete help topic "${topic.title}"?`, danger: true, confirmLabel: 'Delete' });
+    const ok = await confirm({ message: t('helpTopics.confirmDelete', { title: topic.title }), danger: true, confirmLabel: t('common.delete') });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(topic._id);
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not delete help topic'));
+      toast.error(errorMessage(err, t('helpTopics.deleteFailed')));
     }
   }
 
@@ -126,10 +128,10 @@ export default function HelpTopics() {
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Help Topics
+            {t('helpTopics.title')}
           </h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Customer service topics shown on the storefront help page.
+            {t('helpTopics.subtitle')}
           </p>
         </div>
         {can('content:write') && (
@@ -138,33 +140,33 @@ export default function HelpTopics() {
             onClick={openCreate}
             className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
           >
-            <Plus className="me-2 h-5 w-5" />
-            Add topic
+            <Plus className="me-2 h-5 w-5" aria-hidden />
+            {t('helpTopics.add')}
           </button>
         )}
       </div>
 
       <div className="relative mb-6">
-        <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+        <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" aria-hidden />
         <input
           type="search"
-          aria-label="Search by title, ID, or href"
+          aria-label={t('helpTopics.searchLabel')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by title, ID, or href…"
+          placeholder={t('helpTopics.searchPlaceholder')}
           className="w-full rounded-lg border border-gray-300 bg-white py-2 ps-10 pe-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
         />
       </div>
 
       {helpTopicsQ.isLoading && (
         <p className="py-10 text-center text-sm text-gray-500">
-          Loading help topics…
+          {t('helpTopics.loading')}
         </p>
       )}
 
       {helpTopicsQ.isError && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-          {errorMessage(helpTopicsQ.error, 'Failed to load help topics')}
+          {errorMessage(helpTopicsQ.error, t('helpTopics.loadFailed'))}
         </div>
       )}
 
@@ -174,7 +176,15 @@ export default function HelpTopics() {
             <table className="w-full min-w-[800px]">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                  {['ID', 'Title', 'Href', 'Icon', 'Order', 'Status', 'Actions'].map((h) => (
+                  {[
+                    t('helpTopics.columns.id'),
+                    t('helpTopics.columns.title'),
+                    t('helpTopics.columns.href'),
+                    t('helpTopics.columns.icon'),
+                    t('helpTopics.columns.order'),
+                    t('common.status'),
+                    t('common.actions'),
+                  ].map((h) => (
                     <th
                       key={h}
                       className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300"
@@ -188,7 +198,7 @@ export default function HelpTopics() {
                 {filtered.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-500">
-                      No help topics found.
+                      {t('helpTopics.empty')}
                     </td>
                   </tr>
                 ) : (
@@ -197,27 +207,27 @@ export default function HelpTopics() {
                       key={topic._id}
                       className="hover:bg-gray-50 dark:hover:bg-gray-700/60"
                     >
-                      <td className="px-4 py-3 font-mono text-sm text-gray-600 dark:text-gray-400">
+                      <td className="px-4 py-3 font-mono text-sm text-gray-600 dark:text-gray-400" dir="ltr">
                         {topic.id}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-white" dir="auto">
                           {topic.title}
                         </div>
                         {topic.description ? (
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                          <div className="text-xs text-gray-500 dark:text-gray-400" dir="auto">
                             {topic.description}
                           </div>
                         ) : null}
                       </td>
-                      <td className="max-w-[220px] truncate px-4 py-3 font-mono text-xs text-gray-600 dark:text-gray-400">
+                      <td className="max-w-[220px] truncate px-4 py-3 font-mono text-xs text-gray-600 dark:text-gray-400" dir="ltr">
                         {topic.href}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
                         {topic.icon || '—'}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                        {topic.sortOrder ?? 0}
+                        {formatNumber(topic.sortOrder ?? 0)}
                       </td>
                       <td className="px-4 py-3">
                         <span
@@ -227,7 +237,7 @@ export default function HelpTopics() {
                               : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                           }`}
                         >
-                          {topic.active ? 'Active' : 'Inactive'}
+                          {topic.active ? t('common.active') : t('common.inactive')}
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -237,9 +247,9 @@ export default function HelpTopics() {
                               type="button"
                               onClick={() => openEdit(topic)}
                               className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600"
-                              aria-label={`Edit ${topic.title}`}
+                              aria-label={t('common.editItem', { name: topic.title })}
                             >
-                              <Pencil className="h-4 w-4 text-gray-500" />
+                              <Pencil className="h-4 w-4 text-gray-500" aria-hidden />
                             </button>
                           )}
                           {can('content:delete') && (
@@ -248,9 +258,9 @@ export default function HelpTopics() {
                               onClick={() => void handleDelete(topic)}
                               disabled={deleteMut.isPending}
                               className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
-                              aria-label={`Delete ${topic.title}`}
+                              aria-label={t('common.deleteItem', { name: topic.title })}
                             >
-                              <Trash2 className="h-4 w-4 text-red-500" />
+                              <Trash2 className="h-4 w-4 text-red-500" aria-hidden />
                             </button>
                           )}
                         </div>
@@ -263,7 +273,10 @@ export default function HelpTopics() {
           </div>
           {helpTopicsQ.data?.meta && (
             <p className="border-t border-gray-200 px-4 py-3 text-xs text-gray-500 dark:border-gray-700">
-              Showing {filtered.length} of {helpTopicsQ.data.meta.total} help topics
+              {t('helpTopics.showing', {
+                shown: formatNumber(filtered.length),
+                total: formatNumber(helpTopicsQ.data.meta.total),
+              })}
             </p>
           )}
         </div>
@@ -272,14 +285,14 @@ export default function HelpTopics() {
       {open && (
         <FormDialog
           onClose={() => setOpen(false)}
-          title={editing ? 'Edit help topic' : 'Create help topic'}
+          title={editing ? t('helpTopics.form.editTitle') : t('helpTopics.form.createTitle')}
           busy={saving}
           maxWidthClass="max-w-lg"
         >
           <form onSubmit={handleSubmit} className="space-y-3">
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                ID
+                {t('helpTopics.form.id')}
               </span>
               <input
                 required
@@ -288,16 +301,18 @@ export default function HelpTopics() {
                   setForm((f) => ({ ...f, id: e.target.value }))
                 }
                 placeholder="shipping"
+                dir="ltr"
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
               />
             </label>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Title
+                {t('helpTopics.form.title')}
               </span>
               <input
                 required
                 value={form.title}
+                dir="auto"
                 onChange={(e) =>
                   setForm((f) => ({ ...f, title: e.target.value }))
                 }
@@ -306,10 +321,11 @@ export default function HelpTopics() {
             </label>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Description
+                {t('common.description')}
               </span>
               <input
                 value={form.description || ''}
+                dir="auto"
                 onChange={(e) =>
                   setForm((f) => ({ ...f, description: e.target.value }))
                 }
@@ -318,7 +334,7 @@ export default function HelpTopics() {
             </label>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Href
+                {t('helpTopics.form.href')}
               </span>
               <input
                 required
@@ -327,12 +343,13 @@ export default function HelpTopics() {
                   setForm((f) => ({ ...f, href: e.target.value }))
                 }
                 placeholder="/shipping"
+                dir="ltr"
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
               />
             </label>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Icon
+                {t('helpTopics.form.icon')}
               </span>
               <input
                 value={form.icon || ''}
@@ -340,12 +357,13 @@ export default function HelpTopics() {
                   setForm((f) => ({ ...f, icon: e.target.value }))
                 }
                 placeholder="truck"
+                dir="ltr"
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
               />
             </label>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Sort order
+                {t('helpTopics.form.sortOrder')}
               </span>
               <input
                 type="number"
@@ -367,7 +385,7 @@ export default function HelpTopics() {
                   setForm((f) => ({ ...f, active: e.target.checked }))
                 }
               />
-              Active
+              {t('common.active')}
             </label>
             <div className="flex justify-end gap-2 pt-2">
               <button
@@ -376,14 +394,14 @@ export default function HelpTopics() {
                 onClick={() => setOpen(false)}
                 className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={saving}
                 className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
               >
-                {saving ? 'Saving…' : editing ? 'Save' : 'Create'}
+                {saving ? t('common.saving') : editing ? t('common.save') : t('common.create')}
               </button>
             </div>
           </form>

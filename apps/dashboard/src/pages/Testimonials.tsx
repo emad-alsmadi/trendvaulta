@@ -16,6 +16,7 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { FormDialog } from '../components/ui/FormDialog';
+import { useT } from '../i18n/I18nProvider';
 
 const emptyForm: TestimonialPayload = {
   id: '',
@@ -31,6 +32,7 @@ export default function Testimonials() {
   const { can } = usePermissions();
   const toast = useToast();
   const confirm = useConfirm();
+  const { t, formatNumber } = useT();
   const testimonialsQ = useAdminTestimonials({ limit: 100 });
   const createMut = useCreateTestimonialMutation();
   const updateMut = useUpdateTestimonialMutation();
@@ -48,10 +50,10 @@ export default function Testimonials() {
     const q = search.trim().toLowerCase();
     if (!q) return list;
     return list.filter(
-      (t) =>
-        t.id.toLowerCase().includes(q) ||
-        t.name.toLowerCase().includes(q) ||
-        (t.role || '').toLowerCase().includes(q),
+      (item) =>
+        item.id.toLowerCase().includes(q) ||
+        item.name.toLowerCase().includes(q) ||
+        (item.role || '').toLowerCase().includes(q),
     );
   }, [testimonialsQ.data, search]);
 
@@ -78,7 +80,7 @@ export default function Testimonials() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.id.trim() || !form.name.trim() || !form.quote.trim()) {
-      toast.error('ID, name, and quote are required.');
+      toast.error(t('testimonials.required'));
       return;
     }
 
@@ -102,17 +104,17 @@ export default function Testimonials() {
       setOpen(false);
       setEditing(null);
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not save testimonial'));
+      toast.error(errorMessage(err, t('testimonials.saveFailed')));
     }
   }
 
   async function handleDelete(testimonial: AdminTestimonial) {
-    const ok = await confirm({ message: `Deactivate testimonial from "${testimonial.name}"?`, danger: true, confirmLabel: 'Delete' });
+    const ok = await confirm({ message: t('testimonials.confirmDelete', { name: testimonial.name }), danger: true, confirmLabel: t('common.delete') });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(testimonial._id);
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not delete testimonial'));
+      toast.error(errorMessage(err, t('testimonials.deleteFailed')));
     }
   }
 
@@ -125,10 +127,10 @@ export default function Testimonials() {
       <div className='mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
         <div>
           <h1 className='text-3xl font-bold text-gray-900 dark:text-white'>
-            Testimonials
+            {t('testimonials.title')}
           </h1>
           <p className='mt-1 text-sm text-gray-600 dark:text-gray-400'>
-            Customer reviews and feedback for the storefront.
+            {t('testimonials.subtitle')}
           </p>
         </div>
         {can('content:write') && (
@@ -137,33 +139,33 @@ export default function Testimonials() {
             onClick={openCreate}
             className='inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600'
           >
-            <Plus className='me-2 h-5 w-5' />
-            Add testimonial
+            <Plus className='me-2 h-5 w-5' aria-hidden />
+            {t('testimonials.add')}
           </button>
         )}
       </div>
 
       <div className='relative mb-6'>
-        <Search className='absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400' />
+        <Search className='absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400' aria-hidden />
         <input
           type='search'
-          aria-label='Search by ID, name, or role'
+          aria-label={t('testimonials.searchLabel')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder='Search by ID, name, or role…'
+          placeholder={t('testimonials.searchPlaceholder')}
           className='w-full rounded-lg border border-gray-300 bg-white py-2 ps-10 pe-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white'
         />
       </div>
 
       {testimonialsQ.isLoading && (
         <p className='py-10 text-center text-sm text-gray-500'>
-          Loading testimonials…
+          {t('testimonials.loading')}
         </p>
       )}
 
       {testimonialsQ.isError && (
         <div className='rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200'>
-          {errorMessage(testimonialsQ.error, 'Failed to load testimonials')}
+          {errorMessage(testimonialsQ.error, t('testimonials.loadFailed'))}
         </div>
       )}
 
@@ -174,13 +176,13 @@ export default function Testimonials() {
               <thead className='bg-gray-50 dark:bg-gray-700'>
                 <tr>
                   {[
-                    'ID',
-                    'Name',
-                    'Role',
-                    'Rating',
-                    'Order',
-                    'Status',
-                    'Actions',
+                    t('testimonials.columns.id'),
+                    t('testimonials.columns.name'),
+                    t('testimonials.columns.role'),
+                    t('testimonials.columns.rating'),
+                    t('testimonials.columns.order'),
+                    t('common.status'),
+                    t('common.actions'),
                   ].map((h) => (
                     <th
                       key={h}
@@ -198,7 +200,7 @@ export default function Testimonials() {
                       colSpan={7}
                       className='px-4 py-10 text-center text-sm text-gray-500'
                     >
-                      No testimonials found.
+                      {t('testimonials.empty')}
                     </td>
                   </tr>
                 ) : (
@@ -207,20 +209,25 @@ export default function Testimonials() {
                       key={testimonial._id}
                       className='hover:bg-gray-50 dark:hover:bg-gray-700/60'
                     >
-                      <td className='px-4 py-3 font-mono text-sm text-gray-600 dark:text-gray-400'>
+                      <td className='px-4 py-3 font-mono text-sm text-gray-600 dark:text-gray-400' dir='ltr'>
                         {testimonial.id}
                       </td>
-                      <td className='px-4 py-3 text-sm text-gray-900 dark:text-white'>
+                      <td className='px-4 py-3 text-sm text-gray-900 dark:text-white' dir='auto'>
                         {testimonial.name}
                       </td>
-                      <td className='px-4 py-3 text-sm text-gray-600 dark:text-gray-400'>
+                      <td className='px-4 py-3 text-sm text-gray-600 dark:text-gray-400' dir='auto'>
                         {testimonial.role || '—'}
                       </td>
                       <td className='px-4 py-3'>
-                        <div className='flex items-center gap-1'>
+                        <div
+                          className='flex items-center gap-1'
+                          role='img'
+                          aria-label={t('testimonials.ratedOf', { n: testimonial.rating })}
+                        >
                           {Array.from({ length: 5 }).map((_, i) => (
                             <span
                               key={i}
+                              aria-hidden
                               className={`h-4 w-4 ${
                                 i < testimonial.rating
                                   ? 'text-yellow-400'
@@ -233,7 +240,7 @@ export default function Testimonials() {
                         </div>
                       </td>
                       <td className='px-4 py-3 text-sm text-gray-600 dark:text-gray-400'>
-                        {testimonial.sortOrder}
+                        {formatNumber(testimonial.sortOrder)}
                       </td>
                       <td className='px-4 py-3'>
                         <span
@@ -243,7 +250,7 @@ export default function Testimonials() {
                               : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                           }`}
                         >
-                          {testimonial.active ? 'Active' : 'Inactive'}
+                          {testimonial.active ? t('common.active') : t('common.inactive')}
                         </span>
                       </td>
                       <td className='px-4 py-3'>
@@ -253,9 +260,9 @@ export default function Testimonials() {
                               type='button'
                               onClick={() => openEdit(testimonial)}
                               className='rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600'
-                              aria-label={`Edit ${testimonial.id}`}
+                              aria-label={t('common.editItem', { name: testimonial.name })}
                             >
-                              <Pencil className='h-4 w-4 text-gray-500' />
+                              <Pencil className='h-4 w-4 text-gray-500' aria-hidden />
                             </button>
                           )}
                           {can('content:delete') && (
@@ -264,9 +271,9 @@ export default function Testimonials() {
                               onClick={() => void handleDelete(testimonial)}
                               disabled={deleteMut.isPending}
                               className='rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40'
-                              aria-label={`Delete ${testimonial.id}`}
+                              aria-label={t('common.deleteItem', { name: testimonial.name })}
                             >
-                              <Trash2 className='h-4 w-4 text-red-500' />
+                              <Trash2 className='h-4 w-4 text-red-500' aria-hidden />
                             </button>
                           )}
                         </div>
@@ -279,8 +286,10 @@ export default function Testimonials() {
           </div>
           {testimonialsQ.data?.meta && (
             <p className='border-t border-gray-200 px-4 py-3 text-xs text-gray-500 dark:border-gray-700'>
-              Showing {filtered.length} of {testimonialsQ.data.meta.total}{' '}
-              testimonials
+              {t('testimonials.showing', {
+                shown: formatNumber(filtered.length),
+                total: formatNumber(testimonialsQ.data.meta.total),
+              })}
             </p>
           )}
         </div>
@@ -289,7 +298,7 @@ export default function Testimonials() {
       {open && (
         <FormDialog
           onClose={() => setOpen(false)}
-          title={editing ? 'Edit testimonial' : 'Create testimonial'}
+          title={editing ? t('testimonials.form.editTitle') : t('testimonials.form.createTitle')}
           busy={saving}
           maxWidthClass='max-w-2xl'
         >
@@ -299,7 +308,7 @@ export default function Testimonials() {
           >
             <label className='block text-sm'>
               <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                ID
+                {t('testimonials.form.id')}
               </span>
               <input
                 required
@@ -308,16 +317,18 @@ export default function Testimonials() {
                   setForm((f) => ({ ...f, id: e.target.value }))
                 }
                 placeholder='sara'
+                dir='ltr'
                 className='w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
               />
             </label>
             <label className='block text-sm'>
               <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                Name
+                {t('testimonials.form.name')}
               </span>
               <input
                 required
                 value={form.name}
+                dir='auto'
                 onChange={(e) =>
                   setForm((f) => ({ ...f, name: e.target.value }))
                 }
@@ -326,24 +337,26 @@ export default function Testimonials() {
             </label>
             <label className='block text-sm'>
               <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                Role
+                {t('testimonials.form.role')}
               </span>
               <input
                 value={form.role || ''}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, role: e.target.value }))
                 }
-                placeholder='Beauty enthusiast'
+                placeholder={t('testimonials.form.rolePlaceholder')}
+                dir='auto'
                 className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
               />
             </label>
             <label className='block text-sm'>
               <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                Quote
+                {t('testimonials.form.quote')}
               </span>
               <textarea
                 required
                 value={form.quote}
+                dir='auto'
                 onChange={(e) =>
                   setForm((f) => ({ ...f, quote: e.target.value }))
                 }
@@ -353,7 +366,7 @@ export default function Testimonials() {
             </label>
             <label className='block text-sm'>
               <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                Rating (1-5)
+                {t('testimonials.form.rating')}
               </span>
               <input
                 type='number'
@@ -368,7 +381,7 @@ export default function Testimonials() {
             </label>
             <label className='block text-sm'>
               <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                Sort order
+                {t('testimonials.form.sortOrder')}
               </span>
               <input
                 type='number'
@@ -390,7 +403,7 @@ export default function Testimonials() {
                   setForm((f) => ({ ...f, active: e.target.checked }))
                 }
               />
-              Active
+              {t('common.active')}
             </label>
             <div className='flex justify-end gap-2 pt-2'>
               <button
@@ -399,14 +412,14 @@ export default function Testimonials() {
                 onClick={() => setOpen(false)}
                 className='rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type='submit'
                 disabled={saving}
                 className='rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60'
               >
-                {saving ? 'Saving…' : editing ? 'Save' : 'Create'}
+                {saving ? t('common.saving') : editing ? t('common.save') : t('common.create')}
               </button>
             </div>
           </form>

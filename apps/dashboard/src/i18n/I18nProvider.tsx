@@ -49,7 +49,8 @@ type ValueGroup =
   | 'trackingEvent'
   | 'productCategory'
   | 'role'
-  | 'contactStatus';
+  | 'contactStatus'
+  | 'contentType';
 
 type I18n = {
   locale: Locale;

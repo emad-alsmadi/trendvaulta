@@ -17,6 +17,7 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { FormDialog } from '../components/ui/FormDialog';
+import { useT } from '../i18n/I18nProvider';
 
 const CONTENT_TYPES: ContentType[] = ['SHIPPING', 'RETURNS', 'PRIVACY', 'TERMS', 'STOREFRONT_TRUST'];
 
@@ -31,6 +32,7 @@ export default function Content() {
   const { can } = usePermissions();
   const toast = useToast();
   const confirm = useConfirm();
+  const { t, tv, formatNumber } = useT();
   const contentQ = useAdminContent({ limit: 100 });
   const createMut = useCreateContentMutation();
   const updateMut = useUpdateContentMutation();
@@ -75,7 +77,7 @@ export default function Content() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.type || !form.title.trim() || !form.body.trim()) {
-      toast.error('Type, title, and body are required.');
+      toast.error(t('content.required'));
       return;
     }
 
@@ -94,23 +96,23 @@ export default function Content() {
       }
       toast.success(
         payload.active
-          ? `${payload.type} content published`
-          : `${payload.type} content saved as draft`,
+          ? t('content.published', { type: tv('contentType', payload.type) })
+          : t('content.draft', { type: tv('contentType', payload.type) }),
       );
       setOpen(false);
       setEditing(null);
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not save content'));
+      toast.error(errorMessage(err, t('content.saveFailed')));
     }
   }
 
   async function handleDelete(content: AdminContent) {
-    const ok = await confirm({ message: `Deactivate / delete content "${content.title}" (${content.type})?`, danger: true, confirmLabel: 'Delete' });
+    const ok = await confirm({ message: t('content.confirmDelete', { title: content.title, type: tv('contentType', content.type) }), danger: true, confirmLabel: t('common.delete') });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(content._id);
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not delete content'));
+      toast.error(errorMessage(err, t('content.deleteFailed')));
     }
   }
 
@@ -123,10 +125,10 @@ export default function Content() {
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Content
+            {t('content.title')}
           </h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Shipping, returns, privacy, and policy content for the storefront.
+            {t('content.subtitle')}
           </p>
         </div>
         {can('content:write') && (
@@ -135,33 +137,33 @@ export default function Content() {
             onClick={openCreate}
             className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
           >
-            <Plus className="me-2 h-5 w-5" />
-            Add content
+            <Plus className="me-2 h-5 w-5" aria-hidden />
+            {t('content.add')}
           </button>
         )}
       </div>
 
       <div className="relative mb-6">
-        <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+        <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" aria-hidden />
         <input
           type="search"
-          aria-label="Search by type, title, or body"
+          aria-label={t('content.searchLabel')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by type, title, or body…"
+          placeholder={t('content.searchPlaceholder')}
           className="w-full rounded-lg border border-gray-300 bg-white py-2 ps-10 pe-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
         />
       </div>
 
       {contentQ.isLoading && (
         <p className="py-10 text-center text-sm text-gray-500">
-          Loading content…
+          {t('content.loading')}
         </p>
       )}
 
       {contentQ.isError && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-          {errorMessage(contentQ.error, 'Failed to load content')}
+          {errorMessage(contentQ.error, t('content.loadFailed'))}
         </div>
       )}
 
@@ -171,7 +173,13 @@ export default function Content() {
             <table className="w-full min-w-[800px]">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                  {['Type', 'Title', 'Body preview', 'Status', 'Actions'].map((h) => (
+                  {[
+                    t('content.columns.type'),
+                    t('content.columns.title'),
+                    t('content.columns.preview'),
+                    t('common.status'),
+                    t('common.actions'),
+                  ].map((h) => (
                     <th
                       key={h}
                       className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300"
@@ -185,7 +193,7 @@ export default function Content() {
                 {filtered.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-4 py-10 text-center text-sm text-gray-500">
-                      No content found.
+                      {t('content.empty')}
                     </td>
                   </tr>
                 ) : (
@@ -196,15 +204,15 @@ export default function Content() {
                     >
                       <td className="px-4 py-3">
                         <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                          {content.type}
+                          {tv('contentType', content.type)}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-white" dir="auto">
                           {content.title}
                         </div>
                       </td>
-                      <td className="max-w-[300px] truncate px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                      <td className="max-w-[300px] truncate px-4 py-3 text-sm text-gray-600 dark:text-gray-400" dir="auto">
                         {content.body}
                       </td>
                       <td className="px-4 py-3">
@@ -215,7 +223,7 @@ export default function Content() {
                               : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                           }`}
                         >
-                          {content.active ? 'Active' : 'Inactive'}
+                          {content.active ? t('common.active') : t('common.inactive')}
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -225,9 +233,9 @@ export default function Content() {
                               type="button"
                               onClick={() => openEdit(content)}
                               className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600"
-                              aria-label={`Edit ${content.title}`}
+                              aria-label={t('common.editItem', { name: content.title })}
                             >
-                              <Pencil className="h-4 w-4 text-gray-500" />
+                              <Pencil className="h-4 w-4 text-gray-500" aria-hidden />
                             </button>
                           )}
                           {can('content:delete') && (
@@ -236,9 +244,9 @@ export default function Content() {
                               onClick={() => void handleDelete(content)}
                               disabled={deleteMut.isPending}
                               className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
-                              aria-label={`Delete ${content.title}`}
+                              aria-label={t('common.deleteItem', { name: content.title })}
                             >
-                              <Trash2 className="h-4 w-4 text-red-500" />
+                              <Trash2 className="h-4 w-4 text-red-500" aria-hidden />
                             </button>
                           )}
                         </div>
@@ -251,7 +259,10 @@ export default function Content() {
           </div>
           {contentQ.data?.meta && (
             <p className="border-t border-gray-200 px-4 py-3 text-xs text-gray-500 dark:border-gray-700">
-              Showing {filtered.length} of {contentQ.data.meta.total} content items
+              {t('content.showing', {
+                shown: formatNumber(filtered.length),
+                total: formatNumber(contentQ.data.meta.total),
+              })}
             </p>
           )}
         </div>
@@ -260,14 +271,14 @@ export default function Content() {
       {open && (
         <FormDialog
           onClose={() => setOpen(false)}
-          title={editing ? 'Edit content' : 'Create content'}
+          title={editing ? t('content.form.editTitle') : t('content.form.createTitle')}
           busy={saving}
           maxWidthClass="max-w-2xl"
         >
           <form onSubmit={handleSubmit} className="space-y-3">
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Type
+                {t('content.form.type')}
               </span>
               <select
                 required
@@ -279,18 +290,19 @@ export default function Content() {
               >
                 {CONTENT_TYPES.map((type) => (
                   <option key={type} value={type}>
-                    {type}
+                    {tv('contentType', type)}
                   </option>
                 ))}
               </select>
             </label>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Title
+                {t('content.form.title')}
               </span>
               <input
                 required
                 value={form.title}
+                dir="auto"
                 onChange={(e) =>
                   setForm((f) => ({ ...f, title: e.target.value }))
                 }
@@ -299,11 +311,12 @@ export default function Content() {
             </label>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Body
+                {t('content.form.body')}
               </span>
               <textarea
                 required
                 value={form.body}
+                dir="auto"
                 onChange={(e) =>
                   setForm((f) => ({ ...f, body: e.target.value }))
                 }
@@ -319,7 +332,7 @@ export default function Content() {
                   setForm((f) => ({ ...f, active: e.target.checked }))
                 }
               />
-              Active
+              {t('common.active')}
             </label>
             <div className="flex justify-end gap-2 pt-2">
               <button
@@ -328,14 +341,14 @@ export default function Content() {
                 onClick={() => setOpen(false)}
                 className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={saving}
                 className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
               >
-                {saving ? 'Saving…' : editing ? 'Save' : 'Create'}
+                {saving ? t('common.saving') : editing ? t('common.save') : t('common.create')}
               </button>
             </div>
           </form>
