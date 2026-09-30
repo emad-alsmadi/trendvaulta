@@ -13,9 +13,19 @@ import { viteEnv } from './viteEnv';
  */
 const API_BASE = viteEnv.VITE_API_URL?.replace(/\/$/, '') || '/api';
 
+/**
+ * Without a timeout a stalled API (cold start, hung DB connection) leaves
+ * every request pending forever: buttons stay disabled and pages stay blank,
+ * which reads as a frozen dashboard. Fail fast with a clear message instead;
+ * queries retry once, by which time a cold server is usually awake.
+ */
+export const REQUEST_TIMEOUT_MS = 30_000;
+const UPLOAD_TIMEOUT_MS = 120_000;
+
 export const api = axios.create({
   baseURL: API_BASE,
   headers: { 'Content-Type': 'application/json' },
+  timeout: REQUEST_TIMEOUT_MS,
 });
 
 api.interceptors.request.use((config) => {
@@ -61,7 +71,8 @@ async function refreshAccessToken(): Promise<RefreshOutcome> {
 
   if (!refreshPromise) {
     refreshPromise = axios
-      .post(`${API_BASE}/auth/refresh`, { refreshToken })
+      // Every 401'd request awaits this one promise — it must not hang.
+      .post(`${API_BASE}/auth/refresh`, { refreshToken }, { timeout: REQUEST_TIMEOUT_MS })
       .then(({ data }): RefreshOutcome => {
         const nextToken: string | null = data?.token || null;
         const nextRefreshToken: string | null = data?.refreshToken || null;
@@ -160,11 +171,15 @@ export type AdminOrder = {
   createdAt?: string;
   allowedNextStatuses?: string[];
   returnRequest?: AdminReturnRequest | null;
-  user?: string | AdminOrderCustomer;
+  /** null on a guest order, which has guestEmail instead. */
+  user?: string | AdminOrderCustomer | null;
+  guestEmail?: string;
   attentionReason?: AdminOrderAttentionReason | string;
   refundId?: string;
   refundedAt?: string;
   refundAmount?: number;
+  /** Issued once the payment is captured, e.g. TV-2026-000123. */
+  invoiceNumber?: string;
   trackingNumber?: string;
   trackingCarrier?: string;
   trackingUrl?: string;
@@ -317,6 +332,7 @@ function errorMessage(err: unknown, fallback: string) {
       };
     };
     request?: unknown;
+    code?: string;
   };
   const data = ax?.response?.data;
   const detail = data?.details?.find((d) => d?.message)?.message;
@@ -324,6 +340,9 @@ function errorMessage(err: unknown, fallback: string) {
   if (data?.message) return humanizeValidationMessage(data.message);
 
   const status = ax?.response?.status;
+  if (ax?.code === 'ECONNABORTED' || ax?.code === 'ETIMEDOUT') {
+    return 'The server is taking too long to respond. Please try again.';
+  }
   if (!ax?.response && ax?.request) {
     return 'Could not reach the server. Check your connection and try again.';
   }
@@ -398,6 +417,18 @@ export const adminOrdersApi = {
   ): Promise<AdminOrdersResponse> => {
     const { data } = await api.get<AdminOrdersResponse>('/orders', {
       params: { limit: 25, ...params },
+    });
+    return data;
+  },
+
+  /**
+   * The printable invoice document. Fetched with the Bearer header (a plain
+   * link can't send it) and opened from a blob URL by the caller.
+   */
+  getInvoiceHtml: async (id: string, lang: 'en' | 'ar' = 'en'): Promise<string> => {
+    const { data } = await api.get<string>(`/orders/${id}/invoice`, {
+      params: { lang },
+      responseType: 'text',
     });
     return data;
   },
@@ -778,6 +809,8 @@ export const uploadsApi = {
     formData.append('image', file);
     const { data } = await api.post<UploadImageResponse>('/uploads', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      // Large images on slow connections need longer than a JSON call.
+      timeout: UPLOAD_TIMEOUT_MS,
     });
     return data.data.url;
   },
@@ -803,6 +836,8 @@ export type AdminUser = {
   disabled?: boolean;
   /** Internal staff notes; only ever returned by the admin endpoints. */
   adminNotes?: string;
+  /** null = confirmation link not opened yet; absent = older, confirmed account. */
+  emailVerifiedAt?: string | null;
   createdAt?: string;
 };
 
@@ -1019,6 +1054,61 @@ export const adminReviewsApi = {
       `/reviews/admin/${id}/reply`,
     );
     return data;
+  },
+};
+
+export type ContactMessageStatus = 'new' | 'read' | 'closed';
+
+/** A storefront contact-form enquiry (apps/api/models/ContactMessage.js). */
+export type AdminContactMessage = {
+  _id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  status: ContactMessageStatus;
+  /** Internal only; never shown to the sender. */
+  staffNote?: string;
+  handledBy?: { _id: string; username?: string; email?: string } | null;
+  handledAt?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+};
+
+export type AdminContactMessagesQuery = {
+  page?: number;
+  limit?: number;
+  status?: ContactMessageStatus;
+  /** Sender name, email or subject. */
+  q?: string;
+  sort?: string;
+  order?: 'asc' | 'desc';
+};
+
+export type AdminContactMessagesList = PaginatedList<AdminContactMessage> & {
+  /** Whole-inbox totals per status, whatever the filter. */
+  counts?: Record<ContactMessageStatus, number>;
+};
+
+export const adminContactApi = {
+  getMessages: async (
+    params: AdminContactMessagesQuery = {},
+  ): Promise<AdminContactMessagesList> => {
+    const { data } = await api.get<AdminContactMessagesList>('/contact/admin', {
+      params: { limit: 25, ...params },
+    });
+    return data;
+  },
+
+  updateMessage: async (
+    id: string,
+    body: { status?: ContactMessageStatus; staffNote?: string },
+  ): Promise<AdminContactMessage> => {
+    const { data } = await api.patch<{ data: AdminContactMessage }>(
+      `/contact/admin/${id}`,
+      body,
+    );
+    return data.data;
   },
 };
 
@@ -1672,6 +1762,14 @@ export type StoreSettings = {
     freeShippingThresholdUsd: number;
   };
   taxRatePercent: number;
+  /** Seller block printed on invoices. */
+  invoice?: {
+    legalName?: string;
+    address?: string;
+    taxId?: string;
+    /** TV → TV-2026-000123; only numbers issued later use a new prefix. */
+    prefix?: string;
+  };
   updatedAt?: string;
   updatedBy?: string | null;
 };
@@ -1682,6 +1780,7 @@ export type StoreSettingsPayload = {
   currency?: string;
   shipping?: Partial<StoreSettings['shipping']>;
   taxRatePercent?: number;
+  invoice?: StoreSettings['invoice'];
 };
 
 export const adminSettingsApi = {
@@ -1703,19 +1802,6 @@ export const adminSettingsApi = {
   },
 };
 
-export type ContactMessageStatus = 'new' | 'read' | 'closed';
-
-export type AdminContactMessage = {
-  _id: string;
-  name: string;
-  email: string;
-  subject: string;
-  message: string;
-  status: ContactMessageStatus;
-  createdAt: string;
-  updatedAt?: string;
-};
-
 export type SubscriberStatus = 'pending' | 'subscribed' | 'unsubscribed';
 
 export type AdminSubscriber = {
@@ -1727,36 +1813,12 @@ export type AdminSubscriber = {
   createdAt: string;
 };
 
-type InboxListQuery<S> = { page?: number; limit?: number; status?: S };
-
-/** Contact form messages — GET/PATCH /api/contact/admin (content:*). */
-export const adminContactApi = {
-  getMessages: async (
-    params: InboxListQuery<ContactMessageStatus> = {},
-  ): Promise<PaginatedList<AdminContactMessage>> => {
-    const { data } = await api.get<PaginatedList<AdminContactMessage>>(
-      '/contact/admin',
-      { params },
-    );
-    return data;
-  },
-
-  updateStatus: async (
-    id: string,
-    status: ContactMessageStatus,
-  ): Promise<AdminContactMessage> => {
-    const { data } = await api.patch<{ data: AdminContactMessage }>(
-      `/contact/admin/${id}`,
-      { status },
-    );
-    return data.data;
-  },
-};
+type SubscriberListQuery = { page?: number; limit?: number; status?: SubscriberStatus };
 
 /** Newsletter subscribers — GET /api/newsletter/admin (content:read). */
 export const adminSubscribersApi = {
   getSubscribers: async (
-    params: InboxListQuery<SubscriberStatus> = {},
+    params: SubscriberListQuery = {},
   ): Promise<PaginatedList<AdminSubscriber>> => {
     const { data } = await api.get<PaginatedList<AdminSubscriber>>(
       '/newsletter/admin',

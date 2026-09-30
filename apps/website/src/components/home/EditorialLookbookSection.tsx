@@ -10,6 +10,7 @@ import {
 } from '@/data/demoStorefront';
 import { useLookbooks } from '@/hooks/storefront/lookbooksQuery';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { Skeleton, SkeletonGroup, SkeletonText } from '@/components/ui/Skeleton';
 
 const TONE_BG: Record<DemoLookbookStory['tone'], string> = {
   rose: 'from-stone-50 via-white to-stone-50',
@@ -62,9 +63,20 @@ export function EditorialLookbookSection({ stories: storiesProp }: Props) {
         </div>
 
         {isLoading && !stories ? (
-          <p className='text-sm text-stone-500' role='status'>
-            {t('home.lookbook.loading')}
-          </p>
+          <SkeletonGroup>
+            <div
+              aria-hidden
+              className='grid grid-cols-1 overflow-hidden rounded-2xl border border-stone-200 bg-white md:grid-cols-2'
+            >
+              <Skeleton className='aspect-[16/10] w-full rounded-none md:aspect-auto md:min-h-[280px]' />
+              <div className='flex flex-col justify-center p-6 sm:p-8 lg:p-10'>
+                <Skeleton className='h-3 w-24' />
+                <Skeleton className='mt-4 h-7 w-3/4' />
+                <SkeletonText lines={3} className='mt-5' />
+                <Skeleton className='mt-6 h-10 w-36' />
+              </div>
+            </div>
+          </SkeletonGroup>
         ) : stories ? (
           <ul className='space-y-6'>
             {stories.map((story, index) => {

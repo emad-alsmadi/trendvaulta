@@ -18,6 +18,7 @@ import {
 } from '@/data/demoStorefront';
 import { useStorefrontCategories } from '@/hooks/storefront/categoriesQuery';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { Skeleton, SkeletonGroup } from '@/components/ui/Skeleton';
 
 const ICONS = {
   sparkles: Sparkles,
@@ -69,9 +70,11 @@ export function PopularCategories() {
         </div>
 
         {isLoading && !categories ? (
-          <p className='text-sm text-gray-500' role='status'>
-            {t('home.categories.loading')}
-          </p>
+          <SkeletonGroup className='grid grid-cols-2 gap-4 md:grid-cols-4'>
+            {Array.from({ length: 4 }, (_, i) => (
+              <Skeleton key={i} className='h-36 rounded-xl' />
+            ))}
+          </SkeletonGroup>
         ) : categories ? (
           <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
             {categories.map((category, index) => {

@@ -8,6 +8,7 @@ import { useHomeRecommendations } from '@/hooks/storefront/recommendationsQuery'
 import { getRecentlyViewed } from '@/lib/recentlyViewed';
 import { useTranslation } from '@/contexts/TranslationContext';
 import type { Product } from '@/types';
+import { PageHeaderSkeleton, ProductGridSkeleton } from '@/components/ui/Skeleton';
 
 type Props = {
   /** Optional catalog for demo fallback when recommendations API fails */
@@ -101,9 +102,12 @@ export function InspiredByBrowsingSection({
         className='border-t border-stone-200 bg-stone-50 py-12 sm:py-16'
       >
         <div className='mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8'>
-          <p className='py-8 text-center text-sm text-stone-500'>
-            {t('home.inspired.loading')}
-          </p>
+          <PageHeaderSkeleton className='mb-6' />
+          <ProductGridSkeleton
+            count={4}
+            label={t('home.inspired.loading')}
+            className='grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4'
+          />
         </div>
       </section>
     );

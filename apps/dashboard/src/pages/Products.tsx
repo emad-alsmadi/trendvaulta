@@ -26,6 +26,7 @@ import { useTableQuery } from '../hooks/useTableQuery';
 import { useAdminCategories } from '../hooks/useAdminCategories';
 import { TablePagination } from '../components/ui/TablePagination';
 import { FormDialog } from '../components/ui/FormDialog';
+import { useT } from '../i18n/I18nProvider';
 
 const emptyForm: ProductFormPayload = {
   title: '',
@@ -48,22 +49,10 @@ const emptyForm: ProductFormPayload = {
 
 // Must match the Product model enum (apps/api/models/Product.js).
 /** Values product.controller.js accepts for ?sort=. */
-const SORT_PRESETS = [
-  { value: 'newest', label: 'Newest' },
-  { value: 'bestselling', label: 'Best selling' },
-  { value: 'price_asc', label: 'Price: low to high' },
-  { value: 'price_desc', label: 'Price: high to low' },
-  { value: 'rating', label: 'Top rated' },
-];
+const SORT_PRESETS = ['newest', 'bestselling', 'price_asc', 'price_desc', 'rating'] as const;
 
-const CATEGORIES = [
-  { value: 'makeup', label: 'Makeup' },
-  { value: 'skincare', label: 'Skincare' },
-  { value: 'perfumes', label: 'Perfumes' },
-  { value: 'clothing', label: 'Clothing' },
-  { value: 'accessories', label: 'Accessories' },
-  { value: 'home', label: 'Home' },
-];
+/** Labels come from tv('productCategory', value). */
+const CATEGORIES = ['makeup', 'skincare', 'perfumes', 'clothing', 'accessories', 'home'];
 
 /** Empty numeric input → undefined, so "not set" is distinct from 0. */
 function numberOrUndefined(raw: string): number | undefined {
@@ -153,6 +142,7 @@ export default function Products() {
   const { can } = usePermissions();
   const toast = useToast();
   const confirm = useConfirm();
+  const { t, tv, formatCurrency, formatNumber } = useT();
   const [search, setSearch] = useState('');
   const [appliedQ, setAppliedQ] = useState('');
   const [category, setCategory] = useState('');
@@ -240,16 +230,16 @@ export default function Products() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.title.trim() || !form.brand || !form.cover.trim()) {
-      toast.error('Title, brand, and cover URL are required.');
+      toast.error(t('products.requiredBasics'));
       return;
     }
     if (!form.subcategory.trim() || form.description.trim().length < 3) {
-      toast.error('Subcategory and a description (3+ characters) are required.');
+      toast.error(t('products.requiredDetails'));
       return;
     }
     const variantProblem = validateVariants(form.variants || []);
     if (variantProblem) {
-      toast.error(variantProblem);
+      toast.error(t(variantProblem.key, variantProblem.vars));
       return;
     }
     const payload = toProductPayload(form);
@@ -265,21 +255,21 @@ export default function Products() {
       setOpen(false);
       setEditing(null);
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not save product'));
+      toast.error(errorMessage(err, t('products.saveFailed')));
     }
   }
 
   async function handleDelete(product: AdminProduct) {
     const ok = await confirm({
-      message: `Deactivate "${product.title}"? It disappears from the storefront and can't be ordered; order history keeps it, and you can reactivate it later.`,
+      message: t('products.confirmDeactivate', { title: product.title }),
       danger: true,
-      confirmLabel: 'Deactivate',
+      confirmLabel: t('products.deactivate'),
     });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(product._id);
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not deactivate product'));
+      toast.error(errorMessage(err, t('products.deactivateFailed')));
     }
   }
 
@@ -292,10 +282,10 @@ export default function Products() {
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Products
+            {t('products.title')}
           </h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Live catalog (includes inactive when signed in as staff)
+            {t('products.subtitle')}
           </p>
         </div>
         {can('products:write') && (
@@ -303,11 +293,11 @@ export default function Products() {
             type="button"
             onClick={openCreate}
             disabled={!brands.length}
-            title={!brands.length ? 'Create a brand first' : undefined}
+            title={!brands.length ? t('products.needBrand') : undefined}
             className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <Plus className="mr-2 h-5 w-5" />
-            Add Product
+            <Plus className="me-2 h-5 w-5" aria-hidden />
+            {t('products.add')}
           </button>
         )}
       </div>
@@ -321,14 +311,14 @@ export default function Products() {
             resetPage();
           }}
         >
-          <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+          <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" aria-hidden />
           <input
             type="search"
-            aria-label="Search products"
+            aria-label={t('products.searchLabel')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search products…"
-            className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+            placeholder={t('products.searchPlaceholder')}
+            className="w-full rounded-lg border border-gray-300 bg-white py-2 ps-10 pe-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
           />
         </form>
         <select
@@ -337,13 +327,13 @@ export default function Products() {
             setCategory(e.target.value);
             resetPage();
           }}
-          aria-label="Filter by category"
+          aria-label={t('products.filterCategory')}
           className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
         >
-          <option value="">All categories</option>
+          <option value="">{t('products.allCategories')}</option>
           {CATEGORIES.map((c) => (
-            <option key={c.value} value={c.value}>
-              {c.label}
+            <option key={c} value={c}>
+              {tv('productCategory', c)}
             </option>
           ))}
         </select>
@@ -353,12 +343,12 @@ export default function Products() {
             setSortPreset(e.target.value);
             resetPage();
           }}
-          aria-label="Sort products"
+          aria-label={t('products.sortLabel')}
           className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
         >
           {SORT_PRESETS.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
+            <option key={s} value={s}>
+              {t(`products.sort.${s}`)}
             </option>
           ))}
         </select>
@@ -366,12 +356,12 @@ export default function Products() {
 
       {productsQ.isLoading && (
         <p className="py-10 text-center text-sm text-gray-500">
-          Loading products…
+          {t('products.loading')}
         </p>
       )}
       {productsQ.isError && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-          {errorMessage(productsQ.error, 'Failed to load products')}
+          {errorMessage(productsQ.error, t('products.loadFailed'))}
         </div>
       )}
 
@@ -379,7 +369,7 @@ export default function Products() {
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {products.length === 0 ? (
             <p className="col-span-full py-10 text-center text-sm text-gray-500">
-              No products found.
+              {t('products.empty')}
             </p>
           ) : (
             products.map((product) => (
@@ -407,12 +397,12 @@ export default function Products() {
                       <div className="mt-1 flex flex-wrap gap-1.5">
                         {product.isActive === false && (
                           <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-                            Inactive
+                            {t('products.inactive')}
                           </span>
                         )}
                         {product.featured && (
                           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
-                            Featured
+                            {t('products.featured')}
                           </span>
                         )}
                       </div>
@@ -423,9 +413,9 @@ export default function Products() {
                           type="button"
                           onClick={() => openEdit(product)}
                           className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700"
-                          aria-label={`Edit ${product.title}`}
+                          aria-label={t('products.edit', { title: product.title })}
                         >
-                          <Pencil className="h-4 w-4 text-gray-500" />
+                          <Pencil className="h-4 w-4 text-gray-500" aria-hidden />
                         </button>
                       )}
                       {can('products:delete') && (
@@ -434,24 +424,24 @@ export default function Products() {
                           onClick={() => void handleDelete(product)}
                           disabled={deleteMut.isPending}
                           className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
-                          aria-label={`Delete ${product.title}`}
+                          aria-label={t('products.delete', { title: product.title })}
                         >
-                          <Trash2 className="h-4 w-4 text-red-500" />
+                          <Trash2 className="h-4 w-4 text-red-500" aria-hidden />
                         </button>
                       )}
                     </div>
                   </div>
                   <p className="mb-1 text-sm text-gray-500 dark:text-gray-400">
-                    {brandName(product)} · {product.category || '—'}
+                    {brandName(product)} · {product.category ? tv('productCategory', product.category) : '—'}
                     {product.subcategory ? ` / ${product.subcategory}` : ''}
                   </p>
                   <div className="flex items-center justify-between text-sm">
                     <span className="font-semibold text-gray-900 dark:text-white">
-                      ${Number(product.price || 0).toFixed(2)}
+                      {formatCurrency(Number(product.price || 0))}
                     </span>
                     <span className="text-gray-500 dark:text-gray-400">
-                      Stock: {product.stock ?? 0}
-                      {product.isActive === false ? ' · inactive' : ''}
+                      {t('products.stock', { count: formatNumber(product.stock ?? 0) })}
+                      {product.isActive === false ? t('products.inactiveSuffix') : ''}
                     </span>
                   </div>
                 </div>
@@ -473,14 +463,14 @@ export default function Products() {
       {open && (
         <FormDialog
           onClose={() => setOpen(false)}
-          title={editing ? 'Edit product' : 'Create product'}
+          title={editing ? t('products.editTitle') : t('products.createTitle')}
           busy={saving}
           maxWidthClass="max-w-3xl"
         >
           <form onSubmit={handleSubmit} className="space-y-3">
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Title
+                {t('products.form.title')}
               </span>
               <input
                 required
@@ -493,7 +483,7 @@ export default function Products() {
             </label>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Brand
+                {t('products.form.brand')}
               </span>
               <select
                 required
@@ -503,7 +493,7 @@ export default function Products() {
                 }
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
               >
-                <option value="">Select brand</option>
+                <option value="">{t('products.form.selectBrand')}</option>
                 {brands.map((b) => (
                   <option key={b._id} value={b._id}>
                     {b.name}
@@ -525,7 +515,7 @@ export default function Products() {
             <div className="grid grid-cols-2 gap-3">
               <label className="block text-sm">
                 <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Price
+                  {t('products.form.price')}
                 </span>
                 <input
                   type="number"
@@ -544,7 +534,7 @@ export default function Products() {
               </label>
               <label className="block text-sm">
                 <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Stock
+                  {t('products.form.stock')}
                 </span>
                 {hasVariants ? (
                   <>
@@ -559,7 +549,7 @@ export default function Products() {
                       id="stock-from-variants"
                       className="mt-1 block text-xs text-gray-500 dark:text-gray-400"
                     >
-                      Sum of variant stock
+                      {t('products.form.stockFromVariants')}
                     </span>
                   </>
                 ) : (
@@ -580,7 +570,7 @@ export default function Products() {
             </div>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Category
+                {t('products.form.category')}
               </span>
               <select
                 value={form.category}
@@ -590,15 +580,15 @@ export default function Products() {
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
               >
                 {CATEGORIES.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
+                  <option key={c} value={c}>
+                    {tv('productCategory', c)}
                   </option>
                 ))}
               </select>
             </label>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Subcategory
+                {t('products.form.subcategory')}
               </span>
               <input
                 value={form.subcategory}
@@ -617,7 +607,7 @@ export default function Products() {
               </datalist>
             </label>
             <ImageUploadField
-              label="Cover image"
+              label={t('products.form.cover')}
               required
               value={form.cover}
               onChange={(url) => setForm((f) => ({ ...f, cover: url }))}
@@ -628,7 +618,7 @@ export default function Products() {
             />
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                SKU
+                {t('products.form.sku')}
               </span>
               <input
                 value={form.sku}
@@ -640,7 +630,7 @@ export default function Products() {
             </label>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Description
+                {t('products.form.description')}
               </span>
               <textarea
                 value={form.description}
@@ -661,12 +651,12 @@ export default function Products() {
               onToggle={(e) => setPhysicalOpen(e.currentTarget.open)}
             >
               <summary className="cursor-pointer font-medium text-gray-700 dark:text-gray-300">
-                Physical attributes &amp; shipping
+                {t('products.form.physical')}
               </summary>
               <div className="mt-3 space-y-3">
                 <label className="block text-xs">
                   <span className="mb-1 block text-gray-600 dark:text-gray-400">
-                    Material
+                    {t('products.form.material')}
                   </span>
                   <input
                     value={form.material ?? ''}
@@ -679,7 +669,7 @@ export default function Products() {
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <label className="block text-xs">
                   <span className="mb-1 block text-gray-600 dark:text-gray-400">
-                    Weight (kg)
+                    {t('products.form.weightKg')}
                   </span>
                   <input
                     type="number"
@@ -695,7 +685,7 @@ export default function Products() {
                 </label>
                 <label className="block text-xs">
                   <span className="mb-1 block text-gray-600 dark:text-gray-400">
-                    Length (cm)
+                    {t('products.form.lengthCm')}
                   </span>
                   <input
                     type="number"
@@ -711,7 +701,7 @@ export default function Products() {
                 </label>
                 <label className="block text-xs">
                   <span className="mb-1 block text-gray-600 dark:text-gray-400">
-                    Width (cm)
+                    {t('products.form.widthCm')}
                   </span>
                   <input
                     type="number"
@@ -727,7 +717,7 @@ export default function Products() {
                 </label>
                 <label className="block text-xs">
                   <span className="mb-1 block text-gray-600 dark:text-gray-400">
-                    Height (cm)
+                    {t('products.form.heightCm')}
                   </span>
                   <input
                     type="number"
@@ -743,12 +733,12 @@ export default function Products() {
                 </label>
                 </div>
                 <p className="pt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                  Packed for shipping
+                  {t('products.form.packed')}
                 </p>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <label className="block text-xs">
                   <span className="mb-1 block text-gray-600 dark:text-gray-400">
-                    Weight (kg)
+                    {t('products.form.weightKg')}
                   </span>
                   <input
                     type="number"
@@ -764,7 +754,7 @@ export default function Products() {
                 </label>
                 <label className="block text-xs">
                   <span className="mb-1 block text-gray-600 dark:text-gray-400">
-                    Length (cm)
+                    {t('products.form.lengthCm')}
                   </span>
                   <input
                     type="number"
@@ -780,7 +770,7 @@ export default function Products() {
                 </label>
                 <label className="block text-xs">
                   <span className="mb-1 block text-gray-600 dark:text-gray-400">
-                    Width (cm)
+                    {t('products.form.widthCm')}
                   </span>
                   <input
                     type="number"
@@ -796,7 +786,7 @@ export default function Products() {
                 </label>
                 <label className="block text-xs">
                   <span className="mb-1 block text-gray-600 dark:text-gray-400">
-                    Height (cm)
+                    {t('products.form.heightCm')}
                   </span>
                   <input
                     type="number"
@@ -827,7 +817,7 @@ export default function Products() {
                     className="h-4 w-4 rounded border-gray-300"
                   />
                   <span className="text-gray-700 dark:text-gray-300">
-                    Requires special handling (fragile, liquid, oversized…)
+                    {t('products.form.specialHandling')}
                   </span>
                 </label>
               </div>
@@ -842,7 +832,7 @@ export default function Products() {
                   }
                   className="h-4 w-4 rounded border-gray-300"
                 />
-                <span className="text-gray-700 dark:text-gray-300">Active</span>
+                <span className="text-gray-700 dark:text-gray-300">{t('products.form.active')}</span>
               </label>
               <label className="flex items-center gap-2 text-sm">
                 <input
@@ -853,7 +843,7 @@ export default function Products() {
                   }
                   className="h-4 w-4 rounded border-gray-300"
                 />
-                <span className="text-gray-700 dark:text-gray-300">Featured</span>
+                <span className="text-gray-700 dark:text-gray-300">{t('products.form.featured')}</span>
               </label>
             </div>
             <div className="flex justify-end gap-2 pt-2">
@@ -863,14 +853,14 @@ export default function Products() {
                 onClick={() => setOpen(false)}
                 className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={saving}
                 className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
               >
-                {saving ? 'Saving…' : editing ? 'Save' : 'Create'}
+                {saving ? t('products.form.saving') : editing ? t('products.form.save') : t('products.form.create')}
               </button>
             </div>
           </form>

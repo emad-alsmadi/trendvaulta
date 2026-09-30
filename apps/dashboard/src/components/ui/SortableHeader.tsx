@@ -30,7 +30,7 @@ export function SortableHeader({
     <th
       scope="col"
       aria-sort={isActive ? (order === 'asc' ? 'ascending' : 'descending') : 'none'}
-      className={align === 'right' ? 'text-right' : 'text-left'}
+      className={align === 'right' ? 'text-end' : 'text-start'}
     >
       <button
         type="button"

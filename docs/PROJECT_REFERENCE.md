@@ -88,7 +88,7 @@ Run one app at a time with `npm run dev:api`, `npm run dev:website` or `npm run 
 
 ### Stripe webhooks (only for checkout work)
 
-The checkout success page confirms payment itself (`POST /api/payments/verify-payment`), so a basic purchase works without webhooks. Refunds made in Stripe, expired sessions, and shoppers who close the tab before the success page loads rely on the webhook:
+The checkout success page confirms payment itself (`POST /api/payments/verify-payment`), so a basic purchase works without webhooks. Refunds made in Stripe need the webhook. Expired sessions (which release reserved stock) and shoppers who close the tab before the success page loads are handled by the webhook right away, and otherwise by the checkout reconciler within about 45 min:
 
 ```bash
 stripe login ; stripe listen --forward-to localhost:3000/api/webhooks/stripe
@@ -160,7 +160,8 @@ Notes:
 - Dependabot (`.github/dependabot.yml`) opens weekly grouped minor/patch PRs for npm and GitHub Actions; majors for `next`, `react`, `react-dom`, `tailwindcss` are ignored.
 - `NEXT_PUBLIC_API_URL` is set in CI for the website build only (placeholder).
 - Branch naming: `feature/*`, `fix/*`, `refactor/*`, `chore/*` — keep `main` releasable.
-- No dictionary key-parity check runs in CI today — a missing `ar.json` key silently falls back to English rather than failing a build.
+- Dictionary parity runs with the website tests (`src/messages/messages.test.ts`): a key missing from either `en.json` or `ar.json`, a `{placeholder}` that differs between them, or an empty string fails CI, and the failure names the key.
+- The API test script quotes its globs with double quotes, so `node --test` expands them itself on every OS. Single quotes reached `node` literally under Windows `cmd.exe` and only `app.test.js` ran. The integration harness (`tests/setup.js`) blanks the SMTP/EMAIL variables so a local `.env` can't make tests send real mail.
 
 ---
 
@@ -209,9 +210,23 @@ The API **refuses to start** in production when:
 - `JWT_SECRET_KEY` is shorter than 32 characters
 - a Stripe key is set without `STRIPE_WEBHOOK_SECRET`
 - `STORAGE_DRIVER=cloudinary` is set without its credentials
+- storage is local (`STORAGE_DRIVER` unset or `local`): local uploads are wiped on every Render deploy. `ALLOW_LOCAL_STORAGE=true` overrides this, only for a persistent volume mounted at `apps/api/uploads`, and then logs a warning
 - `CORS_RELAXED`, `DEV_ALLOW_DIRECT_ORDERS`, or `ALLOW_DIRECT_ORDERS` is `true`
 
-It **warns** at startup when storage is local or no mail is configured — treat both as blockers: local uploads are wiped on every Render deploy, and without mail there are no password resets or order emails.
+It **warns** at startup when no mail is configured. Treat that as a blocker too: without mail there are no password resets or order emails.
+
+**Moving existing local images to Cloudinary.** Run this on a machine that still has the `apps/api/uploads` folder, with `MONGO_URL`/`DB_NAME` pointing at the target database and the `CLOUDINARY_*` variables set:
+
+```bash
+cd apps/api
+npm run migrate:uploads              # dry run: lists every reference, changes nothing
+npm run migrate:uploads -- --apply   # uploads each file once, rewrites the references
+```
+
+- **What it scans:** every collection, generically: product covers and galleries, brand logos, category and CMS images, and the cover copies in order lines.
+- **What it rewrites:** only links whose file really exists in the folder. Links whose file is missing are listed and left unchanged.
+- **Re-running is safe:** a file already on Cloudinary is not uploaded twice, and links that were already rewritten no longer match.
+- **Concurrent edits:** a document edited during the run is skipped, and the next run picks it up.
 
 ### Storefront on Vercel
 1. New project → import repo → **Root Directory `apps/website`**. Vercel installs from the monorepo root automatically.
@@ -274,7 +289,9 @@ Authority: `apps/api/routes/` + `app.js`, cross-checked with `apps/website/src/l
 | `POST /auth/refresh` | refresh token | rotates the refresh token (reuse detection, 30 s grace for concurrent tabs) |
 | `POST /auth/logout` | public | revokes the presented refresh token; client clears cookies |
 | `GET /auth/profile` | private | JWT subject only |
-| `PUT /auth/profile` | private | `{ username, email, currentPassword? }` — `currentPassword` required when the email changes; 409 on conflict |
+| `PUT /auth/profile` | private | `{ username, email, currentPassword? }` — `currentPassword` required when the email changes; 409 on conflict. An email change marks the address unconfirmed, sends a link to the new address and a notice to the old one |
+| `POST /auth/verify-email` | public, rate-limited | `{ token }` from the emailed link `/auth/verify-email?token=…` → `{ emailVerified: true }`; unknown, used or expired → `400 VERIFICATION_LINK_INVALID` |
+| `POST /auth/verify-email/resend` | private, rate-limited | New link to the current email; one per minute per account (`429 VERIFICATION_RESEND_TOO_SOON` + `Retry-After`); `503 MAIL_UNAVAILABLE` when mail can't be sent |
 
 ### Password
 | Route | Access | Notes |
@@ -300,6 +317,7 @@ No server cart API — client cart only (`cartStore.ts`). Commerce entry point i
 | `POST /orders` | private | `{ items: [{ productId, qty, variant? }], shippingAddress, shippingPrice?, taxPrice? }`; disabled when Stripe is configured unless `DEV_ALLOW_DIRECT_ORDERS`/`ALLOW_DIRECT_ORDERS` |
 | `GET /orders/my` | private | own orders |
 | `GET /orders/:id` | private | owner or admin |
+| `GET /orders/:id/invoice` | private: owner, or staff with `orders:read` | `?lang=en\|ar`. A self-contained printable HTML invoice (every value escaped, CSP forbids scripts, `no-store`). `409 INVOICE_NOT_AVAILABLE` until the payment is captured; 404 for someone else's order. Storefront link: `/user/orders/:id/invoice` (Next route handler that forwards the cookie token). Dashboard: Order detail → Invoice / عربي |
 | `GET /orders` (admin list) | private + `orders:read` | `page, limit, status, paymentStatus, q`; items include `allowedNextStatuses` |
 | `PATCH /orders/:id/status` (admin) | private + `orders:write` | `pending→canceled`, `paid→shipped|canceled`, `shipped→delivered`. Not `pending→paid` (Stripe/webhook only). Transitions are claimed atomically (409 on a concurrent change). Canceling/refunding a paid order issues a Stripe refund automatically (`AUTO_REFUND_ON_CANCEL`, default on); inventory is restored once, and only if the order never shipped (returns restock their lines when marked received) |
 
@@ -307,7 +325,7 @@ No server cart API — client cart only (`cartStore.ts`). Commerce entry point i
 | Route | Access | Notes |
 |---|---|---|
 | `GET /payments/setup-status` | public | `{ ready: boolean }` |
-| `POST /payments/checkout-session` | private | creates pending Order + Stripe session, returns `{ url, orderId, sessionId }` |
+| `POST /payments/checkout-session` | private | reserves stock, creates pending Order + Stripe session, returns `{ url, orderId, sessionId }`; `400`/`409` `{ code: 'OUT_OF_STOCK' }` on a shortfall (see §8) |
 | `POST /payments/verify-payment` | private | `{ orderId }`, ownership-checked; may mark paid if Stripe session complete |
 | `POST /webhooks/stripe` | Stripe signature | raw body; idempotent event insert; marks paid on `checkout.session.completed` |
 
@@ -333,6 +351,15 @@ No server cart API — client cart only (`cartStore.ts`). Commerce entry point i
 | `POST /reviews` | private — `{ product, rating, comment }` |
 | `PUT/DELETE /reviews/:reviewId` | private + ownership |
 | `GET /reviews/my/:productId`, `GET /reviews/my` | private |
+
+### Contact messages
+| Route | Access | Notes |
+|---|---|---|
+| `POST /contact` | public, rate-limited | `{ name, email, subject, message }` + hidden `website` honeypot; always answers `201 { message }` |
+| `GET /contact/admin` | `content:read` | `page, limit, status (new\|read\|closed), q (name/email/subject), sort (createdAt\|status), order` → `{ data, meta, counts }`; `counts` covers the whole inbox, whatever the filter (sidebar badge) |
+| `PATCH /contact/admin/:id` | `content:write` | `{ status?, staffNote? }` (at least one; note ≤ 1000 chars, internal only); a status change records `handledBy` / `handledAt` |
+
+Dashboard → **Messages** (`/messages`) is the inbox. Opening an unread message marks it read, and "Reply by email" opens the staff member's mail client. The sidebar badge counts `new` messages and refreshes every minute.
 
 ### Users (admin)
 | Route | Permission |
@@ -368,12 +395,20 @@ No server cart API — client cart only (`cartStore.ts`). Commerce entry point i
 | `Wishlist.js` | `wishlists` | Per-user saved products |
 | `Review.js` | `reviews` | Ratings/comments |
 | `StripeWebhookEvent.js` | `stripewebhookevents` | Webhook idempotency |
-| … | | 24 models in total — also `RefreshToken`, `StoreSettings`, `ShippingZone`, `Offer`, `Bundle`, `Category`, `Content`, `HelpTopic`, `Lookbook`, `Testimonial`, `StorefrontModule`, `GiftFinderConfig`, `ProductQA`, `RecentlyViewed`, `Subscriber`, `ContactMessage` (see `docs/audit/AUDIT_REPORT.md` §2.3) |
+| … | | 24 models in total — also `RefreshToken`, `StoreSettings`, `ShippingZone`, `Offer`, `Bundle`, `Category`, `Content`, `HelpTopic`, `Lookbook`, `Testimonial`, `StorefrontModule`, `GiftFinderConfig`, `ProductQA`, `RecentlyViewed`, `Subscriber`, `ContactMessage` (schemas in `apps/api/models/`) |
 
 No dedicated `Address` or server-side `Cart` model — addresses live on the user's saved address list (see `apps/website/src/components/account/AddressBook.tsx` + `hooks/profile/addressesQuery.ts`), cart is client-only.
 
 ### User
-`email` (unique), `username`, `password` (bcrypt), `roles: string[]` (enum user/admin/moderator — array, not singular), `stripeCustomerId`, `disabled` (admin-disabled accounts cannot sign in or refresh), `failedLoginAttempts` / `lockUntil` (lockout, `select: false`). JWT payload is `{ id: String(_id), roles }`. Deleting a user anonymises it (PII erased, orders kept).
+`email` (unique), `username`, `password` (bcrypt), `roles: string[]` (enum user/admin/moderator — array, not singular), `stripeCustomerId`, `disabled` (admin-disabled accounts cannot sign in or refresh), `failedLoginAttempts` / `lockUntil` (lockout, `select: false`), `emailVerifiedAt` (see below). JWT payload is `{ id: String(_id), roles }`. Deleting a user anonymises it (PII erased, orders kept).
+
+**Email verification** (`utils/emailVerification.js`, decision D5):
+- `emailVerifiedAt` has no schema default. `null` means waiting for the link. A date, or **no field at all** (accounts created before verification existed), means confirmed, so no migration is needed. Login and profile responses expose it as `emailVerified`.
+- The link token is 32 random bytes, stored only as a SHA-256 hash (`select: false`), valid for 24 h and cleared on first use (atomic).
+- A confirmed address is **not** needed to sign in or check out, since guests check out too.
+- It **is** needed to post a review or request a return (`403 EMAIL_NOT_VERIFIED`). Staff are exempt for reviews.
+- The storefront shows a banner with "Send a new link" across `/user/*`, and the dashboard Users list badges unconfirmed accounts.
+- Emails carry English and Arabic text until users have a stored language (P1-02).
 
 ### Product
 `title, description, cover, brand (ref Brand), price, basePrice, images[], category (enum), subcategory, variants[] (size, color, colorCode, stock, price, sku), material, weight, dimensions, shippingInfo, stock, sku (unique sparse), averageRating, reviewCount, isActive, featured`. Stock precedence: variant stock is authoritative when variants exist, else product-level `stock`.
@@ -382,7 +417,15 @@ No dedicated `Address` or server-side `Cart` model — addresses live on the use
 `name, slug (unique), description, logo, website, country, isActive, featured`. Public list filters `isActive: true`.
 
 ### Order
-`user (ref User), items[] ({ productId, title, price, qty, cover, variant? }), shippingAddress, status (pending|paid|shipped|delivered|canceled), itemsPrice, shippingPrice, taxPrice, totalPrice, paymentStatus (unpaid|pending|paid|failed|refunded), stripeSessionId, paymentIntentId, paidAt`. Ownership via `user`.
+`user (ref User), items[] ({ productId, title, price, qty, cover, variant? }), shippingAddress, status (pending|paid|shipped|delivered|canceled), itemsPrice, shippingPrice, taxPrice, totalPrice, paymentStatus (unpaid|pending|paid|failed|refunded), stripeSessionId, paymentIntentId, paidAt, invoiceNumber, invoiceIssuedAt`. Ownership via `user`.
+
+**Invoice numbers** (`utils/invoice.js`): `<prefix>-<year>-<6-digit sequence>`, e.g. `TV-2026-000123`.
+- The sequence is per calendar year of `paidAt` in `STORE_TIMEZONE` (the same zone the invoice date prints in), stored in the `counters` collection (`models/Counter.js`).
+- The number is assigned once, when the payment is captured (`applyPaidSideEffects`), or on first invoice view for older paid orders. It never changes afterwards, even when the prefix setting changes.
+- The order is claimed before a number is drawn, so concurrent callers can't burn numbers. Numbering is gap-free unless the process crashes mid-allocation; a stale claim is taken over after 1 minute.
+- `invoiceNumber` is unique (partial index on non-empty values).
+- The seller block and prefix come from `StoreSettings.invoice` (`legalName`, `address`, `taxId`, `prefix`), set in Dashboard → Settings.
+- Dates print in `STORE_TIMEZONE` (default `UTC`; an invalid zone falls back to UTC).
 
 ### Wishlist / Review
 One document per `(user, product)`, unique compound index `{ user: 1, product: 1 }`.
@@ -477,7 +520,11 @@ Hard rules: never trust client price/discount/stock/role/paymentStatus; never sk
 
 ### Stock & variants
 - If a product has variants, the selected variant's stock is authoritative; otherwise `product.stock` is.
-- Checkout should reject a quantity greater than available stock (enforce with an atomic conditional `$inc`, not a read-then-write).
+- **Checkout reserves the stock.** `POST /payments/checkout-session` decrements every line with an atomic conditional `$inc` before the Stripe session opens, and sets `stockDecremented`. A shortfall returns `OUT_OF_STOCK`: `400` when the read-time check already fails, `409` when a concurrent checkout won the last units. No order is kept. Payment then takes nothing more.
+- **The hold is released exactly once** (the `stockRestored` claim in `restoreStockOnce`) on `checkout.session.expired` / `async_payment_failed`, a customer or staff cancel, or a failure to open the Stripe session. The reservation lives as long as the session: 30 min.
+- **Reconciler** (`services/checkoutReconciler.js`, every `CHECKOUT_RECONCILE_INTERVAL_MS`, default 5 min): pending reserved orders older than the session TTL plus 10 min are checked against Stripe. A paid session is marked paid (missed webhook), an expired one is released, and an open one is expired first. A Stripe error or a still-settling async payment keeps the hold. All writes are conditional, so it is safe on several instances.
+- Orders without a reservation (created before reservations, direct/dev orders) still decrement at payment. If that fails, the order becomes `needs_attention / insufficient_stock` as before.
+- `stockDecremented && !stockRestored` means "this order holds stock". A released checkout that is paid late (`paid_after_cancel`) holds none, so staff resolving it to `paid` take the stock again.
 - A variant sent by the client must match an existing variant on that product; its price comes from `variant.price` if set, else `product.price`.
 
 ### Orders — state machine
@@ -496,7 +543,7 @@ Hard rules: never trust client price/discount/stock/role/paymentStatus; never sk
 
 ### Wishlist / Reviews
 - One wishlist entry and one review per `(user, product)` pair.
-- Reviews: rating 1–5; owner can edit/delete; only customers with a paid (or refunded) order for the product can review (staff exempt, not marked verified).
+- Reviews: rating 1–5; owner can edit/delete; only customers with a paid (or refunded) order for the product **and a confirmed email** can review (staff exempt, not marked verified).
 
 ### Addresses
 - Shoppers can save multiple addresses, pick one at checkout, and mark a default (`AddressBook.tsx` + `hooks/profile/addressesQuery.ts`). Shipping address is required on every order.
@@ -516,7 +563,6 @@ Everything else described in the old phase-by-phase plan (critical recovery, sec
 - **Arabic manual QA** — a real-browser pass across home, PLP+filters, PDP, cart, checkout, account, at phone width. Static audit (no physical direction classes, icons flip, no hardcoded English JSX) is already done.
 - **Deploy automation** — API/website/dashboard deploys are still triggered by each host's own Git integration, not from CI. No E2E test suite exists yet.
 - **Observability** — Sentry (or equivalent) is not wired up. Pino logging, request IDs, and graceful shutdown are already in place.
-- **Unused shared package** — `packages/types` is built but nothing currently imports it; each app owns its own types. Either wire it in or remove it.
 - **Tech debt (low priority)** — ~178 `express-async-handler` wraps could be simplified now that the underlying Express version handles async errors natively; response contracts across controllers aren't fully standardized.
 - **Security hardening backlog** — see §7's "Known open hardening items."
 

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from './hooks/useTheme';
+import { I18nProvider } from './i18n/I18nProvider';
 import { ToastProvider } from './components/ui/Toast';
 import { ConfirmProvider } from './components/ui/ConfirmDialog';
 import DashboardLayout from './layouts/DashboardLayout';
@@ -16,6 +17,7 @@ import OrderDetail from './pages/OrderDetail';
 import Coupons from './pages/Coupons';
 import Offers from './pages/Offers';
 import Reviews from './pages/Reviews';
+import Messages from './pages/Messages';
 import HelpTopics from './pages/HelpTopics';
 import Content from './pages/Content';
 import StorefrontModules from './pages/StorefrontModules';
@@ -26,7 +28,6 @@ import GiftFinderConfig from './pages/GiftFinderConfig';
 import ProductQA from './pages/ProductQA';
 import Settings from './pages/Settings';
 import ShippingZones from './pages/ShippingZones';
-import Messages from './pages/Messages';
 import Subscribers from './pages/Subscribers';
 import Login from './pages/Login';
 
@@ -42,6 +43,7 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <I18nProvider>
       <ThemeProvider>
         <ToastProvider>
         <ConfirmProvider>
@@ -104,6 +106,10 @@ function App() {
                 element={<Reviews />}
               />
               <Route
+                path='messages'
+                element={<Messages />}
+              />
+              <Route
                 path='help-topics'
                 element={<HelpTopics />}
               />
@@ -140,10 +146,6 @@ function App() {
                 element={<ShippingZones />}
               />
               <Route
-                path='messages'
-                element={<Messages />}
-              />
-              <Route
                 path='subscribers'
                 element={<Subscribers />}
               />
@@ -157,6 +159,7 @@ function App() {
         </ConfirmProvider>
         </ToastProvider>
       </ThemeProvider>
+      </I18nProvider>
     </QueryClientProvider>
   );
 }

@@ -21,6 +21,8 @@ export type MeResponse = {
     email?: string;
     username?: string;
     roles?: string[];
+    /** false until the emailed link is opened; older accounts are true. */
+    emailVerified?: boolean;
   } | null;
   permissions?: string[];
 };

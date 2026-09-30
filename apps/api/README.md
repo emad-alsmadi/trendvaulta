@@ -33,7 +33,7 @@ missing or unsafe values (see [`docs/PROJECT_REFERENCE.md`](../../docs/PROJECT_R
 | Rate limits | `RATE_LIMIT_AUTH_MAX`, `RATE_LIMIT_PASSWORD_MAX`, `RATE_LIMIT_REFRESH_MAX`, `RATE_LIMIT_CHECKOUT_MAX`, `RATE_LIMIT_COUPON_MAX`, `RATE_LIMIT_VERIFY_MAX`, `RATE_LIMIT_QUOTE_MAX`, `RATE_LIMIT_CONTACT_MAX`, `RATE_LIMIT_NEWSLETTER_MAX`, `RATE_LIMIT_WHITELIST_IPS` |
 | Stripe | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `AUTO_REFUND_ON_CANCEL` |
 | Shipping, tax, returns | `SHIPPING_FLAT_USD`, `TAX_RATE_PERCENT` (defaults; admins override both in Dashboard → Settings / shipping zones), `RETURN_WINDOW_DAYS` |
-| Uploads | `STORAGE_DRIVER` (`local` \| `cloudinary`), `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `CLOUDINARY_FOLDER`, `UPLOAD_PUBLIC_BASE_URL` |
+| Uploads | `STORAGE_DRIVER` (`local` \| `cloudinary`; production requires `cloudinary` unless `ALLOW_LOCAL_STORAGE=true`), `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `CLOUDINARY_FOLDER`, `UPLOAD_PUBLIC_BASE_URL`. Move existing local images with `npm run migrate:uploads` (dry run) / `-- --apply` |
 | Logging / shutdown | `LOG_LEVEL`, `LOG_PRETTY`, `LOG_FILE`, `LOG_DIR`, `SHUTDOWN_GRACE_MS` |
 | Seeder | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_USERNAME` |
 | Email | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `FROM_EMAIL`, `CONTACT_INBOX_EMAIL` (fallbacks: `EMAIL_USER`, `EMAIL_PASSWORD` / `EMAIL_PASS`) |
@@ -101,7 +101,7 @@ Derived from `routes/*.js` (all prefixed with `/api`). "admin" = JWT + role perm
 | `uploads.js` | `POST /uploads` (JWT + `products:write` or `brands:write`; image files only) |
 | `shipping.js` | `GET /shipping/zones`, `GET /shipping/methods` (JWT); `/admin/shipping/zones[/:id[/methods/:methodId]]` CRUD (admin `shipping:*`) |
 | `settings.js` | `GET /admin/settings`, `PUT /admin/settings` (admin `content:*`) |
-| `contact.js` | `POST /contact`; `GET /contact/admin` (admin `content:read`) |
+| `contact.js` | `POST /contact`; `GET /contact/admin` (admin `content:read`); `PATCH /contact/admin/:id` (admin `content:write`) |
 | `newsletter.js` | `POST /newsletter`, `POST /newsletter/unsubscribe`; `GET /newsletter/admin` (admin `content:read`) |
 | `storefrontTrust.js` | `GET /storefront/trust` |
 | `storefrontWhyChooseUs.js` | `GET /storefront/why-choose-us` |

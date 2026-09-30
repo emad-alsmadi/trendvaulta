@@ -2,25 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import {
   LayoutGrid,
   Users,
-  Info,
   ShoppingCart,
-  Receipt,
   LogIn,
-  User,
-  LogOut,
-  ChevronDown,
   Sparkles,
-  Shield,
   Heart,
-  MessageSquare,
   Menu,
-  X,
-  HelpCircle,
-  Scale,
   Search,
   Truck,
   Globe,
@@ -31,6 +20,8 @@ import { getUserRole } from '@/lib/authCookies';
 import { useCart } from '@/lib/cartStore';
 import { useConfirm } from '@/components/confirm/ConfirmProvider';
 import { DeliverToControl } from '@/components/navigation/DeliverToControl';
+import { AccountMenu, CategoriesMenu, MoreMenu } from '@/components/navigation/NavMenus';
+import { MobileNavDrawer } from '@/components/navigation/MobileNavDrawer';
 import { useTranslation } from '@/contexts/TranslationContext';
 import {
   CATEGORIES,
@@ -142,6 +133,7 @@ export function Navbar() {
     });
 
   const wishlistHref = user ? '/user/wishlist' : '/auth/login';
+  const isAdmin = getUserRole() === 'admin' || Boolean(user?.roles?.includes('admin'));
 
   const handleNavSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -272,54 +264,7 @@ export function Navbar() {
               aria-label={t('nav.mainNav')}
               className='hidden gap-5 items-center lg:flex shrink-0'
             >
-              <DropdownMenu.Root>
-                <DropdownMenu.Trigger asChild>
-                  <button className='flex relative gap-1 items-center font-medium text-gray-700 transition-colors hover:text-gray-900 group'>
-                    {t('common.categories')}
-                    <ChevronDown className='w-4 h-4' />
-                    <span className='absolute bottom-0 start-0 w-0 h-0.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 transition-all duration-300 group-hover:w-full'></span>
-                  </button>
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Portal>
-                  <DropdownMenu.Content
-                    align='start'
-                    sideOffset={10}
-                    className='z-50 min-w-[400px] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl'
-                  >
-                    <div className='p-4'>
-                      <div className='grid grid-cols-2 gap-4'>
-                        {categories.map((category) => (
-                          <DropdownMenu.Item
-                            key={category.href}
-                            asChild
-                          >
-                            <Link
-                              href={category.href}
-                              className='block p-3 rounded-lg transition-colors hover:bg-gray-50 group'
-                            >
-                              <div className='mb-1 text-sm font-bold text-gray-900 transition-colors group-hover:text-indigo-600'>
-                                {category.name}
-                              </div>
-                              <div className='text-xs leading-relaxed text-gray-500'>
-                                {category.subcategories.slice(0, 3).join(locale === 'ar' ? '، ' : ', ')}
-                              </div>
-                            </Link>
-                          </DropdownMenu.Item>
-                        ))}
-                      </div>
-                    </div>
-                    <div className='p-4 bg-gray-50 border-t border-gray-200'>
-                      <Link
-                        href='/products'
-                        className='flex gap-2 justify-center items-center text-sm font-semibold text-indigo-600 transition-colors hover:text-indigo-700'
-                      >
-                        {t('nav.viewAllCategories')}
-                        <ChevronDown className='h-4 w-4 rotate-[-90deg] rtl:rotate-90' />
-                      </Link>
-                    </div>
-                  </DropdownMenu.Content>
-                </DropdownMenu.Portal>
-              </DropdownMenu.Root>
+              <CategoriesMenu categories={categories} />
 
               <Link
                 href='/products'
@@ -345,62 +290,7 @@ export function Navbar() {
                 <span className='absolute bottom-0 start-0 w-0 h-0.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 transition-all duration-300 group-hover:w-full'></span>
               </Link>
 
-              <DropdownMenu.Root>
-                <DropdownMenu.Trigger asChild>
-                  <button className='flex relative gap-1 items-center font-medium text-gray-700 transition-colors hover:text-gray-900 group'>
-                    {t('nav.more')}
-                    <ChevronDown className='w-4 h-4' />
-                    <span className='absolute bottom-0 start-0 w-0 h-0.5 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-500 transition-all duration-300 group-hover:w-full'></span>
-                  </button>
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Portal>
-                  <DropdownMenu.Content
-                    align='start'
-                    sideOffset={10}
-                    className='z-50 min-w-[200px] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg'
-                  >
-                    <DropdownMenu.Item asChild>
-                      <Link
-                        href='/about'
-                        className='flex gap-2 items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100'
-                      >
-                        <Info className='w-4 h-4' />
-                        {t('common.about')}
-                      </Link>
-                    </DropdownMenu.Item>
-
-                    <DropdownMenu.Item asChild>
-                      <Link
-                        href='/contact'
-                        className='flex gap-2 items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100'
-                      >
-                        <MessageSquare className='w-4 h-4' />
-                        {t('common.contact')}
-                      </Link>
-                    </DropdownMenu.Item>
-
-                    <DropdownMenu.Item asChild>
-                      <Link
-                        href='/faq'
-                        className='flex gap-2 items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100'
-                      >
-                        <HelpCircle className='w-4 h-4' />
-                        {t('nav.faq')}
-                      </Link>
-                    </DropdownMenu.Item>
-
-                    <DropdownMenu.Item asChild>
-                      <Link
-                        href='/terms'
-                        className='flex gap-2 items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100'
-                      >
-                        <Scale className='w-4 h-4' />
-                        {t('nav.terms')}
-                      </Link>
-                    </DropdownMenu.Item>
-                  </DropdownMenu.Content>
-                </DropdownMenu.Portal>
-              </DropdownMenu.Root>
+              <MoreMenu />
             </nav>
 
             {/* Right side */}
@@ -442,124 +332,26 @@ export function Navbar() {
                   <span className='hidden sm:inline'>{t('common.login')}</span>
                 </Link>
               ) : (
-                <DropdownMenu.Root>
-                  <DropdownMenu.Trigger asChild>
-                    <button className='flex gap-2 items-center p-2 rounded-lg transition-colors hover:bg-gray-100'>
-                      <span
-                        className={cn(
-                          'inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-extrabold text-white',
-                          avatarStyle.bg,
-                        )}
-                      >
-                        {initials}
-                      </span>
-                      <span className='hidden text-sm font-medium text-gray-700 sm:block'>
-                        {user?.username || t('nav.account')}
-                      </span>
-                      <ChevronDown className='w-4 h-4 text-gray-400' />
-                    </button>
-                  </DropdownMenu.Trigger>
-
-                  <DropdownMenu.Portal>
-                    <DropdownMenu.Content
-                      align='end'
-                      sideOffset={10}
-                      className='z-50 min-w-[240px] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg'
-                    >
-                      <div className='px-4 py-3 border-b border-gray-200'>
-                        <div className='text-sm font-semibold text-gray-900'>
-                          {user?.username || t('nav.account')}
-                        </div>
-                        <div className='text-xs text-gray-500'>
-                          {user?.email || t('auth.signedIn')}
-                        </div>
-                      </div>
-
-                      <DropdownMenu.Item asChild>
-                        <Link
-                          href='/user'
-                          className='flex gap-2 items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100'
-                        >
-                          <User className='w-4 h-4' />
-                          {t('nav.account')}
-                        </Link>
-                      </DropdownMenu.Item>
-
-                      <DropdownMenu.Item asChild>
-                        <Link
-                          href='/user/orders'
-                          className='flex gap-2 items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100'
-                        >
-                          <Receipt className='w-4 h-4' />
-                          {t('nav.orders')}
-                        </Link>
-                      </DropdownMenu.Item>
-                      <DropdownMenu.Item asChild>
-                        <Link
-                          href='/user/reviews'
-                          className='flex gap-2 items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100'
-                        >
-                          <MessageSquare className='w-4 h-4' />
-                          {t('nav.myReviews')}
-                        </Link>
-                      </DropdownMenu.Item>
-
-                      <DropdownMenu.Item asChild>
-                        <Link
-                          href='/user/wishlist'
-                          className='flex gap-2 items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100'
-                        >
-                          <Heart className='w-4 h-4' />
-                          {t('nav.wishlist')}
-                        </Link>
-                      </DropdownMenu.Item>
-
-                      {getUserRole() === 'admin' ||
-                      user?.roles?.includes('admin') ? (
-                        <DropdownMenu.Item asChild>
-                          <a
-                            href={ADMIN_DASHBOARD_URL}
-                            target='_blank'
-                            rel='noreferrer'
-                            className='flex gap-2 items-center px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100'
-                          >
-                            <Shield className='w-4 h-4' />
-                            {t('nav.adminDashboard')}
-                          </a>
-                        </DropdownMenu.Item>
-                      ) : null}
-
-                      <DropdownMenu.Separator className='my-1 h-px bg-gray-200' />
-
-                      <DropdownMenu.Item
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          void confirmLogout();
-                        }}
-                        className='flex gap-2 items-center px-4 py-2 text-sm text-red-600 transition-colors hover:bg-red-50'
-                      >
-                        <LogOut className='w-4 h-4' />
-                        {t('common.logout')}
-                      </DropdownMenu.Item>
-                    </DropdownMenu.Content>
-                  </DropdownMenu.Portal>
-                </DropdownMenu.Root>
+                <AccountMenu
+                  name={user?.username || t('nav.account')}
+                  email={user?.email}
+                  initials={initials}
+                  avatarClassName={avatarStyle.bg}
+                  adminHref={isAdmin ? ADMIN_DASHBOARD_URL : undefined}
+                  onLogout={() => void confirmLogout()}
+                />
               )}
 
               {/* Mobile / tablet menu button (desktop nav starts at lg) */}
               <button
                 type='button'
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                onClick={() => setMobileMenuOpen(true)}
                 aria-expanded={mobileMenuOpen}
-                aria-label={mobileMenuOpen ? t('nav.closeMenu') : t('nav.openMenu')}
-                aria-controls='mobile-nav-menu'
-                className='p-2 text-gray-700 lg:hidden hover:text-gray-900'
+                aria-haspopup='dialog'
+                aria-label={t('nav.openMenu')}
+                className='rounded-control p-2 text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900 lg:hidden'
               >
-                {mobileMenuOpen ? (
-                  <X className='w-6 h-6' />
-                ) : (
-                  <Menu className='w-6 h-6' />
-                )}
+                <Menu className='h-6 w-6' aria-hidden />
               </button>
             </div>
           </div>
@@ -600,192 +392,14 @@ export function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile / tablet menu */}
-      {mobileMenuOpen && (
-        <div
-          id='mobile-nav-menu'
-          className='bg-white border-t border-gray-200 lg:hidden'
-        >
-          <div className='px-4 py-4 space-y-4'>
-            <form
-              onSubmit={handleNavSearch}
-              role='search'
-              className='relative md:hidden'
-            >
-              <label
-                htmlFor='nav-search-mobile'
-                className='sr-only'
-              >
-                {t('catalog.searchLabel')}
-              </label>
-              <Search className='pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400' />
-              <input
-                id='nav-search-mobile'
-                type='search'
-                value={navSearch}
-                onChange={(e) => setNavSearch(e.target.value)}
-                placeholder={t('catalog.searchPlaceholder')}
-                className='w-full rounded-lg border border-stone-200 bg-stone-50 py-2.5 ps-9 pe-4 text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20'
-              />
-            </form>
-
-            {/* Mobile nav */}
-            <nav aria-label={t('nav.mobileNav')} className='space-y-2'>
-              {/* The utility strip holding the desktop switch is hidden on
-                  small screens, so the language choice lives here too. */}
-              <button
-                type='button'
-                onClick={() => {
-                  setLocale(locale === 'en' ? 'ar' : 'en');
-                  setMobileMenuOpen(false);
-                }}
-                lang={locale === 'en' ? 'ar' : 'en'}
-                className='flex w-full items-center gap-2 rounded-lg px-4 py-2 text-start text-gray-700 hover:bg-gray-100'
-              >
-                <Globe className='h-4 w-4' aria-hidden />
-                {locale === 'en' ? 'العربية' : 'English'}
-              </button>
-              <Link
-                href='/products'
-                onClick={() => setMobileMenuOpen(false)}
-                className='block px-4 py-2 text-gray-700 rounded-lg text-medium hover:bg-gray-100'
-              >
-                {t('nav.shop')}
-              </Link>
-              <Link
-                href='/brands'
-                onClick={() => setMobileMenuOpen(false)}
-                className='block px-4 py-2 text-gray-700 rounded-lg text-medium hover:bg-gray-100'
-              >
-                {t('common.brands')}
-              </Link>
-              <Link
-                href='/offers'
-                onClick={() => setMobileMenuOpen(false)}
-                className='block px-4 py-2 text-gray-700 rounded-lg text-medium hover:bg-gray-100'
-              >
-                {t('nav.deals')}
-              </Link>
-              <div className='px-4 py-2 font-semibold text-gray-900 text-medium'>
-                {t('nav.helpAndInfo')}
-              </div>
-              <div className='ps-8 space-y-2'>
-                <Link
-                  href='/about'
-                  onClick={() => setMobileMenuOpen(false)}
-                  className='block px-4 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100'
-                >
-                  {t('common.about')}
-                </Link>
-                <Link
-                  href='/contact'
-                  onClick={() => setMobileMenuOpen(false)}
-                  className='block px-4 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100'
-                >
-                  {t('common.contact')}
-                </Link>
-                <Link
-                  href='/faq'
-                  onClick={() => setMobileMenuOpen(false)}
-                  className='block px-4 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100'
-                >
-                  {t('nav.faq')}
-                </Link>
-                <Link
-                  href='/privacy'
-                  onClick={() => setMobileMenuOpen(false)}
-                  className='block px-4 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100'
-                >
-                  {t('nav.privacy')}
-                </Link>
-                <Link
-                  href='/terms'
-                  onClick={() => setMobileMenuOpen(false)}
-                  className='block px-4 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100'
-                >
-                  {t('nav.terms')}
-                </Link>
-              </div>
-              <div className='px-4 py-2 font-semibold text-gray-900 text-medium'>
-                {t('common.categories')}
-              </div>
-              <div className='ps-8 space-y-2'>
-                {categories.map((category) => (
-                  <Link
-                    key={category.href}
-                    href={category.href}
-                    className='block px-4 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-100'
-                  >
-                    <div className='font-medium text-gray-700'>
-                      {category.name}
-                    </div>
-                    <div className='text-xs text-gray-500'>
-                      {category.subcategories.join(' • ')}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </nav>
-
-            {!hydrated || !user ? (
-              <Link
-                href='/auth/login'
-                className='block px-4 py-2 w-full font-medium text-center text-white bg-indigo-600 rounded-lg'
-              >
-                {t('common.login')}
-              </Link>
-            ) : (
-              <nav
-                aria-label={t('nav.accountNav')}
-                className='pt-4 space-y-2 border-t border-gray-200'
-              >
-                <Link
-                  href='/user'
-                  className='block px-4 py-2 text-gray-700 rounded-lg text-medium hover:bg-gray-100'
-                >
-                  {t('nav.account')}
-                </Link>
-                <Link
-                  href='/user/orders'
-                  className='block px-4 py-2 text-gray-700 rounded-lg text-medium hover:bg-gray-100'
-                >
-                  {t('nav.orders')}
-                </Link>
-                <Link
-                  href='/user/reviews'
-                  className='block px-4 py-2 text-gray-700 rounded-lg text-medium hover:bg-gray-100'
-                >
-                  {t('nav.myReviews')}
-                </Link>
-                <Link
-                  href='/user/wishlist'
-                  className='block px-4 py-2 text-gray-700 rounded-lg text-medium hover:bg-gray-100'
-                >
-                  {t('nav.wishlist')}
-                </Link>
-                {getUserRole() === 'admin' || user?.roles?.includes('admin') ? (
-                  <a
-                    href={ADMIN_DASHBOARD_URL}
-                    target='_blank'
-                    rel='noreferrer'
-                    className='block px-4 py-2 text-gray-700 rounded-lg text-medium hover:bg-gray-100'
-                  >
-                    {t('nav.adminDashboard')}
-                  </a>
-                ) : null}
-                <button
-                  onClick={() => {
-                    void confirmLogout();
-                  }}
-                  className='block px-4 py-2 w-full text-start text-red-600 rounded-lg text-medium hover:bg-red-50'
-                >
-                  {t('common.logout')}
-                </button>
-              </nav>
-            )}
-          </div>
-        </div>
-      )}
+      <MobileNavDrawer
+        open={mobileMenuOpen}
+        onOpenChange={setMobileMenuOpen}
+        categories={categories}
+        signedIn={Boolean(hydrated && user)}
+        adminHref={isAdmin ? ADMIN_DASHBOARD_URL : undefined}
+        onLogout={() => void confirmLogout()}
+      />
     </header>
   );
 }

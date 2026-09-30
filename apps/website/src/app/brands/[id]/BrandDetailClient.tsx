@@ -5,7 +5,6 @@ import { useBrandById } from '@/hooks/brands/brandsQuery';
 import { useProducts } from '@/hooks/products/productsQuery';
 import { motion } from 'framer-motion';
 import {
-  Loader2,
   Star,
   Globe,
   MapPin,
@@ -14,6 +13,7 @@ import {
 } from 'lucide-react';
 import { ProductCard } from '@/components/products/ProductCard';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { ProductGridSkeleton, Skeleton, SkeletonGroup } from '@/components/ui/Skeleton';
 
 export function BrandDetailClient({ id }: { id: string }) {
   const { t } = useTranslation();
@@ -31,14 +31,19 @@ export function BrandDetailClient({ id }: { id: string }) {
 
   if (brandLoading) {
     return (
-      <div role='status' className='min-h-screen flex items-center justify-center'>
-        <div className='text-center'>
-          <Loader2 className='h-12 w-12 animate-spin text-fuchsia-600 mx-auto' aria-hidden />
-          <p className='mt-4 text-gray-600'>
-            {t('brandsPage.detail.loading')}
-          </p>
+      <SkeletonGroup
+        label={t('brandsPage.detail.loading')}
+        className='mx-auto max-w-7xl py-6'
+      >
+        <div aria-hidden className='flex items-center gap-5'>
+          <Skeleton className='h-20 w-20 shrink-0 rounded-2xl' />
+          <div className='min-w-0 flex-1'>
+            <Skeleton className='h-8 w-56 max-w-full' />
+            <Skeleton className='mt-3 h-4 w-80 max-w-full' />
+          </div>
         </div>
-      </div>
+        <ProductGridSkeleton className='mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' />
+      </SkeletonGroup>
     );
   }
 
@@ -131,9 +136,7 @@ export function BrandDetailClient({ id }: { id: string }) {
           </div>
 
           {productsLoading ? (
-            <div className='flex items-center justify-center py-12'>
-              <Loader2 className='h-8 w-8 animate-spin text-fuchsia-600' />
-            </div>
+            <ProductGridSkeleton className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' />
           ) : products.length > 0 ? (
             <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'>
               {products.map((product) => (

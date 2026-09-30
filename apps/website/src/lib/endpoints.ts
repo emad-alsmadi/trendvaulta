@@ -14,6 +14,8 @@ export const endpoints = {
     refresh: '/auth/refresh',
     logout: '/auth/logout',
     profile: '/auth/profile',
+    verifyEmail: '/auth/verify-email',
+    resendVerification: '/auth/verify-email/resend',
   },
   addresses: {
     list: '/auth/addresses',
@@ -33,6 +35,7 @@ export const endpoints = {
     my: '/orders/my',
     details: (id: string) => `/orders/${id}`,
     cancel: (id: string) => `/orders/${id}/cancel`,
+    guestLookup: '/orders/guest/lookup',
     returnRequest: (id: string) => `/orders/${id}/return`,
     invoice: (id: string) => `/orders/${id}/invoice`,
   },

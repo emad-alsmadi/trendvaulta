@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Loader2, MessageSquare } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { useTranslation } from '@/contexts/TranslationContext';
@@ -26,6 +26,7 @@ import {
 } from '@/lib/userFacingError';
 import type { Review, ReviewPayload, ReviewUpdatePayload } from '@/types';
 import { useHasAuthToken } from '@/hooks/auth/useHasAuthToken';
+import { ListSkeleton } from '@/components/ui/Skeleton';
 
 type Props = {
   productId: string;
@@ -155,10 +156,7 @@ export function ProductReviewsSection({ productId }: Props) {
       )}
 
       {reviewsQuery.isLoading ? (
-        <div role='status' className='flex items-center gap-2 py-6 text-sm text-stone-500'>
-          <Loader2 className='h-4 w-4 animate-spin' aria-hidden />
-          {t('reviews.loading')}
-        </div>
+        <ListSkeleton rows={2} thumb={false} label={t('reviews.loading')} className='py-2' />
       ) : reviewsQuery.error ? (
         <div className='flex flex-wrap items-center gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800'>
           <span>{t('reviews.loadError')}</span>

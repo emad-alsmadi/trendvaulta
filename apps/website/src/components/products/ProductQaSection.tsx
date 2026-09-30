@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { HelpCircle, Loader2, ThumbsUp } from 'lucide-react';
+import { HelpCircle, ThumbsUp } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -25,6 +25,7 @@ import {
 } from '@/lib/userFacingError';
 import type { ProductQAItem } from '@/lib/api';
 import { useHasAuthToken } from '@/hooks/auth/useHasAuthToken';
+import { ListSkeleton } from '@/components/ui/Skeleton';
 
 type Props = {
   productId: string;
@@ -181,10 +182,7 @@ export function ProductQaSection({ productId }: Props) {
       )}
 
       {qaQuery.isLoading ? (
-        <div role='status' className='flex items-center gap-2 py-4 text-sm text-stone-500'>
-          <Loader2 className='h-4 w-4 animate-spin' aria-hidden />
-          {t('productQa.loading')}
-        </div>
+        <ListSkeleton rows={2} thumb={false} label={t('productQa.loading')} className='py-2' />
       ) : qaQuery.error ? (
         <div className='flex flex-wrap items-center gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800'>
           <span>{t('productQa.loadError')}</span>

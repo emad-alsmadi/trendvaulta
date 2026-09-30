@@ -20,6 +20,7 @@ import { useTableQuery } from '../hooks/useTableQuery';
 import { SortableHeader } from '../components/ui/SortableHeader';
 import { TablePagination } from '../components/ui/TablePagination';
 import { FormDialog } from '../components/ui/FormDialog';
+import { useT } from '../i18n/I18nProvider';
 
 const emptyForm: CouponPayload = {
   code: '',
@@ -42,6 +43,7 @@ export default function Coupons() {
   const { can } = usePermissions();
   const toast = useToast();
   const confirm = useConfirm();
+  const { t, formatCurrency, formatDate, formatNumber } = useT();
   const table = useTableQuery({ limit: 25, sort: 'createdAt', order: 'desc' });
   const { resetPage } = table;
   const [search, setSearch] = useState('');
@@ -88,11 +90,11 @@ export default function Coupons() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.code.trim() || !form.discountValue || !form.expirationDate) {
-      toast.error('Code, discount value, and expiration date are required.');
+      toast.error(t('coupons.required'));
       return;
     }
     if (form.discountType === 'percentage' && Number(form.discountValue) > 100) {
-      toast.error('A percentage discount cannot exceed 100.');
+      toast.error(t('coupons.percentTooHigh'));
       return;
     }
 
@@ -120,17 +122,17 @@ export default function Coupons() {
       setOpen(false);
       setEditing(null);
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not save coupon'));
+      toast.error(errorMessage(err, t('coupons.saveFailed')));
     }
   }
 
   async function handleDelete(coupon: AdminCoupon) {
-    const ok = await confirm({ message: `Deactivate / delete coupon "${coupon.code}"?`, danger: true, confirmLabel: 'Delete' });
+    const ok = await confirm({ message: t('coupons.confirmDelete', { code: coupon.code }), danger: true, confirmLabel: t('common.delete') });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(coupon._id);
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not delete coupon'));
+      toast.error(errorMessage(err, t('coupons.deleteFailed')));
     }
   }
 
@@ -143,11 +145,10 @@ export default function Coupons() {
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Coupons
+            {t('coupons.title')}
           </h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Live promo codes from the API. Checkout applies coupons
-            server-side.
+            {t('coupons.subtitle')}
           </p>
         </div>
         {can('coupons:write') && (
@@ -156,8 +157,8 @@ export default function Coupons() {
             onClick={openCreate}
             className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
           >
-            <Plus className="mr-2 h-5 w-5" />
-            Add coupon
+            <Plus className="me-2 h-5 w-5" aria-hidden />
+            {t('coupons.add')}
           </button>
         )}
       </div>
@@ -170,26 +171,26 @@ export default function Coupons() {
           resetPage();
         }}
       >
-        <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+        <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" aria-hidden />
         <input
           type="search"
-          aria-label="Search by code or description"
+          aria-label={t('coupons.searchLabel')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by code or description…"
-          className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+          placeholder={t('coupons.searchPlaceholder')}
+          className="w-full rounded-lg border border-gray-300 bg-white py-2 ps-10 pe-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
         />
       </form>
 
       {couponsQ.isLoading && (
         <p className="py-10 text-center text-sm text-gray-500">
-          Loading coupons…
+          {t('coupons.loading')}
         </p>
       )}
 
       {couponsQ.isError && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-          {errorMessage(couponsQ.error, 'Failed to load coupons')}
+          {errorMessage(couponsQ.error, t('coupons.loadFailed'))}
         </div>
       )}
 
@@ -198,14 +199,14 @@ export default function Coupons() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[800px]">
               <thead className="bg-gray-50 text-xs uppercase tracking-wider dark:bg-gray-700">
-                <tr className="[&>th]:px-4 [&>th]:py-3 [&>th]:text-left [&>th]:font-medium [&>th]:text-gray-500 dark:[&>th]:text-gray-300">
+                <tr className="[&>th]:px-4 [&>th]:py-3 [&>th]:text-start [&>th]:font-medium [&>th]:text-gray-500 dark:[&>th]:text-gray-300">
                   <SortableHeader
                     field="code"
                     active={table.sort}
                     order={table.order}
                     onSort={table.toggleSort}
                   >
-                    Code
+                    {t('coupons.columns.code')}
                   </SortableHeader>
                   <SortableHeader
                     field="discountValue"
@@ -213,20 +214,20 @@ export default function Coupons() {
                     order={table.order}
                     onSort={table.toggleSort}
                   >
-                    Discount
+                    {t('coupons.columns.discount')}
                   </SortableHeader>
-                  <th scope="col">Min order</th>
-                  <th scope="col">Usage</th>
+                  <th scope="col">{t('coupons.columns.minOrder')}</th>
+                  <th scope="col">{t('coupons.columns.usage')}</th>
                   <SortableHeader
                     field="expirationDate"
                     active={table.sort}
                     order={table.order}
                     onSort={table.toggleSort}
                   >
-                    Expires
+                    {t('coupons.columns.expires')}
                   </SortableHeader>
-                  <th scope="col">Status</th>
-                  <th scope="col">Actions</th>
+                  <th scope="col">{t('common.status')}</th>
+                  <th scope="col">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -236,7 +237,7 @@ export default function Coupons() {
                       colSpan={7}
                       className="px-4 py-10 text-center text-sm text-gray-500"
                     >
-                      No coupons found.
+                      {t('coupons.empty')}
                     </td>
                   </tr>
                 ) : (
@@ -245,25 +246,27 @@ export default function Coupons() {
                       key={coupon._id}
                       className="hover:bg-gray-50 dark:hover:bg-gray-700/60"
                     >
-                      <td className="px-4 py-3 font-mono text-sm font-semibold text-gray-900 dark:text-white">
+                      <td className="px-4 py-3 font-mono text-sm font-semibold text-gray-900 dark:text-white" dir="ltr">
                         {coupon.code}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
                         {coupon.discountType === 'percentage'
-                          ? `${coupon.discountValue}%`
-                          : `$${Number(coupon.discountValue).toFixed(2)}`}
+                          ? `${formatNumber(coupon.discountValue)}%`
+                          : formatCurrency(Number(coupon.discountValue))}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                        ${Number(coupon.minimumOrderAmount || 0).toFixed(2)}
+                        {formatCurrency(Number(coupon.minimumOrderAmount || 0))}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                        {coupon.usedCount}
+                        {formatNumber(coupon.usedCount)}
                         {coupon.usageLimit != null
-                          ? ` / ${coupon.usageLimit}`
+                          ? ` / ${formatNumber(coupon.usageLimit)}`
                           : ' / ∞'}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                        {toDateInput(coupon.expirationDate) || '—'}
+                        {toDateInput(coupon.expirationDate)
+                          ? formatDate(`${toDateInput(coupon.expirationDate)}T00:00:00`)
+                          : '—'}
                       </td>
                       <td className="px-4 py-3">
                         <span
@@ -273,7 +276,7 @@ export default function Coupons() {
                               : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                           }`}
                         >
-                          {coupon.isActive ? 'Active' : 'Inactive'}
+                          {coupon.isActive ? t('common.active') : t('common.inactive')}
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -283,9 +286,9 @@ export default function Coupons() {
                               type="button"
                               onClick={() => openEdit(coupon)}
                               className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600"
-                              aria-label={`Edit ${coupon.code}`}
+                              aria-label={t('common.editItem', { name: coupon.code })}
                             >
-                              <Pencil className="h-4 w-4 text-gray-500" />
+                              <Pencil className="h-4 w-4 text-gray-500" aria-hidden />
                             </button>
                           )}
                           {can('coupons:delete') && (
@@ -294,9 +297,9 @@ export default function Coupons() {
                               onClick={() => void handleDelete(coupon)}
                               disabled={deleteMut.isPending}
                               className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
-                              aria-label={`Delete ${coupon.code}`}
+                              aria-label={t('common.deleteItem', { name: coupon.code })}
                             >
-                              <Trash2 className="h-4 w-4 text-red-500" />
+                              <Trash2 className="h-4 w-4 text-red-500" aria-hidden />
                             </button>
                           )}
                         </div>
@@ -319,17 +322,18 @@ export default function Coupons() {
       {open && (
         <FormDialog
           onClose={() => setOpen(false)}
-          title={editing ? 'Edit coupon' : 'Create coupon'}
+          title={editing ? t('coupons.form.editTitle') : t('coupons.form.createTitle')}
           busy={saving}
           maxWidthClass="max-w-lg"
         >
           <form onSubmit={handleSubmit} className="space-y-3">
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Code
+                {t('coupons.form.code')}
               </span>
               <input
                 required
+                dir="ltr"
                 value={form.code}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -343,7 +347,7 @@ export default function Coupons() {
             <div className="grid grid-cols-2 gap-3">
               <label className="block text-sm">
                 <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Type
+                  {t('coupons.form.type')}
                 </span>
                 <select
                   value={form.discountType}
@@ -355,13 +359,13 @@ export default function Coupons() {
                   }
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                 >
-                  <option value="percentage">Percentage</option>
-                  <option value="fixed">Fixed amount</option>
+                  <option value="percentage">{t('coupons.form.percentage')}</option>
+                  <option value="fixed">{t('coupons.form.fixed')}</option>
                 </select>
               </label>
               <label className="block text-sm">
                 <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Value
+                  {t('coupons.form.value')}
                 </span>
                 <input
                   type="number"
@@ -382,7 +386,7 @@ export default function Coupons() {
             </div>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Expiration date
+                {t('coupons.form.expiration')}
               </span>
               <input
                 type="date"
@@ -400,13 +404,13 @@ export default function Coupons() {
             <div className="grid grid-cols-2 gap-3">
               <label className="block text-sm">
                 <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Usage limit
+                  {t('coupons.form.usageLimit')}
                 </span>
                 <input
                   type="number"
                   min={1}
                   step={1}
-                  placeholder="Unlimited"
+                  placeholder={t('common.unlimited')}
                   value={form.usageLimit ?? ''}
                   onChange={(e) =>
                     setForm((f) => ({
@@ -422,7 +426,7 @@ export default function Coupons() {
               </label>
               <label className="block text-sm">
                 <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Min order ($)
+                  {t('coupons.form.minOrder')}
                 </span>
                 <input
                   type="number"
@@ -441,13 +445,13 @@ export default function Coupons() {
             </div>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Uses per customer
+                {t('coupons.form.perCustomer')}
               </span>
               <input
                 type="number"
                 min={1}
                 step={1}
-                placeholder="Unlimited"
+                placeholder={t('common.unlimited')}
                 value={form.perCustomerLimit ?? ''}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -459,8 +463,7 @@ export default function Coupons() {
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
               />
               <span className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
-                Counts each customer&apos;s paid orders with this code. Empty =
-                no per-customer limit.
+                {t('coupons.form.perCustomerHint')}
               </span>
             </label>
             <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
@@ -471,15 +474,16 @@ export default function Coupons() {
                   setForm((f) => ({ ...f, isActive: e.target.checked }))
                 }
               />
-              Active
+              {t('common.active')}
             </label>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Description
+                {t('common.description')}
               </span>
               <textarea
                 rows={2}
                 value={form.description || ''}
+                dir="auto"
                 onChange={(e) =>
                   setForm((f) => ({ ...f, description: e.target.value }))
                 }
@@ -493,14 +497,14 @@ export default function Coupons() {
                 onClick={() => setOpen(false)}
                 className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={saving}
                 className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
               >
-                {saving ? 'Saving…' : editing ? 'Save' : 'Create'}
+                {saving ? t('common.saving') : editing ? t('common.save') : t('common.create')}
               </button>
             </div>
           </form>

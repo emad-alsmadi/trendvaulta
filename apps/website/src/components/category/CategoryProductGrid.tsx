@@ -9,6 +9,7 @@ import { Pagination } from '@/components/ui/Pagination';
 import { ProductCard } from '@/components/products/ProductCard';
 import { useProducts } from '@/hooks/products/productsQuery';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { ProductGridSkeleton, Skeleton } from '@/components/ui/Skeleton';
 
 const sortOptions = [
   { value: 'createdAt', labelKey: 'catalog.sort.featured' },
@@ -103,7 +104,10 @@ export function CategoryProductGrid({ category, subcategory }: Props) {
       <div className='mb-4 flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center'>
         <div role='status' className='flex flex-wrap items-center gap-2 text-sm text-stone-600'>
           {isLoading && !response ? (
-            <span>{t('catalog.loading')}</span>
+            <>
+              <Skeleton className='h-4 w-40' />
+              <span className='sr-only'>{t('catalog.loading')}</span>
+            </>
           ) : error && !response ? (
             <span className='text-rose-600'>{t('catalog.loadFailed')}</span>
           ) : (
@@ -150,14 +154,7 @@ export function CategoryProductGrid({ category, subcategory }: Props) {
       </div>
 
       {isLoading && !response ? (
-        <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div
-              key={i}
-              className='aspect-[3/4] animate-pulse rounded-xl bg-stone-200/70'
-            />
-          ))}
-        </div>
+        <ProductGridSkeleton className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' />
       ) : error && !response ? (
         <div className='rounded-xl border border-rose-100 bg-white py-12 text-center'>
           <p className='text-rose-600'>{t('catalog.catalogLoadFailed')}</p>

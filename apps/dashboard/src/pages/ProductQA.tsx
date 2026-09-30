@@ -123,14 +123,14 @@ export default function ProductQA() {
             resetPage();
           }}
         >
-          <Search className='absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400' />
+          <Search className='absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400' />
           <input
             type='search'
             aria-label='Search questions and answers'
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder='Search questions and answers…'
-            className='w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white'
+            className='w-full rounded-lg border border-gray-300 bg-white py-2 ps-10 pe-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white'
           />
         </form>
         <select

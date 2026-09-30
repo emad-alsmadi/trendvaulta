@@ -1,5 +1,6 @@
 /**
- * Regression tests for the 2026-09 audit fixes (docs/audit/AUDIT_REPORT.md):
+ * Regression tests for the 2026-09 audit fixes (report removed from the tree;
+ * read it with `git show a602258:docs/audit/AUDIT_REPORT.md`):
  * checkout edge cases, Stripe paid-state rules, fulfilment, money rounding,
  * coupon limits, restocking, permissions, account safety and soft delete.
  * Stripe is faked in-process (see setup.js).

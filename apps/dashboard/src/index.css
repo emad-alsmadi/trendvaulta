@@ -58,3 +58,14 @@
     color: hsl(var(--foreground));
   }
 }
+
+/* Toast countdown bar (components/ui/Toast.tsx). Its animationend dismisses
+   the toast, so animation-play-state pauses the timer on hover/focus. */
+@keyframes toast-countdown {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}

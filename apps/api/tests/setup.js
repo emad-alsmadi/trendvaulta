@@ -26,9 +26,20 @@ process.env.LOG_LEVEL ||= 'silent';
 // raise it so suites cannot trip it. Rate-limit tests assert relative
 // bucket movement, not the absolute ceiling.
 process.env.RATE_LIMIT_CHECKOUT_MAX ||= '1000';
-// Never let a stray .env send real mail from the test run
-for (const key of ['SMTP_HOST', 'SMTP_USER', 'EMAIL_USER']) {
-  delete process.env[key];
+// Never let a stray .env send real mail from the test run. Blank rather than
+// delete: app.js runs dotenv after this file, and dotenv only fills keys that
+// are absent, so a deleted key would come straight back from a local .env
+// (every mail then tries a real SMTP server and stalls a test ~60 s).
+for (const key of [
+  'SMTP_HOST',
+  'SMTP_USER',
+  'SMTP_PASS',
+  'EMAIL_USER',
+  'EMAIL_PASSWORD',
+  'EMAIL_PASS',
+  'FROM_EMAIL',
+]) {
+  process.env[key] = '';
 }
 delete process.env.AUTO_REFUND_ON_CANCEL;
 delete process.env.SHIPPING_FLAT_USD;
@@ -43,10 +54,13 @@ const stripeMock = {
   sessions: null,
   /** Optional override: (sessionId) => session */
   retrieveImpl: null,
+  /** Optional override: (params) => session; throw to simulate a Stripe outage */
+  createImpl: null,
   reset() {
     this.calls = {
       sessionsCreate: [],
       sessionsRetrieve: [],
+      sessionsExpire: [],
       couponsCreate: [],
       couponsDel: [],
       refundsCreate: [],
@@ -54,6 +68,7 @@ const stripeMock = {
     };
     this.sessions = new Map();
     this.retrieveImpl = null;
+    this.createImpl = null;
   },
 };
 stripeMock.reset();
@@ -63,6 +78,7 @@ const fakeStripe = {
     sessions: {
       async create(params) {
         stripeMock.calls.sessionsCreate.push(params);
+        if (stripeMock.createImpl) return stripeMock.createImpl(params);
         seq += 1;
         const id = `cs_test_${seq}`;
         return { id, url: `https://checkout.stripe.test/${id}`, ...params };
@@ -77,6 +93,19 @@ const fakeStripe = {
           throw err;
         }
         return session;
+      },
+      /** Like Stripe: only an open session can be expired. */
+      async expire(id) {
+        stripeMock.calls.sessionsExpire.push(id);
+        const session = stripeMock.sessions.get(id);
+        if (!session || session.status !== 'open') {
+          const err = new Error(`Session ${id} is not open`);
+          err.statusCode = 400;
+          throw err;
+        }
+        const expired = { ...session, status: 'expired' };
+        stripeMock.sessions.set(id, expired);
+        return expired;
       },
     },
   },

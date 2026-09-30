@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail } from 'lucide-react';
+import { Mail, Search } from 'lucide-react';
 import {
   useAdminContactMessages,
-  useUpdateContactStatusMutation,
-} from '../hooks/useAdminInbox';
+  useUpdateContactMessageMutation,
+} from '../hooks/useAdminContactMessages';
 import {
   errorMessage,
   type AdminContactMessage,
@@ -13,49 +13,134 @@ import {
 import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useTableQuery } from '../hooks/useTableQuery';
+import { SortableHeader } from '../components/ui/SortableHeader';
 import { TablePagination } from '../components/ui/TablePagination';
+import { FormDialog } from '../components/ui/FormDialog';
+import { intlLocale, useT } from '../i18n/I18nProvider';
+
+// '' = all; labels come from t('messages.all') / tv('contactStatus', …).
+const STATUS_FILTERS: Array<'' | ContactMessageStatus> = ['', 'new', 'read', 'closed'];
 
 const STATUS_BADGE: Record<ContactMessageStatus, string> = {
-  new: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-  read: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-  closed: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
+  new: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
+  read: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
+  closed: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200',
 };
 
-const STATUS_LABEL: Record<ContactMessageStatus, string> = {
-  new: 'New',
-  read: 'Read',
-  closed: 'Closed',
-};
+function StatusBadge({ status }: { status: ContactMessageStatus }) {
+  const { tv } = useT();
+  return (
+    <span
+      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[status]}`}
+    >
+      {tv('contactStatus', status)}
+    </span>
+  );
+}
+
+/** Compact table form, e.g. "Sep 29, 6:35 PM" (year only when not this year). */
+function formatShortDate(value: string | null | undefined, tag: string) {
+  if (!value) return '—';
+  const date = new Date(value);
+  return date.toLocaleString(tag, {
+    month: 'short',
+    day: 'numeric',
+    ...(date.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}),
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+/**
+ * Opens the staff member's mail client with the enquiry quoted. The draft goes
+ * to the customer, so it stays in the store's customer-facing language.
+ */
+function replyHref(message: AdminContactMessage) {
+  const subject = /^re:/i.test(message.subject)
+    ? message.subject
+    : `Re: ${message.subject}`;
+  const quoted = message.message
+    .split('\n')
+    .map((line) => `> ${line}`)
+    .join('\n');
+  const body = `Hi ${message.name},\n\n\n\n${quoted}`;
+  return `mailto:${message.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
 
 export default function Messages() {
   const { can } = usePermissions();
-  const toast = useToast();
-  const table = useTableQuery({ limit: 25 });
-  const [status, setStatus] = useState<ContactMessageStatus | ''>('new');
-
-  // Newest first (server order); the status filter runs server-side.
-  const messagesQ = useAdminContactMessages({
-    page: table.page,
-    limit: table.limit,
-    status: status || undefined,
-  });
-  const updateMut = useUpdateContactStatusMutation();
-  const items = messagesQ.data?.data || [];
   const canWrite = can('content:write');
+  const toast = useToast();
+  const { t, tv, locale, formatDateTime, formatNumber } = useT();
+  const tag = intlLocale(locale);
+  const formatDate = (value?: string | null) => (value ? formatDateTime(value) : '—');
+  const table = useTableQuery({ limit: 25, sort: 'createdAt', order: 'desc' });
+  const { resetPage } = table;
+  const [search, setSearch] = useState('');
+  const [appliedQ, setAppliedQ] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'' | ContactMessageStatus>('');
 
-  async function setMessageStatus(
-    msg: AdminContactMessage,
-    next: ContactMessageStatus,
-  ) {
-    try {
-      await updateMut.mutateAsync({ id: msg._id, status: next });
-      toast.success(`Marked "${msg.subject}" as ${STATUS_LABEL[next].toLowerCase()}.`);
-    } catch (err) {
-      toast.error(errorMessage(err, 'Could not update message'));
+  const messagesQ = useAdminContactMessages({
+    ...table.params,
+    q: appliedQ || undefined,
+    status: statusFilter || undefined,
+  });
+  const updateMut = useUpdateContactMessageMutation();
+
+  const messages = messagesQ.data?.data || [];
+  const meta = messagesQ.data?.meta;
+  const counts = messagesQ.data?.counts;
+
+  const [viewing, setViewing] = useState<AdminContactMessage | null>(null);
+  const [note, setNote] = useState('');
+
+  async function openMessage(message: AdminContactMessage) {
+    setViewing(message);
+    setNote(message.staffNote || '');
+    // Opening an unread message reads it, as in any inbox
+    if (canWrite && message.status === 'new') {
+      try {
+        setViewing(await updateMut.mutateAsync({ id: message._id, status: 'read' }));
+      } catch {
+        // Still readable; the status just stays "new"
+      }
     }
   }
 
-  const busyId = updateMut.isPending ? updateMut.variables?.id : undefined;
+  async function setStatus(status: ContactMessageStatus) {
+    if (!viewing) return;
+    try {
+      const updated = await updateMut.mutateAsync({ id: viewing._id, status });
+      setViewing(updated);
+      toast.success(
+        status === 'closed'
+          ? t('messages.closed')
+          : status === 'new'
+            ? t('messages.markedUnread')
+            : t('messages.reopened'),
+      );
+    } catch (err) {
+      toast.error(errorMessage(err, t('messages.updateFailed')));
+    }
+  }
+
+  async function saveNote(e: React.FormEvent) {
+    e.preventDefault();
+    if (!viewing) return;
+    try {
+      const updated = await updateMut.mutateAsync({
+        id: viewing._id,
+        staffNote: note.trim(),
+      });
+      setViewing(updated);
+      setNote(updated.staffNote || '');
+      toast.success(t('messages.noteSaved'));
+    } catch (err) {
+      toast.error(errorMessage(err, t('messages.noteFailed')));
+    }
+  }
+
+  const noteChanged = viewing ? note.trim() !== (viewing.staffNote || '') : false;
 
   return (
     <motion.div
@@ -63,128 +148,280 @@ export default function Messages() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      <div className='mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between'>
-        <div>
-          <h1 className='text-3xl font-bold text-gray-900 dark:text-white'>
-            Messages
-          </h1>
-          <p className='mt-1 text-sm text-gray-600 dark:text-gray-400'>
-            Enquiries from the storefront contact form, newest first.
-          </p>
-        </div>
-        <select
-          value={status}
-          onChange={(e) => {
-            setStatus(e.target.value as ContactMessageStatus | '');
-            table.resetPage();
-          }}
-          aria-label='Filter by status'
-          className='rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white'
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          {t('messages.title')}
+        </h1>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+          {t('messages.subtitle')}
+        </p>
+      </div>
+
+      <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div
+          role="group"
+          aria-label={t('messages.filterStatus')}
+          className="flex flex-wrap gap-2"
         >
-          <option value='new'>New</option>
-          <option value='read'>Read</option>
-          <option value='closed'>Closed</option>
-          <option value=''>All</option>
-        </select>
+          {STATUS_FILTERS.map((value) => {
+            const active = statusFilter === value;
+            const count = value && counts ? counts[value] : undefined;
+            return (
+              <button
+                key={value || 'all'}
+                type="button"
+                aria-pressed={active}
+                onClick={() => {
+                  setStatusFilter(value);
+                  resetPage();
+                }}
+                className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+                  active
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-white text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-200 dark:ring-gray-600 dark:hover:bg-gray-700'
+                }`}
+              >
+                {value ? tv('contactStatus', value) : t('messages.all')}
+                {count !== undefined && <span className="ms-1.5 opacity-80">{formatNumber(count)}</span>}
+              </button>
+            );
+          })}
+        </div>
+        <form
+          className="relative flex-1"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setAppliedQ(search.trim());
+            resetPage();
+          }}
+        >
+          <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" aria-hidden />
+          <input
+            type="search"
+            aria-label={t('messages.searchLabel')}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('messages.searchPlaceholder')}
+            className="w-full rounded-lg border border-gray-300 bg-white py-2 ps-10 pe-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+          />
+        </form>
       </div>
 
       {messagesQ.isLoading && (
-        <p className='py-10 text-center text-sm text-gray-500'>Loading messages…</p>
+        <p className="py-10 text-center text-sm text-gray-500">
+          {t('messages.loading')}
+        </p>
       )}
 
       {messagesQ.isError && (
-        <div className='rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200'>
-          {errorMessage(messagesQ.error, 'Failed to load messages')}
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+          {errorMessage(messagesQ.error, t('messages.loadFailed'))}
         </div>
       )}
 
       {!messagesQ.isLoading && !messagesQ.isError && (
-        <div className='space-y-4'>
-          {items.length === 0 ? (
-            <p className='py-10 text-center text-sm text-gray-500'>
-              No messages{status ? ` marked ${STATUS_LABEL[status].toLowerCase()}` : ''}.
-            </p>
-          ) : (
-            items.map((msg) => (
-              <article
-                key={msg._id}
-                className='rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800'
-              >
-                <div className='flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between'>
-                  <div className='min-w-0'>
-                    <h2 className='font-semibold text-gray-900 dark:text-white'>
-                      {msg.subject}
-                    </h2>
-                    <p className='mt-0.5 text-sm text-gray-600 dark:text-gray-400'>
-                      {msg.name} ·{' '}
-                      <a
-                        href={`mailto:${msg.email}?subject=${encodeURIComponent(`Re: ${msg.subject}`)}`}
-                        className='text-blue-600 hover:underline dark:text-blue-400'
-                      >
-                        {msg.email}
-                      </a>{' '}
-                      · {new Date(msg.createdAt).toLocaleString()}
-                    </p>
-                  </div>
-                  <span
-                    className={`self-start rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[msg.status]}`}
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px]">
+              <thead className="bg-gray-50 text-xs uppercase tracking-wider dark:bg-gray-700">
+                <tr className="[&>th]:px-4 [&>th]:py-3 [&>th]:text-start [&>th]:font-medium [&>th]:text-gray-500 dark:[&>th]:text-gray-300">
+                  <th scope="col">{t('messages.columns.from')}</th>
+                  <th scope="col">{t('messages.columns.subject')}</th>
+                  <SortableHeader
+                    field="createdAt"
+                    active={table.sort}
+                    order={table.order}
+                    onSort={table.toggleSort}
                   >
-                    {STATUS_LABEL[msg.status]}
-                  </span>
-                </div>
-                <p className='mt-3 whitespace-pre-wrap break-words text-sm text-gray-800 dark:text-gray-200'>
-                  {msg.message}
-                </p>
-                {canWrite && (
-                  <div className='mt-4 flex flex-wrap items-center gap-2'>
-                    <a
-                      href={`mailto:${msg.email}?subject=${encodeURIComponent(`Re: ${msg.subject}`)}`}
-                      className='inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700'
+                    {t('messages.columns.received')}
+                  </SortableHeader>
+                  <SortableHeader
+                    field="status"
+                    active={table.sort}
+                    order={table.order}
+                    onSort={table.toggleSort}
+                  >
+                    {t('messages.columns.status')}
+                  </SortableHeader>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                {messages.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-10 text-center text-sm text-gray-500">
+                      {appliedQ || statusFilter ? t('messages.noMatch') : t('messages.none')}
+                    </td>
+                  </tr>
+                ) : (
+                  messages.map((m) => (
+                    <tr
+                      key={m._id}
+                      className={`hover:bg-gray-50 dark:hover:bg-gray-700/60 ${
+                        m.status === 'new' ? 'font-semibold' : ''
+                      }`}
                     >
-                      <Mail className='h-3.5 w-3.5' />
-                      Reply by email
-                    </a>
-                    {msg.status === 'new' && (
-                      <button
-                        type='button'
-                        onClick={() => void setMessageStatus(msg, 'read')}
-                        disabled={busyId === msg._id}
-                        className='rounded-lg bg-blue-500 px-3 py-1 text-xs font-medium text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50'
-                      >
-                        Mark read
-                      </button>
-                    )}
-                    {msg.status !== 'closed' ? (
-                      <button
-                        type='button'
-                        onClick={() => void setMessageStatus(msg, 'closed')}
-                        disabled={busyId === msg._id}
-                        className='rounded-lg bg-gray-500 px-3 py-1 text-xs font-medium text-white hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-50'
-                      >
-                        Close
-                      </button>
-                    ) : (
-                      <button
-                        type='button'
-                        onClick={() => void setMessageStatus(msg, 'read')}
-                        disabled={busyId === msg._id}
-                        className='rounded-lg border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700'
-                      >
-                        Reopen
-                      </button>
-                    )}
-                  </div>
+                      {/* Customer-written text is often Arabic: dir="auto"
+                          gives each field its own direction */}
+                      <td className="max-w-[12rem] px-4 py-3 text-sm">
+                        <p dir="auto" className="truncate text-gray-900 dark:text-white">
+                          {m.name}
+                        </p>
+                        <p className="truncate text-xs font-normal text-gray-500" dir="ltr">{m.email}</p>
+                      </td>
+                      <td className="max-w-[18rem] px-4 py-3 text-sm">
+                        {/* The subject opens the message: a real button, so
+                            the row works from the keyboard */}
+                        <button
+                          type="button"
+                          dir="auto"
+                          onClick={() => void openMessage(m)}
+                          className="block max-w-full truncate text-start text-blue-600 hover:underline dark:text-blue-400"
+                        >
+                          {m.subject}
+                        </button>
+                        <p dir="auto" className="truncate text-xs font-normal text-gray-500">
+                          {m.message}
+                        </p>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-sm font-normal text-gray-500">
+                        {formatShortDate(m.createdAt, tag)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge status={m.status} />
+                      </td>
+                    </tr>
+                  ))
                 )}
-              </article>
-            ))
-          )}
+              </tbody>
+            </table>
+          </div>
           <TablePagination
-            meta={messagesQ.data?.meta}
+            meta={meta}
             busy={messagesQ.isFetching}
             onPage={table.setPage}
             onLimit={table.setLimit}
           />
         </div>
+      )}
+
+      {viewing && (
+        <FormDialog
+          onClose={() => setViewing(null)}
+          title={<bdi>{viewing.subject}</bdi>}
+          busy={updateMut.isPending}
+          maxWidthClass="max-w-2xl"
+        >
+          <dl className="mb-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+            <dt className="text-gray-500">{t('messages.columns.from')}</dt>
+            <dd className="text-gray-900 dark:text-white">
+              <bdi>{viewing.name}</bdi> <bdi>&lt;{viewing.email}&gt;</bdi>
+            </dd>
+            <dt className="text-gray-500">{t('messages.columns.received')}</dt>
+            <dd className="text-gray-900 dark:text-white">{formatDate(viewing.createdAt)}</dd>
+            <dt className="text-gray-500">{t('messages.columns.status')}</dt>
+            <dd>
+              <StatusBadge status={viewing.status} />
+              {viewing.handledAt && (
+                <span className="ms-2 text-xs text-gray-500">
+                  {t('messages.handledBy', {
+                    name: viewing.handledBy?.username || viewing.handledBy?.email || t('messages.staffFallback'),
+                    date: formatDate(viewing.handledAt),
+                  })}
+                </span>
+              )}
+            </dd>
+          </dl>
+
+          <p
+            dir="auto"
+            className="mb-5 whitespace-pre-line rounded-lg bg-gray-50 p-4 text-sm text-gray-800 dark:bg-gray-900 dark:text-gray-200"
+          >
+            {viewing.message}
+          </p>
+
+          {canWrite ? (
+            <form onSubmit={saveNote} className="mb-5 text-sm">
+              <label
+                htmlFor="staff-note"
+                className="mb-1 block font-medium text-gray-700 dark:text-gray-300"
+              >
+                {t('messages.staffNote')}
+              </label>
+              <textarea
+                id="staff-note"
+                dir="auto"
+                rows={3}
+                maxLength={1000}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                aria-describedby="note-help"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+              />
+              <span id="note-help" className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
+                {t('messages.noteHint')}{' '}
+                <span dir="ltr">{formatNumber(note.length)}/1000</span>
+              </span>
+              <button
+                type="submit"
+                disabled={!noteChanged || updateMut.isPending}
+                className="mt-2 rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-800 hover:bg-gray-200 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
+              >
+                {t('messages.saveNote')}
+              </button>
+            </form>
+          ) : (
+            viewing.staffNote && (
+              <p className="mb-5 text-sm text-gray-600 dark:text-gray-400">
+                <span className="font-medium">{t('messages.staffNote')}:</span>{' '}
+                <bdi>{viewing.staffNote}</bdi>
+              </p>
+            )
+          )}
+
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-200 pt-4 dark:border-gray-700">
+            <a
+              href={replyHref(viewing)}
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600"
+            >
+              <Mail className="h-4 w-4" aria-hidden="true" />
+              {t('messages.replyByEmail')}
+            </a>
+            {canWrite && (
+              <div className="flex gap-2">
+                {viewing.status !== 'new' && (
+                  <button
+                    type="button"
+                    disabled={updateMut.isPending}
+                    onClick={() => void setStatus('new')}
+                    className="rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-60 dark:text-gray-300 dark:hover:bg-gray-700"
+                  >
+                    {t('messages.markUnread')}
+                  </button>
+                )}
+                {viewing.status === 'closed' ? (
+                  <button
+                    type="button"
+                    disabled={updateMut.isPending}
+                    onClick={() => void setStatus('read')}
+                    className="rounded-lg px-3 py-2 text-sm font-medium text-gray-800 ring-1 ring-gray-300 hover:bg-gray-50 disabled:opacity-60 dark:text-gray-100 dark:ring-gray-600 dark:hover:bg-gray-700"
+                  >
+                    {t('messages.reopen')}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={updateMut.isPending}
+                    onClick={() => void setStatus('closed')}
+                    className="rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+                  >
+                    {/* Not just "Close": that is the dialog's own ✕ button */}
+                    {t('messages.closeMessage')}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </FormDialog>
       )}
     </motion.div>
   );

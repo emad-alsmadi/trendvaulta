@@ -54,7 +54,13 @@ export function WhyChooseUs() {
   if (!hasLive && (q.isLoading || !DEMO_FALLBACK_ENABLED)) return null;
   const features =
     q.data && q.data.length > 0
-      ? q.data
+      ? q.data.map((item) => {
+          // Default items share ids with FALLBACK → use the locale's copy.
+          const known = FALLBACK.find((f) => f.id === item.id);
+          return known
+            ? { ...item, title: t(known.titleKey), description: t(known.descriptionKey) }
+            : item;
+        })
       : FALLBACK.map(({ id, icon, titleKey, descriptionKey }) => ({
           id,
           icon,
@@ -63,39 +69,48 @@ export function WhyChooseUs() {
         }));
 
   return (
-    <div className='bg-slate-100 py-20'>
-      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
-        <div className='text-center mb-12'>
-          <h2 className='text-3xl font-bold text-gray-900 mb-4'>
+    <section
+      aria-labelledby='why-choose-us-heading'
+      className='bg-surface-sunken py-12 sm:py-16'
+    >
+      <div className='mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-8'>
+        <div className='mb-10 max-w-2xl'>
+          <h2
+            id='why-choose-us-heading'
+            className='text-2xl font-extrabold text-ink sm:text-3xl'
+          >
             {t('home.whyChooseUs.title')}
           </h2>
-          <p className='text-gray-600 text-lg'>
+          <p className='mt-2 text-base text-ink-muted'>
             {t('home.whyChooseUs.subtitle')}
           </p>
         </div>
 
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8'>
-          {features.map((feature) => {
+        {/* Editorial list, not boxed cards: a hairline, a quiet icon, and
+            type doing the hierarchy. Flows from the inline start in RTL. */}
+        <ul className='grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4'>
+          {features.map((feature, index) => {
             const Icon =
               ICON_MAP[feature.icon || ''] || ICON_MAP.truck || Truck;
             return (
-              <motion.div
+              <motion.li
                 key={feature.id || feature.title}
-                whileHover={{ y: -4 }}
-                className='bg-white rounded-lg p-6 text-center hover:shadow-lg transition-shadow duration-300 border border-slate-200'
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-40px' }}
+                transition={{ duration: 0.4, delay: index * 0.06, ease: [0.22, 1, 0.36, 1] }}
+                className='border-t border-line pt-6'
               >
-                <div className='inline-flex h-16 w-16 items-center justify-center rounded-lg bg-gradient-to-br from-fuchsia-600 via-indigo-600 to-cyan-500 text-white mb-4'>
-                  <Icon className='h-8 w-8' />
-                </div>
-                <h3 className='font-semibold text-gray-900 mb-2 text-lg'>
-                  {feature.title}
-                </h3>
-                <p className='text-gray-600 text-sm'>{feature.description}</p>
-              </motion.div>
+                <Icon className='h-6 w-6 text-accent' strokeWidth={1.75} aria-hidden />
+                <h3 className='mt-5 text-heading text-ink'>{feature.title}</h3>
+                <p className='mt-2 text-sm leading-relaxed text-ink-muted'>
+                  {feature.description}
+                </p>
+              </motion.li>
             );
           })}
-        </div>
+        </ul>
       </div>
-    </div>
+    </section>
   );
 }

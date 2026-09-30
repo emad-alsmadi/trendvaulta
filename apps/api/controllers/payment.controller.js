@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler');
+const mongoose = require('mongoose');
 const logger = require('../utils/logger');
 const {
   Order,
@@ -25,7 +26,14 @@ const {
   restoreStockOnce,
   incrementCouponUsedCount,
   incrementSalesCountForPaidOrder,
+  getStoreSettings,
 } = require('../utils/commerce');
+const { ensureInvoiceNumber } = require('../utils/invoice');
+const {
+  guestOrderToken,
+  isValidGuestToken,
+  orderEmailTarget,
+} = require('../utils/guestOrders');
 const {
   canTransitionOrderStatus,
   hasOrderShipped,
@@ -117,10 +125,8 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
     });
   }
 
-  const userId = req.user?.id ?? req.user?._id;
-  if (!userId) {
-    return res.status(401).json({ message: 'Token is not valid!' });
-  }
+  // Signed in, or a guest (decision D2): optionalVerifyToken on the route
+  const userId = req.user?.id ?? req.user?._id ?? null;
 
   const { error, value } = validateCreateOrder(req.body);
   if (error) {
@@ -128,6 +134,14 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
   }
 
   const { items, shippingAddress, couponCode } = value;
+  // A guest's receipt and order link go to this address
+  const guestEmail = userId ? '' : value.email || '';
+  if (!userId && !guestEmail) {
+    return res.status(400).json({
+      code: 'GUEST_EMAIL_REQUIRED',
+      message: 'Enter your email address to check out as a guest.',
+    });
+  }
   // Priced AND stored from the same normalised values (pickup = 'none').
   const fulfillment = resolveFulfillment(value);
 
@@ -140,6 +154,8 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
     ));
   } catch (lineErr) {
     return res.status(lineErr.statusCode || 400).json({
+      // Only our own string codes (a Mongo error's numeric code stays private)
+      ...(typeof lineErr.code === 'string' ? { code: lineErr.code } : {}),
       message: lineErr.message || 'Unable to build order lines',
     });
   }
@@ -153,7 +169,7 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
     if (!result.valid) {
       return res.status(400).json({ message: result.message });
     }
-    const usage = await checkCouponUsage(coupon, userId);
+    const usage = await checkCouponUsage(coupon, { userId, email: guestEmail });
     if (!usage.valid) {
       return res.status(400).json({ message: usage.message });
     }
@@ -179,6 +195,7 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
 
   const order = await Order.create({
     user: userId,
+    guestEmail,
     items: normalizedItems,
     shippingAddress: {
       ...shippingAddress,
@@ -200,6 +217,22 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
     stockDecremented: false,
     salesCountIncremented: false,
   });
+
+  // Reserve the stock now rather than at payment, so two shoppers can't both
+  // pay for the last unit. The flag is raised only after the decrement: a
+  // crash in between loses the hold instead of inventing stock on release.
+  try {
+    await decrementStockForPaidOrder(Product, order);
+  } catch (stockErr) {
+    await Order.findByIdAndDelete(order._id);
+    if (stockErr?.statusCode !== 409) throw stockErr;
+    return res.status(409).json({
+      code: 'OUT_OF_STOCK',
+      message: stockErr.message,
+    });
+  }
+  await Order.updateOne({ _id: order._id }, { $set: { stockDecremented: true } });
+  order.stockDecremented = true;
 
   const lineItems = normalizedItems.map((it) => ({
     price_data: {
@@ -249,16 +282,18 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
       client_reference_id: String(order._id),
       metadata: {
         orderId: String(order._id),
-        userId: String(userId),
+        userId: userId ? String(userId) : '',
         kind: 'order_payment',
         totalPrice: String(totalPrice),
       },
       payment_intent_data: {
         metadata: {
           orderId: String(order._id),
-          userId: String(userId),
+          userId: userId ? String(userId) : '',
         },
       },
+      // Stripe prefills (and receipts to) the address the guest typed
+      ...(guestEmail ? { customer_email: guestEmail } : {}),
     };
 
     // Apply server-calculated discount via a one-time Stripe coupon (unit_amount cannot be negative)
@@ -276,7 +311,17 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
 
     session = await stripe.checkout.sessions.create(sessionParams);
   } catch (stripeErr) {
-    await Order.findByIdAndDelete(order._id);
+    try {
+      await restoreStockOnce(Order, Product, order);
+      await Order.findByIdAndDelete(order._id);
+    } catch (restoreErr) {
+      // Keep the pending order: the checkout reconciler releases its hold
+      // once it is stale (no session id means nothing can pay for it).
+      logger.error(
+        { err: restoreErr },
+        `Order ${order._id}: could not release reserved stock after a Stripe error`,
+      );
+    }
     const raw =
       stripeErr && typeof stripeErr.message === 'string'
         ? stripeErr.message
@@ -295,6 +340,9 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
     url: session.url,
     orderId: String(order._id),
     sessionId: session.id,
+    // Lets the success page confirm payment and link to the order without
+    // an account; the same token is in the confirmation email.
+    ...(guestEmail ? { guestToken: guestOrderToken(order) } : {}),
   });
 });
 
@@ -336,9 +384,10 @@ async function sendConfirmationEmailOnce(order) {
   // concurrent webhook + verify-payment can't both email the customer.
   if (!(await leaseOrderFlag(order._id, 'confirmationEmailSent'))) return;
   try {
-    const user = await User.findById(order.user).select('email').lean();
+    const { to, orderUrl } = await orderEmailTarget(order, User);
     const sent = await sendOrderConfirmationEmail({
-      to: user?.email,
+      to,
+      orderUrl,
       orderId: String(order._id),
       totalPrice: order.totalPrice,
       items: order.items,
@@ -434,6 +483,15 @@ async function applyPaidSideEffects(order) {
       await releaseOrderFlag(order._id, 'salesCountIncremented');
       throw e;
     }
+  }
+
+  // Number the invoice in payment order. Best effort: the invoice endpoint
+  // assigns it on first view if this fails, so it must never fail the webhook.
+  try {
+    const settings = await getStoreSettings();
+    await ensureInvoiceNumber(Order, order._id, { prefix: settings?.invoice?.prefix });
+  } catch (invoiceErr) {
+    logger.error({ err: invoiceErr }, `Order ${order._id}: invoice number not assigned`);
   }
 
   return { status, attentionReason };
@@ -568,23 +626,120 @@ async function handleCheckoutSessionCompleted(session, stripe) {
 }
 
 /**
+ * Cancel a still-unpaid checkout order and give its reserved stock back.
+ *
+ * The cancel is conditional (only a pending, unpaid order), and the restock
+ * is claimed separately by restoreStockOnce. So a webhook retry after a failed
+ * restock still releases the hold, and the webhook and the reconciler can run
+ * it concurrently without restocking twice.
+ * @returns {Promise<boolean>} true when this call released the stock
+ */
+async function releaseUnpaidCheckout(orderId) {
+  await Order.updateOne(
+    {
+      _id: orderId,
+      status: 'pending',
+      paymentStatus: { $nin: ['paid', 'refunded'] },
+    },
+    { $set: { paymentStatus: 'failed', status: 'canceled' } },
+  );
+  const order = await Order.findById(orderId);
+  if (
+    !order ||
+    order.status !== 'canceled' ||
+    ['paid', 'refunded'].includes(order.paymentStatus)
+  ) {
+    return false;
+  }
+  return restoreStockOnce(Order, Product, order);
+}
+
+/**
  * Session timed out (expires_at) or a delayed payment failed: fail a
- * still-unpaid order. Stock is never reserved before payment.
+ * still-unpaid order and release the stock reserved at checkout.
  */
 async function handleCheckoutSessionExpired(session, stripe) {
   const orderId = extractOrderId(session);
   if (orderId) {
-    await Order.updateOne(
-      {
-        _id: orderId,
-        status: 'pending',
-        paymentStatus: { $nin: ['paid', 'refunded'] },
-      },
-      { $set: { paymentStatus: 'failed', status: 'canceled' } },
-    );
+    await releaseUnpaidCheckout(orderId);
   }
   await deleteTemporaryCoupon(stripe, session.metadata?.stripeCouponId);
   return orderId;
+}
+
+// Stale = its Checkout session has certainly expired at Stripe (TTL plus
+// clock-skew/latency margin), so nothing can still pay for it.
+const STALE_CHECKOUT_GRACE_MS = 10 * 60 * 1000;
+
+/**
+ * Settle checkouts whose Stripe webhook never arrived: missed
+ * `checkout.session.completed` (marked paid) or `.expired` (stock released).
+ * Stripe is asked for the real session state before anything is released. A
+ * lookup failure, or an async payment that is still settling, leaves the
+ * order for the next run.
+ *
+ * Every write is claimed conditionally (markOrderPaidFromSession,
+ * releaseUnpaidCheckout), so concurrent runs on several API instances can't
+ * double-apply anything. No leader election is needed.
+ * @returns {Promise<{ paid: number, released: number, skipped: number }>}
+ */
+async function reconcileStaleCheckouts({ now = Date.now(), limit = 100 } = {}) {
+  const cutoff = new Date(
+    now - CHECKOUT_SESSION_TTL_SECONDS * 1000 - STALE_CHECKOUT_GRACE_MS,
+  );
+  const stale = await Order.find({
+    status: 'pending',
+    paymentStatus: { $in: ['pending', 'failed'] },
+    stockDecremented: true,
+    stockRestored: false,
+    createdAt: { $lt: cutoff },
+  })
+    .sort({ createdAt: 1 })
+    .limit(limit)
+    .select('_id stripeSessionId')
+    .lean();
+
+  const result = { paid: 0, released: 0, skipped: 0 };
+  if (stale.length === 0) return result;
+
+  let stripe = null;
+  try {
+    stripe = getStripeOrThrow();
+  } catch {
+    // Stripe no longer configured: no session can be paid, release on age.
+  }
+
+  for (const { _id, stripeSessionId } of stale) {
+    try {
+      if (stripe && stripeSessionId) {
+        let session = await stripe.checkout.sessions.retrieve(stripeSessionId);
+        if (session.status === 'open') {
+          // Past expires_at but not yet closed at Stripe: close it first, so
+          // it can't be paid after the stock goes back on sale.
+          session = await stripe.checkout.sessions.expire(stripeSessionId);
+        }
+        if (session.status === 'complete') {
+          if (isSessionPaid(session)) {
+            await markOrderPaidFromSession(session);
+            result.paid += 1;
+          } else {
+            // Delayed method still settling: async_payment_* will decide.
+            result.skipped += 1;
+          }
+          continue;
+        }
+      }
+      if (await releaseUnpaidCheckout(_id)) result.released += 1;
+    } catch (err) {
+      result.skipped += 1;
+      logger.error({ err }, `Checkout reconciliation failed for order ${_id}`);
+    }
+  }
+
+  if (result.paid || result.released) {
+    logger.info(result, 'Reconciled stale checkouts');
+  }
+  return result;
 }
 
 async function handlePaymentIntentFailed(paymentIntent) {
@@ -713,13 +868,11 @@ const stripeWebhook = asyncHandler(async (req, res) => {
 
 const verifyPaymentStatus = asyncHandler(async (req, res) => {
   const stripe = getStripeOrThrow();
-  const userId = req.user?.id ?? req.user?._id;
-  if (!userId) {
-    return res.status(401).json({ message: 'Token is not valid!' });
-  }
+  // The owner's session, or a guest's order token (optionalVerifyToken)
+  const userId = req.user?.id ?? req.user?._id ?? null;
 
-  const { orderId } = req.body;
-  if (!orderId) {
+  const { orderId, guestToken } = req.body || {};
+  if (!orderId || !mongoose.isValidObjectId(orderId)) {
     return res.status(400).json({ message: 'Order ID is required' });
   }
 
@@ -728,9 +881,10 @@ const verifyPaymentStatus = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: 'Order not found' });
   }
 
-  if (order.user.toString() !== String(userId)) {
+  const isOwner = Boolean(userId && order.user && String(order.user) === String(userId));
+  if (!isOwner && !isValidGuestToken(order, guestToken)) {
     return res
-      .status(403)
+      .status(userId || guestToken ? 403 : 401)
       .json({ message: 'Not authorized to access this order' });
   }
 
@@ -773,4 +927,5 @@ module.exports = {
   createCheckoutSession,
   stripeWebhook,
   verifyPaymentStatus,
+  reconcileStaleCheckouts,
 };

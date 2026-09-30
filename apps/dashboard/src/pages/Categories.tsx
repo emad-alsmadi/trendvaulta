@@ -13,6 +13,7 @@ import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { ImageUploadField } from '../components/ui/ImageUploadField';
 import { FormDialog } from '../components/ui/FormDialog';
+import { useT } from '../i18n/I18nProvider';
 
 /** Mirrors SLUG_PATTERN in apps/api/models/Category.js. */
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -54,6 +55,7 @@ export default function Categories() {
   const { can } = usePermissions();
   const toast = useToast();
   const confirm = useConfirm();
+  const { t, formatNumber } = useT();
   const categoriesQ = useAdminCategories();
   const createMut = useCreateCategoryMutation();
   const updateMut = useUpdateCategoryMutation();
@@ -109,7 +111,7 @@ export default function Categories() {
     if (!dialog) return;
     const name = form.name.trim();
     if (!name) {
-      toast.error('Name is required.');
+      toast.error(t('categories.nameRequired'));
       return;
     }
     const common = {
@@ -122,34 +124,34 @@ export default function Categories() {
     try {
       if (dialog.mode === 'edit') {
         await updateMut.mutateAsync({ id: dialog.category._id, payload: common });
-        toast.success('Category updated');
+        toast.success(t('categories.updated'));
       } else {
         const slug = form.slug.trim();
         if (!SLUG_RE.test(slug)) {
-          toast.error('Slug may only contain lowercase letters, numbers and single hyphens.');
+          toast.error(t('categories.slugInvalid'));
           return;
         }
         await createMut.mutateAsync({ ...common, slug, parent: dialog.parent.slug });
-        toast.success('Subcategory added');
+        toast.success(t('categories.added'));
       }
       close();
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not save category'));
+      toast.error(errorMessage(err, t('categories.saveFailed')));
     }
   }
 
   async function handleDelete(category: AdminCategory) {
     const ok = await confirm({
-      message: `Delete subcategory "${category.name}"?`,
+      message: t('categories.confirmDelete', { name: category.name }),
       danger: true,
-      confirmLabel: 'Delete',
+      confirmLabel: t('common.delete'),
     });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(category._id);
-      toast.success('Subcategory deleted');
+      toast.success(t('categories.deleted'));
     } catch (err) {
-      toast.error(errorMessage(err, 'Could not delete subcategory'));
+      toast.error(errorMessage(err, t('categories.deleteFailed')));
     }
   }
 
@@ -164,24 +166,22 @@ export default function Categories() {
     >
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Categories
+          {t('categories.title')}
         </h1>
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          The six top-level categories are fixed — rename, reorder, re-image or
-          hide them here, and manage the subcategories under each. Changes
-          appear on the storefront homepage.
+          {t('categories.subtitle')}
         </p>
       </div>
 
       {categoriesQ.isLoading && (
         <p className="py-10 text-center text-sm text-gray-500">
-          Loading categories…
+          {t('categories.loading')}
         </p>
       )}
 
       {categoriesQ.isError && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-          {errorMessage(categoriesQ.error, 'Failed to load categories')}
+          {errorMessage(categoriesQ.error, t('categories.loadFailed'))}
         </div>
       )}
 
@@ -206,13 +206,15 @@ export default function Categories() {
                     {!top.isActive && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
                         <EyeOff className="h-3 w-3" aria-hidden />
-                        Hidden
+                        {t('categories.hidden')}
                       </span>
                     )}
                   </h2>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    <code>{top.slug}</code> · {top.productCount} product
-                    {top.productCount === 1 ? '' : 's'}
+                    <code dir="ltr">{top.slug}</code> ·{' '}
+                    {t(top.productCount === 1 ? 'categories.productOne' : 'categories.productMany', {
+                      count: formatNumber(top.productCount),
+                    })}
                   </p>
                 </div>
                 {canWrite && (
@@ -220,16 +222,16 @@ export default function Categories() {
                     type="button"
                     onClick={() => openEdit(top)}
                     className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    aria-label={`Edit ${top.name}`}
+                    aria-label={t('common.editItem', { name: top.name })}
                   >
-                    <Pencil className="h-4 w-4 text-gray-500" />
+                    <Pencil className="h-4 w-4 text-gray-500" aria-hidden />
                   </button>
                 )}
               </header>
 
               <ul className="divide-y divide-gray-100 dark:divide-gray-700">
                 {children.length === 0 && (
-                  <li className="py-2 text-sm text-gray-500">No subcategories.</li>
+                  <li className="py-2 text-sm text-gray-500">{t('categories.noSubcategories')}</li>
                 )}
                 {children.map((child) => (
                   <li key={child._id} className="flex items-center gap-2 py-2 text-sm">
@@ -241,17 +243,17 @@ export default function Categories() {
                       }`}
                     >
                       {child.name}{' '}
-                      <code className="text-xs text-gray-400">{child.slug}</code>
+                      <code className="text-xs text-gray-400" dir="ltr">{child.slug}</code>
                     </span>
-                    <span className="text-xs text-gray-500">{child.productCount}</span>
+                    <span className="text-xs text-gray-500">{formatNumber(child.productCount)}</span>
                     {canWrite && (
                       <button
                         type="button"
                         onClick={() => openEdit(child)}
                         className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        aria-label={`Edit ${child.name}`}
+                        aria-label={t('common.editItem', { name: child.name })}
                       >
-                        <Pencil className="h-3.5 w-3.5 text-gray-500" />
+                        <Pencil className="h-3.5 w-3.5 text-gray-500" aria-hidden />
                       </button>
                     )}
                     {can('products:delete') && (
@@ -263,13 +265,13 @@ export default function Categories() {
                         disabled={deleteMut.isPending || child.productCount > 0}
                         title={
                           child.productCount > 0
-                            ? 'In use by products — hide it instead'
-                            : 'Delete'
+                            ? t('categories.inUse')
+                            : t('common.delete')
                         }
                         className="rounded p-1 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-red-950/40"
-                        aria-label={`Delete ${child.name}`}
+                        aria-label={t('common.deleteItem', { name: child.name })}
                       >
-                        <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                        <Trash2 className="h-3.5 w-3.5 text-red-500" aria-hidden />
                       </button>
                     )}
                   </li>
@@ -283,7 +285,7 @@ export default function Categories() {
                   className="mt-2 inline-flex items-center gap-1 rounded-lg border border-dashed border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
                 >
                   <Plus className="h-3.5 w-3.5" aria-hidden />
-                  Add subcategory
+                  {t('categories.addSubcategory')}
                 </button>
               )}
             </section>
@@ -295,15 +297,15 @@ export default function Categories() {
         <FormDialog
           onClose={close}
           title={dialog.mode === 'edit'
-            ? `Edit ${dialog.category.parent ? 'subcategory' : 'category'}`
-            : `New subcategory in ${dialog.parent.name}`}
+            ? t(dialog.category.parent ? 'categories.form.editSubcategory' : 'categories.form.editCategory')
+            : t('categories.form.newIn', { parent: dialog.parent.name })}
           busy={saving}
           maxWidthClass="max-w-lg"
         >
           <form onSubmit={handleSubmit} className="space-y-3">
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Name
+                {t('categories.form.name')}
               </span>
               <input
                 required
@@ -322,13 +324,14 @@ export default function Categories() {
             </label>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Slug
+                {t('categories.form.slug')}
               </span>
               <input
                 required
                 maxLength={64}
                 value={form.slug}
                 readOnly={isEdit}
+                dir="ltr"
                 onChange={(e) => {
                   setSlugTouched(true);
                   setForm((f) => ({ ...f, slug: e.target.value.toLowerCase() }));
@@ -342,13 +345,13 @@ export default function Categories() {
               />
               <span id="slug-help" className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
                 {isEdit
-                  ? 'Fixed after creation — products and storefront URLs use it.'
-                  : 'Used in URLs and stored on products; cannot be changed later.'}
+                  ? t('categories.form.slugFixed')
+                  : t('categories.form.slugNew')}
               </span>
             </label>
             <label className="block text-sm">
               <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                Description
+                {t('common.description')}
               </span>
               <textarea
                 rows={2}
@@ -359,14 +362,14 @@ export default function Categories() {
               />
             </label>
             <ImageUploadField
-              label="Image"
+              label={t('categories.form.image')}
               value={form.imageUrl}
               onChange={(url) => setForm((f) => ({ ...f, imageUrl: url }))}
             />
             <div className="grid grid-cols-2 gap-3">
               <label className="block text-sm">
                 <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  Order
+                  {t('categories.form.order')}
                 </span>
                 <input
                   type="number"
@@ -386,14 +389,13 @@ export default function Categories() {
                   className="h-4 w-4 rounded border-gray-300"
                 />
                 <span className="text-gray-700 dark:text-gray-300">
-                  Visible on storefront
+                  {t('categories.form.visible')}
                 </span>
               </label>
             </div>
             {isTopLevelEdit && !form.isActive && (
               <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
-                Hiding removes this category from the homepage tiles. Its
-                products stay live and reachable by search and direct link.
+                {t('categories.form.hideWarning')}
               </p>
             )}
             <div className="flex justify-end gap-2 pt-2">
@@ -403,14 +405,14 @@ export default function Categories() {
                 onClick={close}
                 className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={saving}
                 className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
               >
-                {saving ? 'Saving…' : isEdit ? 'Save' : 'Add'}
+                {saving ? t('common.saving') : isEdit ? t('common.save') : t('categories.form.add')}
               </button>
             </div>
           </form>

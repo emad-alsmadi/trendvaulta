@@ -32,12 +32,13 @@ const updateSettings = asyncHandler(async (req, res) => {
   }
 
   const update = { ...value, updatedBy: req.user?.id ?? req.user?._id ?? null };
-  if (value.shipping) {
-    // Merge nested shipping fields so a partial update doesn't zero the rest
-    for (const key of Object.keys(value.shipping)) {
-      update[`shipping.${key}`] = value.shipping[key];
+  // Merge nested groups field by field so a partial update doesn't reset the rest
+  for (const group of ['shipping', 'invoice']) {
+    if (!value[group]) continue;
+    for (const key of Object.keys(value[group])) {
+      update[`${group}.${key}`] = value[group][key];
     }
-    delete update.shipping;
+    delete update[group];
   }
 
   const settings = await StoreSettings.findByIdAndUpdate(

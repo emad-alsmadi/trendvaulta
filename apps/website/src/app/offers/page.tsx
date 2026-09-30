@@ -9,6 +9,7 @@ import { useOffersList } from '@/hooks/storefront/offersQuery';
 import type { StorefrontOffer } from '@/lib/api';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { intlLocale, type Locale } from '@/lib/locale';
+import { Skeleton, SkeletonGroup } from '@/components/ui/Skeleton';
 
 function formatEndsAt(
   endsAt: string | null | undefined,
@@ -106,14 +107,11 @@ export default function OffersPage() {
           </h1>
 
           {isLoading ? (
-            <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
+            <SkeletonGroup className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
               {Array.from({ length: 3 }).map((_, i) => (
-                <div
-                  key={i}
-                  className='h-72 animate-pulse rounded-2xl bg-gray-100'
-                />
+                <Skeleton key={i} className='h-72 rounded-2xl' />
               ))}
-            </div>
+            </SkeletonGroup>
           ) : error ? (
             <div className='flex flex-wrap items-center gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-6 text-sm text-rose-800'>
               <span>{t('offersPage.loadError')}</span>

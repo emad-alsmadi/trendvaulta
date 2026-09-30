@@ -1,4 +1,5 @@
 const asyncHandler = require('express-async-handler');
+const mongoose = require('mongoose');
 const logger = require('../utils/logger');
 const Joi = require('joi');
 const { Order, validateCreateOrder } = require('../models/Order');
@@ -15,7 +16,20 @@ const {
   checkCouponUsage,
   decrementStockForPaidOrder,
   restoreStockOnce,
+  getStoreSettings,
 } = require('../utils/commerce');
+const {
+  INVOICEABLE_PAYMENT_STATUSES,
+  INVOICE_CSP,
+  ensureInvoiceNumber,
+  renderInvoiceHtml,
+  resolveInvoiceLocale,
+} = require('../utils/invoice');
+const {
+  getUserPermissions,
+  hasPermission,
+} = require('../middlewares/rolePermissions');
+const { isValidGuestToken, orderEmailTarget } = require('../utils/guestOrders');
 const {
   sendOrderShippedEmail,
   sendOrderDeliveredEmail,
@@ -226,7 +240,11 @@ const getAllOrders = asyncHandler(async (req, res) => {
         .select('_id')
         .limit(200)
         .lean();
-      query.user = { $in: customers.map((u) => u._id) };
+      // Account orders of matching customers, and guest orders by email
+      query.$or = [
+        { user: { $in: customers.map((u) => u._id) } },
+        { guestEmail: { $regex: term, $options: 'i' } },
+      ];
     }
   }
 
@@ -340,10 +358,11 @@ const updateOrderTracking = asyncHandler(async (req, res) => {
     !hadTrackingNumber &&
     order.trackingNumber
   ) {
-    await order.populate('user', 'email');
-    if (order.user?.email) {
+    const { to, orderUrl } = await orderEmailTarget(order, User);
+    if (to) {
       await sendOrderShippedEmail({
-        to: order.user.email,
+        to,
+        orderUrl,
         orderId: order._id,
         trackingNumber: order.trackingNumber,
         trackingCarrier: order.trackingCarrier,
@@ -443,11 +462,16 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     });
   }
 
-  // Resolving needs_attention → paid: inventory must actually be available now
-  if (value.status === 'paid' && !claimed.stockDecremented) {
+  // Resolving needs_attention → paid: inventory must actually be available
+  // now. A checkout reservation that was released (canceled, then paid late)
+  // is stockDecremented AND stockRestored, and holds nothing.
+  const holdsStock = claimed.stockDecremented && !claimed.stockRestored;
+  if (value.status === 'paid' && !holdsStock) {
     try {
       await decrementStockForPaidOrder(Product, claimed);
       claimed.stockDecremented = true;
+      // Held again, so a later cancel/refund must be able to restock it
+      claimed.stockRestored = false;
     } catch (stockErr) {
       // Undo the claim so the order stays flagged for staff
       await Order.updateOne(
@@ -527,14 +551,14 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
 
   await order.save();
 
-  // Send email notifications based on status change. (populate() resolves
-  // to the order itself — the address is on order.user.)
-  await order.populate('user', 'email');
-  const userEmail = order.user?.email;
+  // Send email notifications based on status change: the account email,
+  // or the guest's with their order link.
+  const { to: userEmail, orderUrl } = await orderEmailTarget(order, User);
   if (userEmail) {
     if (value.status === 'shipped' && order.trackingNumber) {
       await sendOrderShippedEmail({
         to: userEmail,
+        orderUrl,
         orderId: order._id,
         trackingNumber: order.trackingNumber,
         trackingCarrier: order.trackingCarrier,
@@ -542,16 +566,19 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
     } else if (value.status === 'delivered') {
       await sendOrderDeliveredEmail({
         to: userEmail,
+        orderUrl,
         orderId: order._id,
       }).catch(() => {});
     } else if (value.status === 'canceled') {
       await sendOrderCanceledEmail({
         to: userEmail,
+        orderUrl,
         orderId: order._id,
       }).catch(() => {});
     } else if (value.status === 'refunded' && order.refundAmount > 0) {
       await sendOrderRefundedEmail({
         to: userEmail,
+        orderUrl,
         orderId: order._id,
         refundAmount: order.refundAmount,
       }).catch(() => {});
@@ -596,11 +623,50 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
  * @route POST /api/orders/:id/cancel
  * @access Private (order owner)
  */
+/**
+ * The order behind a customer action: the caller's own order, or a guest
+ * order whose token matches (utils/guestOrders.js). null otherwise.
+ */
+async function findCustomerOrder(req, orderId, guestToken) {
+  if (!mongoose.isValidObjectId(orderId)) return null;
+  if (req.user?.id) {
+    const own = await Order.findOne({ _id: orderId, user: req.user.id });
+    if (own) return own;
+  }
+  if (!guestToken) return null;
+  const order = await Order.findById(orderId);
+  return isValidGuestToken(order, guestToken) ? order : null;
+}
+
+/**
+ * Guest order page: the order behind an emailed (or checkout) link.
+ * Returns are not offered to guests: they need a confirmed email (D5),
+ * which registering with the same address provides.
+ * @route POST /api/orders/guest/lookup
+ * @access Public, with { orderId, token }
+ */
+const getGuestOrder = asyncHandler(async (req, res) => {
+  const { orderId, token } = req.body || {};
+  const order = mongoose.isValidObjectId(orderId) ? await Order.findById(orderId) : null;
+  if (!isValidGuestToken(order, token)) {
+    return res.status(404).json({ message: 'Order not found' });
+  }
+  res.status(200).json({
+    ...serializeOrder(order),
+    canCancel: canCustomerCancel(order).ok,
+    canReturn: false,
+    returnNeedsAccount: canCustomerReturn(order).ok,
+  });
+});
+
 const cancelOrder = asyncHandler(async (req, res) => {
-  const userId = req.user?.id;
-  // Scoped to the owner: someone else's order is "not found", not
+  const guestToken = req.body?.guestToken;
+  if (!req.user?.id && !guestToken) {
+    return res.status(401).json({ message: 'Token is not valid!' });
+  }
+  // Owner- or token-scoped: someone else's order is "not found", not
   // "forbidden", so the endpoint does not confirm which ids exist.
-  const order = await Order.findOne({ _id: req.params.id, user: userId });
+  const order = await findCustomerOrder(req, req.params.id, guestToken);
   if (!order) {
     return res.status(404).json({ message: 'Order not found' });
   }
@@ -672,12 +738,9 @@ const cancelOrder = asyncHandler(async (req, res) => {
   const stockRestoredNow = await restoreStockOnce(Order, Product, claimed);
   if (stockRestoredNow) claimed.stockRestored = true;
 
-  const owner = await User.findById(userId).select('email').lean();
-  if (owner?.email) {
-    await sendOrderCanceledEmail({
-      to: owner.email,
-      orderId: claimed._id,
-    }).catch(() => {});
+  const { to, orderUrl } = await orderEmailTarget(claimed, User);
+  if (to) {
+    await sendOrderCanceledEmail({ to, orderUrl, orderId: claimed._id }).catch(() => {});
   }
 
   let message = 'Order canceled.';
@@ -696,156 +759,66 @@ const cancelOrder = asyncHandler(async (req, res) => {
   });
 });
 
-/** Escape a value for safe interpolation into HTML text. */
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 /**
- * Generate invoice for an order
+ * Printable invoice for a paid (or refunded) order, as a self-contained HTML
+ * document. The invoice number is assigned on first need if the paid path
+ * didn't already (older orders).
+ *
+ * Query: `lang` = en | ar.
  * @route GET /api/orders/:id/invoice
- * @access Private (order owner or admin)
+ * @access Private (order owner, or staff with orders:read)
  */
 const getOrderInvoice = asyncHandler(async (req, res) => {
-  const order = await Order.findById(req.params.id).populate('user');
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return res.status(404).json({ message: 'Order not found' });
+  }
+  const guestToken = req.get('x-guest-token');
+  if (!req.user?.id && !guestToken) {
+    return res.status(401).json({ message: 'Token is not valid!' });
+  }
+  const isStaff = hasPermission(getUserPermissions(req.user?.roles), 'orders:read');
+  // Someone else's order is "not found", so ids can't be probed
+  const found = isStaff
+    ? await Order.findById(req.params.id)
+    : await findCustomerOrder(req, req.params.id, guestToken);
+  const order = found ? found.toObject() : null;
   if (!order) {
     return res.status(404).json({ message: 'Order not found' });
   }
 
-  // Check ownership or admin
-  const isAdmin = req.user.roles?.includes('admin');
-  if (String(order.user?._id) !== String(req.user?.id) && !isAdmin) {
-    return res.status(403).json({ message: 'Not authorized' });
+  if (!INVOICEABLE_PAYMENT_STATUSES.includes(order.paymentStatus)) {
+    return res.status(409).json({
+      code: 'INVOICE_NOT_AVAILABLE',
+      message: 'The invoice is available once the order has been paid.',
+    });
   }
 
-  // Generate HTML invoice. Names, addresses and product titles are user or
-  // staff input, so every interpolated string is escaped.
-  const frontend = process.env.FRONTEND_URL || 'http://localhost:3001';
-  const address = order.shippingAddress || {};
-  const invoiceHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Invoice - Order ${String(order._id).slice(-8).toUpperCase()}</title>
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-    .header { display: flex; justify-content: space-between; margin-bottom: 40px; }
-    .logo { font-size: 24px; font-weight: bold; color: #6366f1; }
-    .invoice-number { text-align: right; }
-    .section { margin-bottom: 30px; }
-    .section h3 { border-bottom: 2px solid #6366f1; padding-bottom: 10px; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
-    th { background: #f9fafb; }
-    .total { font-weight: bold; font-size: 18px; }
-    .footer { margin-top: 40px; text-align: center; color: #6b7280; font-size: 12px; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <div class="logo">TrendVaulta</div>
-    <div class="invoice-number">
-      <h2>INVOICE</h2>
-      <p>Order #${String(order._id).slice(-8).toUpperCase()}</p>
-      <p>Date: ${new Date(order.createdAt).toLocaleDateString()}</p>
-    </div>
-  </div>
+  const settings = await getStoreSettings();
+  order.invoiceNumber = await ensureInvoiceNumber(Order, order._id, {
+    prefix: settings?.invoice?.prefix,
+  });
 
-  <div class="section">
-    <h3>Bill To</h3>
-    <p><strong>${escapeHtml(address.name)}</strong></p>
-    <p>${escapeHtml(address.address)}</p>
-    <p>${escapeHtml(address.city)}, ${escapeHtml(address.zip)}</p>
-    <p>${escapeHtml(address.phone)}</p>
-  </div>
+  const html = renderInvoiceHtml({
+    order,
+    settings,
+    locale: resolveInvoiceLocale(req.query.lang),
+    storefrontUrl: process.env.PUBLIC_FRONTEND_URL || process.env.FRONTEND_URL || '',
+  });
 
-  <div class="section">
-    <h3>Order Items</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Product</th>
-          <th>Qty</th>
-          <th>Price</th>
-          <th>Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${order.items
-          .map(
-            (item) => `
-          <tr>
-            <td>${escapeHtml(item.title)}</td>
-            <td>${item.qty}</td>
-            <td>$${item.price.toFixed(2)}</td>
-            <td>$${(item.price * item.qty).toFixed(2)}</td>
-          </tr>
-        `,
-          )
-          .join('')}
-      </tbody>
-    </table>
-  </div>
-
-  <div class="section">
-    <h3>Order Summary</h3>
-    <table>
-      <tr>
-        <td>Subtotal</td>
-        <td>$${order.itemsPrice.toFixed(2)}</td>
-      </tr>
-      ${
-        order.discountAmount > 0
-          ? `
-      <tr>
-        <td>Discount</td>
-        <td>-$${order.discountAmount.toFixed(2)}</td>
-      </tr>
-      `
-          : ''
-      }
-      <tr>
-        <td>Shipping</td>
-        <td>$${order.shippingPrice.toFixed(2)}</td>
-      </tr>
-      <tr>
-        <td>Tax</td>
-        <td>$${order.taxPrice.toFixed(2)}</td>
-      </tr>
-      <tr class="total">
-        <td>Total</td>
-        <td>$${order.totalPrice.toFixed(2)}</td>
-      </tr>
-    </table>
-  </div>
-
-  <div class="footer">
-    <p>Thank you for your order!</p>
-    <p>${escapeHtml(frontend)}</p>
-  </div>
-</body>
-</html>
-  `;
-
-  res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  // Static document: no scripts, only the inline stylesheet above.
-  res.setHeader(
-    'Content-Security-Policy',
-    "default-src 'none'; style-src 'unsafe-inline'",
-  );
-  res.send(invoiceHtml);
+  res.set({
+    'Content-Type': 'text/html; charset=utf-8',
+    'Content-Security-Policy': INVOICE_CSP,
+    'Cache-Control': 'private, no-store',
+    'X-Content-Type-Options': 'nosniff',
+  });
+  res.status(200).send(html);
 });
 
 module.exports = {
   createOrder,
   getMyOrders,
   getOrderById,
+  getGuestOrder,
   getAllOrders,
   updateOrderStatus,
   updateOrderTracking,

@@ -14,7 +14,7 @@ These instructions apply to every task unless explicitly overridden. If a user r
 | Storefront | `apps/website` | **3001** | Next.js 16 App Router, React 19, TanStack Query, Tailwind (cart: `useSyncExternalStore` store) |
 | Dashboard | `apps/dashboard` | **3002** | Vite + React Router, React 19, TanStack Query, Tailwind |
 
-**Shared packages**: effectively none. `packages/types` (`@trendvaulta/types`) is still a workspace but nothing imports it; `@trendvaulta/api-client` and `@trendvaulta/ui` do not exist. Each app owns its own types and API client.
+**Shared packages**: none. The workspaces are `apps/*` only (the unused `packages/types` was removed). Each app owns its own types and API client.
 
 **Domain**: Products & brands catalog (not digital templates).
 

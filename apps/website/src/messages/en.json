@@ -140,8 +140,19 @@
     "signupSubtitle": "Join TrendVaulta to shop beauty, fashion, and lifestyle.",
     "username": "Username",
     "usernamePlaceholder": "Your name",
-    "signupSuccess": "Account created successfully.",
+    "signupSuccess": "Account created. We've sent a confirmation link to your email.",
     "signupFailed": "Signup failed",
+    "verifyEmail": {
+      "title": "Confirm your email",
+      "verifying": "Confirming your email address…",
+      "successTitle": "Email confirmed",
+      "success": "Thank you! Your email address is confirmed.",
+      "failedTitle": "This link didn't work",
+      "failed": "The confirmation link is invalid, already used, or expired. Sign in and request a new one from your account.",
+      "missingToken": "This page needs the link from your confirmation email.",
+      "toAccount": "Go to my account",
+      "toShop": "Continue shopping"
+    },
     "creating": "Creating...",
     "hasAccountPrompt": "Already have an account? {link}",
     "newHere": "New here",
@@ -262,6 +273,8 @@
       "checkoutFailed": "Checkout failed",
       "noCheckoutUrl": "No checkout URL returned. Please try again shortly.",
       "paymentPageUnavailable": "We could not open the secure payment page. Please try again shortly.",
+      "outOfStockTitle": "Item no longer available",
+      "outOfStock": "Another shopper just bought the last of an item in your cart. We've updated your cart; please review it and try again.",
       "couldNotStartCheckout": "Could not start checkout",
       "secureCheckoutUnavailable": "Could not start secure checkout. Confirm Stripe keys and try again.",
       "devOrderSaved": "Order saved without card payment (dev mode). Use Stripe in production.",
@@ -269,6 +282,14 @@
       "loginRequiredTitle": "Login required",
       "loginToContinue": "Please log in to continue.",
       "cartEmpty": "Your cart is empty."
+    },
+    "guest": {
+      "email": "Email for your receipt",
+      "emailRequired": "Enter your email to check out as a guest",
+      "emailInvalid": "Enter a valid email address",
+      "emailHelp": "We'll send your receipt and a link to track or cancel your order.",
+      "haveAccount": "Have an account?",
+      "signIn": "Sign in"
     }
   },
   "orderResult": {
@@ -499,6 +520,13 @@
     }
   },
   "account": {
+    "verifyBanner": {
+      "title": "Please confirm your email",
+      "body": "We sent a link to {email}. Confirm it to write reviews and request returns.",
+      "resend": "Send a new link",
+      "sending": "Sending…",
+      "sent": "A new confirmation link is on its way."
+    },
     "welcomeBack": "Welcome back, {name}",
     "customerFallback": "Customer",
     "subtitle": "Manage your orders, addresses, and account settings.",
@@ -593,6 +621,9 @@
       "downloadingInvoice": "Preparing invoice…",
       "placed": "Placed {date}",
       "paymentBadge": "Payment: {status}",
+      "invoice": "Download invoice",
+      "invoiceNumber": "Invoice {number}",
+      "invoiceHint": "Opens in a new tab. Use Print to save it as a PDF.",
       "items": "Items",
       "skuValue": "SKU: {value}",
       "name": "Name",
@@ -871,6 +902,12 @@
     "visitWebsite": "Visit Official Website",
     "emptyTitle": "No Brands Available",
     "emptyDescription": "Check back later as we add new brands to our collection.",
+    "count": "{count} brands",
+    "searchLabel": "Search brands",
+    "searchPlaceholder": "Search by brand name",
+    "clearSearch": "Clear search",
+    "noMatch": "No brands match “{query}”",
+    "indexLabel": "Brands A–Z",
     "detail": {
       "loading": "Loading brand...",
       "notFound": "Brand not found",
@@ -1113,6 +1150,12 @@
     "helpPrompt": "Need help with a shipment? Visit the {helpLink} or {contactLink}.",
     "contactSupport": "contact support"
   },
+  "guestOrder": {
+    "notFound": "We couldn't open this order. Use the link in your order email.",
+    "sentTo": "Updates are sent to {email}.",
+    "returnNeedsAccount": "To request a return, create an account with {email}; this order will move into it.",
+    "createAccount": "Create an account"
+  },
   "errors": {
     "loading": "Loading…",
     "sessionExpired": "Your session has expired. Please log in again.",
@@ -1120,6 +1163,10 @@
     "notFoundGeneric": "We could not find what you requested.",
     "serverError": "Something went wrong on our side. Please try again later.",
     "networkError": "Unable to reach the server. Please check your connection and try again.",
+    "emailNotVerified": "Please confirm your email address first. You can request a new link from your account.",
+    "verificationLinkInvalid": "The confirmation link is invalid or has expired.",
+    "verificationResendTooSoon": "Please wait {seconds} seconds before requesting another link.",
+    "mailUnavailable": "We could not send the email right now. Please try again later.",
     "notFound": {
       "title": "Page not found",
       "description": "That page doesn't exist — try the catalog, today's offers, or the Help Center.",
@@ -1426,7 +1473,9 @@
     "overview": {
       "wishlistDescription": "Products you saved for later.",
       "reviewsDescription": "Reviews you wrote, to edit or delete.",
-      "profileDescription": "Your username and email address."
+      "profileDescription": "Your username and email address.",
+      "latestOrder": "Latest order",
+      "viewOrder": "View order"
     }
   },
   "demo": {

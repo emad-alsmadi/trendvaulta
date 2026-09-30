@@ -17,6 +17,7 @@ import {
 } from '@/hooks/profile/addressesQuery';
 import type { Address, AddressPayload } from '@/types';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { Skeleton, SkeletonGroup, SkeletonText } from '@/components/ui/Skeleton';
 
 export default function AddressesPage() {
   const { toast } = useToast();
@@ -150,9 +151,14 @@ export default function AddressesPage() {
       </motion.div>
 
       {addressesQuery.isLoading && (
-        <div role='status' aria-label={t('common.loading')} className='flex items-center justify-center py-12'>
-          <div className='h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent' />
-        </div>
+        <SkeletonGroup className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'>
+          {Array.from({ length: 3 }, (_, i) => (
+            <div key={i} aria-hidden className='rounded-card border border-line bg-surface p-5'>
+              <Skeleton className='h-4 w-1/3' />
+              <SkeletonText lines={3} className='mt-4' />
+            </div>
+          ))}
+        </SkeletonGroup>
       )}
 
       {!addressesQuery.isLoading && addresses.length === 0 && (

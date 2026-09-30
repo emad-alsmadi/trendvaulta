@@ -45,7 +45,11 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  const locale = useSyncExternalStore(subscribe, readLocaleCookie, () => 'en');
+  const locale = useSyncExternalStore<Locale>(
+    subscribe,
+    readLocaleCookie,
+    () => 'en',
+  );
   const copy = COPY[locale];
 
   useEffect(() => {

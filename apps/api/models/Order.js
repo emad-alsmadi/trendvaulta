@@ -89,10 +89,26 @@ const ShippingAddressSchema = new mongoose.Schema(
 
 const OrderSchema = new mongoose.Schema(
   {
+    // null for a guest order (plan P0-03), which carries guestEmail instead.
+    // A guest order is attached to an account once someone registers and
+    // confirms that same email (utils/guestOrders.js attachGuestOrders).
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      default: null,
+      required: [
+        function requireUserUnlessGuest() {
+          return !this.guestEmail;
+        },
+        'An order needs a customer account or a guest email',
+      ],
+    },
+    guestEmail: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      maxlength: 100,
+      default: '',
     },
     items: {
       type: [OrderItemSchema],
@@ -242,6 +258,22 @@ const OrderSchema = new mongoose.Schema(
       min: 0,
       default: 0,
     },
+    // Sequential per year (TV-2026-000123), assigned once when the payment is
+    // captured (utils/invoice.js ensureInvoiceNumber) and never changed.
+    invoiceNumber: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    invoiceIssuedAt: {
+      type: Date,
+    },
+    // Short claim while a number is being allocated, so concurrent callers
+    // can't each burn one; a stale claim (crash) is taken over after 1 min.
+    invoiceClaimedAt: {
+      type: Date,
+      default: null,
+    },
     trackingNumber: {
       type: String,
       trim: true,
@@ -385,6 +417,16 @@ OrderSchema.index({ paymentStatus: 1, createdAt: -1 });
 // Stripe lookups (verify-payment, webhook handlers)
 OrderSchema.index({ stripeSessionId: 1 }, { sparse: true });
 OrderSchema.index({ paymentIntentId: 1 }, { sparse: true });
+// Guest orders by email: coupon per-customer limits, attaching to an account
+OrderSchema.index(
+  { guestEmail: 1, createdAt: -1 },
+  { partialFilterExpression: { guestEmail: { $gt: '' } } },
+);
+// An invoice number is issued once: unique among orders that have one
+OrderSchema.index(
+  { invoiceNumber: 1 },
+  { unique: true, partialFilterExpression: { invoiceNumber: { $gt: '' } } },
+);
 
 const Order = mongoose.model('Order', OrderSchema);
 
@@ -421,6 +463,9 @@ const validateCreateOrder = (obj) => {
     delivery: Joi.boolean().optional(),
     shippingMethod: Joi.string().trim().max(50).optional(),
     couponCode: Joi.string().trim().max(50).allow('', null).optional(),
+    // Guest checkout only (no session): where the receipt and order link go.
+    // Ignored for signed-in shoppers, whose account email is used.
+    email: Joi.string().trim().lowercase().email().max(100).optional(),
     shippingPrice: Joi.any().strip(),
     taxPrice: Joi.any().strip(),
   });

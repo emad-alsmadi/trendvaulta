@@ -1,8 +1,10 @@
-const { describe, it } = require('node:test');
+const { describe, it, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 const {
   resolveExtension,
   buildFileName,
+  uploadToCloudinary,
+  signCloudinaryParams,
 } = require('./storage.service');
 
 describe('resolveExtension', () => {
@@ -46,5 +48,61 @@ describe('buildFileName', () => {
     const a = buildFileName({ mimeType: 'image/png' });
     const b = buildFileName({ mimeType: 'image/png' });
     assert.notEqual(a, b);
+  });
+});
+
+describe('uploadToCloudinary', () => {
+  const realFetch = global.fetch;
+  const saved = {};
+  let sent;
+
+  beforeEach(() => {
+    for (const k of ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET', 'CLOUDINARY_FOLDER']) {
+      saved[k] = process.env[k];
+    }
+    Object.assign(process.env, {
+      CLOUDINARY_CLOUD_NAME: 'demo',
+      CLOUDINARY_API_KEY: 'key',
+      CLOUDINARY_API_SECRET: 'secret',
+      CLOUDINARY_FOLDER: 'trendvaulta',
+    });
+    sent = null;
+    global.fetch = async (url, init) => {
+      sent = { url, form: Object.fromEntries(init.body.entries()) };
+      return new Response(
+        JSON.stringify({ public_id: `trendvaulta/${sent.form.public_id}`, secure_url: 'https://res.cloudinary.com/demo/x.png' }),
+        { status: 200 },
+      );
+    };
+  });
+
+  afterEach(() => {
+    global.fetch = realFetch;
+    for (const [k, v] of Object.entries(saved)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  });
+
+  it('pins the public id and signs overwrite=false when one is given (re-runnable migration)', async () => {
+    const res = await uploadToCloudinary(Buffer.from('img'), { mimeType: 'image/png' }, { publicId: 'uuid-1' });
+
+    assert.equal(res.url, 'https://res.cloudinary.com/demo/x.png');
+    assert.equal(sent.url, 'https://api.cloudinary.com/v1_1/demo/image/upload');
+    assert.equal(sent.form.public_id, 'uuid-1');
+    assert.equal(sent.form.overwrite, 'false');
+    const signed = {
+      folder: 'trendvaulta',
+      public_id: 'uuid-1',
+      timestamp: sent.form.timestamp,
+      overwrite: 'false',
+    };
+    assert.equal(sent.form.signature, signCloudinaryParams(signed, 'secret'));
+  });
+
+  it('keeps random ids and default overwriting for ordinary uploads', async () => {
+    await uploadToCloudinary(Buffer.from('img'), { mimeType: 'image/png' });
+    assert.match(sent.form.public_id, /^[0-9a-f-]{36}$/);
+    assert.equal('overwrite' in sent.form, false);
   });
 });

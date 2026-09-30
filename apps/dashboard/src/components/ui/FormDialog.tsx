@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
+import { useT } from '../../i18n/I18nProvider';
 
 type Props = {
   /** Usually rendered only while open (`{editing && <FormDialog …>}`). */
@@ -28,6 +29,7 @@ export function FormDialog({
   maxWidthClass = 'max-w-lg',
   children,
 }: Props) {
+  const { t } = useT();
   return (
     <Dialog.Root
       open={open}
@@ -50,7 +52,7 @@ export function FormDialog({
               <button
                 type='button'
                 disabled={busy}
-                aria-label='Close'
+                aria-label={t('common.close')}
                 className='rounded p-1 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-700'
               >
                 <X className='h-5 w-5' aria-hidden='true' />

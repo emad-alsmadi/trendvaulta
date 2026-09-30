@@ -8,6 +8,7 @@ import {
 } from '@/data/demoStorefront';
 import { useStorefrontTrust } from '@/hooks/storefront/trustQuery';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { Skeleton, SkeletonGroup } from '@/components/ui/Skeleton';
 
 const ICONS = {
   truck: Truck,
@@ -43,12 +44,17 @@ export function TrustServiceStrip({ items: itemsProp }: Props) {
     >
       <div className='mx-auto grid max-w-[1400px] grid-cols-2 gap-4 px-4 py-6 sm:px-6 lg:grid-cols-4 lg:px-8 lg:py-8'>
         {isLoading && !items ? (
-          <p
-            className='col-span-full text-sm text-stone-500'
-            role='status'
-          >
-            {t('home.trust.loading')}
-          </p>
+          <SkeletonGroup label={t('home.trust.loading')} className='contents'>
+            {Array.from({ length: 4 }, (_, i) => (
+              <div key={i} aria-hidden className='flex items-start gap-3'>
+                <Skeleton className='h-10 w-10 shrink-0 rounded-lg' />
+                <div className='min-w-0 flex-1'>
+                  <Skeleton className='h-3.5 w-2/3' />
+                  <Skeleton className='mt-2 h-3 w-5/6' />
+                </div>
+              </div>
+            ))}
+          </SkeletonGroup>
         ) : items ? (
           items.map((item) => {
             const Icon = ICONS[item.icon];

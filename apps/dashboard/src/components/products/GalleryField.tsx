@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Loader2, Plus, Upload, X } from 'lucide-react';
 import { uploadsApi, errorMessage } from '../../lib/api';
 import { useToast } from '../ui/Toast';
+import { useT } from '../../i18n/I18nProvider';
 
 /** Matches the upload route's accepted types (apps/api/routes/uploads.js). */
 const ACCEPT = 'image/jpeg,image/png,image/webp,image/gif';
@@ -21,6 +22,7 @@ export function GalleryField({
   onChange: (images: string[]) => void;
 }) {
   const toast = useToast();
+  const { t } = useT();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(0);
   const [url, setUrl] = useState('');
@@ -52,13 +54,13 @@ export function GalleryField({
         add(await uploadsApi.uploadImage(file));
       } catch (err) {
         failed += 1;
-        toast.error(errorMessage(err, `Could not upload ${file.name}`));
+        toast.error(errorMessage(err, t('gallery.uploadFailed', { name: file.name })));
       } finally {
         setUploading((n) => n - 1);
       }
     }
     const done = files.length - failed;
-    if (done > 0) toast.success(done === 1 ? 'Image added.' : `${done} images added.`);
+    if (done > 0) toast.success(done === 1 ? t('gallery.addedOne') : t('gallery.addedMany', { count: done }));
   }
 
   function move(index: number, by: -1 | 1) {
@@ -72,7 +74,7 @@ export function GalleryField({
   return (
     <div className="block text-sm">
       <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-        Gallery images
+        {t('gallery.label')}
       </span>
 
       {value.length > 0 && (
@@ -88,27 +90,27 @@ export function GalleryField({
                   type="button"
                   onClick={() => move(i, -1)}
                   disabled={i === 0}
-                  aria-label={`Move image ${i + 1} earlier`}
+                  aria-label={t('gallery.moveEarlier', { n: i + 1 })}
                   className="rounded p-0.5 text-white disabled:opacity-30"
                 >
-                  <ArrowLeft className="h-3.5 w-3.5" />
+                  <ArrowLeft className="h-3.5 w-3.5 rtl:-scale-x-100" aria-hidden />
                 </button>
                 <button
                   type="button"
                   onClick={() => onChange(value.filter((_, j) => j !== i))}
-                  aria-label={`Remove image ${i + 1}`}
+                  aria-label={t('gallery.remove', { n: i + 1 })}
                   className="rounded p-0.5 text-white"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-3.5 w-3.5" aria-hidden />
                 </button>
                 <button
                   type="button"
                   onClick={() => move(i, 1)}
                   disabled={i === value.length - 1}
-                  aria-label={`Move image ${i + 1} later`}
+                  aria-label={t('gallery.moveLater', { n: i + 1 })}
                   className="rounded p-0.5 text-white disabled:opacity-30"
                 >
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  <ArrowRight className="h-3.5 w-3.5 rtl:-scale-x-100" aria-hidden />
                 </button>
               </div>
             </li>
@@ -128,7 +130,8 @@ export function GalleryField({
               setUrl('');
             }
           }}
-          placeholder="https://… image URL"
+          placeholder={t('gallery.urlPlaceholder')}
+          dir="ltr"
           className="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
         />
         <button
@@ -141,7 +144,7 @@ export function GalleryField({
           className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
         >
           <Plus className="h-3.5 w-3.5" aria-hidden />
-          Add
+          {t('gallery.add')}
         </button>
         <input
           ref={fileInputRef}
@@ -162,7 +165,7 @@ export function GalleryField({
           ) : (
             <Upload className="h-3.5 w-3.5" aria-hidden />
           )}
-          {uploading > 0 ? `Uploading ${uploading}…` : 'Upload images'}
+          {uploading > 0 ? t('gallery.uploading', { count: uploading }) : t('gallery.upload')}
         </button>
       </div>
     </div>

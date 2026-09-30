@@ -6,6 +6,7 @@ import { Sparkles, RefreshCw } from 'lucide-react';
 import { useContent } from '@/hooks/storefront/contentQuery';
 import { sanitizeHtml } from '@/lib/sanitizeHtml';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { ProseSkeleton } from '@/components/ui/Skeleton';
 
 /** Returns policy page — API: GET /api/content?type=RETURNS */
 export default function ReturnsPage() {
@@ -38,9 +39,10 @@ export default function ReturnsPage() {
         </motion.div>
 
         {isLoading && (
-          <p className='py-10 text-center text-sm text-stone-500'>
-            {t('returnsPolicy.loading')}
-          </p>
+          <ProseSkeleton
+            label={t('returnsPolicy.loading')}
+            className='rounded-2xl border border-stone-200 bg-white p-8'
+          />
         )}
 
         {error && (

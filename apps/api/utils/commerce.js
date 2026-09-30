@@ -253,9 +253,15 @@ const OPEN_CHECKOUT_WINDOW_MS = 31 * 60 * 1000;
  * Stripe to retry isn't blocked by their own abandoned checkout.
  * @returns {Promise<{ valid: boolean, message?: string }>}
  */
-async function checkCouponUsage(coupon, userId) {
+async function checkCouponUsage(coupon, customer) {
   if (!coupon) return { valid: false, message: 'Coupon not found' };
   const { Order } = require('../models/Order');
+  // Accepts a user id (signed-in callers) or { userId, email } (guests too)
+  const { userId = null, email = '' } =
+    customer && typeof customer === 'object' && !customer._bsontype
+      ? customer
+      : { userId: customer };
+  const guestEmail = String(email || '').trim().toLowerCase();
 
   if (coupon.usageLimit) {
     const openFilter = {
@@ -264,17 +270,34 @@ async function checkCouponUsage(coupon, userId) {
       createdAt: { $gte: new Date(Date.now() - OPEN_CHECKOUT_WINDOW_MS) },
     };
     if (userId) openFilter.user = { $ne: userId };
+    else if (guestEmail) openFilter.guestEmail = { $ne: guestEmail };
     const openCheckouts = await Order.countDocuments(openFilter);
     if (Number(coupon.usedCount || 0) + openCheckouts >= coupon.usageLimit) {
       return { valid: false, message: 'Coupon usage limit has been reached' };
     }
   }
 
-  if (coupon.perCustomerLimit && userId) {
+  if (coupon.perCustomerLimit && (userId || guestEmail)) {
+    // One person, however they check out: their account's orders plus
+    // guest orders under their email (and, for a guest, the account that
+    // owns that email). Guest checkout must not reset the limit.
+    const { User } = require('../models/User');
+    const emails = new Set(guestEmail ? [guestEmail] : []);
+    const userIds = new Set(userId ? [String(userId)] : []);
+    if (userId) {
+      const account = await User.findById(userId).select('email').lean();
+      if (account?.email) emails.add(account.email.toLowerCase());
+    } else {
+      const account = await User.findOne({ email: guestEmail }).select('_id').lean();
+      if (account) userIds.add(String(account._id));
+    }
     const usedByCustomer = await Order.countDocuments({
       couponId: coupon._id,
-      user: userId,
       paymentStatus: 'paid',
+      $or: [
+        ...(userIds.size ? [{ user: { $in: [...userIds] } }] : []),
+        ...(emails.size ? [{ guestEmail: { $in: [...emails] } }] : []),
+      ],
     });
     if (usedByCustomer >= coupon.perCustomerLimit) {
       return { valid: false, message: 'You have already used this coupon' };
@@ -341,6 +364,8 @@ async function buildNormalizedOrderLines(Product, items) {
     if (qty > available) {
       const err = new Error(`Insufficient stock for ${p.title}`);
       err.statusCode = 400;
+      // Same code as a lost reservation race (409), so clients treat both alike
+      err.code = 'OUT_OF_STOCK';
       throw err;
     }
 
@@ -496,7 +521,10 @@ function insufficientStockError(title) {
 }
 
 /**
- * Atomically decrement stock for every paid line. Variant lines use a single
+ * Atomically decrement stock for every order line: when checkout reserves it
+ * (payment.controller createCheckoutSession), or at payment for orders that
+ * hold no reservation (older orders, direct/dev orders, staff resolving a
+ * needs_attention order). Variant lines use a single
  * conditional positional update (variant match + stock >= qty), so concurrent
  * orders can never oversell. On a shortfall, lines already decremented are
  * restored best-effort and a 409 error is thrown.
@@ -695,6 +723,7 @@ module.exports = {
   resolveFulfillment,
   resolveShippingPrice,
   resolveTaxPrice,
+  getStoreSettings,
   invalidateStoreSettingsCache,
   calculateCouponDiscount,
   checkCouponUsage,

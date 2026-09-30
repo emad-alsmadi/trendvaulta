@@ -4,7 +4,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { ordersApi, type OrderCheckoutPayload } from '@/lib/api';
+import { ordersApi, type GuestOrder, type OrderCheckoutPayload } from '@/lib/api';
 import type { Order, ReturnRequestPayload } from '@/types';
 import { useHasAuthToken } from '@/hooks/auth/useHasAuthToken';
 
@@ -53,6 +53,20 @@ export function useOrderById(id?: string) {
   });
 }
 
+/** A guest order by its token (guest order page, guest checkout success). */
+export function useGuestOrder(orderId?: string | null, token?: string | null) {
+  return useQuery<GuestOrder>({
+    queryKey: ['orders', 'guest', orderId ?? 'missing'],
+    queryFn: async () => {
+      if (!orderId || !token) throw new Error('Missing order link');
+      return await ordersApi.getGuestOrder(orderId, token);
+    },
+    enabled: Boolean(orderId && token),
+    staleTime: 30_000,
+    retry: 1,
+  });
+}
+
 export function useCancelOrderMutation() {
   const qc = useQueryClient();
 
@@ -64,13 +78,6 @@ export function useCancelOrderMutation() {
       qc.setQueryData(orderByIdKey(id), result);
       await qc.invalidateQueries({ queryKey: ORDERS_MY_KEY });
     },
-  });
-}
-
-/** Fetch the invoice HTML for a download; nothing is cached. */
-export function useOrderInvoiceMutation() {
-  return useMutation({
-    mutationFn: (id: string) => ordersApi.getInvoiceHtml(id),
   });
 }
 

@@ -88,6 +88,10 @@ export interface Order {
   refundAmount?: number;
   refundId?: string;
   refundedAt?: string;
+  /** Issued once the payment is captured, e.g. TV-2026-000123. */
+  invoiceNumber?: string;
+  /** Set on a guest order (no account); where its emails go. */
+  guestEmail?: string;
   trackingNumber?: string;
   trackingCarrier?: string;
   trackingUrl?: string;

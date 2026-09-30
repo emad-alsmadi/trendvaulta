@@ -13,6 +13,7 @@ import {
 } from '@/lib/categories';
 import { getSiteUrl } from '@/lib/site';
 import { getTranslation } from '@/lib/i18n-server';
+import { ProductGridSkeleton } from '@/components/ui/Skeleton';
 
 type Props = {
   def: CategoryDef;
@@ -22,14 +23,7 @@ type Props = {
 
 function GridFallback() {
   return (
-    <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
-      {Array.from({ length: 8 }).map((_, i) => (
-        <div
-          key={i}
-          className='aspect-[3/4] animate-pulse rounded-xl bg-stone-200/70'
-        />
-      ))}
-    </div>
+    <ProductGridSkeleton className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' />
   );
 }
 

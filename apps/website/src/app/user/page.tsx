@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import {
+  ArrowRight,
   ChevronRight,
   Heart,
   MapPin,
@@ -11,9 +12,18 @@ import {
   UserRound,
 } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { useMyOrders } from '@/hooks/orders/ordersQuery';
+import { useMyWishlist } from '@/hooks/wishlist/wishlistQuery';
+import { useAddresses } from '@/hooks/profile/addressesQuery';
+import { useMyReviews } from '@/hooks/reviews/reviewsQuery';
+import { intlLocale } from '@/lib/locale';
+import { STATUS_LABELS, statusBadgeClass } from '@/lib/orderStatus';
+import { cn } from '@/lib/utils';
+import { Card } from '@/components/ui/Card';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 /** `title` and `description` are message keys. */
-const CARDS = [
+const SECTIONS = [
   { href: '/user/orders', title: 'common.orders', description: 'orders.subtitle', icon: Package },
   { href: '/user/wishlist', title: 'userArea.sidebar.wishlist', description: 'userArea.overview.wishlistDescription', icon: Heart },
   { href: '/user/reviews', title: 'userArea.reviews.title', description: 'userArea.overview.reviewsDescription', icon: Star },
@@ -22,44 +32,163 @@ const CARDS = [
   { href: '/user/security', title: 'common.security', description: 'account.overview.securityDescription', icon: Shield },
 ] as const;
 
-/** /user — one card per account section. */
+function Stat({
+  href,
+  label,
+  value,
+  loading,
+}: {
+  href: string;
+  label: string;
+  value?: number;
+  loading: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className='group block rounded-control py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50'
+    >
+      {loading ? (
+        <Skeleton className='h-9 w-12' />
+      ) : (
+        <span className='block text-title tabular-nums text-ink transition-colors duration-(--dur-fast) group-hover:text-accent'>
+          {value ?? 0}
+        </span>
+      )}
+      <span className='mt-1 block text-sm text-ink-muted'>{label}</span>
+    </Link>
+  );
+}
+
+/** /user — account at a glance: counts, the latest order, then every section. */
 export default function UserOverviewPage() {
-  const { t } = useTranslation();
+  const { t, locale, formatPrice } = useTranslation();
+  const orders = useMyOrders();
+  const wishlist = useMyWishlist();
+  const addresses = useAddresses();
+  const reviews = useMyReviews();
+
+  const latest = [...(orders.data ?? [])].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  )[0];
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-12'>
       <div>
-        <h1 className='text-2xl font-extrabold tracking-tight text-indigo-950'>
-          {t('userArea.nav.overview')}
-        </h1>
-        <p className='mt-1 text-sm font-semibold text-indigo-950/70'>{t('account.subtitle')}</p>
+        <h1 className='text-title text-ink'>{t('userArea.nav.overview')}</h1>
+        <p className='mt-2 text-ink-muted'>{t('account.subtitle')}</p>
       </div>
 
-      <ul className='grid gap-4 sm:grid-cols-2 xl:grid-cols-3'>
-        {CARDS.map((card) => {
-          const Icon = card.icon;
-          return (
-            <li key={card.href}>
+      {/* At a glance — numbers carry the hierarchy, no boxes. */}
+      <ul className='grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4'>
+        {[
+          { href: '/user/orders', label: t('common.orders'), q: orders },
+          { href: '/user/wishlist', label: t('userArea.sidebar.wishlist'), q: wishlist },
+          { href: '/user/addresses', label: t('common.addresses'), q: addresses },
+          { href: '/user/reviews', label: t('userArea.reviews.title'), q: reviews },
+        ].map(({ href, label, q }) => (
+          <li key={href} className='border-t border-line pt-4'>
+            <Stat href={href} label={label} value={q.data?.length} loading={q.isLoading} />
+          </li>
+        ))}
+      </ul>
+
+      {/* Latest order */}
+      <section aria-labelledby='latest-order-heading'>
+        <h2 id='latest-order-heading' className='text-eyebrow uppercase text-ink-subtle'>
+          {t('userArea.overview.latestOrder')}
+        </h2>
+        <Card variant='elevated' className='mt-4'>
+          {orders.isLoading ? (
+            <div aria-hidden className='flex items-center justify-between gap-4'>
+              <div className='space-y-2'>
+                <Skeleton className='h-5 w-32' />
+                <Skeleton className='h-3.5 w-48' />
+              </div>
+              <Skeleton className='h-9 w-28' />
+            </div>
+          ) : latest ? (
+            <div className='flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between'>
+              <div className='min-w-0'>
+                <div className='flex flex-wrap items-center gap-3'>
+                  <span className='font-mono text-base font-semibold text-ink' dir='ltr'>
+                    #{latest._id.slice(-8).toUpperCase()}
+                  </span>
+                  <span
+                    className={cn(
+                      'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
+                      statusBadgeClass(latest.status),
+                    )}
+                  >
+                    {STATUS_LABELS[latest.status] ? t(STATUS_LABELS[latest.status]) : latest.status}
+                  </span>
+                </div>
+                <p className='mt-2 text-sm text-ink-muted'>
+                  {new Date(latest.createdAt).toLocaleDateString(intlLocale(locale), {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                  <span aria-hidden className='mx-2 text-ink-subtle'>·</span>
+                  {t('orders.itemCount', { count: latest.items.length })}
+                  <span aria-hidden className='mx-2 text-ink-subtle'>·</span>
+                  <span className='font-semibold text-ink'>{formatPrice(latest.totalPrice)}</span>
+                </p>
+              </div>
               <Link
-                href={card.href}
-                className='group flex h-full flex-col rounded-3xl border border-white/40 bg-white/55 p-5 shadow-sm backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-white/75 hover:shadow-md'
+                href={`/user/orders/${latest._id}`}
+                className='group inline-flex shrink-0 items-center gap-2 self-start rounded-control bg-ink px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-(--dur-fast) hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 sm:self-auto'
               >
-                <span className='inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-700'>
-                  <Icon className='h-5 w-5' aria-hidden />
-                </span>
-                <span className='mt-4 flex items-center justify-between gap-2 text-base font-bold text-indigo-950'>
-                  {t(card.title)}
+                {t('userArea.overview.viewOrder')}
+                <ArrowRight
+                  aria-hidden
+                  className='h-4 w-4 transition-transform duration-(--dur-base) ease-brand rtl:-scale-x-100 ltr:group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5'
+                />
+              </Link>
+            </div>
+          ) : (
+            <div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
+              <div>
+                <p className='font-semibold text-ink'>{t('orders.emptyTitle')}</p>
+                <p className='mt-1 text-sm text-ink-muted'>{t('orders.emptyDescription')}</p>
+              </div>
+              <Link
+                href='/products'
+                className='inline-flex shrink-0 items-center self-start rounded-control border border-line px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-surface-muted sm:self-auto'
+              >
+                {t('orders.startShopping')}
+              </Link>
+            </div>
+          )}
+        </Card>
+      </section>
+
+      {/* Every section — an editorial list with hairlines instead of tiles. */}
+      <nav aria-label={t('account.sectionsLabel')}>
+        <ul className='grid gap-x-10 sm:grid-cols-2'>
+          {SECTIONS.map((section) => {
+            const Icon = section.icon;
+            return (
+              <li key={section.href} className='border-t border-line'>
+                <Link
+                  href={section.href}
+                  className='group flex items-start gap-4 py-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50'
+                >
+                  <Icon className='mt-0.5 h-5 w-5 shrink-0 text-ink-subtle transition-colors group-hover:text-accent' aria-hidden />
+                  <span className='min-w-0 flex-1'>
+                    <span className='block font-semibold text-ink'>{t(section.title)}</span>
+                    <span className='mt-1 block text-sm text-ink-muted'>{t(section.description)}</span>
+                  </span>
                   <ChevronRight
-                    className='h-4 w-4 text-indigo-950/40 transition group-hover:text-indigo-700 rtl:-scale-x-100'
+                    className='mt-0.5 h-4 w-4 shrink-0 text-ink-subtle transition-transform duration-(--dur-base) ease-brand group-hover:text-ink rtl:-scale-x-100 ltr:group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5'
                     aria-hidden
                   />
-                </span>
-                <span className='mt-1 text-sm text-indigo-950/70'>{t(card.description)}</span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
     </div>
   );
 }

@@ -32,7 +32,7 @@ From the repository root:
 npm install
 ```
 
-This installs dependencies for all workspace apps and packages.
+This installs dependencies for all workspace apps.
 
 ### 2. Environment setup
 
@@ -95,8 +95,7 @@ API has no compile step (`npm start` / `npm run dev` run Node directly).
 
 No shared package is in use: each app keeps its own API client and types
 (`apps/website/src/lib/api.ts`, `apps/website/src/types/`,
-`apps/dashboard/src/lib/api.ts`). `packages/types` (`@trendvaulta/types`) is
-still a workspace but nothing imports it; there is no `@trendvaulta/api-client`. Always verify paths against `apps/api/routes/` — do not
+`apps/dashboard/src/lib/api.ts`). The workspaces are `apps/*` only. Always verify paths against `apps/api/routes/` — do not
 assume a client's types are complete or current.
 
 ## App roles

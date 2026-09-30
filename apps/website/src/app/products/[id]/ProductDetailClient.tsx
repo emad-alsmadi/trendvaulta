@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useProductById } from '@/hooks/products/productsQuery';
 import { motion } from 'framer-motion';
 import {
-  Loader2,
   Star,
   ShoppingCart,
   Share2,
@@ -29,6 +28,7 @@ import { WishlistButton } from '@/components/page/wishlist/WishlistButton';
 import { trackRecentlyViewed } from '@/lib/recentlyViewed';
 import { useTranslation } from '@/contexts/TranslationContext';
 import type { Product, ProductVariant } from '@/types';
+import { Skeleton, SkeletonGroup, SkeletonText } from '@/components/ui/Skeleton';
 
 type Dimensions = Product['dimensions'];
 type Translate = ReturnType<typeof useTranslation>['t'];
@@ -86,12 +86,30 @@ export function ProductDetailClient({ id }: { id: string }) {
 
   if (isLoading) {
     return (
-      <div role='status' className='min-h-screen flex items-center justify-center'>
-        <div className='text-center'>
-          <Loader2 className='h-12 w-12 animate-spin text-fuchsia-600 mx-auto' aria-hidden />
-          <p className='mt-4 text-gray-600'>{t('productPage.loading')}</p>
+      <SkeletonGroup
+        label={t('productPage.loading')}
+        className='mx-auto grid max-w-7xl grid-cols-1 gap-8 py-6 lg:grid-cols-2 lg:gap-12'
+      >
+        <div aria-hidden>
+          <Skeleton className='aspect-square w-full rounded-2xl' />
+          <div className='mt-4 grid grid-cols-4 gap-3'>
+            {Array.from({ length: 4 }, (_, i) => (
+              <Skeleton key={i} className='aspect-square rounded-xl' />
+            ))}
+          </div>
         </div>
-      </div>
+        <div aria-hidden className='space-y-5'>
+          <Skeleton className='h-3 w-24' />
+          <Skeleton className='h-9 w-4/5' />
+          <Skeleton className='h-4 w-40' />
+          <Skeleton className='h-8 w-32' />
+          <SkeletonText lines={4} />
+          <div className='flex gap-3 pt-2'>
+            <Skeleton className='h-12 flex-1' />
+            <Skeleton className='h-12 flex-1' />
+          </div>
+        </div>
+      </SkeletonGroup>
     );
   }
 
@@ -157,6 +175,26 @@ export function ProductDetailClient({ id }: { id: string }) {
   const handleBuyNow = () => {
     if (!handleAddToCart()) return;
     window.location.href = '/checkout';
+  };
+
+  // Native share sheet where available (mobile), else copy the link.
+  const handleShare = async () => {
+    const url = window.location.href;
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title: product.title, url });
+        return;
+      } catch (err) {
+        // User closed the sheet — not an error worth a toast.
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      toast(t('orders.toast.copied'), { variant: 'success' });
+    } catch {
+      toast(t('orders.toast.copyFailed'), { variant: 'error' });
+    }
   };
 
   const handleSelectVariant = (variant: ProductVariant) => {
@@ -477,50 +515,57 @@ export function ProductDetailClient({ id }: { id: string }) {
               </div>
             </div>
 
-            {/* Actions */}
-            <div className='flex gap-4'>
-              <Button
-                size='lg'
-                onClick={() => void handleAddToCart()}
-                disabled={!canPurchase}
-                title={
-                  variantRequired
-                    ? t('productPage.variants.chooseFirst')
-                    : undefined
-                }
-                className='flex-1 gap-2'
-              >
-                <ShoppingCart className='h-5 w-5' />
-                {t('product.addToCart')}
-              </Button>
-              <Button
-                size='lg'
-                variant='outline'
-                onClick={handleBuyNow}
-                disabled={!canPurchase}
-                title={
-                  variantRequired
-                    ? t('productPage.variants.chooseFirst')
-                    : undefined
-                }
-                className='flex-1'
-              >
-                {t('productPage.buyNow')}
-              </Button>
-              <WishlistButton
-                productId={product._id}
-                variant='icon'
-                tone='onLight'
-                className='inline-flex h-11 w-12 items-center justify-center rounded-md border border-stone-200 !p-0 [&>svg]:h-5 [&>svg]:w-5'
-              />
-              <Button
-                size='lg'
-                variant='outline'
-                className='px-4'
-                aria-label={t('productPage.share')}
-              >
-                <Share2 className='h-5 w-5' aria-hidden />
-              </Button>
+            {/* Actions — the two purchase buttons share one row that always
+                fits (min-w-0 + truncation, no wide lg padding); wishlist and
+                share sit beside them from sm up and on their own row on
+                phones. Previously one non-wrapping row of ~480px overflowed
+                phone screens, off the unscrollable left edge in RTL. */}
+            <div className='flex flex-col gap-3 sm:flex-row'>
+              <div className='grid min-w-0 flex-1 grid-cols-2 gap-3'>
+                <Button
+                  onClick={() => void handleAddToCart()}
+                  disabled={!canPurchase}
+                  title={
+                    variantRequired
+                      ? t('productPage.variants.chooseFirst')
+                      : undefined
+                  }
+                  className='min-w-0 px-4'
+                >
+                  <ShoppingCart className='h-5 w-5 shrink-0' aria-hidden />
+                  <span className='truncate'>{t('product.addToCart')}</span>
+                </Button>
+                <Button
+                  variant='outline'
+                  onClick={handleBuyNow}
+                  disabled={!canPurchase}
+                  title={
+                    variantRequired
+                      ? t('productPage.variants.chooseFirst')
+                      : undefined
+                  }
+                  className='min-w-0 px-4'
+                >
+                  <span className='truncate'>{t('productPage.buyNow')}</span>
+                </Button>
+              </div>
+              <div className='flex gap-3'>
+                <WishlistButton
+                  productId={product._id}
+                  variant='icon'
+                  tone='onLight'
+                  className='inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-control border border-stone-200 !p-0 [&>svg]:h-5 [&>svg]:w-5'
+                />
+                <Button
+                  variant='outline'
+                  size='icon'
+                  onClick={() => void handleShare()}
+                  aria-label={t('productPage.share')}
+                  className='shrink-0'
+                >
+                  <Share2 className='h-5 w-5' aria-hidden />
+                </Button>
+              </div>
             </div>
 
             {/* Trust Badges */}

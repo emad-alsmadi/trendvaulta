@@ -92,6 +92,11 @@ export default function Content() {
       } else {
         await createMut.mutateAsync(payload);
       }
+      toast.success(
+        payload.active
+          ? `${payload.type} content published`
+          : `${payload.type} content saved as draft`,
+      );
       setOpen(false);
       setEditing(null);
     } catch (err) {
@@ -130,21 +135,21 @@ export default function Content() {
             onClick={openCreate}
             className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
           >
-            <Plus className="mr-2 h-5 w-5" />
+            <Plus className="me-2 h-5 w-5" />
             Add content
           </button>
         )}
       </div>
 
       <div className="relative mb-6">
-        <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+        <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
         <input
           type="search"
           aria-label="Search by type, title, or body"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by type, title, or body…"
-          className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+          className="w-full rounded-lg border border-gray-300 bg-white py-2 ps-10 pe-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
         />
       </div>
 
@@ -169,7 +174,7 @@ export default function Content() {
                   {['Type', 'Title', 'Body preview', 'Status', 'Actions'].map((h) => (
                     <th
                       key={h}
-                      className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300"
+                      className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300"
                     >
                       {h}
                     </th>

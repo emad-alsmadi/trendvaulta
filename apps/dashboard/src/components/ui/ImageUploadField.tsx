@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { Loader2, Upload, ImageOff } from 'lucide-react';
 import { uploadsApi, errorMessage } from '../../lib/api';
 import { useToast } from './Toast';
+import { useT } from '../../i18n/I18nProvider';
 
 type ImageUploadFieldProps = {
   label: string;
@@ -22,6 +23,7 @@ export function ImageUploadField({
   required,
 }: ImageUploadFieldProps) {
   const toast = useToast();
+  const { t } = useT();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -36,9 +38,9 @@ export function ImageUploadField({
       const url = await uploadsApi.uploadImage(file);
       setImageError(false);
       onChange(url);
-      toast.success('Image uploaded.');
+      toast.success(t('imageUpload.uploaded'));
     } catch (err) {
-      toast.error(errorMessage(err, 'Image upload failed.'));
+      toast.error(errorMessage(err, t('imageUpload.failed')));
     } finally {
       setUploading(false);
     }
@@ -65,14 +67,15 @@ export function ImageUploadField({
         <div className="flex flex-1 flex-col gap-2">
           <input
             // The visible caption is a <span>, so name the field explicitly.
-            aria-label={`${label} URL`}
+            aria-label={t('imageUpload.urlLabel', { label })}
             required={required}
             value={value}
             onChange={(e) => {
               setImageError(false);
               onChange(e.target.value);
             }}
-            placeholder="https://... (or upload a file)"
+            placeholder={t('imageUpload.placeholder')}
+            dir="ltr"
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
           />
           <div>
@@ -94,7 +97,7 @@ export function ImageUploadField({
               ) : (
                 <Upload className="h-3.5 w-3.5" aria-hidden />
               )}
-              {uploading ? 'Uploading…' : 'Upload image'}
+              {uploading ? t('imageUpload.uploading') : t('imageUpload.upload')}
             </button>
           </div>
         </div>

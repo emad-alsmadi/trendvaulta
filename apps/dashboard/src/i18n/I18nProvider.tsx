@@ -1,0 +1,136 @@
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
+import { en, type MessageKey, type Messages } from './en';
+import { ar } from './ar';
+
+export type Locale = 'en' | 'ar';
+type Vars = Record<string, string | number>;
+
+const MESSAGES: Record<Locale, Messages> = { en, ar };
+const STORAGE_KEY = 'tv_admin_locale';
+
+function lookup(messages: Messages, key: string): string | undefined {
+  let node: unknown = messages;
+  for (const part of key.split('.')) {
+    if (typeof node !== 'object' || node === null) return undefined;
+    node = (node as Record<string, unknown>)[part];
+  }
+  return typeof node === 'string' ? node : undefined;
+}
+
+function translator(locale: Locale) {
+  return (key: MessageKey, vars?: Vars) => {
+    const template = lookup(MESSAGES[locale], key) ?? lookup(en, key) ?? key;
+    if (!vars) return template;
+    return template.replace(/\{(\w+)\}/g, (m, name: string) => (name in vars ? String(vars[name]) : m));
+  };
+}
+
+/** BCP 47 tag for Intl: Arabic keeps Latin digits, same as the storefront. */
+// eslint-disable-next-line react-refresh/only-export-components -- tiny helper shared with the hook
+export function intlLocale(locale: Locale) {
+  return locale === 'ar' ? 'ar-u-nu-latn' : 'en-US';
+}
+
+/** Message groups whose keys are API enum values (status, reason, …). */
+type ValueGroup =
+  | 'orderStatus'
+  | 'paymentStatus'
+  | 'returnStatus'
+  | 'returnStage'
+  | 'attentionReason'
+  | 'trackingEvent'
+  | 'productCategory'
+  | 'role'
+  | 'contactStatus';
+
+type I18n = {
+  locale: Locale;
+  dir: 'ltr' | 'rtl';
+  setLocale: (locale: Locale) => void;
+  t: ReturnType<typeof translator>;
+  /**
+   * Label for an API value, e.g. tv('orderStatus', order.status). Unknown
+   * values (added server-side later) fall back to a readable raw string.
+   */
+  tv: (group: ValueGroup, value: string | undefined | null) => string;
+  /** Locale-aware number formatting (Latin digits in both languages). */
+  formatNumber: (n: number) => string;
+  /** USD — the store charges in USD only. */
+  formatCurrency: (n: number) => string;
+  formatDate: (value: string | number | Date) => string;
+  formatDateTime: (value: string | number | Date) => string;
+};
+
+function build(locale: Locale, setLocale: (l: Locale) => void): I18n {
+  const tag = intlLocale(locale);
+  const nf = new Intl.NumberFormat(tag);
+  const cf = new Intl.NumberFormat(tag, { style: 'currency', currency: 'USD' });
+  const df = new Intl.DateTimeFormat(tag, { dateStyle: 'medium' });
+  const dtf = new Intl.DateTimeFormat(tag, { dateStyle: 'medium', timeStyle: 'short' });
+  const safe = (f: Intl.DateTimeFormat) => (value: string | number | Date) => {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? '—' : f.format(d);
+  };
+  return {
+    locale,
+    dir: locale === 'ar' ? 'rtl' : 'ltr',
+    setLocale,
+    t: translator(locale),
+    tv: (group, value) => {
+      if (!value) return '—';
+      const key = `${group}.${value}`;
+      return lookup(MESSAGES[locale], key) ?? lookup(en, key) ?? value.replace(/_/g, ' ');
+    },
+    formatNumber: (n) => nf.format(n),
+    formatCurrency: (n) => cf.format(n),
+    formatDate: safe(df),
+    formatDateTime: safe(dtf),
+  };
+}
+
+// Default = English, so components still render outside the provider (tests).
+const I18nContext = createContext<I18n>(build('en', () => {}));
+
+function readStoredLocale(): Locale {
+  try {
+    return localStorage.getItem(STORAGE_KEY) === 'ar' ? 'ar' : 'en';
+  } catch {
+    return 'en';
+  }
+}
+
+export function I18nProvider({ children }: { children: ReactNode }) {
+  const [locale, setLocaleState] = useState<Locale>(readStoredLocale);
+
+  const setLocale = useCallback((next: Locale) => {
+    setLocaleState(next);
+    try {
+      localStorage.setItem(STORAGE_KEY, next);
+    } catch {
+      // Private mode / blocked storage: the choice lasts for this tab only.
+    }
+  }, []);
+
+  const value = useMemo(() => build(locale, setLocale), [locale, setLocale]);
+
+  // <html lang dir> drives RTL layout (logical Tailwind classes + rtl: variants).
+  useEffect(() => {
+    document.documentElement.lang = locale;
+    document.documentElement.dir = value.dir;
+  }, [locale, value.dir]);
+
+  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
+}
+
+// eslint-disable-next-line react-refresh/only-export-components -- hook is intentionally co-located with its provider
+export function useT() {
+  return useContext(I18nContext);
+}

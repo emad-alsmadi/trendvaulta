@@ -49,9 +49,17 @@ function validateEnv(env = process.env) {
       if (!isSet(name, env)) problems.push(`${name} is required when STORAGE_DRIVER=cloudinary`);
     }
   } else if (production) {
-    warnings.push(
-      'STORAGE_DRIVER is local: uploaded images live on this server\'s disk and are lost on redeploy unless apps/api/uploads is a persistent volume.',
-    );
+    // Render (and most hosts) wipe the disk on every deploy: local uploads
+    // would silently vanish. Opting out is explicit, for a persistent volume.
+    if (env.ALLOW_LOCAL_STORAGE === 'true') {
+      warnings.push(
+        'STORAGE_DRIVER is local (ALLOW_LOCAL_STORAGE=true): apps/api/uploads must be a persistent volume, or uploaded images are lost on redeploy.',
+      );
+    } else {
+      problems.push(
+        'STORAGE_DRIVER=cloudinary is required in production: local uploads are lost on every redeploy. Set ALLOW_LOCAL_STORAGE=true only if apps/api/uploads is a persistent volume.',
+      );
+    }
   }
 
   if (production) {

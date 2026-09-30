@@ -15,6 +15,8 @@ const TRUST_ICONS = new Set<StorefrontTrustIcon>([
   'headset',
 ]);
 
+const TRANSLATED_TRUST_IDS = new Set(['shipping', 'returns', 'secure', 'support']);
+
 export function trustKey() {
   return ['storefront', 'trust'] as const;
 }
@@ -29,11 +31,16 @@ function mapTrustItem(
     typeof item.description === 'string' ? item.description.trim() : '';
   if (!title || !description) return null;
 
+  const id = item.id?.trim() || `trust-${index}-${item.icon}`;
+  // Default items have translated copy in messages (demo.trust.<id>.*);
+  // TrustServiceStrip runs title/description through t(), custom text passes through.
+  const translated = TRANSLATED_TRUST_IDS.has(id);
+
   return {
-    id: item.id?.trim() || `trust-${index}-${item.icon}`,
+    id,
     icon: item.icon,
-    title,
-    description,
+    title: translated ? `demo.trust.${id}.title` : title,
+    description: translated ? `demo.trust.${id}.description` : description,
   };
 }
 

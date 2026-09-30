@@ -2,7 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import {
+  Dropdown,
+  DropdownContent,
+  DropdownItem,
+  DropdownSeparator,
+  DropdownTrigger,
+} from '@/components/ui/Dropdown';
 import { MapPin, ChevronDown, Check, Truck } from 'lucide-react';
 import {
   DEMO_DELIVER_REGIONS,
@@ -36,8 +42,8 @@ export function DeliverToControl({ className }: { className?: string }) {
 
   return (
     <div className={cn('relative flex items-center gap-2', className)}>
-      <DropdownMenu.Root>
-        <DropdownMenu.Trigger asChild>
+      <Dropdown>
+        <DropdownTrigger asChild>
           <button
             type='button'
             className='group inline-flex max-w-[220px] items-center gap-1.5 rounded-lg px-1.5 py-1 text-start transition hover:bg-stone-200/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500'
@@ -60,14 +66,9 @@ export function DeliverToControl({ className }: { className?: string }) {
               </span>
             </span>
           </button>
-        </DropdownMenu.Trigger>
+        </DropdownTrigger>
 
-        <DropdownMenu.Portal>
-          <DropdownMenu.Content
-            align='start'
-            sideOffset={8}
-            className='z-[60] w-[280px] overflow-hidden rounded-xl border border-stone-200 bg-white p-2 shadow-lg'
-          >
+        <DropdownContent align='start' className='z-[60] w-[280px] p-2'>
             <div className='px-2 pb-2 pt-1'>
               <p className='text-xs font-extrabold text-stone-900'>
                 {t('demo.deliverTo.chooseRegion')}
@@ -80,7 +81,7 @@ export function DeliverToControl({ className }: { className?: string }) {
             {DEMO_DELIVER_REGIONS.map((option) => {
               const selected = region.id === option.id;
               return (
-                <DropdownMenu.Item
+                <DropdownItem
                   key={option.id}
                   onSelect={() => {
                     const next = setDeliverRegionId(option.id);
@@ -88,10 +89,8 @@ export function DeliverToControl({ className }: { className?: string }) {
                     setTipOpen(true);
                   }}
                   className={cn(
-                    'flex cursor-pointer items-start gap-2 rounded-lg px-2 py-2 text-sm outline-none transition',
-                    selected
-                      ? 'bg-fuchsia-50 text-fuchsia-950'
-                      : 'text-stone-800 hover:bg-stone-50',
+                    'items-start gap-2 px-2 py-2',
+                    selected && 'bg-fuchsia-50 text-fuchsia-950 data-[highlighted]:bg-fuchsia-100/70',
                   )}
                 >
                   <Check
@@ -109,24 +108,23 @@ export function DeliverToControl({ className }: { className?: string }) {
                       {t(option.hint)}
                     </span>
                   </span>
-                </DropdownMenu.Item>
+                </DropdownItem>
               );
             })}
 
-            <DropdownMenu.Separator className='my-2 h-px bg-stone-100' />
+            <DropdownSeparator />
 
-            <DropdownMenu.Item asChild>
+            <DropdownItem asChild>
               <Link
                 href='/shipping'
-                className='flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-xs font-bold text-fuchsia-700 outline-none hover:bg-stone-50'
+                className='gap-2 px-2 py-2 text-xs font-bold text-fuchsia-700'
               >
                 <Truck className='h-3.5 w-3.5' aria-hidden />
                 {t('demo.deliverTo.shippingPolicy')}
               </Link>
-            </DropdownMenu.Item>
-          </DropdownMenu.Content>
-        </DropdownMenu.Portal>
-      </DropdownMenu.Root>
+            </DropdownItem>
+        </DropdownContent>
+      </Dropdown>
 
       {tipOpen ? (
         <div

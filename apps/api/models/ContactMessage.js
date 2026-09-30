@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const Joi = require('joi');
 
+const CONTACT_STATUSES = ['new', 'read', 'closed'];
+
 const ContactMessageSchema = new mongoose.Schema(
   {
     name: {
@@ -34,7 +36,7 @@ const ContactMessageSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['new', 'read', 'closed'],
+      enum: CONTACT_STATUSES,
       default: 'new',
     },
     ip: {
@@ -42,11 +44,30 @@ const ContactMessageSchema = new mongoose.Schema(
       trim: true,
       default: '',
     },
+    // Internal only (dashboard inbox): never shown to the sender.
+    staffNote: {
+      type: String,
+      trim: true,
+      maxlength: 1000,
+      default: '',
+    },
+    // Last staff member to change the status, and when.
+    handledBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    handledAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true },
 );
 
 ContactMessageSchema.index({ createdAt: -1 });
+// Inbox filter chips (status) sorted newest first
+ContactMessageSchema.index({ status: 1, createdAt: -1 });
 
 const ContactMessage = mongoose.model('ContactMessage', ContactMessageSchema);
 
@@ -62,15 +83,20 @@ const validateContactMessage = (obj) => {
   return schema.validate(obj);
 };
 
-const validateContactStatus = (obj) => {
+/** Staff update from the dashboard inbox: status and/or internal note. */
+const validateUpdateContactMessage = (obj) => {
   const schema = Joi.object({
-    status: Joi.string().valid('new', 'read', 'closed').required(),
-  });
+    status: Joi.string().valid(...CONTACT_STATUSES),
+    staffNote: Joi.string().trim().allow('').max(1000),
+  })
+    .or('status', 'staffNote')
+    .messages({ 'object.missing': 'Provide a status or a staff note' });
   return schema.validate(obj);
 };
 
 module.exports = {
-  validateContactStatus,
   ContactMessage,
+  CONTACT_STATUSES,
   validateContactMessage,
+  validateUpdateContactMessage,
 };

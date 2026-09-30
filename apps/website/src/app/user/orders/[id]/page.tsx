@@ -13,7 +13,7 @@ import {
   XCircle,
   AlertCircle,
   Copy,
-  Download,
+  FileText,
 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
@@ -22,59 +22,19 @@ import { useToast } from '@/components/ui/Toast';
 import {
   useCancelOrderMutation,
   useOrderById,
-  useOrderInvoiceMutation,
 } from '@/hooks/orders/ordersQuery';
 import { getUserFacingErrorMessage } from '@/lib/userFacingError';
 import { OrderReturnSection } from '@/components/orders/OrderReturnSection';
 import type { Order } from '@/types';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { intlLocale } from '@/lib/locale';
-
-/** Message keys, resolved with t() at render. */
-const STATUS_LABELS: Record<string, string> = {
-  pending: 'orders.status.pending',
-  paid: 'orders.status.paid',
-  shipped: 'orders.status.shipped',
-  delivered: 'orders.status.delivered',
-  canceled: 'orders.status.canceled',
-  needs_attention: 'orders.status.needs_attention',
-  refunded: 'orders.status.refunded',
-};
-
-const PAYMENT_STATUS_LABELS: Record<string, string> = {
-  unpaid: 'orders.paymentStatus.unpaid',
-  pending: 'orders.paymentStatus.pending',
-  paid: 'orders.paymentStatus.paid',
-  failed: 'orders.paymentStatus.failed',
-  refunded: 'orders.paymentStatus.refunded',
-};
-
-const ATTENTION_REASON_LABELS: Record<string, string> = {
-  insufficient_stock: 'orders.attentionReason.insufficient_stock',
-  paid_after_cancel: 'orders.attentionReason.paid_after_cancel',
-  refund_failed: 'orders.attentionReason.refund_failed',
-  manual_refund_required: 'orders.attentionReason.manual_refund_required',
-};
-
-function statusBadgeClass(status: string) {
-  switch (status) {
-    case 'delivered':
-      return 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200';
-    case 'paid':
-    case 'shipped':
-      return 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200';
-    case 'pending':
-      return 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200';
-    case 'canceled':
-      return 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200';
-    case 'needs_attention':
-      return 'bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200';
-    case 'refunded':
-      return 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200';
-    default:
-      return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
-  }
-}
+import { ListSkeleton, PageHeaderSkeleton } from '@/components/ui/Skeleton';
+import {
+  ATTENTION_REASON_LABELS,
+  PAYMENT_STATUS_LABELS,
+  STATUS_LABELS,
+  statusBadgeClass,
+} from '@/lib/orderStatus';
 
 function formatDate(dateString: string | undefined, locale: string) {
   if (!dateString) return '—';
@@ -112,7 +72,6 @@ export default function OrderDetailPage() {
   const orderQuery = useOrderById(orderId);
   const order = orderQuery.data;
   const cancelMutation = useCancelOrderMutation();
-  const invoiceMutation = useOrderInvoiceMutation();
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const { t, formatPrice, locale } = useTranslation();
 
@@ -142,24 +101,31 @@ export default function OrderDetailPage() {
     }
   };
 
-  // Saved as a file rather than opened in a tab: a blob tab would run with
-  // the storefront's origin, a downloaded file does not.
-  const downloadInvoice = async () => {
+  const hasInvoice =
+    order?.paymentStatus === 'paid' || order?.paymentStatus === 'refunded';
+
+  const openInvoice = async () => {
     if (!order) return;
+    // A route handler returning a whole HTML document, not a Next page: it
+    // needs a full document load, never client-side routing.
+    const url = new URL(
+      `/user/orders/${order._id}/invoice?lang=${locale}`,
+      window.location.origin,
+    ).toString();
+    // Open the tab inside the click (popup blockers), then refetch the order:
+    // that renews an expired access token, which the invoice route reads
+    // from the cookie server-side.
+    const tab = window.open('', '_blank');
     try {
-      const html = await invoiceMutation.mutateAsync(order._id);
-      const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `invoice-${order._id.slice(-8).toUpperCase()}.html`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      toast(getUserFacingErrorMessage(err, t('orders.toast.invoiceFailed'), t), {
-        variant: 'error',
-      });
+      await orderQuery.refetch();
+    } catch {
+      // The invoice route sends an expired session to login and back
+    }
+    if (tab) {
+      tab.opener = null;
+      tab.location.href = url;
+    } else {
+      window.location.assign(url);
     }
   };
 
@@ -189,9 +155,10 @@ export default function OrderDetailPage() {
         </Link>
 
         {orderQuery.isLoading && (
-          <p className='py-10 text-center text-sm text-indigo-950/50'>
-            {t('orders.detail.loading')}
-          </p>
+          <div className='space-y-6'>
+            <PageHeaderSkeleton />
+            <ListSkeleton rows={2} label={t('orders.detail.loading')} />
+          </div>
         )}
 
         {orderQuery.isError && (
@@ -226,6 +193,28 @@ export default function OrderDetailPage() {
                     })}
                   </p>
                 )}
+                {hasInvoice && (
+                  <div className='mt-3 flex flex-wrap items-center gap-3'>
+                    <Button
+                      type='button'
+                      variant='outline'
+                      size='sm'
+                      onClick={() => void openInvoice()}
+                      aria-describedby='invoice-hint'
+                    >
+                      <FileText className='me-1.5 h-4 w-4' aria-hidden='true' />
+                      {t('orders.detail.invoice')}
+                    </Button>
+                    {order.invoiceNumber && (
+                      <span className='text-xs font-semibold text-indigo-950/60'>
+                        {t('orders.detail.invoiceNumber', { number: order.invoiceNumber })}
+                      </span>
+                    )}
+                    <span id='invoice-hint' className='sr-only'>
+                      {t('orders.detail.invoiceHint')}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className='flex flex-wrap gap-2'>
                 <span
@@ -250,21 +239,6 @@ export default function OrderDetailPage() {
                       ? t(ATTENTION_REASON_LABELS[order.attentionReason])
                       : order.attentionReason}
                   </span>
-                )}
-                {(order.paymentStatus === 'paid' ||
-                  order.paymentStatus === 'refunded') && (
-                  <Button
-                    size='sm'
-                    variant='outline'
-                    onClick={() => void downloadInvoice()}
-                    disabled={invoiceMutation.isPending}
-                    className='gap-1'
-                  >
-                    <Download className='h-4 w-4' />
-                    {invoiceMutation.isPending
-                      ? t('orders.detail.downloadingInvoice')
-                      : t('orders.detail.downloadInvoice')}
-                  </Button>
                 )}
               </div>
             </div>
