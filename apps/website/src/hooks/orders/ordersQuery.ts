@@ -69,6 +69,13 @@ export function useCancelOrderMutation() {
   });
 }
 
+/** Fetch the invoice HTML for a download; nothing is cached. */
+export function useOrderInvoiceMutation() {
+  return useMutation({
+    mutationFn: (id: string) => ordersApi.getInvoiceHtml(id),
+  });
+}
+
 export function useRequestReturnMutation() {
   const qc = useQueryClient();
 

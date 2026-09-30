@@ -567,7 +567,8 @@
     "toast": {
       "cancelFailed": "Could not cancel this order",
       "copied": "Copied to clipboard",
-      "copyFailed": "Could not copy"
+      "copyFailed": "Could not copy",
+      "invoiceFailed": "Could not download the invoice"
     },
     "cancel": {
       "prompt": "Changed your mind? This order hasn't shipped yet, so you can still cancel it.",
@@ -588,6 +589,8 @@
       "loadError": "Failed to load order",
       "title": "Order {id}",
       "copyId": "Copy full order id",
+      "downloadInvoice": "Download invoice",
+      "downloadingInvoice": "Preparing invoice…",
       "placed": "Placed {date}",
       "paymentBadge": "Payment: {status}",
       "items": "Items",

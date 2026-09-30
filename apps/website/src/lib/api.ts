@@ -403,6 +403,17 @@ export const ordersApi = {
     return data.data;
   },
 
+  /**
+   * Fetch the order invoice as an HTML document. Fetched through the
+   * client (not a plain link) because the API authenticates by header.
+   */
+  getInvoiceHtml: async (id: string): Promise<string> => {
+    const { data } = await api.get<string>(endpoints.orders.invoice(id), {
+      responseType: 'text',
+    });
+    return data;
+  },
+
   /** Cancel an unshipped order; paid orders are refunded server-side. */
   cancelOrder: async (id: string): Promise<OrderCancelResult> => {
     const { data } = await api.post<OrderCancelResult>(

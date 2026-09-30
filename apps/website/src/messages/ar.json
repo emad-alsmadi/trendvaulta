@@ -567,7 +567,8 @@
     "toast": {
       "cancelFailed": "تعذّر إلغاء هذا الطلب",
       "copied": "تم النسخ",
-      "copyFailed": "تعذّر النسخ"
+      "copyFailed": "تعذّر النسخ",
+      "invoiceFailed": "تعذّر تنزيل الفاتورة"
     },
     "cancel": {
       "prompt": "غيّرت رأيك؟ لم يتم شحن هذا الطلب بعد، لذا لا يزال بإمكانك إلغاؤه.",
@@ -588,6 +589,8 @@
       "loadError": "تعذّر تحميل الطلب",
       "title": "الطلب {id}",
       "copyId": "نسخ رقم الطلب كاملًا",
+      "downloadInvoice": "تنزيل الفاتورة",
+      "downloadingInvoice": "جارٍ تجهيز الفاتورة…",
       "placed": "تاريخ الطلب: {date}",
       "paymentBadge": "الدفع: {status}",
       "items": "المنتجات",

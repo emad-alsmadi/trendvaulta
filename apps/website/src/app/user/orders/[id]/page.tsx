@@ -13,6 +13,7 @@ import {
   XCircle,
   AlertCircle,
   Copy,
+  Download,
 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
@@ -21,6 +22,7 @@ import { useToast } from '@/components/ui/Toast';
 import {
   useCancelOrderMutation,
   useOrderById,
+  useOrderInvoiceMutation,
 } from '@/hooks/orders/ordersQuery';
 import { getUserFacingErrorMessage } from '@/lib/userFacingError';
 import { OrderReturnSection } from '@/components/orders/OrderReturnSection';
@@ -110,6 +112,7 @@ export default function OrderDetailPage() {
   const orderQuery = useOrderById(orderId);
   const order = orderQuery.data;
   const cancelMutation = useCancelOrderMutation();
+  const invoiceMutation = useOrderInvoiceMutation();
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const { t, formatPrice, locale } = useTranslation();
 
@@ -136,6 +139,27 @@ export default function OrderDetailPage() {
       // A 409 means the order changed under us (e.g. it just shipped):
       // refetch so the page stops offering an action that no longer applies.
       void orderQuery.refetch();
+    }
+  };
+
+  // Saved as a file rather than opened in a tab: a blob tab would run with
+  // the storefront's origin, a downloaded file does not.
+  const downloadInvoice = async () => {
+    if (!order) return;
+    try {
+      const html = await invoiceMutation.mutateAsync(order._id);
+      const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `invoice-${order._id.slice(-8).toUpperCase()}.html`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast(getUserFacingErrorMessage(err, t('orders.toast.invoiceFailed'), t), {
+        variant: 'error',
+      });
     }
   };
 
@@ -226,6 +250,21 @@ export default function OrderDetailPage() {
                       ? t(ATTENTION_REASON_LABELS[order.attentionReason])
                       : order.attentionReason}
                   </span>
+                )}
+                {(order.paymentStatus === 'paid' ||
+                  order.paymentStatus === 'refunded') && (
+                  <Button
+                    size='sm'
+                    variant='outline'
+                    onClick={() => void downloadInvoice()}
+                    disabled={invoiceMutation.isPending}
+                    className='gap-1'
+                  >
+                    <Download className='h-4 w-4' />
+                    {invoiceMutation.isPending
+                      ? t('orders.detail.downloadingInvoice')
+                      : t('orders.detail.downloadInvoice')}
+                  </Button>
                 )}
               </div>
             </div>

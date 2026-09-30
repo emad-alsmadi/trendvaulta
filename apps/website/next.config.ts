@@ -83,8 +83,8 @@ const nextConfig: NextConfig = {
     ],
   },
   // The account area lives under /user (no username in the URL: every page
-  // shows the signed-in user). Older URLs — /orders, /account/* and
-  // /user/<name>/* — are kept as redirects for emails and bookmarks.
+  // shows the signed-in user). Older URLs — /orders, /account/*, /profile
+  // and /user/<name>/* — are kept as redirects for emails and bookmarks.
   async redirects() {
     // Section names are excluded so /user/orders etc. are not taken for a
     // legacy /user/<name> URL.
@@ -95,6 +95,9 @@ const nextConfig: NextConfig = {
       { source: '/orders/:id', destination: '/user/orders/:id', permanent: true },
       { source: '/account', destination: '/user', permanent: true },
       { source: '/account/:path*', destination: '/user/:path*', permanent: true },
+      // Order emails sent before the /user move linked to /profile.
+      { source: '/profile', destination: '/user/orders', permanent: true },
+      { source: '/profile/:path*', destination: '/user/:path*', permanent: true },
       { source: `/user/${legacyName}`, destination: '/user', permanent: true },
       { source: `/user/${legacyName}/edit`, destination: '/user/profile', permanent: true },
       { source: `/user/${legacyName}/settings`, destination: '/user/profile', permanent: true },

@@ -34,6 +34,7 @@ export const endpoints = {
     details: (id: string) => `/orders/${id}`,
     cancel: (id: string) => `/orders/${id}/cancel`,
     returnRequest: (id: string) => `/orders/${id}/return`,
+    invoice: (id: string) => `/orders/${id}/invoice`,
   },
   payments: {
     setupStatus: '/payments/setup-status',

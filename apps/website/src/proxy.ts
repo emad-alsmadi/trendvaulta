@@ -12,15 +12,17 @@ export function proxy(request: NextRequest) {
   const publicAuthPages = ['/auth/login', '/auth/signup'];
 
   const protectedPaths: Array<{ path: string; role: string | string[] }> = [
-    { path: '/profile', role: ['user', 'admin', 'moderator'] },
-    // The whole account area. Old /orders and /account URLs redirect here
-    // (next.config.ts); redirects run before this proxy, so the guard sits
-    // on the destination.
+    // The whole account area. Old /orders, /account and /profile URLs
+    // redirect here (next.config.ts); redirects run before this proxy, so
+    // the guard sits on the destination.
     { path: '/user', role: ['user', 'admin', 'moderator'] },
     { path: '/checkout', role: ['user', 'admin', 'moderator'] },
   ];
 
-  const protectedPath = protectedPaths.find((p) => path.startsWith(p.path));
+  // Whole segments only: /user and /user/orders, not /users.
+  const protectedPath = protectedPaths.find(
+    (p) => path === p.path || path.startsWith(`${p.path}/`),
+  );
 
   const token = request.cookies.get('token')?.value;
   const userRole = request.cookies.get('userRole')?.value;
