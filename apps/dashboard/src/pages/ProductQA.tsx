@@ -90,7 +90,11 @@ export default function ProductQA() {
   }
 
   async function handleDelete(qa: AdminProductQA) {
-    const ok = await confirm({ message: t('productQa.confirmDelete'), danger: true, confirmLabel: t('common.delete') });
+    const ok = await confirm({
+      message: t('productQa.confirmDelete'),
+      danger: true,
+      confirmLabel: t('common.delete'),
+    });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(qa._id);
@@ -125,7 +129,10 @@ export default function ProductQA() {
             resetPage();
           }}
         >
-          <Search className='absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400' aria-hidden />
+          <Search
+            className='absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400'
+            aria-hidden
+          />
           <input
             type='search'
             aria-label={t('productQa.searchLabel')}
@@ -164,7 +171,9 @@ export default function ProductQA() {
       </div>
 
       {qaQ.isLoading && (
-        <p className='py-10 text-center text-sm text-gray-500'>{t('productQa.loading')}</p>
+        <p className='py-10 text-center text-sm text-gray-500'>
+          {t('productQa.loading')}
+        </p>
       )}
 
       {qaQ.isError && (
@@ -187,7 +196,10 @@ export default function ProductQA() {
               >
                 <div className='mb-4 flex items-start justify-between gap-4'>
                   <div className='flex-1'>
-                    <p className='text-sm text-gray-600 dark:text-gray-400' dir='auto'>
+                    <p
+                      className='text-sm text-gray-600 dark:text-gray-400'
+                      dir='auto'
+                    >
                       {/* Products are hard-deleted — product can be null. */}
                       {qa.product?.title || t('productQa.deletedProduct')}
                     </p>
@@ -202,12 +214,31 @@ export default function ProductQA() {
                       </p>
                     )}
                     <div className='mt-2 flex items-center gap-4 text-xs text-gray-500'>
-                      <span>{t('productQa.askedBy', { name: qa.askedBy?.username || t('productQa.anonymous') })}</span>
+                      <span>
+                        {t('productQa.askedBy', {
+                          name:
+                            qa.askedBy?.username || t('productQa.anonymous'),
+                        })}
+                      </span>
                       {qa.answeredBy && (
-                        <span>{t('productQa.answeredBy', { name: qa.answeredBy.username })}</span>
+                        <span>
+                          {t('productQa.answeredBy', {
+                            name:
+                              qa.answeredBy?.username ||
+                              t('productQa.anonymous'),
+                          })}
+                        </span>
                       )}
-                      <span>{t('productQa.helpful', { count: formatNumber(qa.helpful) })}</span>
-                      <span>{t('productQa.notHelpful', { count: formatNumber(qa.notHelpful) })}</span>
+                      <span>
+                        {t('productQa.helpful', {
+                          count: formatNumber(qa.helpful),
+                        })}
+                      </span>
+                      <span>
+                        {t('productQa.notHelpful', {
+                          count: formatNumber(qa.notHelpful),
+                        })}
+                      </span>
                     </div>
                   </div>
                   <div className='flex gap-2'>
@@ -218,7 +249,10 @@ export default function ProductQA() {
                         className='rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700'
                         aria-label={t('productQa.editAnswer')}
                       >
-                        <MessageSquare className='h-4 w-4 text-gray-500' aria-hidden />
+                        <MessageSquare
+                          className='h-4 w-4 text-gray-500'
+                          aria-hidden
+                        />
                       </button>
                     )}
                     {can('content:delete') && (
@@ -229,7 +263,10 @@ export default function ProductQA() {
                         className='rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40'
                         aria-label={t('common.delete')}
                       >
-                        <Trash2 className='h-4 w-4 text-red-500' aria-hidden />
+                        <Trash2
+                          className='h-4 w-4 text-red-500'
+                          aria-hidden
+                        />
                       </button>
                     )}
                   </div>
@@ -242,7 +279,9 @@ export default function ProductQA() {
                         : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
                     }`}
                   >
-                    {qa.approved ? t('productQa.approved') : t('productQa.pending')}
+                    {qa.approved
+                      ? t('productQa.approved')
+                      : t('productQa.pending')}
                   </span>
                   {!qa.approved && (
                     <button
@@ -284,7 +323,10 @@ export default function ProductQA() {
         >
           <div className='space-y-4'>
             <div>
-              <p className='text-sm text-gray-600 dark:text-gray-400' dir='auto'>
+              <p
+                className='text-sm text-gray-600 dark:text-gray-400'
+                dir='auto'
+              >
                 {editing.product?.title || t('productQa.deletedProduct')}
               </p>
               <p className='mt-2 font-medium text-gray-900 dark:text-white'>

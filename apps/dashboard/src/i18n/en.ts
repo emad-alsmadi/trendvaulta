@@ -32,6 +32,29 @@ export const en = {
     selected: '{count} selected',
     clearSelection: 'Clear selection',
     moreActions: 'More actions',
+    filters: 'Filters',
+    clearAll: 'Clear all',
+    applyFilters: 'Apply filters',
+    select: 'Select',
+    from: 'From',
+    to: 'To',
+    today: 'Today',
+    yesterday: 'Yesterday',
+    last7Days: 'Last 7 days',
+    last30Days: 'Last 30 days',
+    thisMonth: 'This month',
+    lastMonth: 'Last month',
+    firstPage: 'First page',
+    previousPage: 'Previous page',
+    nextPage: 'Next page',
+    lastPage: 'Last page',
+    viewAs: 'View as',
+    cardView: 'Card view',
+    listView: 'List view',
+    treeView: 'Tree view',
+    showing: 'Showing {from} to {to} of {total}',
+    inStock: 'in stock',
+    productsInStock: 'in stock',
   },
   nav: {
     label: 'Dashboard navigation',
@@ -41,6 +64,13 @@ export const en = {
     expand: 'Expand sidebar',
     toggleTheme: 'Toggle theme',
     logout: 'Log out',
+    admin: 'Admin',
+    groups: {
+      catalog: 'Catalog',
+      sales: 'Sales',
+      customers: 'Customers',
+      content: 'Content',
+    },
     items: {
       dashboard: 'Dashboard',
       analytics: 'Analytics',
@@ -84,8 +114,10 @@ export const en = {
     submit: 'Sign in',
     submitting: 'Signing in…',
     errorInvalid: 'Invalid email or password',
-    errorNoAccess: 'This account does not have dashboard access (staff role required).',
-    errorNoToken: 'Sign-in succeeded but no session was returned. Please try again.',
+    errorNoAccess:
+      'This account does not have dashboard access (staff role required).',
+    errorNoToken:
+      'Sign-in succeeded but no session was returned. Please try again.',
   },
   pagination: {
     label: 'Pagination',
@@ -106,57 +138,74 @@ export const en = {
     TOKEN_EXPIRED: 'Your session has expired. Please sign in again.',
     NO_TOKEN: 'Please sign in to continue.',
     REFRESH_TOKEN_REUSED: 'Session has been revoked. Please sign in again.',
-    VALIDATION_ERROR: 'Some fields are not valid. Check the form and try again.',
-    BAD_REQUEST: 'The request could not be processed. Check the form and try again.',
+    VALIDATION_ERROR:
+      'Some fields are not valid. Check the form and try again.',
+    BAD_REQUEST:
+      'The request could not be processed. Check the form and try again.',
     CONFLICT: 'This conflicts with an existing record.',
     DUPLICATE_KEY: 'A record with this value already exists.',
     INVALID_ID: 'This link or item is not valid.',
     INTERNAL_ERROR: 'The server had a problem. Please try again.',
     RATE_LIMITED: 'Too many requests. Please wait a moment and try again.',
-    STALE_UPDATE: 'This was just updated by someone else. Refresh and try again.',
-    CATEGORY_IN_USE: 'Products still use this subcategory ({count}). Move them first, or hide it instead.',
+    STALE_UPDATE:
+      'This was just updated by someone else. Refresh and try again.',
+    CATEGORY_IN_USE:
+      'Products still use this subcategory ({count}). Move them first, or hide it instead.',
     COUPON_CODE_TAKEN: 'This coupon code already exists.',
     SHIPPING_HANDLE_TAKEN: 'This method handle already exists in this zone.',
     USERNAME_TAKEN: 'This username is already taken.',
     EMAIL_TAKEN: 'This email is already in use.',
     ADDRESS_LIMIT: 'You can save up to {max} addresses.',
     OUT_OF_STOCK: 'Not enough stock for this order.',
-    OUT_OF_STOCK_AFTER_PAYMENT: 'Not enough stock to fulfil this paid order. Restock the product or refund the order.',
-    INVOICE_NOT_AVAILABLE: 'The invoice is available once the order has been paid.',
-    PRODUCT_CHANGED: 'This product changed since you opened it. Reopen it to load the current values, then save again.',
+    OUT_OF_STOCK_AFTER_PAYMENT:
+      'Not enough stock to fulfil this paid order. Restock the product or refund the order.',
+    INVOICE_NOT_AVAILABLE:
+      'The invoice is available once the order has been paid.',
+    PRODUCT_CHANGED:
+      'This product changed since you opened it. Reopen it to load the current values, then save again.',
     RETURN_EXISTS: 'A return has already been requested for this order.',
     CURRENT_PASSWORD_REQUIRED: 'Enter your current password.',
     CURRENT_PASSWORD_INCORRECT: 'Your current password is incorrect.',
     ACCOUNT_LOCKED: 'Too many failed attempts. Try again later.',
     ACCOUNT_DISABLED: 'This account is disabled.',
-    STRIPE_DOWN: 'The payment service is unavailable. Please try again shortly.',
-    MAIL_UNAVAILABLE: 'Email could not be sent right now. Please try again later.',
+    STRIPE_DOWN:
+      'The payment service is unavailable. Please try again shortly.',
+    MAIL_UNAVAILABLE:
+      'Email could not be sent right now. Please try again later.',
     INVALID_CREDENTIALS: 'Invalid email or password.',
     RESET_LINK_INVALID: 'This reset link is invalid or has expired.',
     // Orders
     INVALID_STATUS: 'This order status is not valid.',
     STATUS_UNCHANGED: 'The order already has this status.',
-    TRANSITION_NOT_ALLOWED: 'This status change is not allowed for the order’s current status.',
+    TRANSITION_NOT_ALLOWED:
+      'This status change is not allowed for the order’s current status.',
     ORDER_ALREADY_SHIPPED: 'This order has already shipped.',
     ORDER_ALREADY_CANCELED: 'This order is already canceled.',
     ORDER_ALREADY_REFUNDED: 'This order has already been refunded.',
     CANCEL_NOT_ALLOWED: 'This order can no longer be canceled.',
-    CANCEL_PAID_PENDING: 'A paid order can’t be canceled from the pending state.',
-    ORDER_NOT_PAID: 'This order has not been paid. Payment status is set by Stripe only.',
-    DIRECT_ORDER_DISABLED: 'Orders must go through checkout while Stripe is configured.',
+    CANCEL_PAID_PENDING:
+      'A paid order can’t be canceled from the pending state.',
+    ORDER_NOT_PAID:
+      'This order has not been paid. Payment status is set by Stripe only.',
+    DIRECT_ORDER_DISABLED:
+      'Orders must go through checkout while Stripe is configured.',
     NO_PAYMENT_TO_REFUND: 'This order has no captured payment left to refund.',
-    NO_STRIPE_PAYMENT: 'This order has no Stripe payment on record. Refund it manually in Stripe.',
+    NO_STRIPE_PAYMENT:
+      'This order has no Stripe payment on record. Refund it manually in Stripe.',
     STRIPE_SECRET_MISSING: 'Stripe is not configured on the server.',
     // Returns
     RETURN_NOT_DELIVERED: 'Only delivered orders can be returned.',
     RETURN_NOT_ALLOWED: 'This order can no longer be returned online.',
-    RETURN_WINDOW_CLOSED: 'The {days}-day return window for this order has closed.',
+    RETURN_WINDOW_CLOSED:
+      'The {days}-day return window for this order has closed.',
     RETURN_TRANSITION_NOT_ALLOWED: 'This return can’t move to that step.',
     RETURN_ITEMS_INVALID: 'Some items are not part of this order.',
     RETURN_QTY_EXCEEDED: 'You can’t return more items than were ordered.',
-    RETURN_INSTRUCTIONS_REQUIRED: 'Add return instructions so the customer knows where to send the items.',
+    RETURN_INSTRUCTIONS_REQUIRED:
+      'Add return instructions so the customer knows where to send the items.',
     REFUND_AMOUNT_REQUIRED: 'Enter the amount to refund.',
-    REFUND_AMOUNT_TOO_HIGH: 'This is more than can still be refunded on this order.',
+    REFUND_AMOUNT_TOO_HIGH:
+      'This is more than can still be refunded on this order.',
     // Coupons
     COUPON_INVALID: 'This coupon code is not valid.',
     COUPON_INACTIVE: 'This coupon is inactive.',
@@ -165,13 +214,17 @@ export const en = {
     COUPON_MIN_ORDER: 'This coupon needs a minimum order of ${amount}.',
     COUPON_ALREADY_USED: 'This coupon has already been used by this customer.',
     // Users & catalog
-    LAST_ADMIN: 'This is the last active admin. Make someone else an admin first.',
+    LAST_ADMIN:
+      'This is the last active admin. Make someone else an admin first.',
     OWN_PASSWORD_VIA_SETTINGS: 'Change your own password from Settings.',
     CANNOT_DELETE_SELF: 'You can’t delete your own account.',
-    TOP_CATEGORY_LOCKED: 'Top-level categories can’t be deleted. Hide it instead.',
-    BUNDLE_PRODUCTS_MISSING: 'One or more products in this bundle no longer exist.',
+    TOP_CATEGORY_LOCKED:
+      'Top-level categories can’t be deleted. Hide it instead.',
+    BUNDLE_PRODUCTS_MISSING:
+      'One or more products in this bundle no longer exist.',
     UPLOAD_MISSING: 'No image file was uploaded.',
-    UPLOAD_INVALID_IMAGE: 'This file is not a valid JPEG, PNG, WEBP or GIF image.',
+    UPLOAD_INVALID_IMAGE:
+      'This file is not a valid JPEG, PNG, WEBP or GIF image.',
     WISHLIST_DUPLICATE: 'This product is already in the wishlist.',
   },
   // Joi rule (`type` with "." → "_") → message; {field} is the humanized
@@ -279,7 +332,8 @@ export const en = {
     fulfilment: 'Fulfilment',
     pickup: 'Store pickup — do not ship',
     delivery: 'Delivery — {method}',
-    fulfilmentUnknown: 'Not recorded (order placed before fulfilment was saved)',
+    fulfilmentUnknown:
+      'Not recorded (order placed before fulfilment was saved)',
     name: 'Name',
     phone: 'Phone',
     address: 'Address',
@@ -325,7 +379,8 @@ export const en = {
     instructionsSent: 'Instructions sent',
     instructionsLabel: 'Return instructions (shown to the customer)',
     refundAmount: 'Refund amount',
-    refundHint: 'Suggested from the returned items’ prices. Up to {max} can still be refunded. Shipping and tax are not included — add them if they should be. Returned stock is not added back automatically.',
+    refundHint:
+      'Suggested from the returned items’ prices. Up to {max} can still be refunded. Shipping and tax are not included — add them if they should be. Returned stock is not added back automatically.',
     noteRequired: '(required to reject)',
     noteOptional: '(optional)',
     reject: 'Reject',
@@ -334,11 +389,14 @@ export const en = {
     refundViaStripe: 'Refund via Stripe',
     saving: 'Saving…',
     refunding: 'Refunding…',
-    replaceAddress: 'Replace {placeholder} with the address the customer should ship to.',
-    rejectNoteRequired: 'Add a note telling the customer why the return was rejected.',
+    replaceAddress:
+      'Replace {placeholder} with the address the customer should ship to.',
+    rejectNoteRequired:
+      'Add a note telling the customer why the return was rejected.',
     confirmReject: 'Reject this return? The customer will see your note.',
     amountRange: 'Enter an amount between {min} and {max}.',
-    confirmRefund: 'Refund {amount} to the customer’s card via Stripe? This cannot be undone.',
+    confirmRefund:
+      'Refund {amount} to the customer’s card via Stripe? This cannot be undone.',
     refundButton: 'Refund {amount}',
     approved: 'Return approved',
     rejected: 'Return rejected',
@@ -382,9 +440,11 @@ export const en = {
     stock: 'Stock: {count}',
     inactiveSuffix: ' · inactive',
     requiredBasics: 'Title, brand, and cover URL are required.',
-    requiredDetails: 'Subcategory and a description (3+ characters) are required.',
+    requiredDetails:
+      'Subcategory and a description (3+ characters) are required.',
     saveFailed: 'Could not save product',
-    confirmDeactivate: 'Deactivate “{title}”? It disappears from the storefront and can’t be ordered; order history keeps it, and you can reactivate it later.',
+    confirmDeactivate:
+      'Deactivate “{title}”? It disappears from the storefront and can’t be ordered; order history keeps it, and you can reactivate it later.',
     deactivate: 'Deactivate',
     deactivateFailed: 'Could not deactivate product',
     editTitle: 'Edit product',
@@ -408,7 +468,8 @@ export const en = {
       widthCm: 'Width (cm)',
       heightCm: 'Height (cm)',
       packed: 'Packed for shipping',
-      specialHandling: 'Requires special handling (fragile, liquid, oversized…)',
+      specialHandling:
+        'Requires special handling (fragile, liquid, oversized…)',
       active: 'Active',
       featured: 'Featured',
       saving: 'Saving…',
@@ -461,7 +522,8 @@ export const en = {
   },
   content: {
     title: 'Content',
-    subtitle: 'Shipping, returns, privacy, and policy content for the storefront.',
+    subtitle:
+      'Shipping, returns, privacy, and policy content for the storefront.',
     add: 'Add content',
     searchLabel: 'Search by type, title, or body',
     searchPlaceholder: 'Search by type, title, or body…',
@@ -597,13 +659,15 @@ export const en = {
   },
   shippingZones: {
     title: 'Shipping Zones',
-    subtitle: 'Delivery methods and prices by destination. The first active zone (by order) that matches the address wins; unmatched addresses use the flat rates in Settings.',
+    subtitle:
+      'Delivery methods and prices by destination. The first active zone (by order) that matches the address wins; unmatched addresses use the flat rates in Settings.',
     add: 'Add zone',
     searchLabel: 'Search shipping zones',
     searchPlaceholder: 'Search by name or country code…',
     loading: 'Loading shipping zones…',
     loadFailed: 'Failed to load shipping zones',
-    empty: 'No shipping zones yet — checkout uses the flat rates in Settings for every address.',
+    empty:
+      'No shipping zones yet — checkout uses the flat rates in Settings for every address.',
     columns: {
       name: 'Name',
       countries: 'Countries',
@@ -615,7 +679,8 @@ export const en = {
     updated: 'Shipping zone updated.',
     created: 'Shipping zone created.',
     saveFailed: 'Could not save shipping zone',
-    confirmDelete: 'Permanently delete shipping zone “{name}”? Checkout falls back to the flat rates in Settings for its countries.',
+    confirmDelete:
+      'Permanently delete shipping zone “{name}”? Checkout falls back to the flat rates in Settings for its countries.',
     deleteFailed: 'Could not delete shipping zone',
     errors: {
       nameRequired: 'Zone name is required.',
@@ -625,7 +690,8 @@ export const en = {
       methodRequired: 'Method {n}: name and handle are required.',
       methodDuplicate: 'Method {n}: handle “{handle}” is used twice.',
       methodPrice: 'Method {n}: price must be 0 or more.',
-      methodDays: 'Method {n}: delivery days must be whole numbers with min ≤ max.',
+      methodDays:
+        'Method {n}: delivery days must be whole numbers with min ≤ max.',
     },
     form: {
       editTitle: 'Edit shipping zone',
@@ -637,7 +703,8 @@ export const en = {
       postal: 'Postal code pattern (optional regex)',
       order: 'Order (lower matches first)',
       methods: 'Methods',
-      methodsHint: 'Shoppers pick one of these at checkout. A price of 0 means free. Use the handles “standard” / “express” to override the Settings flat rates for this zone.',
+      methodsHint:
+        'Shoppers pick one of these at checkout. A price of 0 means free. Use the handles “standard” / “express” to override the Settings flat rates for this zone.',
       methodName: 'Name',
       handle: 'Handle',
       price: 'Price (USD)',
@@ -650,7 +717,8 @@ export const en = {
   },
   settings: {
     title: 'Settings',
-    subtitle: 'Account, appearance, and session — wired to the live API where available.',
+    subtitle:
+      'Account, appearance, and session — wired to the live API where available.',
     loadingProfile: 'Loading profile…',
     profileLoadFailed: 'Failed to load profile',
     account: {
@@ -670,7 +738,8 @@ export const en = {
     },
     store: {
       title: 'Store settings',
-      subtitle: 'Shipping rates and tax rate applied at checkout, storefront-wide.',
+      subtitle:
+        'Shipping rates and tax rate applied at checkout, storefront-wide.',
       loading: 'Loading store settings…',
       loadFailed: 'Failed to load store settings',
       name: 'Store name',
@@ -680,12 +749,14 @@ export const en = {
       freeThreshold: 'Free shipping threshold ($, 0 = disabled)',
       taxRate: 'Tax rate (%)',
       invoices: 'Invoices',
-      invoicesHint: 'Printed as the seller on every invoice. Leave the legal name empty to use the store name.',
+      invoicesHint:
+        'Printed as the seller on every invoice. Leave the legal name empty to use the store name.',
       legalName: 'Legal business name',
       taxId: 'Tax / VAT registration number',
       address: 'Business address',
       prefix: 'Invoice number prefix',
-      prefixHint: 'Letters and digits, e.g. {example}. Issued numbers never change.',
+      prefixHint:
+        'Letters and digits, e.g. {example}. Issued numbers never change.',
       updated: 'Store settings updated.',
       failed: 'Could not update store settings',
       save: 'Save store settings',
@@ -866,7 +937,8 @@ export const en = {
   },
   offers: {
     title: 'Offers',
-    subtitle: 'Merchandising deals shown on the storefront. Delete deactivates.',
+    subtitle:
+      'Merchandising deals shown on the storefront. Delete deactivates.',
     add: 'Add offer',
     searchLabel: 'Search by title, badge, or link',
     searchPlaceholder: 'Search by title, badge, or link…',
@@ -1041,8 +1113,23 @@ export const en = {
     catalog: 'Catalog snapshot',
     brandsCount: 'Brands: {count}',
     brands: 'Brands',
-    statsNote: 'Metrics from GET /admin/stats — paid revenue includes all paid-like orders.',
-    fallbackNote: 'Stats API unavailable — revenue falls back to the latest orders page.',
+    statsNote:
+      'Metrics from GET /admin/stats — paid revenue includes all paid-like orders.',
+    fallbackNote:
+      'Stats API unavailable — revenue falls back to the latest orders page.',
+    revenueTrend: 'Revenue Trend',
+    revenueTrendDesc: 'Paid revenue over recent orders',
+    noRevenueData: 'No revenue data available',
+    orderStatusDistribution: 'Order Status Distribution',
+    weeklyOrders: 'Weekly Orders',
+    weeklyOrdersDesc: 'Orders distribution by day of week',
+    monday: 'Mon',
+    tuesday: 'Tue',
+    wednesday: 'Wed',
+    thursday: 'Thu',
+    friday: 'Fri',
+    saturday: 'Sat',
+    sunday: 'Sun',
     recent: 'Recent orders',
     manage: 'Manage',
     loadingOrders: 'Loading orders…',
@@ -1146,7 +1233,8 @@ export const en = {
     noWebsite: 'No website',
     required: 'Name and slug are required.',
     saveFailed: 'Could not save brand',
-    confirmDeactivate: 'Deactivate brand “{name}”? It is hidden from the storefront brand pages; its products keep the brand, and you can reactivate it later.',
+    confirmDeactivate:
+      'Deactivate brand “{name}”? It is hidden from the storefront brand pages; its products keep the brand, and you can reactivate it later.',
     deactivate: 'Deactivate',
     deactivateFailed: 'Could not deactivate brand',
     form: {
@@ -1162,7 +1250,8 @@ export const en = {
   },
   categories: {
     title: 'Categories',
-    subtitle: 'The six top-level categories are fixed — rename, reorder, re-image or hide them here, and manage the subcategories under each. Changes appear on the storefront homepage.',
+    subtitle:
+      'The six top-level categories are fixed — rename, reorder, re-image or hide them here, and manage the subcategories under each. Changes appear on the storefront homepage.',
     loading: 'Loading categories…',
     loadFailed: 'Failed to load categories',
     hidden: 'Hidden',
@@ -1172,7 +1261,8 @@ export const en = {
     inUse: 'In use by products — hide it instead',
     addSubcategory: 'Add subcategory',
     nameRequired: 'Name is required.',
-    slugInvalid: 'Slug may only contain lowercase letters, numbers and single hyphens.',
+    slugInvalid:
+      'Slug may only contain lowercase letters, numbers and single hyphens.',
     updated: 'Category updated',
     added: 'Subcategory added',
     saveFailed: 'Could not save category',
@@ -1190,13 +1280,15 @@ export const en = {
       image: 'Image',
       order: 'Order',
       visible: 'Visible on storefront',
-      hideWarning: 'Hiding removes this category from the homepage tiles. Its products stay live and reachable by search and direct link.',
+      hideWarning:
+        'Hiding removes this category from the homepage tiles. Its products stay live and reachable by search and direct link.',
       add: 'Add',
     },
   },
   coupons: {
     title: 'Coupons',
-    subtitle: 'Live promo codes from the API. Checkout applies coupons server-side.',
+    subtitle:
+      'Live promo codes from the API. Checkout applies coupons server-side.',
     add: 'Add coupon',
     searchLabel: 'Search by code or description',
     searchPlaceholder: 'Search by code or description…',
@@ -1227,7 +1319,8 @@ export const en = {
       usageLimit: 'Usage limit',
       minOrder: 'Min order ($)',
       perCustomer: 'Uses per customer',
-      perCustomerHint: 'Counts each customer’s paid orders with this code. Empty = no per-customer limit.',
+      perCustomerHint:
+        'Counts each customer’s paid orders with this code. Empty = no per-customer limit.',
     },
   },
   role: {
@@ -1237,7 +1330,8 @@ export const en = {
   },
   users: {
     title: 'Users',
-    subtitle: 'Live accounts from the API. New users register via the storefront — admins can edit roles here.',
+    subtitle:
+      'Live accounts from the API. New users register via the storefront — admins can edit roles here.',
     searchLabel: 'Search by email or username',
     searchPlaceholder: 'Search by email or username…',
     filterRole: 'Filter by role',
@@ -1254,7 +1348,8 @@ export const en = {
     },
     disabledBadge: 'Disabled',
     unconfirmed: 'Unconfirmed',
-    unconfirmedHint: 'The customer has not opened the confirmation link yet. Reviews and returns stay blocked until they do.',
+    unconfirmedHint:
+      'The customer has not opened the confirmation link yet. Reviews and returns stay blocked until they do.',
     ordersOf: 'Orders of {name}',
     orderHistory: 'Order history',
     enableUser: 'Enable {name}',
@@ -1265,14 +1360,16 @@ export const en = {
     deleteUser: 'Delete {name}',
     required: 'Email and username are required.',
     updateFailed: 'Could not update user',
-    confirmDisable: 'Disable “{email}”? They will be signed out and unable to sign in until re-enabled. Their orders are kept.',
+    confirmDisable:
+      'Disable “{email}”? They will be signed out and unable to sign in until re-enabled. Their orders are kept.',
     confirmEnable: 'Re-enable “{email}”? They will be able to sign in again.',
     disable: 'Disable',
     enable: 'Enable',
     disabled: 'Account disabled',
     enabled: 'Account enabled',
     accountFailed: 'Could not update account',
-    confirmDelete: 'Delete “{email}”? Their personal data (email, name, addresses, wishlist) is erased and they can never sign in again. Orders and reviews stay, attributed to “Deleted user”. This cannot be undone — to block sign-in reversibly, disable the account instead.',
+    confirmDelete:
+      'Delete “{email}”? Their personal data (email, name, addresses, wishlist) is erased and they can never sign in again. Orders and reviews stay, attributed to “Deleted user”. This cannot be undone — to block sign-in reversibly, disable the account instead.',
     delete: 'Delete',
     deleteFailed: 'Could not delete user',
     form: {
@@ -1290,7 +1387,8 @@ export const en = {
   },
   orders: {
     title: 'Orders',
-    subtitle: 'Live fulfillment from the API. Paid is set by Stripe — not from this panel.',
+    subtitle:
+      'Live fulfillment from the API. Paid is set by Stripe — not from this panel.',
     allStatuses: 'All statuses',
     allPayments: 'All payments',
     allReturns: 'All returns',
@@ -1338,10 +1436,14 @@ export const en = {
   },
 };
 
-type DeepStrings<T> = { [K in keyof T]: T[K] extends string ? string : DeepStrings<T[K]> };
+type DeepStrings<T> = {
+  [K in keyof T]: T[K] extends string ? string : DeepStrings<T[K]>;
+};
 export type Messages = DeepStrings<typeof en>;
 
 type Paths<T, P extends string = ''> = {
-  [K in keyof T & string]: T[K] extends string ? `${P}${K}` : Paths<T[K], `${P}${K}.`>;
+  [K in keyof T & string]: T[K] extends string
+    ? `${P}${K}`
+    : Paths<T[K], `${P}${K}.`>;
 }[keyof T & string];
 export type MessageKey = Paths<typeof en>;

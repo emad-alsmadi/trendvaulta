@@ -29,20 +29,54 @@ export function TableCard({
   className?: string;
 }) {
   return (
-    <Card padded={false} className={cn('overflow-hidden', className)}>
-      {toolbar && <div className='border-b border-border p-4'>{toolbar}</div>}
-      <div className={cn(table.wrap, stickyHeader && 'max-h-[70vh] overflow-y-auto')}>{children}</div>
-      {footer && <div className='border-t border-border px-4 py-3'>{footer}</div>}
+    <Card
+      padded={false}
+      className={cn('overflow-hidden transition-all duration-300', className)}
+    >
+      {toolbar && (
+        <div className='border-b border-border bg-muted/30 p-4 transition-colors duration-200'>
+          {toolbar}
+        </div>
+      )}
+      <div
+        className={cn(
+          table.wrap,
+          stickyHeader && 'max-h-[70vh] overflow-y-auto',
+        )}
+      >
+        {children}
+      </div>
+      {footer && (
+        <div className='border-t border-border bg-muted/30 px-4 py-3 transition-colors duration-200'>
+          {footer}
+        </div>
+      )}
     </Card>
   );
 }
 
-export function Table({ className, ...props }: HTMLAttributes<HTMLTableElement>) {
-  return <table className={cn(table.root, className)} {...props} />;
+export function Table({
+  className,
+  ...props
+}: HTMLAttributes<HTMLTableElement>) {
+  return (
+    <table
+      className={cn(table.root, className)}
+      {...props}
+    />
+  );
 }
 
-export function THead({ className, ...props }: HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className={cn(table.head, className)} {...props} />;
+export function THead({
+  className,
+  ...props
+}: HTMLAttributes<HTMLTableSectionElement>) {
+  return (
+    <thead
+      className={cn(table.head, className)}
+      {...props}
+    />
+  );
 }
 
 export function Th({
@@ -51,7 +85,13 @@ export function Th({
   scope = 'col',
   ...props
 }: ThHTMLAttributes<HTMLTableCellElement> & { numeric?: boolean }) {
-  return <th scope={scope} className={cn(table.th, numeric && 'text-end', className)} {...props} />;
+  return (
+    <th
+      scope={scope}
+      className={cn(table.th, numeric && 'text-end', className)}
+      {...props}
+    />
+  );
 }
 
 export function Tr({
@@ -59,7 +99,13 @@ export function Tr({
   className,
   ...props
 }: HTMLAttributes<HTMLTableRowElement> & { selected?: boolean }) {
-  return <tr data-selected={selected || undefined} className={cn(table.row, className)} {...props} />;
+  return (
+    <tr
+      data-selected={selected || undefined}
+      className={cn(table.row, className)}
+      {...props}
+    />
+  );
 }
 
 export function Td({
@@ -89,7 +135,28 @@ export function Td({
 }
 
 /** 40px product thumbnail with a neutral placeholder when there is no image. */
-export function Thumbnail({ src, alt = '', className }: { src?: string | null; alt?: string; className?: string }) {
-  if (!src) return <span aria-hidden className={cn(table.thumb, 'block', className)} />;
-  return <img src={src} alt={alt} loading='lazy' className={cn(table.thumb, className)} />;
+export function Thumbnail({
+  src,
+  alt = '',
+  className,
+}: {
+  src?: string | null;
+  alt?: string;
+  className?: string;
+}) {
+  if (!src)
+    return (
+      <span
+        aria-hidden
+        className={cn(table.thumb, 'block', className)}
+      />
+    );
+  return (
+    <img
+      src={src}
+      alt={alt}
+      loading='lazy'
+      className={cn(table.thumb, className)}
+    />
+  );
 }

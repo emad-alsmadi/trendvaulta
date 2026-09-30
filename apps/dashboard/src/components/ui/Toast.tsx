@@ -7,7 +7,13 @@ import {
   useState,
 } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { AlertCircle, AlertTriangle, CheckCircle2, Info, X } from 'lucide-react';
+import {
+  AlertCircle,
+  AlertTriangle,
+  CheckCircle2,
+  Info,
+  X,
+} from 'lucide-react';
 import { useT } from '../../i18n/I18nProvider';
 
 type ToastVariant = 'success' | 'error' | 'warning' | 'info';
@@ -39,11 +45,34 @@ const ICONS = {
  * Neutral card per variant; the icon tells them apart, and errors/warnings
  * get a full-strength edge and message weight instead of a colour.
  */
-const ACCENT: Record<ToastVariant, { icon: string; edge: string; bar: string; text: string }> = {
-  success: { icon: 'text-foreground', edge: 'before:bg-border-strong', bar: 'bg-foreground/25', text: '' },
-  error: { icon: 'text-foreground', edge: 'before:bg-foreground', bar: 'bg-foreground/50', text: 'font-medium' },
-  warning: { icon: 'text-foreground', edge: 'before:bg-foreground', bar: 'bg-foreground/50', text: 'font-medium' },
-  info: { icon: 'text-muted-foreground', edge: 'before:bg-border-strong', bar: 'bg-foreground/25', text: '' },
+const ACCENT: Record<
+  ToastVariant,
+  { icon: string; edge: string; bar: string; text: string }
+> = {
+  success: {
+    icon: 'text-foreground',
+    edge: 'before:bg-border-strong',
+    bar: 'bg-foreground/25',
+    text: '',
+  },
+  error: {
+    icon: 'text-foreground',
+    edge: 'before:bg-foreground',
+    bar: 'bg-foreground/50',
+    text: 'font-medium',
+  },
+  warning: {
+    icon: 'text-foreground',
+    edge: 'before:bg-foreground',
+    bar: 'bg-foreground/50',
+    text: 'font-medium',
+  },
+  info: {
+    icon: 'text-muted-foreground',
+    edge: 'before:bg-border-strong',
+    bar: 'bg-foreground/25',
+    text: '',
+  },
 };
 
 /** Errors stay longer — they usually need reading and acting on. */
@@ -56,7 +85,13 @@ const DURATION_MS: Record<ToastVariant, number> = {
 
 const MAX_VISIBLE = 4;
 
-function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: (id: number) => void }) {
+function ToastCard({
+  item,
+  onDismiss,
+}: {
+  item: ToastItem;
+  onDismiss: (id: number) => void;
+}) {
   const [paused, setPaused] = useState(false);
   const reduceMotion = useReducedMotion();
   const { t } = useT();
@@ -66,9 +101,15 @@ function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: (id: numbe
   return (
     <motion.div
       layout={!reduceMotion}
-      initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -12, scale: 0.97 }}
+      initial={
+        reduceMotion ? { opacity: 0 } : { opacity: 0, y: -12, scale: 0.97 }
+      }
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, transition: { duration: 0.15 } }}
+      exit={
+        reduceMotion
+          ? { opacity: 0 }
+          : { opacity: 0, scale: 0.96, transition: { duration: 0.15 } }
+      }
       transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
       // Errors interrupt; everything else waits its turn.
       role={item.variant === 'error' ? 'alert' : 'status'}
@@ -78,15 +119,21 @@ function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: (id: numbe
       onBlur={() => setPaused(false)}
       className={`pointer-events-auto relative flex items-start gap-3 overflow-hidden rounded-card border border-border bg-popover py-3 pe-3 ps-4 text-sm text-popover-foreground shadow-overlay before:absolute before:inset-y-0 before:start-0 before:w-1 ${accent.edge}`}
     >
-      <Icon className={`mt-0.5 size-4 shrink-0 ${accent.icon}`} aria-hidden />
+      <Icon
+        className={`mt-0.5 size-4 shrink-0 ${accent.icon}`}
+        aria-hidden
+      />
       <p className={`flex-1 leading-5 ${accent.text}`}>{item.message}</p>
       <button
         type='button'
         onClick={() => onDismiss(item.id)}
         aria-label={t('common.dismiss')}
-        className='-m-1 rounded-control p-1 text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+        className='-m-1 rounded-control p-1 text-muted-foreground transition-colors duration-fast hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
       >
-        <X className='size-4' aria-hidden />
+        <X
+          className='size-4'
+          aria-hidden
+        />
       </button>
       {/* Countdown: its animationend dismisses the toast, so hover/focus
           pause the timer exactly where it is. */}
@@ -111,14 +158,18 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setItems((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const toast = useCallback((message: string, variant: ToastVariant = 'info') => {
-    setItems((prev) => {
-      // The same message fired twice (double click, retry) shows once.
-      if (prev.some((t) => t.message === message && t.variant === variant)) return prev;
-      const next = [...prev, { id: ++counter.current, message, variant }];
-      return next.slice(-MAX_VISIBLE);
-    });
-  }, []);
+  const toast = useCallback(
+    (message: string, variant: ToastVariant = 'info') => {
+      setItems((prev) => {
+        // The same message fired twice (double click, retry) shows once.
+        if (prev.some((t) => t.message === message && t.variant === variant))
+          return prev;
+        const next = [...prev, { id: ++counter.current, message, variant }];
+        return next.slice(-MAX_VISIBLE);
+      });
+    },
+    [],
+  );
 
   const api = useMemo<ToastApi>(
     () => ({
@@ -141,7 +192,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       >
         <AnimatePresence initial={false}>
           {items.map((item) => (
-            <ToastCard key={item.id} item={item} onDismiss={dismiss} />
+            <ToastCard
+              key={item.id}
+              item={item}
+              onDismiss={dismiss}
+            />
           ))}
         </AnimatePresence>
       </div>

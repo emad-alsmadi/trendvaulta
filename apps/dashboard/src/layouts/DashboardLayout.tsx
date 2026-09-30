@@ -36,6 +36,10 @@ import {
   Menu,
   X,
   Languages,
+  Sun,
+  Moon,
+  Monitor,
+  ChevronRight,
   type LucideIcon,
 } from 'lucide-react';
 import { useT } from '../i18n/I18nProvider';
@@ -50,37 +54,178 @@ import {
 } from '../lib/auth';
 import { isStaffRole, roleHasPermission } from '../lib/permissions';
 import { useUnreadContactCount } from '../hooks/useAdminContactMessages';
+import { cn } from '../lib/cn';
 
-/** `permission` is the read permission the page needs; omitted = any staff. */
-const sidebarItems: Array<{
+type NavItem = {
   icon: LucideIcon;
   label: MessageKey;
   path: string;
   permission?: string;
-}> = [
-  { icon: LayoutDashboard, label: 'nav.items.dashboard', path: '/' },
-  { icon: ChartColumn, label: 'nav.items.analytics', path: '/analytics', permission: 'orders:read' },
-  { icon: Users, label: 'nav.items.users', path: '/users', permission: 'users:read' },
-  { icon: Package, label: 'nav.items.products', path: '/products', permission: 'products:read' },
-  { icon: Tag, label: 'nav.items.brands', path: '/brands', permission: 'brands:read' },
-  { icon: FolderTree, label: 'nav.items.categories', path: '/categories', permission: 'products:read' },
-  { icon: AlertTriangle, label: 'nav.items.lowStock', path: '/low-stock', permission: 'products:read' },
-  { icon: ShoppingCart, label: 'nav.items.orders', path: '/orders', permission: 'orders:read' },
-  { icon: Truck, label: 'nav.items.shippingZones', path: '/shipping-zones', permission: 'shipping:read' },
-  { icon: TicketPercent, label: 'nav.items.coupons', path: '/coupons', permission: 'coupons:read' },
-  { icon: Percent, label: 'nav.items.offers', path: '/offers', permission: 'offers:read' },
-  { icon: Star, label: 'nav.items.reviews', path: '/reviews', permission: 'reviews:read' },
-  { icon: Inbox, label: 'nav.items.messages', path: '/messages', permission: 'content:read' },
-  { icon: Mail, label: 'nav.items.subscribers', path: '/subscribers', permission: 'content:read' },
-  { icon: HelpCircle, label: 'nav.items.helpTopics', path: '/help-topics', permission: 'content:read' },
-  { icon: FileText, label: 'nav.items.content', path: '/content', permission: 'content:read' },
-  { icon: Layers, label: 'nav.items.storefrontModules', path: '/storefront-modules', permission: 'content:read' },
-  { icon: BookOpen, label: 'nav.items.lookbooks', path: '/lookbooks', permission: 'content:read' },
-  { icon: MessageSquare, label: 'nav.items.testimonials', path: '/testimonials', permission: 'content:read' },
-  { icon: PackageOpen, label: 'nav.items.bundles', path: '/bundles', permission: 'content:read' },
-  { icon: Gift, label: 'nav.items.giftFinder', path: '/gift-finder-config', permission: 'content:read' },
-  { icon: MessageCircle, label: 'nav.items.productQa', path: '/product-qa', permission: 'content:read' },
-  { icon: Settings, label: 'nav.items.settings', path: '/settings' },
+  badge?: 'messages';
+};
+
+type NavGroup = {
+  label?: MessageKey;
+  items: NavItem[];
+};
+
+/** Navigation grouped by functional area */
+const navGroups: NavGroup[] = [
+  {
+    items: [
+      { icon: LayoutDashboard, label: 'nav.items.dashboard', path: '/' },
+      {
+        icon: ChartColumn,
+        label: 'nav.items.analytics',
+        path: '/analytics',
+        permission: 'orders:read',
+      },
+    ],
+  },
+  {
+    label: 'nav.groups.catalog',
+    items: [
+      {
+        icon: Package,
+        label: 'nav.items.products',
+        path: '/products',
+        permission: 'products:read',
+      },
+      {
+        icon: Tag,
+        label: 'nav.items.brands',
+        path: '/brands',
+        permission: 'brands:read',
+      },
+      {
+        icon: FolderTree,
+        label: 'nav.items.categories',
+        path: '/categories',
+        permission: 'products:read',
+      },
+      {
+        icon: AlertTriangle,
+        label: 'nav.items.lowStock',
+        path: '/low-stock',
+        permission: 'products:read',
+      },
+    ],
+  },
+  {
+    label: 'nav.groups.sales',
+    items: [
+      {
+        icon: ShoppingCart,
+        label: 'nav.items.orders',
+        path: '/orders',
+        permission: 'orders:read',
+      },
+      {
+        icon: Truck,
+        label: 'nav.items.shippingZones',
+        path: '/shipping-zones',
+        permission: 'shipping:read',
+      },
+      {
+        icon: TicketPercent,
+        label: 'nav.items.coupons',
+        path: '/coupons',
+        permission: 'coupons:read',
+      },
+      {
+        icon: Percent,
+        label: 'nav.items.offers',
+        path: '/offers',
+        permission: 'offers:read',
+      },
+    ],
+  },
+  {
+    label: 'nav.groups.customers',
+    items: [
+      {
+        icon: Users,
+        label: 'nav.items.users',
+        path: '/users',
+        permission: 'users:read',
+      },
+      {
+        icon: Star,
+        label: 'nav.items.reviews',
+        path: '/reviews',
+        permission: 'reviews:read',
+      },
+    ],
+  },
+  {
+    label: 'nav.groups.content',
+    items: [
+      {
+        icon: Inbox,
+        label: 'nav.items.messages',
+        path: '/messages',
+        permission: 'content:read',
+        badge: 'messages',
+      },
+      {
+        icon: Mail,
+        label: 'nav.items.subscribers',
+        path: '/subscribers',
+        permission: 'content:read',
+      },
+      {
+        icon: HelpCircle,
+        label: 'nav.items.helpTopics',
+        path: '/help-topics',
+        permission: 'content:read',
+      },
+      {
+        icon: FileText,
+        label: 'nav.items.content',
+        path: '/content',
+        permission: 'content:read',
+      },
+      {
+        icon: Layers,
+        label: 'nav.items.storefrontModules',
+        path: '/storefront-modules',
+        permission: 'content:read',
+      },
+      {
+        icon: BookOpen,
+        label: 'nav.items.lookbooks',
+        path: '/lookbooks',
+        permission: 'content:read',
+      },
+      {
+        icon: MessageSquare,
+        label: 'nav.items.testimonials',
+        path: '/testimonials',
+        permission: 'content:read',
+      },
+      {
+        icon: PackageOpen,
+        label: 'nav.items.bundles',
+        path: '/bundles',
+        permission: 'content:read',
+      },
+      {
+        icon: Gift,
+        label: 'nav.items.giftFinder',
+        path: '/gift-finder-config',
+        permission: 'content:read',
+      },
+      {
+        icon: MessageCircle,
+        label: 'nav.items.productQa',
+        path: '/product-qa',
+        permission: 'content:read',
+      },
+    ],
+  },
+  {
+    items: [{ icon: Settings, label: 'nav.items.settings', path: '/settings' }],
+  },
 ];
 
 export default function DashboardLayout() {
@@ -127,149 +272,280 @@ export default function DashboardLayout() {
     );
   }
 
-  const visibleItems = sidebarItems.filter(
-    (item) => !item.permission || roleHasPermission(role, item.permission),
-  );
+  // Filter items by permissions
+  const visibleGroups = navGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter(
+        (item) => !item.permission || roleHasPermission(role, item.permission),
+      ),
+    }))
+    .filter((group) => group.items.length > 0);
 
   const showLabels = isSidebarOpen || mobileOpen;
 
+  const ThemeIcon = theme === 'light' ? Sun : theme === 'dark' ? Moon : Monitor;
+
   return (
-    <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
+    <div className='min-h-screen bg-canvas'>
       {/* Mobile backdrop */}
       {mobileOpen && (
         <button
           type='button'
           aria-label={t('nav.closeMenu')}
           onClick={() => setMobileOpen(false)}
-          className='fixed inset-0 z-40 bg-black/40 md:hidden'
+          className='fixed inset-0 z-40 bg-backdrop md:hidden'
         />
       )}
 
       {/* Sidebar */}
       <aside
         aria-label={t('nav.label')}
-        className={`fixed start-0 top-0 z-50 flex h-full w-64 flex-col max-w-[85vw] border-e border-gray-200 bg-white transition-[transform,width] duration-200 dark:border-gray-700 dark:bg-gray-800 md:translate-x-0 md:rtl:translate-x-0 md:max-w-none ${
-          mobileOpen ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full'
-        } ${isSidebarOpen ? 'md:w-64' : 'md:w-20'}`}
+        className={cn(
+          'fixed start-0 top-0 z-50 flex h-full flex-col border-e border-border bg-card transition-[transform,width] duration-normal',
+          'max-w-[85vw] md:translate-x-0 md:rtl:translate-x-0 md:max-w-none',
+          mobileOpen
+            ? 'translate-x-0'
+            : '-translate-x-full rtl:translate-x-full',
+          isSidebarOpen ? 'md:w-sidebar' : 'md:w-rail',
+        )}
       >
+        {/* Logo */}
         <div className='flex shrink-0 items-center justify-between p-4'>
-          <h1 className='text-xl font-bold text-gray-900 dark:text-white'>
-            {showLabels ? 'TrendVaulta' : 'TV'}
-          </h1>
+          <Link
+            to='/'
+            className='flex items-center gap-2.5'
+          >
+            <div className='flex size-8 items-center justify-center rounded-control bg-primary text-primary-foreground'>
+              <span className='text-sm font-bold'>TV</span>
+            </div>
+            {showLabels && (
+              <h1 className='text-lg font-semibold text-foreground'>
+                TrendVaulta
+              </h1>
+            )}
+          </Link>
           <button
             type='button'
             onClick={() => setMobileOpen(false)}
             aria-label={t('nav.closeMenu')}
-            className='rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-700 md:hidden'
+            className='rounded-control p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:hidden'
           >
-            <X className='h-5 w-5 text-gray-700 dark:text-gray-300' />
+            <X
+              className='icon-sm'
+              aria-hidden
+            />
           </button>
         </div>
 
-        <nav className='mt-4 min-h-0 flex-1 overflow-y-auto'>
-          {visibleItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-            const badge = item.path === '/messages' ? unreadMessages : 0;
+        {/* Navigation */}
+        <nav className='mt-4 min-h-0 flex-1 overflow-y-auto px-2'>
+          {visibleGroups.map((group, groupIndex) => (
+            <div
+              key={groupIndex}
+              className='mb-6'
+            >
+              {group.label && showLabels && (
+                <p className='mb-2 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider'>
+                  {t(group.label)}
+                </p>
+              )}
+              <ul className='space-y-1'>
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location.pathname === item.path;
+                  const badge = item.badge === 'messages' ? unreadMessages : 0;
 
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                aria-current={isActive ? 'page' : undefined}
-                className={`relative flex items-center px-4 py-3 mx-2 rounded-lg transition-colors ${
-                  isActive
-                    ? 'bg-blue-500 text-white'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
-              >
-                <Icon className='w-5 h-5 shrink-0' aria-hidden />
-                {!showLabels && <span className='sr-only'>{t(item.label)}</span>}
-                {showLabels && <span className='ms-3'>{t(item.label)}</span>}
-                {badge > 0 &&
-                  (showLabels ? (
-                    <span className='ms-auto rounded-full bg-red-500 px-2 py-0.5 text-xs font-semibold text-white'>
-                      {badge > 99 ? '99+' : badge}
-                      <span className='sr-only'> {t('common.unread')}</span>
-                    </span>
-                  ) : (
-                    // Collapsed rail: a dot, with the count for screen readers
-                    <span className='absolute end-3 top-2 h-2.5 w-2.5 rounded-full bg-red-500'>
-                      <span className='sr-only'>{badge} {t('common.unread')}</span>
-                    </span>
-                  ))}
-              </Link>
-            );
-          })}
+                  return (
+                    <li key={item.path}>
+                      <Link
+                        to={item.path}
+                        aria-current={isActive ? 'page' : undefined}
+                        className={cn(
+                          'relative flex items-center gap-3 rounded-control px-3 py-2 text-sm font-medium transition-colors',
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                          isActive
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                        )}
+                      >
+                        <Icon
+                          className='icon-sm shrink-0'
+                          aria-hidden
+                        />
+                        {!showLabels && (
+                          <span className='sr-only'>{t(item.label)}</span>
+                        )}
+                        {showLabels && <span>{t(item.label)}</span>}
+                        {badge > 0 &&
+                          (showLabels ? (
+                            <span className='ms-auto rounded-badge bg-foreground px-1.5 py-0.5 text-xs font-medium text-primary-foreground'>
+                              {badge > 99 ? '99+' : badge}
+                              <span className='sr-only'>
+                                {' '}
+                                {t('common.unread')}
+                              </span>
+                            </span>
+                          ) : (
+                            // Collapsed rail: a dot, with the count for screen readers
+                            <span className='absolute end-2 top-2 size-2 rounded-full bg-foreground'>
+                              <span className='sr-only'>
+                                {badge} {t('common.unread')}
+                              </span>
+                            </span>
+                          ))}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
         </nav>
 
-        <div className='shrink-0 border-t border-gray-200 px-2 py-4 dark:border-gray-700'>
-          <button
-            type='button'
-            onClick={toggleTheme}
-            aria-label={showLabels ? undefined : t('nav.toggleTheme')}
-            className='flex items-center w-full px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-          >
-            {theme === 'light' ? '🌙' : '☀️'}
-            {showLabels && <span className='ms-3'>{t('nav.toggleTheme')}</span>}
-          </button>
+        {/* Sidebar footer */}
+        <div className='shrink-0 border-t border-border px-2 py-4'>
+          <div className='space-y-1'>
+            <button
+              type='button'
+              onClick={toggleTheme}
+              aria-label={showLabels ? undefined : t('nav.toggleTheme')}
+              className={cn(
+                'flex w-full items-center gap-3 rounded-control px-3 py-2 text-sm font-medium transition-all duration-200',
+                'text-muted-foreground hover:bg-accent hover:text-foreground hover:shadow-sm',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                'group',
+              )}
+            >
+              <div className='relative flex items-center justify-center'>
+                <ThemeIcon
+                  className={cn(
+                    'icon-sm shrink-0 transition-transform duration-200 group-hover:scale-110',
+                    theme === 'dark' && 'rotate-180',
+                  )}
+                  aria-hidden
+                />
+              </div>
+              {showLabels && (
+                <span className='font-medium transition-colors duration-200 group-hover:text-primary'>
+                  {t('nav.toggleTheme')}
+                </span>
+              )}
+            </button>
 
-          <button
-            type='button'
-            onClick={() => {
-              authApi.logout(getRefreshToken());
-              clearAuthSession();
-              // Every cached admin query is staff data — the next sign-in on
-              // this tab must not see it.
-              queryClient.clear();
-              navigate('/login');
-            }}
-            className='flex items-center w-full px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 mt-2'
-          >
-            <LogOut className='w-5 h-5 rtl:-scale-x-100' aria-label={showLabels ? undefined : t('nav.logout')} />
-            {showLabels && <span className='ms-3'>{t('nav.logout')}</span>}
-          </button>
+            <button
+              type='button'
+              onClick={() => {
+                authApi.logout(getRefreshToken());
+                clearAuthSession();
+                // Every cached admin query is staff data — the next sign-in on
+                // this tab must not see it.
+                queryClient.clear();
+                navigate('/login');
+              }}
+              aria-label={showLabels ? undefined : t('nav.logout')}
+              className={cn(
+                'flex w-full items-center gap-3 rounded-control px-3 py-2 text-sm font-medium transition-all duration-200',
+                'text-muted-foreground hover:bg-accent hover:text-foreground hover:shadow-sm',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                'group',
+              )}
+            >
+              <LogOut
+                className={cn(
+                  'icon-sm shrink-0 rtl:-scale-x-100 transition-transform duration-200 group-hover:scale-110',
+                )}
+                aria-hidden
+              />
+              {showLabels && (
+                <span className='font-medium transition-colors duration-200 group-hover:text-destructive'>
+                  {t('nav.logout')}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
       </aside>
 
       {/* Main Content */}
       <main
-        className={`transition-all duration-300 ${
-          isSidebarOpen ? 'md:ms-64' : 'md:ms-20'
-        }`}
+        className={cn(
+          'transition-all duration-normal',
+          isSidebarOpen ? 'md:ms-sidebar' : 'md:ms-rail',
+        )}
       >
-        <header className='flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800 sm:px-6 sm:py-4'>
-          {/* Mobile: open drawer */}
-          <button
-            type='button'
-            onClick={() => setMobileOpen(true)}
-            aria-label={t('nav.openMenu')}
-            className='rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-700 md:hidden'
-          >
-            <Menu className='w-6 h-6 text-gray-700 dark:text-gray-300' />
-          </button>
-          {/* Desktop: collapse rail */}
-          <button
-            type='button'
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            aria-label={isSidebarOpen ? t('nav.collapse') : t('nav.expand')}
-            className='hidden rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-700 md:inline-flex'
-          >
-            <Menu className='w-6 h-6 text-gray-700 dark:text-gray-300' />
-          </button>
-          <button
-            type='button'
-            onClick={() => setLocale(locale === 'en' ? 'ar' : 'en')}
-            aria-label={t('common.switchLanguageLabel')}
-            lang={locale === 'en' ? 'ar' : 'en'}
-            className='ms-auto inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700'
-          >
-            <Languages className='h-4 w-4' aria-hidden />
-            {t('common.switchLanguage')}
-          </button>
+        {/* Topbar */}
+        <header className='sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60'>
+          <div className='flex h-topbar items-center gap-3 px-4 sm:px-6'>
+            {/* Mobile: open drawer */}
+            <button
+              type='button'
+              onClick={() => setMobileOpen(true)}
+              aria-label={t('nav.openMenu')}
+              className='rounded-control p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:hidden'
+            >
+              <Menu
+                className='icon-md'
+                aria-hidden
+              />
+            </button>
+            {/* Desktop: collapse rail */}
+            <button
+              type='button'
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              aria-label={isSidebarOpen ? t('nav.collapse') : t('nav.expand')}
+              className='hidden rounded-control p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:inline-flex'
+            >
+              {isSidebarOpen ? (
+                <ChevronRight
+                  className='icon-md rtl:-rotate-180'
+                  aria-hidden
+                />
+              ) : (
+                <Menu
+                  className='icon-md'
+                  aria-hidden
+                />
+              )}
+            </button>
+
+            {/* Breadcrumb (simplified - can be enhanced later) */}
+            <div className='flex items-center gap-2 text-sm text-muted-foreground'>
+              <span className='font-medium text-foreground'>
+                {t('nav.admin')}
+              </span>
+            </div>
+
+            {/* Right side actions */}
+            <div className='ms-auto flex items-center gap-2'>
+              {/* Language switcher */}
+              <div className='relative group'>
+                <button
+                  type='button'
+                  onClick={() => setLocale(locale === 'en' ? 'ar' : 'en')}
+                  aria-label={t('common.switchLanguageLabel')}
+                  lang={locale === 'en' ? 'ar' : 'en'}
+                  className={cn(
+                    'inline-flex items-center gap-2 rounded-control border border-border px-3 py-1.5 text-sm font-medium transition-all duration-200',
+                    'text-foreground hover:bg-accent hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                    'shadow-sm hover:shadow-md',
+                  )}
+                >
+                  <Languages
+                    className='icon-sm'
+                    aria-hidden
+                  />
+                  <span className='hidden sm:inline font-semibold'>
+                    {locale === 'en' ? 'AR' : 'EN'}
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
         </header>
 
-        <div className='p-4 sm:p-6'>
+        {/* Page content */}
+        <div className='p-4 sm:p-6 page-transition'>
           <ErrorBoundary key={location.pathname}>
             <Outlet />
           </ErrorBoundary>

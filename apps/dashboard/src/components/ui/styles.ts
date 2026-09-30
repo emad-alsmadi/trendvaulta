@@ -16,7 +16,7 @@ const disabled = 'disabled:cursor-not-allowed disabled:opacity-50';
 export const buttonVariants = cva(
   [
     'relative inline-flex shrink-0 select-none items-center justify-center gap-2 whitespace-nowrap rounded-control font-medium',
-    'transition-colors duration-150 ease-out aria-busy:cursor-wait',
+    'transition-colors duration-fast ease-out aria-busy:cursor-wait',
     '[&_svg]:size-4 [&_svg]:shrink-0',
     focusRing,
     disabled,
@@ -24,11 +24,13 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: 'bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80',
+        primary:
+          'bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80',
         secondary:
           'border border-border-strong bg-background text-foreground hover:bg-accent active:bg-muted',
         ghost: 'text-foreground hover:bg-accent active:bg-muted',
-        subtle: 'bg-secondary text-secondary-foreground hover:bg-border/60 active:bg-border',
+        subtle:
+          'bg-secondary text-secondary-foreground hover:bg-border/60 active:bg-border',
         // No red: the icon, the wording, its place (last) and a confirm dialog carry it.
         destructive:
           'border border-border-strong bg-background text-foreground hover:border-foreground hover:bg-accent active:bg-muted',
@@ -53,27 +55,28 @@ export type ButtonVariantProps = VariantProps<typeof buttonVariants>;
 
 const controlBase = [
   'w-full rounded-control border border-input bg-background text-sm text-foreground',
-  'placeholder:text-muted-foreground transition-colors duration-150 ease-out',
-  'hover:border-foreground/60',
-  'focus-visible:border-foreground',
+  'placeholder:text-muted-foreground transition-all duration-200 ease-out',
+  'hover:border-foreground/50 hover:shadow-sm',
+  'focus-visible:border-primary focus-visible:shadow-md',
   focusRing,
   'disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-50',
   // Errors: a heavier edge, never a colour (the message carries an icon).
-  'aria-[invalid=true]:border-foreground aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-foreground',
+  'aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-destructive',
 ].join(' ');
 
-export const inputClass = `${controlBase} block h-control px-3`;
-export const textareaClass = `${controlBase} block min-h-24 px-3 py-2 leading-5`;
+export const inputClass = `${controlBase} block h-control px-3 shadow-sm`;
+export const textareaClass = `${controlBase} block min-h-24 px-3 py-2 leading-5 shadow-sm`;
 /** Pair with the chevron in <Select>; `pe-9` leaves room for it. */
-export const selectClass = `${controlBase} block h-control cursor-pointer appearance-none truncate ps-3 pe-9`;
-export const checkboxClass = `size-4 shrink-0 cursor-pointer rounded border-input accent-primary ${focusRing} ${disabled}`;
+export const selectClass = `${controlBase} block h-control cursor-pointer appearance-none truncate ps-3 pe-9 shadow-sm`;
+export const checkboxClass = `size-4 shrink-0 cursor-pointer rounded border-input accent-primary ${focusRing} ${disabled} transition-all duration-200 hover:scale-110`;
 
 export const labelClass = 'block text-sm font-medium text-foreground';
 export const hintClass = 'text-xs text-muted-foreground';
 
 /* ---- Surfaces ---- */
 
-export const cardClass = 'rounded-card border border-border bg-card text-card-foreground';
+export const cardClass =
+  'rounded-card border border-border bg-card text-card-foreground';
 export const cardPadding = 'p-5 sm:p-6';
 /** Dropdowns, popovers, tooltips: the only surfaces with a shadow. */
 export const overlayClass =
@@ -87,14 +90,15 @@ export const table = {
   root: 'w-full border-collapse text-sm',
   head: 'sticky top-0 z-10 bg-muted',
   th: 'h-10 whitespace-nowrap border-b border-border px-4 text-start align-middle text-caption uppercase text-muted-foreground',
-  row: 'border-b border-border transition-colors duration-150 last:border-0 hover:bg-muted/50 data-[selected=true]:bg-muted',
+  row: 'border-b border-border transition-colors duration-fast last:border-0 hover:bg-muted/50 data-[selected=true]:bg-muted',
   td: 'px-4 py-3 align-middle',
   tdCompact: 'px-4 py-2 align-middle',
   /** Numbers, prices, quantities: end-aligned on tabular figures. */
   numeric: 'text-end tabular-nums',
   /** Fixed last column for row actions. */
   actions: 'w-px whitespace-nowrap text-end',
-  thumb: 'size-10 shrink-0 rounded-control border border-border bg-muted object-cover',
+  thumb:
+    'size-10 shrink-0 rounded-control border border-border bg-muted object-cover',
 } as const;
 
 /* ---- Typography helpers ---- */
