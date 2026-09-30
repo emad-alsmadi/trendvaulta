@@ -321,6 +321,36 @@ No server cart API — client cart only (`cartStore.ts`). Commerce entry point i
 | `GET /orders` (admin list) | private + `orders:read` | `page, limit, status, paymentStatus, q`; items include `allowedNextStatuses` |
 | `PATCH /orders/:id/status` (admin) | private + `orders:write` | `pending→canceled`, `paid→shipped|canceled`, `shipped→delivered`. Not `pending→paid` (Stripe/webhook only). Transitions are claimed atomically (409 on a concurrent change). Canceling/refunding a paid order issues a Stripe refund automatically (`AUTO_REFUND_ON_CANCEL`, default on); inventory is restored once, and only if the order never shipped (returns restock their lines when marked received) |
 
+### Guest checkout (decision D2, `utils/guestOrders.js`)
+
+**Placing a guest order**
+- `POST /payments/checkout-session` works without a session if the body has `email`. Without an email the answer is `400 GUEST_EMAIL_REQUIRED`.
+- The order is saved with `user: null` and `guestEmail`, and the response includes a `guestToken`.
+- The storefront keeps that token in `sessionStorage` for the success page.
+- `/checkout` is no longer login-guarded.
+
+**The guest token**
+- An HMAC of the order ID and email, keyed off `JWT_SECRET_KEY`, so nothing secret is stored.
+- It's the same value in the browser and in every order email. Rotating the secret invalidates old links.
+
+**What the token unlocks**
+- `POST /orders/guest/lookup { orderId, token }`: the order page `/guest-order?order=&token=`.
+- `POST /orders/:id/cancel { guestToken }`: cancel before shipping.
+- `GET /orders/:id/invoice` with the `X-Guest-Token` header, via the storefront route `/guest-order/invoice`.
+- `POST /payments/verify-payment { orderId, guestToken }`: payment confirmation on the success page.
+
+**Where emails go:** every order email goes to `guestEmail` with the guest link (`orderEmailTarget`).
+
+**Returns:** not offered to guests (`returnNeedsAccount`), because they need a confirmed email (D5).
+
+**Joining an account**
+- Guest orders attach to an account when that account confirms the same email, or when an already-confirmed account signs in.
+- The guest link then stops working, and the order lives in `/user/orders`.
+
+**Coupons:** the per-customer limit counts account orders and guest orders under the same email.
+
+**Staff:** admin search matches `guestEmail`, and the dashboard labels these customers "Guest · email".
+
 ### Payments & Stripe
 | Route | Access | Notes |
 |---|---|---|
