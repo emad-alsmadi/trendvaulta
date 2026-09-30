@@ -608,7 +608,20 @@ Everything else described in the old phase-by-phase plan (critical recovery, sec
 
 - **Arabic manual QA** — a real-browser pass across home, PLP+filters, PDP, cart, checkout, account, at phone width. Static audit (no physical direction classes, icons flip, no hardcoded English JSX) is already done.
 - **Deploy automation** — API/website/dashboard deploys are still triggered by each host's own Git integration, not from CI (Render waits for green checks via `autoDeployTrigger: checksPass`). A staging environment and running the E2E suite against it after each deploy are still open.
-- **Observability** — Sentry (or equivalent) is not wired up. Pino logging, request IDs, and graceful shutdown are already in place.
+- **Observability** — Sentry is wired into all three apps (P0-06) and stays **off until a DSN is set**:
+
+  | App | Variable | Where it's set |
+  |---|---|---|
+  | API | `SENTRY_DSN` | Render |
+  | Storefront | `NEXT_PUBLIC_SENTRY_DSN` | Vercel, build time |
+  | Dashboard | `VITE_SENTRY_DSN` | Vercel, build time |
+
+  - **API** (`instrument.js`): unexpected 5xx errors and every `logger.error()` line (failed refunds, oversold paid orders, webhook failures) become events tagged with `request_id`.
+  - **Storefront:** browser errors plus server render and route-handler errors (`src/instrumentation*.ts`). The CSP `connect-src` gains the DSN host automatically.
+  - **Dashboard:** crashes caught by the page error boundary.
+  - **Privacy:** Sentry v11's `dataCollection` is set to collect no bodies, cookies, query strings, stack-frame variables or user info, with only a few safe headers. A `beforeSend` scrubber (`utils/sentryScrub.js`, `src/lib/sentryScrub.ts`) removes tokens and PII as a second layer. Only a user id may remain.
+  - **Still to set up (no code):** alert rules in Sentry (a new issue, a spike in 5xx), and an uptime monitor on `GET /api/ready`, e.g. UptimeRobot.
+  - Pino logging, request IDs and graceful shutdown were already in place.
 - **Tech debt (low priority)** — ~178 `express-async-handler` wraps could be simplified now that the underlying Express version handles async errors natively; response contracts across controllers aren't fully standardized.
 - **Security hardening backlog** — see §7's "Known open hardening items."
 

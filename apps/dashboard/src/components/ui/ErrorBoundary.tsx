@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { useT } from '../../i18n/I18nProvider';
+import { reportError } from '../../lib/sentry';
 
 type Props = { children: ReactNode };
 type State = { error: Error | null };
@@ -43,6 +44,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('Dashboard page crashed:', error, info.componentStack);
+    reportError(error, info.componentStack);
   }
 
   render() {

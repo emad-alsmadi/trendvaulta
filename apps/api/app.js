@@ -1,3 +1,5 @@
+// Error tracking must load before Express (no-op without SENTRY_DSN)
+const { Sentry } = require('./instrument');
 const express = require('express');
 const path = require('node:path');
 const helmet = require('helmet');
@@ -28,6 +30,14 @@ app.set('trust proxy', 1);
 // logged and traceable too (it doesn't read the body, so raw parsing is
 // unaffected).
 app.use(requestLogger);
+
+// A Sentry event carries the same id as the log line and X-Request-Id
+if (Sentry) {
+  app.use((req, _res, next) => {
+    if (req.id) Sentry.getCurrentScope().setTag('request_id', String(req.id));
+    next();
+  });
+}
 
 app.post(
   '/api/webhooks/stripe',
@@ -161,6 +171,8 @@ app.use((err, _req, res, next) => {
   return next(err);
 });
 
+// Report unexpected (5xx) errors to Sentry, then answer as before
+if (Sentry) Sentry.setupExpressErrorHandler(app);
 app.use(errorHandler);
 
 // Running Server

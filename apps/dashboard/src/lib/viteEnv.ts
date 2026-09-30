@@ -9,4 +9,6 @@
  */
 export const viteEnv = {
   VITE_API_URL: import.meta.env.VITE_API_URL as string | undefined,
+  VITE_SENTRY_DSN: import.meta.env.VITE_SENTRY_DSN as string | undefined,
+  MODE: import.meta.env.MODE as string,
 };

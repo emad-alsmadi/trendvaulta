@@ -96,6 +96,9 @@ services:
       # Contact-form notifications (utils/mail.js); falls back to SMTP_USER
       - key: CONTACT_INBOX_EMAIL
         sync: false
+      # Error tracking (instrument.js); off while empty
+      - key: SENTRY_DSN
+        sync: false
 
 # TrendVaulta notes:
 # - Liveness:  GET /api/trendvaulta (no DB)

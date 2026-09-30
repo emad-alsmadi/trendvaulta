@@ -2,6 +2,17 @@ import type { NextConfig } from 'next';
 
 const isDev = process.env.NODE_ENV === 'development';
 
+// Error tracking (src/instrumentation-client.ts) posts to the DSN's host,
+// which connect-src must allow. Nothing is added when no DSN is set.
+const sentryOrigin = (() => {
+  try {
+    const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
+    return dsn ? new URL(dsn).origin : '';
+  } catch {
+    return '';
+  }
+})();
+
 // CSP without nonces (next/dist/docs/01-app/02-guides/content-security-policy.md).
 // 'unsafe-inline' scripts are still allowed (Next's inline bootstrap + JSON-LD);
 // moving to nonces via proxy.ts would tighten script-src further. The rest
@@ -14,7 +25,7 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' blob: data: https:${isDev ? ' http:' : ''}`,
   "font-src 'self' data:",
-  `connect-src 'self'${isDev ? ' ws: http://localhost:*' : ''}`,
+  `connect-src 'self'${sentryOrigin ? ` ${sentryOrigin}` : ''}${isDev ? ' ws: http://localhost:*' : ''}`,
   "frame-src 'none'",
   "object-src 'none'",
   "base-uri 'self'",
