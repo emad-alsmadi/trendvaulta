@@ -2,8 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Filter, Search, X } from 'lucide-react';
-import { Input } from '@/components/ui/Input';
+import { Filter, X } from 'lucide-react';
+import { SearchField } from '@/components/ui/SearchField';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { ProductCard } from '@/components/products/ProductCard';
 import { useProducts } from '@/hooks/products/productsQuery';
@@ -415,33 +422,38 @@ export default function ProductsPage() {
                 <label htmlFor='plp-search' className='sr-only'>
                   {t('catalog.searchLabel')}
                 </label>
-                <Search className='pointer-events-none absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-stone-400' />
-                <Input
+                <SearchField
                   id='plp-search'
-                  type='search'
                   placeholder={t('catalog.searchPlaceholder')}
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  className='ps-10'
+                  clearLabel={t('brandsPage.clearSearch')}
+                  onClear={() => {
+                    setSearchInput('');
+                    replaceParams((params) => {
+                      params.delete('q');
+                      params.delete('page');
+                    });
+                  }}
                 />
               </form>
 
               <div className='flex w-full gap-3 sm:w-auto'>
-                <label className='sr-only' htmlFor='plp-sort'>
-                  {t('catalog.sortLabel')}
-                </label>
-                <select
-                  id='plp-sort'
-                  value={sortBy}
-                  onChange={(e) => handleSortChange(e.target.value)}
-                  className='flex-1 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-fuchsia-500 sm:flex-none'
-                >
-                  {sortOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {t(option.labelKey)}
-                    </option>
-                  ))}
-                </select>
+                <Select value={sortBy} onValueChange={handleSortChange}>
+                  <SelectTrigger
+                    aria-label={t('catalog.sortLabel')}
+                    className='flex-1 sm:min-w-48 sm:flex-none'
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent align='end'>
+                    {sortOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {t(option.labelKey)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
                 <Button
                   type='button'

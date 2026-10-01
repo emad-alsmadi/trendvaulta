@@ -3,6 +3,14 @@
 import { useMemo, useState } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { Checkbox } from '@/components/ui/Checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/Select';
 import { useToast } from '@/components/ui/Toast';
 import { useRequestReturnMutation } from '@/hooks/orders/ordersQuery';
 import { getUserFacingErrorMessage } from '@/lib/userFacingError';
@@ -235,31 +243,35 @@ function ReturnRequestForm({ order }: { order: Order }) {
                     className='flex items-center justify-between gap-3 rounded-xl bg-white/50 px-3 py-2'
                   >
                     <label className='flex min-w-0 flex-1 items-center gap-2 text-sm text-indigo-950'>
-                      <input
-                        type='checkbox'
+                      <Checkbox
                         checked={value > 0}
-                        onChange={(e) =>
-                          setQty((q) => ({ ...q, [p.productId]: e.target.checked ? p.max : 0 }))
+                        onCheckedChange={(checked) =>
+                          setQty((q) => ({ ...q, [p.productId]: checked === true ? p.max : 0 }))
                         }
-                        className='h-4 w-4 rounded border-indigo-300'
                       />
                       <span className='truncate'>{p.title}</span>
                     </label>
                     {p.max > 1 && value > 0 && (
-                      <select
-                        value={value}
-                        onChange={(e) =>
-                          setQty((q) => ({ ...q, [p.productId]: Number(e.target.value) }))
+                      <Select
+                        value={String(value)}
+                        onValueChange={(next) =>
+                          setQty((q) => ({ ...q, [p.productId]: Number(next) }))
                         }
-                        aria-label={t('returns.qtyAriaLabel', { title: p.title })}
-                        className='rounded-lg border border-indigo-200 bg-white px-2 py-1 text-sm'
                       >
-                        {Array.from({ length: p.max }, (_, i) => i + 1).map((n) => (
-                          <option key={n} value={n}>
-                            {t('returns.qtyOfMax', { n, max: p.max })}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger
+                          aria-label={t('returns.qtyAriaLabel', { title: p.title })}
+                          className='h-9 shrink-0'
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent align='end'>
+                          {Array.from({ length: p.max }, (_, i) => i + 1).map((n) => (
+                            <SelectItem key={n} value={String(n)}>
+                              {t('returns.qtyOfMax', { n, max: p.max })}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     )}
                   </li>
                 );

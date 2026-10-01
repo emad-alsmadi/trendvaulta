@@ -19,6 +19,15 @@ import {
   logErrorForDev,
 } from '@/lib/userFacingError';
 import { useTranslation } from '@/contexts/TranslationContext';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/Select';
+
+const SUBJECTS = ['order', 'product', 'return', 'billing', 'other'] as const;
 
 /**
  * Mirrors the server's Joi rules so the shopper sees problems before posting.
@@ -97,9 +106,7 @@ export default function ContactPage() {
   };
 
   const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -294,27 +301,33 @@ export default function ContactPage() {
                     >
                       {t('contact.form.subject')}
                     </label>
-                    <select
-                      id='subject'
-                      aria-invalid={fieldErrors.subject ? true : undefined}
-                      aria-describedby={fieldErrors.subject ? 'subject-error' : undefined}
+                    <Select
                       name='subject'
-                      value={formData.subject}
-                      onChange={handleChange}
                       required
-                      className='w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors'
+                      value={formData.subject || undefined}
+                      onValueChange={(subject) => {
+                        setFormData((prev) => ({ ...prev, subject }));
+                        setFieldErrors((prev) =>
+                          prev.subject ? { ...prev, subject: undefined } : prev,
+                        );
+                      }}
                     >
-                      <option value=''>{t('contact.form.subjectPlaceholder')}</option>
-                      <option value='order'>{t('contact.form.subjects.order')}</option>
-                      <option value='product'>
-                        {t('contact.form.subjects.product')}
-                      </option>
-                      <option value='return'>{t('contact.form.subjects.return')}</option>
-                      <option value='billing'>
-                        {t('contact.form.subjects.billing')}
-                      </option>
-                      <option value='other'>{t('contact.form.subjects.other')}</option>
-                    </select>
+                      <SelectTrigger
+                        id='subject'
+                        aria-invalid={fieldErrors.subject ? true : undefined}
+                        aria-describedby={fieldErrors.subject ? 'subject-error' : undefined}
+                        className='h-12 w-full px-4 aria-[invalid=true]:border-rose-500'
+                      >
+                        <SelectValue placeholder={t('contact.form.subjectPlaceholder')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SUBJECTS.map((subject) => (
+                          <SelectItem key={subject} value={subject}>
+                            {t(`contact.form.subjects.${subject}`)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     {fieldErrors.subject && (
                       <p id='subject-error' role='alert' className='mt-1 text-sm text-rose-600'>
                         {t(fieldErrors.subject)}

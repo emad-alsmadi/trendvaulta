@@ -5,6 +5,7 @@ import { ChevronRight, X, ChevronDown, ChevronUp, Star } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useBrands } from '@/hooks/brands/brandsQuery';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { useTranslation } from '@/contexts/TranslationContext';
 import {
   CATEGORIES,
@@ -384,12 +385,10 @@ export function CategorySidebar({
           {expandedSections.availability && (
             <div className='space-y-2'>
               <label className='flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-stone-700 hover:bg-stone-50'>
-                <input
-                  type='checkbox'
-                  className='h-4 w-4 rounded border-stone-300 text-fuchsia-600 focus:ring-fuchsia-500'
+                <Checkbox
                   checked={urlInStock}
                   disabled={isDisabled(facets?.inStock, urlInStock)}
-                  onChange={(e) => toggleFlag('inStock', e.target.checked)}
+                  onCheckedChange={(checked) => toggleFlag('inStock', checked === true)}
                 />
                 <span>
                   {t('catalog.sidebar.inStockOnly')}
@@ -397,12 +396,10 @@ export function CategorySidebar({
                 </span>
               </label>
               <label className='flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-stone-700 hover:bg-stone-50'>
-                <input
-                  type='checkbox'
-                  className='h-4 w-4 rounded border-stone-300 text-fuchsia-600 focus:ring-fuchsia-500'
+                <Checkbox
                   checked={urlOnSale}
                   disabled={isDisabled(facets?.onSale, urlOnSale)}
-                  onChange={(e) => toggleFlag('onSale', e.target.checked)}
+                  onCheckedChange={(checked) => toggleFlag('onSale', checked === true)}
                 />
                 <span>
                   {t('catalog.chips.onSale')}
@@ -452,12 +449,10 @@ export function CategorySidebar({
                           : 'text-stone-700 hover:bg-stone-50'
                       } ${isDisabled(brand.count, selected) ? 'cursor-not-allowed opacity-50' : ''}`}
                     >
-                      <input
-                        type='checkbox'
-                        className='h-4 w-4 rounded border-stone-300 text-fuchsia-600 focus:ring-fuchsia-500'
+                      <Checkbox
                         checked={selected}
                         disabled={isDisabled(brand.count, selected)}
-                        onChange={() => toggleListParam('brand', brand._id)}
+                        onCheckedChange={() => toggleListParam('brand', brand._id)}
                       />
                       <span className='min-w-0 flex-1 truncate'>{brand.name}</span>
                       <Count value={brand.count} />
