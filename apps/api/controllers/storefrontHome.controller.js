@@ -96,14 +96,15 @@ const DEFAULT_HOME_MODULES = [
     key: 'trust',
     type: 'trust_strip',
     active: true,
-    sortOrder: 1,
+    // Last on the page; categories sit just before it.
+    sortOrder: 14,
     items: DEFAULT_TRUST_ITEMS,
   },
   {
     key: 'categories',
     type: 'popular_categories',
     active: true,
-    sortOrder: 2,
+    sortOrder: 13,
   },
   {
     key: 'deals',

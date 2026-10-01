@@ -945,7 +945,8 @@ const STOREFRONT_MODULES = [
     type: 'trust_strip',
     title: 'Trust strip',
     active: true,
-    sortOrder: 1,
+    // Closes the homepage, right above the footer.
+    sortOrder: 11,
     trustItems: [
       {
         icon: 'truck',
@@ -974,7 +975,8 @@ const STOREFRONT_MODULES = [
     type: 'categories',
     title: 'Shop by category',
     active: true,
-    sortOrder: 2,
+    // Second to last on the homepage (after the content rails).
+    sortOrder: 10,
     limit: 6,
   },
   {

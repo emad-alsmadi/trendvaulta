@@ -707,7 +707,7 @@ Each item needs its own short design note before it gets a task ID:
 | P1-04 | Locale URLs, hreflang, SSR PLP | P1 | L | — | — | ⬜ | | |
 | P1-05 | Arabic catalogue and CMS content | P1 | L | P1-04 | — | ⬜ | | |
 | P1-06 | Search quality | P1 | M–L | P1-05 | — | ⬜ | | |
-| P1-07 | Dashboard i18n (optional) | P1 | M | — | — | ⬜ | | |
+| P1-07 | Dashboard i18n (optional) | P1 | M | — | — | ✅ (typed en/ar dictionaries — `ar.ts` is typed from `en.ts`, so `tsc` is the parity check; header language switch; RTL via logical classes, 0 physical left/right classes; all 23 screens. Not browser-tested) | 2026-09-30 | not committed |
 | P2-01 | Admin-managed top-level categories | P2 | M | — | — | ⬜ | | |
 | P2-02 | Review moderation | P2 | M | — | — | ⬜ | | |
 | P2-03 | Newsletter compliance + subscribers | P2 | M | P1-02 | — | ⬜ | | |
@@ -721,7 +721,7 @@ Each item needs its own short design note before it gets a task ID:
 | P3-04 | httpOnly tokens (BFF) | P3 | L | P0-10 | — | ⬜ | | |
 | P3-05 | Data export and account deletion | P3 | M | — | — | ⬜ | | |
 | P3-06 | Cookie consent + analytics | P3 | M | — | — | ⬜ | | |
-| P3-07 | Standard error envelope + codes | P3 | M | — | — | ⬜ | | |
+| P3-07 | Standard error envelope + codes | P3 | M | — | — | 🟡 (done: a `code` on all 193 controller 4xx responses + `type`/`limit` on validation details; dashboard and storefront translate by code/rule. Open: the `{ error: {…} }` envelope, a closed code list in `utils/errors.js`, contract tests) | 2026-09-30 | not committed |
 
 ### Dependency graph
 
