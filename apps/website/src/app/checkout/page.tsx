@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Checkbox } from '@/components/ui/Checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/RadioGroup';
 import { useToast } from '@/components/ui/Toast';
 import { useCart, getCartLineKey, formatVariantLabel } from '@/lib/cartStore';
 import {
@@ -38,6 +40,9 @@ import type { Address, CouponValidationResponse } from '@/types';
 import { useTranslation } from '@/contexts/TranslationContext';
 
 type AppliedCoupon = NonNullable<CouponValidationResponse['coupon']>;
+
+/** Radio value for "enter a new address" (saved ones use their id). */
+const NEW_ADDRESS = 'new';
 
 type CheckoutValues = {
   /** Guest checkout only (no session). */
@@ -529,19 +534,22 @@ export default function CheckoutPage() {
                 <legend className='px-1 text-sm font-extrabold text-indigo-950/80'>
                   {t('checkoutPage.savedAddresses.title')}
                 </legend>
-                <div className='mt-1 space-y-2'>
+                <RadioGroup
+                  className='mt-1 space-y-2'
+                  aria-label={t('checkoutPage.savedAddresses.title')}
+                  value={selectedAddressId ?? NEW_ADDRESS}
+                  onValueChange={(value) => {
+                    const addr = savedAddresses.find((a) => a._id === value);
+                    if (addr) handleSelectSavedAddress(addr);
+                    else handleUseNewAddress();
+                  }}
+                >
                   {savedAddresses.map((addr) => (
                     <label
                       key={addr._id}
                       className='flex cursor-pointer items-start gap-3 rounded-xl border border-white/50 bg-white/60 p-3 transition-colors hover:bg-white/80'
                     >
-                      <input
-                        type='radio'
-                        name='savedAddress'
-                        className='mt-1 h-4 w-4'
-                        checked={selectedAddressId === addr._id}
-                        onChange={() => handleSelectSavedAddress(addr)}
-                      />
+                      <RadioGroupItem value={addr._id} className='mt-0.5' />
                       <span className='min-w-0'>
                         <span className='flex flex-wrap items-center gap-2'>
                           <span className='text-sm font-bold text-indigo-950'>
@@ -565,18 +573,12 @@ export default function CheckoutPage() {
                   ))}
 
                   <label className='flex cursor-pointer items-center gap-3 rounded-xl border border-white/50 bg-white/60 p-3 transition-colors hover:bg-white/80'>
-                    <input
-                      type='radio'
-                      name='savedAddress'
-                      className='h-4 w-4'
-                      checked={selectedAddressId === null}
-                      onChange={handleUseNewAddress}
-                    />
+                    <RadioGroupItem value={NEW_ADDRESS} />
                     <span className='text-sm font-bold text-indigo-950'>
                       {t('checkoutPage.savedAddresses.useNew')}
                     </span>
                   </label>
-                </div>
+                </RadioGroup>
               </fieldset>
             )}
 
@@ -690,10 +692,11 @@ export default function CheckoutPage() {
 
             <div>
               <label className='inline-flex items-center gap-2 text-sm font-extrabold text-indigo-950/80'>
-                <input
-                  type='checkbox'
-                  className='h-4 w-4'
-                  {...register('delivery')}
+                <Checkbox
+                  checked={deliverySelected}
+                  onCheckedChange={(checked) =>
+                    setValue('delivery', checked === true, { shouldDirty: true })
+                  }
                 />
                 {deliverySelected && quote
                   ? t('checkoutPage.delivery.addWithPrice', {
@@ -708,21 +711,18 @@ export default function CheckoutPage() {
                 <label className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
                   {t('checkoutPage.delivery.method')}
                 </label>
-                <div className='space-y-2'>
+                <RadioGroup
+                  className='space-y-2'
+                  aria-label={t('checkoutPage.delivery.method')}
+                  value={selectedShippingMethod ?? ''}
+                  onValueChange={setSelectedShippingMethod}
+                >
                   {shippingMethods.map((method) => (
                     <label
                       key={method.handle}
                       className='flex cursor-pointer items-center gap-3 rounded-xl border border-white/50 bg-white/60 p-3 transition-colors hover:bg-white/80'
                     >
-                      <input
-                        type='radio'
-                        name='shippingMethod'
-                        className='h-4 w-4'
-                        checked={selectedShippingMethod === method.handle}
-                        onChange={() =>
-                          setSelectedShippingMethod(method.handle)
-                        }
-                      />
+                      <RadioGroupItem value={method.handle} />
                       <span className='min-w-0'>
                         <span className='flex flex-wrap items-center gap-2'>
                           <span className='text-sm font-bold text-indigo-950'>
@@ -749,7 +749,7 @@ export default function CheckoutPage() {
                       </span>
                     </label>
                   ))}
-                </div>
+                </RadioGroup>
                 {fetchingShippingMethods && (
                   <div className='mt-2 flex items-center gap-2 text-xs font-semibold text-indigo-950/70'>
                     <Loader2 className='h-3.5 w-3.5 animate-spin text-fuchsia-700' />

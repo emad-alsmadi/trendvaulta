@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ShoppingCart, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { useCart } from '@/lib/cartStore';
 import {
   useProductBundles,
@@ -207,12 +208,11 @@ export function FrequentlyBoughtTogether({ primary }: Props) {
                     : 'border-stone-200 bg-stone-50'
                 } ${!inStock ? 'opacity-60' : ''}`}
               >
-                <input
-                  type='checkbox'
-                  className='mt-1 h-4 w-4 rounded border-stone-300 text-fuchsia-600 focus:ring-fuchsia-500'
+                <Checkbox
+                  className='mt-0.5'
                   checked={checked}
                   disabled={!inStock || isPrimary}
-                  onChange={() => toggle(item._id)}
+                  onCheckedChange={() => toggle(item._id)}
                   aria-label={
                     isPrimary
                       ? t('bundle.thisProductLabel', { title: item.title })
