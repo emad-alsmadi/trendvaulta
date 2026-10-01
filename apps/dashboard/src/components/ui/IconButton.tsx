@@ -1,83 +1,70 @@
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
 import { cn } from '../../lib/cn';
+import { Tip } from './Tooltip';
 import { buttonVariants, type ButtonVariantProps } from './styles';
 
-export type IconButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
-  ButtonVariantProps & {
-    /** Leading icon (16px by default). */
+export type IconButtonProps = Omit<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  'aria-label'
+> &
+  Pick<ButtonVariantProps, 'variant'> & {
     icon: ReactNode;
-    /** Accessible label — required for icon-only buttons. */
-    'aria-label': string;
-    /** Icon size override. */
-    iconSize?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
-    /** Swaps in a spinner, keeps the width, and blocks further clicks. */
+    /** Accessible name; also shown as the tooltip. */
+    label: string;
+    size?: 'sm' | 'md' | 'lg';
+    /** Swaps in a spinner and blocks further clicks. */
     loading?: boolean;
+    /** Set `false` when the label is already visible next to the button. */
+    tooltip?: boolean;
   };
 
+const SIZE = { sm: 'icon-sm', md: 'icon', lg: 'icon-lg' } as const;
+
 /**
- * Icon-only button. Always requires an aria-label for accessibility.
- * Sizes: sm (32px), md (36px), lg (40px), plus icon-only variants.
+ * Icon-only button (row actions, toolbars): 32 · 36 · 40px square, always
+ * named, with the name shown as a tooltip on hover and focus.
  */
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
   function IconButton(
     {
       className,
-      variant,
-      size,
+      variant = 'ghost',
+      size = 'sm',
       icon,
-      iconSize = 'sm',
+      label,
       loading = false,
+      tooltip = true,
       disabled,
-      'aria-label': ariaLabel,
       type = 'button',
       ...props
     },
     ref,
   ) {
-    const iconSizeClasses = {
-      xs: 'icon-xs',
-      sm: 'icon-sm',
-      md: 'icon-md',
-      lg: 'icon-lg',
-      xl: 'icon-xl',
-    } as const;
-
-    return (
+    const button = (
       <button
         ref={ref}
         type={type}
         disabled={disabled || loading}
         aria-busy={loading || undefined}
-        aria-label={ariaLabel}
+        aria-label={label}
         className={cn(
-          buttonVariants({ variant, size: size || 'md' }),
+          buttonVariants({ variant, size: SIZE[size] }),
+          variant === 'ghost' && 'text-muted-foreground hover:text-foreground',
           className,
         )}
         {...props}
       >
-        <span
-          className={cn(
-            'inline-flex items-center justify-center',
-            loading && 'invisible',
-          )}
-        >
-          <span
-            className={cn(iconSizeClasses[iconSize])}
+        {loading ? (
+          <Loader2
+            className='animate-spin'
             aria-hidden
-          >
-            {icon}
-          </span>
-        </span>
-        {loading && (
-          <span className='absolute inset-0 flex items-center justify-center'>
-            <Loader2
-              className={cn(iconSizeClasses[iconSize], 'animate-spin')}
-              aria-hidden
-            />
-          </span>
+          />
+        ) : (
+          icon
         )}
       </button>
     );
+    return tooltip ? <Tip label={label}>{button}</Tip> : button;
   },
 );

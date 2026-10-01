@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Loader2, Plus, Upload, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Plus, Upload, X } from 'lucide-react';
 import { uploadsApi, errorMessage } from '../../lib/api';
 import { useToast } from '../ui/Toast';
 import { useT } from '../../i18n/I18nProvider';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Field';
+import { labelClass } from '../ui/styles';
 
 /** Matches the upload route's accepted types (apps/api/routes/uploads.js). */
 const ACCEPT = 'image/jpeg,image/png,image/webp,image/gif';
+
+const overlayButton =
+  'inline-flex size-6 items-center justify-center rounded text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:opacity-30 disabled:hover:bg-transparent';
 
 /**
  * Extra product images, in display order.
@@ -54,13 +60,20 @@ export function GalleryField({
         add(await uploadsApi.uploadImage(file));
       } catch (err) {
         failed += 1;
-        toast.error(errorMessage(err, t('gallery.uploadFailed', { name: file.name })));
+        toast.error(
+          errorMessage(err, t('gallery.uploadFailed', { name: file.name })),
+        );
       } finally {
         setUploading((n) => n - 1);
       }
     }
     const done = files.length - failed;
-    if (done > 0) toast.success(done === 1 ? t('gallery.addedOne') : t('gallery.addedMany', { count: done }));
+    if (done > 0)
+      toast.success(
+        done === 1
+          ? t('gallery.addedOne')
+          : t('gallery.addedMany', { count: done }),
+      );
   }
 
   function move(index: number, by: -1 | 1) {
@@ -72,45 +85,56 @@ export function GalleryField({
   }
 
   return (
-    <div className="block text-sm">
-      <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-        {t('gallery.label')}
-      </span>
+    <div className='space-y-1.5'>
+      <span className={labelClass}>{t('gallery.label')}</span>
 
       {value.length > 0 && (
-        <ul className="mb-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
+        <ul className='grid grid-cols-3 gap-2 sm:grid-cols-5'>
           {value.map((src, i) => (
             <li
               key={src}
-              className="group relative aspect-square overflow-hidden rounded-lg border border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-900"
+              className='group relative aspect-square overflow-hidden rounded-control border border-border bg-muted'
             >
-              <img src={src} alt="" className="h-full w-full object-cover" />
-              <div className="absolute inset-x-0 bottom-0 flex justify-between bg-black/50 p-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+              <img
+                src={src}
+                alt=''
+                className='size-full object-cover'
+              />
+              <div className='absolute inset-x-0 bottom-0 flex justify-between bg-black/60 p-1 opacity-100 transition-opacity sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100'>
                 <button
-                  type="button"
+                  type='button'
                   onClick={() => move(i, -1)}
                   disabled={i === 0}
                   aria-label={t('gallery.moveEarlier', { n: i + 1 })}
-                  className="rounded p-0.5 text-white disabled:opacity-30"
+                  className={overlayButton}
                 >
-                  <ArrowLeft className="h-3.5 w-3.5 rtl:-scale-x-100" aria-hidden />
+                  <ArrowLeft
+                    className='size-3.5 rtl:-scale-x-100'
+                    aria-hidden
+                  />
                 </button>
                 <button
-                  type="button"
+                  type='button'
                   onClick={() => onChange(value.filter((_, j) => j !== i))}
                   aria-label={t('gallery.remove', { n: i + 1 })}
-                  className="rounded p-0.5 text-white"
+                  className={overlayButton}
                 >
-                  <X className="h-3.5 w-3.5" aria-hidden />
+                  <X
+                    className='size-3.5'
+                    aria-hidden
+                  />
                 </button>
                 <button
-                  type="button"
+                  type='button'
                   onClick={() => move(i, 1)}
                   disabled={i === value.length - 1}
                   aria-label={t('gallery.moveLater', { n: i + 1 })}
-                  className="rounded p-0.5 text-white disabled:opacity-30"
+                  className={overlayButton}
                 >
-                  <ArrowRight className="h-3.5 w-3.5 rtl:-scale-x-100" aria-hidden />
+                  <ArrowRight
+                    className='size-3.5 rtl:-scale-x-100'
+                    aria-hidden
+                  />
                 </button>
               </div>
             </li>
@@ -118,8 +142,8 @@ export function GalleryField({
         </ul>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <input
+      <div className='flex flex-wrap items-center gap-2'>
+        <Input
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           onKeyDown={(e) => {
@@ -130,43 +154,38 @@ export function GalleryField({
               setUrl('');
             }
           }}
+          aria-label={t('gallery.urlPlaceholder')}
           placeholder={t('gallery.urlPlaceholder')}
-          dir="ltr"
-          className="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+          dir='ltr'
+          className='min-w-0 flex-1'
         />
-        <button
-          type="button"
+        <Button
           disabled={!url.trim()}
           onClick={() => {
             add(url);
             setUrl('');
           }}
-          className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+          icon={<Plus aria-hidden />}
         >
-          <Plus className="h-3.5 w-3.5" aria-hidden />
           {t('gallery.add')}
-        </button>
+        </Button>
         <input
           ref={fileInputRef}
-          type="file"
+          type='file'
           accept={ACCEPT}
           multiple
-          className="hidden"
+          className='hidden'
           onChange={handleFiles}
         />
-        <button
-          type="button"
-          disabled={uploading > 0}
+        <Button
+          loading={uploading > 0}
           onClick={() => fileInputRef.current?.click()}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+          icon={<Upload aria-hidden />}
         >
-          {uploading > 0 ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-          ) : (
-            <Upload className="h-3.5 w-3.5" aria-hidden />
-          )}
-          {uploading > 0 ? t('gallery.uploading', { count: uploading }) : t('gallery.upload')}
-        </button>
+          {uploading > 0
+            ? t('gallery.uploading', { count: uploading })
+            : t('gallery.upload')}
+        </Button>
       </div>
     </div>
   );

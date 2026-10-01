@@ -31,10 +31,10 @@ export function TableCard({
   return (
     <Card
       padded={false}
-      className={cn('overflow-hidden transition-all duration-300', className)}
+      className={cn('overflow-hidden', className)}
     >
       {toolbar && (
-        <div className='border-b border-border bg-muted/30 p-4 transition-colors duration-200'>
+        <div className='border-b border-border p-3 sm:p-4'>
           {toolbar}
         </div>
       )}
@@ -47,7 +47,7 @@ export function TableCard({
         {children}
       </div>
       {footer && (
-        <div className='border-t border-border bg-muted/30 px-4 py-3 transition-colors duration-200'>
+        <div className='border-t border-border px-4 py-3'>
           {footer}
         </div>
       )}

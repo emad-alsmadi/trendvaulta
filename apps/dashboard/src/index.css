@@ -8,39 +8,46 @@
  * border-border, rounded-control, shadow-overlay, …); components never use hex.
  *
  * Contrast (WCAG AA), checked against the surfaces each token sits on:
- * - muted-foreground: light 42% is 5.3:1 on white and 4.9:1 on --muted
- *   (the 45% draft fell to 4.35:1 on --muted); dark 63% is 6.2:1+.
- * - input: the control boundary, 3.2:1 on its surface in both modes.
- *   --border / --border-strong are decorative dividers and card edges.
+ * - muted-foreground: light 42% is 5.3:1 on white and 4.9:1 on --muted;
+ *   dark 66% is 6.5:1+.
+ * - input: the control boundary. --border / --border-strong are decorative
+ *   dividers and card edges.
+ * - sidebar-*: the navigation rail is dark in both themes.
  */
 @layer base {
   :root {
-    --canvas: 0 0% 96%;
-    --background: 0 0% 98%;
-    --foreground: 0 0% 12%;
+    --canvas: 0 0% 96.5%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 9%;
 
-    --card: 0 0% 98%;
-    --card-foreground: 0 0% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 9%;
     --raised: 0 0% 100%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 12%;
+    --popover-foreground: 0 0% 9%;
 
-    --primary: 0 0% 12%;
+    --primary: 0 0% 9%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 92%;
-    --secondary-foreground: 0 0% 12%;
-    --muted: 0 0% 92%;
-    --muted-foreground: 0 0% 50%;
-    --accent: 0 0% 90%;
-    --accent-foreground: 0 0% 12%;
+    --secondary: 0 0% 94%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 95%;
+    --muted-foreground: 0 0% 42%;
+    --accent: 0 0% 93%;
+    --accent-foreground: 0 0% 9%;
     /* Destructive is not a colour: wording, icon, placement and a confirm do the work. */
-    --destructive: 0 0% 12%;
+    --destructive: 0 0% 9%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 88%;
-    --border-strong: 0 0% 80%;
-    --input: 0 0% 60%;
-    --ring: 0 0% 12%;
+    --border: 0 0% 90%;
+    --border-strong: 0 0% 82%;
+    --input: 0 0% 78%;
+    --ring: 0 0% 9%;
+
+    --sidebar: 0 0% 7%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-muted: 0 0% 64%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-border: 0 0% 16%;
 
     --radius-control: 0.375rem; /* 6px — inputs, buttons, nav items, thumbnails */
     --radius-badge: 0.5rem; /* 8px — badges, tags */
@@ -48,40 +55,49 @@
     --radius-panel: 1rem; /* 16px — large dashboard panels */
     --radius: var(--radius-control);
 
+    --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.04);
     --shadow-overlay:
-      0 8px 24px -6px rgb(0 0 0 / 0.1), 0 2px 6px -2px rgb(0 0 0 / 0.06);
-    --backdrop: 0 0% 0% / 0.4;
+      0 12px 32px -8px rgb(0 0 0 / 0.14), 0 2px 6px -2px rgb(0 0 0 / 0.06);
+    --backdrop: 0 0% 0% / 0.45;
   }
 
   .dark {
-    --canvas: 0 0% 6%;
-    --background: 0 0% 8%;
-    --foreground: 0 0% 94%;
+    --canvas: 0 0% 7%;
+    --background: 0 0% 10%;
+    --foreground: 0 0% 95%;
 
-    --card: 0 0% 8%;
-    --card-foreground: 0 0% 94%;
-    --raised: 0 0% 12%;
-    --popover: 0 0% 12%;
-    --popover-foreground: 0 0% 94%;
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 95%;
+    --raised: 0 0% 13%;
+    --popover: 0 0% 13%;
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 0 0% 94%;
-    --primary-foreground: 0 0% 10%;
-    --secondary: 0 0% 18%;
-    --secondary-foreground: 0 0% 94%;
-    --muted: 0 0% 18%;
-    --muted-foreground: 0 0% 70%;
-    --accent: 0 0% 22%;
-    --accent-foreground: 0 0% 94%;
-    --destructive: 0 0% 94%;
-    --destructive-foreground: 0 0% 10%;
+    --primary: 0 0% 95%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 17%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 66%;
+    --accent: 0 0% 19%;
+    --accent-foreground: 0 0% 95%;
+    --destructive: 0 0% 95%;
+    --destructive-foreground: 0 0% 9%;
 
-    --border: 0 0% 20%;
-    --border-strong: 0 0% 28%;
-    --input: 0 0% 50%;
-    --ring: 0 0% 94%;
+    --border: 0 0% 18%;
+    --border-strong: 0 0% 26%;
+    --input: 0 0% 32%;
+    --ring: 0 0% 95%;
 
+    --sidebar: 0 0% 4%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-muted: 0 0% 62%;
+    --sidebar-accent: 0 0% 13%;
+    --sidebar-border: 0 0% 14%;
+
+    --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.3);
     --shadow-overlay:
-      0 8px 24px -6px rgb(0 0 0 / 0.5), 0 2px 6px -2px rgb(0 0 0 / 0.3);
+      0 12px 32px -8px rgb(0 0 0 / 0.6), 0 2px 6px -2px rgb(0 0 0 / 0.4);
+    --backdrop: 0 0% 0% / 0.6;
   }
 }
 
@@ -120,44 +136,16 @@
     scrollbar-color: hsl(var(--border-strong)) transparent;
   }
 
+  /* The browser's own clear button would sit beside ours in search boxes. */
+  input[type='search']::-webkit-search-cancel-button {
+    appearance: none;
+  }
+
   /* Arabic is cursive: tracking breaks letter joins, and it has no case. */
   [dir='rtl'] .text-page-title,
   [dir='rtl'] .text-caption,
   [dir='rtl'] .text-kpi {
     letter-spacing: 0;
-  }
-
-  /* Skeleton loading base class */
-  .skeleton {
-    background: linear-gradient(
-      90deg,
-      hsl(var(--muted)) 0%,
-      hsl(var(--muted) / 0.5) 25%,
-      hsl(var(--border)) 50%,
-      hsl(var(--muted) / 0.5) 75%,
-      hsl(var(--muted)) 100%
-    );
-    background-size: 200% 100%;
-    animation: skeleton-shimmer 2s ease-in-out infinite;
-    border-radius: 4px;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .skeleton {
-      animation: none;
-      background: hsl(var(--muted));
-    }
-  }
-
-  /* Page transition utility */
-  .page-transition {
-    animation: page-enter 200ms ease-out;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .page-transition {
-      animation: none;
-    }
   }
 
   /* Transitions only: Framer Motion honours the setting itself (useReducedMotion),
@@ -168,6 +156,74 @@
     *::after {
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Lucide icon sizes: 14 · 16 · 18 · 20 · 24. */
+  .icon-xs {
+    @apply size-3.5 shrink-0;
+  }
+  .icon-sm {
+    @apply size-4 shrink-0;
+  }
+  .icon-md {
+    @apply size-[1.125rem] shrink-0;
+  }
+  .icon-lg {
+    @apply size-5 shrink-0;
+  }
+  .icon-xl {
+    @apply size-6 shrink-0;
+  }
+
+  /* Skeleton loading: a soft sweep over the muted surface. */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--border)) 50%,
+      hsl(var(--muted)) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.6s ease-in-out infinite;
+    border-radius: 4px;
+  }
+  .skeleton-text {
+    @apply h-4 w-full;
+  }
+  .skeleton-avatar {
+    @apply size-10 rounded-full;
+  }
+  .skeleton-thumbnail {
+    @apply size-10 rounded-control;
+  }
+  .skeleton-card {
+    @apply h-24 w-full rounded-card;
+  }
+  .skeleton-kpi {
+    @apply h-9 w-32 rounded-control;
+  }
+  .skeleton-button {
+    @apply h-control w-20 rounded-control;
+  }
+  .skeleton-badge {
+    @apply h-6 w-12 rounded-badge;
+  }
+
+  /* Page transition utility */
+  .page-transition {
+    animation: page-enter 200ms ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton {
+      animation: none;
+      background: hsl(var(--muted));
+    }
+    .page-transition {
+      animation: none;
     }
   }
 }
@@ -183,17 +239,15 @@
   }
 }
 
-/* Skeleton loading shimmer effect */
 @keyframes skeleton-shimmer {
   0% {
-    background-position: -200% 0;
+    background-position: 200% 0;
   }
   100% {
-    background-position: 200% 0;
+    background-position: -200% 0;
   }
 }
 
-/* Skeleton pulse effect for professional loading */
 @keyframes skeleton-pulse {
   0%,
   100% {
@@ -204,21 +258,11 @@
   }
 }
 
-/* Skeleton wave effect */
-@keyframes skeleton-wave {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
-
 /* Page transition: fade + subtle translate */
 @keyframes page-enter {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -226,13 +270,33 @@
   }
 }
 
-@keyframes page-exit {
+/* Overlays (dialog backdrop, menus, selects, tooltips). `scale` is animated as
+   its own property so it never fights the translate that centres a dialog. */
+@keyframes overlay-in {
   from {
-    opacity: 1;
-    transform: translateY(0);
+    opacity: 0;
   }
   to {
+    opacity: 1;
+  }
+}
+
+@keyframes pop-in {
+  from {
     opacity: 0;
-    transform: translateY(-8px);
+    scale: 0.97;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes progress-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
   }
 }

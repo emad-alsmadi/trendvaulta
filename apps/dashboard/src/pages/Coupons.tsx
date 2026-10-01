@@ -1,16 +1,5 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
-// @ts-ignore
-import { DataTable } from 'primereact/datatable';
-// @ts-ignore
-import { Column } from 'primereact/column';
-// @ts-ignore
-import { InputText } from 'primereact/inputtext';
-// @ts-ignore
-import { Button } from 'primereact/button';
-// @ts-ignore
-import { Dialog } from 'primereact/dialog';
+import { Plus, Pencil, TicketPercent, Trash2 } from 'lucide-react';
 import {
   useAdminCoupons,
   useCreateCouponMutation,
@@ -29,15 +18,18 @@ import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useTableQuery } from '../hooks/useTableQuery';
 import { useT } from '../i18n/I18nProvider';
 import { PageHeader } from '../components/ui/PageHeader';
-
-// @ts-ignore - PrimeReact types are bundled
-const ColumnWrapper = Column as any;
-// @ts-ignore - PrimeReact types are bundled
-const DataTableWrapper = DataTable as any;
-// @ts-ignore - PrimeReact types are bundled
-const InputTextWrapper = InputText as any;
-// @ts-ignore - PrimeReact types are bundled
-const DialogWrapper = Dialog as any;
+import { Alert } from '../components/ui/Alert';
+import { Button } from '../components/ui/Button';
+import { IconButton } from '../components/ui/IconButton';
+import {
+  DataTable,
+  RowActions,
+  type DataTableColumn,
+} from '../components/ui/DataTable';
+import { FilterBar } from '../components/ui/FilterBar';
+import { Field, Input, Select, Switch, Textarea } from '../components/ui/Field';
+import { FormActions, FormDialog } from '../components/ui/FormDialog';
+import { StatusBadge } from '../components/ui/StatusBadge';
 
 const emptyForm: CouponPayload = {
   code: '',
@@ -63,6 +55,7 @@ export default function Coupons() {
   const { t, formatCurrency, formatDate, formatNumber } = useT();
   const table = useTableQuery({ limit: 25, sort: 'createdAt', order: 'desc' });
   const { resetPage } = table;
+
   const [search, setSearch] = useState('');
   const [appliedQ, setAppliedQ] = useState('');
   const couponsQ = useAdminCoupons({
@@ -160,216 +153,189 @@ export default function Coupons() {
     }
   }
 
+  const columns: DataTableColumn<AdminCoupon>[] = [
+    {
+      key: 'code',
+      header: t('coupons.columns.code'),
+      sortable: true,
+      cell: (coupon) => (
+        <div className='min-w-0'>
+          <span
+            className='inline-block rounded-control border border-dashed border-border-strong bg-muted px-2 py-0.5 font-mono text-body-sm font-semibold text-foreground'
+            dir='ltr'
+          >
+            {coupon.code}
+          </span>
+          {coupon.description && (
+            <p
+              className='mt-1 max-w-[18rem] truncate text-xs text-muted-foreground'
+              dir='auto'
+            >
+              {coupon.description}
+            </p>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'discountValue',
+      header: t('coupons.columns.discount'),
+      sortable: true,
+      numeric: true,
+      className: 'font-medium',
+      cell: (coupon) =>
+        coupon.discountType === 'percentage'
+          ? `${formatNumber(coupon.discountValue)}%`
+          : formatCurrency(Number(coupon.discountValue)),
+    },
+    {
+      key: 'minimumOrderAmount',
+      header: t('coupons.columns.minOrder'),
+      numeric: true,
+      cell: (coupon) => formatCurrency(Number(coupon.minimumOrderAmount || 0)),
+    },
+    {
+      key: 'usage',
+      header: t('coupons.columns.usage'),
+      numeric: true,
+      className: 'text-muted-foreground',
+      cell: (coupon) => (
+        <>
+          <span className='text-foreground'>
+            {formatNumber(coupon.usedCount)}
+          </span>
+          {coupon.usageLimit != null
+            ? ` / ${formatNumber(coupon.usageLimit)}`
+            : ' / ∞'}
+        </>
+      ),
+    },
+    {
+      key: 'expirationDate',
+      header: t('coupons.columns.expires'),
+      sortable: true,
+      className: 'whitespace-nowrap',
+      cell: (coupon) =>
+        toDateInput(coupon.expirationDate)
+          ? formatDate(`${toDateInput(coupon.expirationDate)}T00:00:00`)
+          : '—',
+    },
+    {
+      key: 'isActive',
+      header: t('common.status'),
+      cell: (coupon) => (
+        <StatusBadge status={coupon.isActive ? 'active' : 'inactive'}>
+          {coupon.isActive ? t('common.active') : t('common.inactive')}
+        </StatusBadge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: t('common.actions'),
+      actions: true,
+      cell: (coupon) => (
+        <RowActions>
+          {can('coupons:write') && (
+            <IconButton
+              icon={<Pencil aria-hidden />}
+              label={t('common.editItem', { name: coupon.code })}
+              onClick={() => openEdit(coupon)}
+            />
+          )}
+          {can('coupons:delete') && (
+            <IconButton
+              icon={<Trash2 aria-hidden />}
+              label={t('common.deleteItem', { name: coupon.code })}
+              onClick={() => void handleDelete(coupon)}
+              disabled={deleteMut.isPending}
+            />
+          )}
+        </RowActions>
+      ),
+    },
+  ];
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
+    <>
       <PageHeader
         title={t('coupons.title')}
         description={t('coupons.subtitle')}
         actions={
           can('coupons:write') && (
             <Button
+              variant='primary'
               onClick={openCreate}
-              icon={
-                <Plus
-                  className='icon-sm'
-                  aria-hidden
-                />
-              }
-              label={t('coupons.add')}
-            />
+              icon={<Plus aria-hidden />}
+            >
+              {t('coupons.add')}
+            </Button>
           )
         }
       />
 
-      <div className='mb-6 flex flex-col gap-3 sm:flex-row sm:items-end'>
-        <InputTextWrapper
-          value={search}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            setSearch(e.target.value)
-          }
-          placeholder={t('coupons.searchPlaceholder')}
-          className='w-full sm:w-64'
-        />
-        <Button
-          label={t('coupons.searchLabel')}
-          onClick={() => {
-            setAppliedQ(search.trim());
-            resetPage();
-          }}
-          className='w-full sm:w-auto'
-        />
-        {appliedQ && (
-          <Button
-            label='Clear'
-            onClick={() => {
-              setSearch('');
-              setAppliedQ('');
-              resetPage();
-            }}
-            severity='secondary'
-            className='w-full sm:w-auto'
-          />
-        )}
-      </div>
-
-      {couponsQ.isLoading && (
-        <p className='py-10 text-center text-sm text-gray-500'>
-          {t('coupons.loading')}
-        </p>
-      )}
-
-      {couponsQ.isError && (
-        <div className='rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200'>
+      {couponsQ.isError ? (
+        <Alert tone='error'>
           {errorMessage(couponsQ.error, t('coupons.loadFailed'))}
-        </div>
-      )}
-
-      {!couponsQ.isLoading && !couponsQ.isError && (
-        <div className='rounded-xl border border-gray-200 bg-card shadow-sm dark:border-gray-700 dark:bg-gray-800'>
-          <DataTableWrapper
-            value={coupons}
-            paginator
-            rows={25}
-            totalRecords={meta?.total}
-            lazy
-            onPage={table.setPage}
-            first={(meta?.page ? meta.page - 1 : 0) * 25}
-            loading={couponsQ.isFetching}
-            emptyMessage={t('coupons.empty')}
-            sortField={table.sort}
-            sortOrder={table.order === 'asc' ? 1 : -1}
-            onSort={table.toggleSort}
-            className='p-datatable-sm'
-          >
-            <ColumnWrapper
-              field='code'
-              header={t('coupons.columns.code')}
-              sortable
-              body={(coupon: any) => (
-                <span
-                  className='font-mono text-sm font-semibold text-foreground'
-                  dir='ltr'
-                >
-                  {coupon.code}
-                </span>
-              )}
+        </Alert>
+      ) : (
+        <DataTable
+          caption={t('coupons.title')}
+          data={coupons}
+          columns={columns}
+          getKey={(coupon) => coupon._id}
+          loading={couponsQ.isLoading}
+          fetching={couponsQ.isFetching}
+          sort={table.sort}
+          order={table.order}
+          onSort={table.toggleSort}
+          meta={meta}
+          onPage={table.setPage}
+          onLimit={table.setLimit}
+          emptyIcon={<TicketPercent aria-hidden />}
+          emptyTitle={t('coupons.empty')}
+          toolbar={
+            <FilterBar
+              search={{
+                value: search,
+                onChange: setSearch,
+                onSubmit: () => {
+                  setAppliedQ(search.trim());
+                  resetPage();
+                },
+                placeholder: t('coupons.searchPlaceholder'),
+                label: t('coupons.searchLabel'),
+                submitLabel: t('common.search'),
+              }}
+              canClear={Boolean(appliedQ)}
+              onClear={() => {
+                setSearch('');
+                setAppliedQ('');
+                resetPage();
+              }}
             />
-            <ColumnWrapper
-              field='discountValue'
-              header={t('coupons.columns.discount')}
-              sortable
-              body={(coupon: any) =>
-                coupon.discountType === 'percentage'
-                  ? `${formatNumber(coupon.discountValue)}%`
-                  : formatCurrency(Number(coupon.discountValue))
-              }
-            />
-            <ColumnWrapper
-              field='minimumOrderAmount'
-              header={t('coupons.columns.minOrder')}
-              body={(coupon: any) =>
-                formatCurrency(Number(coupon.minimumOrderAmount || 0))
-              }
-            />
-            <ColumnWrapper
-              header={t('coupons.columns.usage')}
-              body={(coupon: any) => (
-                <span className='text-sm text-muted-foreground'>
-                  {formatNumber(coupon.usedCount)}
-                  {coupon.usageLimit != null
-                    ? ` / ${formatNumber(coupon.usageLimit)}`
-                    : ' / ∞'}
-                </span>
-              )}
-            />
-            <ColumnWrapper
-              field='expirationDate'
-              header={t('coupons.columns.expires')}
-              sortable
-              body={(coupon: any) =>
-                toDateInput(coupon.expirationDate)
-                  ? formatDate(`${toDateInput(coupon.expirationDate)}T00:00:00`)
-                  : '—'
-              }
-            />
-            <ColumnWrapper
-              field='isActive'
-              header={t('common.status')}
-              body={(coupon: any) => (
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                    coupon.isActive
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                      : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-                  }`}
-                >
-                  {coupon.isActive ? t('common.active') : t('common.inactive')}
-                </span>
-              )}
-            />
-            <ColumnWrapper
-              header={t('common.actions')}
-              body={(coupon: any) => (
-                <div className='flex gap-1'>
-                  {can('coupons:write') && (
-                    <button
-                      type='button'
-                      onClick={() => openEdit(coupon)}
-                      className='rounded p-1.5 hover:bg-accent transition-colors duration-200'
-                      aria-label={t('common.editItem', { name: coupon.code })}
-                    >
-                      <Pencil
-                        className='icon-sm text-muted-foreground'
-                        aria-hidden
-                      />
-                    </button>
-                  )}
-                  {can('coupons:delete') && (
-                    <button
-                      type='button'
-                      onClick={() => void handleDelete(coupon)}
-                      disabled={deleteMut.isPending}
-                      className='rounded p-1.5 hover:bg-destructive/10 transition-colors duration-200'
-                      aria-label={t('common.deleteItem', { name: coupon.code })}
-                    >
-                      <Trash2
-                        className='icon-sm text-muted-foreground hover:text-destructive'
-                        aria-hidden
-                      />
-                    </button>
-                  )}
-                </div>
-              )}
-            />
-          </DataTableWrapper>
-        </div>
+          }
+        />
       )}
 
       {open && (
-        <DialogWrapper
-          visible={open}
-          onHide={() => setOpen(false)}
-          header={
+        <FormDialog
+          onClose={() => setOpen(false)}
+          title={
             editing
               ? t('coupons.form.editTitle')
               : t('coupons.form.createTitle')
           }
-          modal
-          className='w-full max-w-lg'
+          busy={saving}
         >
           <form
             onSubmit={handleSubmit}
-            className='space-y-3'
+            className='space-y-4'
           >
-            <label className='block text-sm'>
-              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                {t('coupons.form.code')}
-              </span>
-              <input
+            <Field
+              label={t('coupons.form.code')}
+              required
+            >
+              <Input
                 required
                 dir='ltr'
                 value={form.code}
@@ -379,15 +345,12 @@ export default function Coupons() {
                     code: e.target.value.toUpperCase(),
                   }))
                 }
-                className='w-full rounded-lg border border-gray-300 px-3 py-2 font-mono uppercase dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+                className='font-mono uppercase'
               />
-            </label>
-            <div className='grid grid-cols-2 gap-3'>
-              <label className='block text-sm'>
-                <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                  {t('coupons.form.type')}
-                </span>
-                <select
+            </Field>
+            <div className='grid gap-4 sm:grid-cols-2'>
+              <Field label={t('coupons.form.type')}>
+                <Select
                   value={form.discountType}
                   onChange={(e) =>
                     setForm((f) => ({
@@ -395,19 +358,18 @@ export default function Coupons() {
                       discountType: e.target.value as DiscountType,
                     }))
                   }
-                  className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
                 >
                   <option value='percentage'>
                     {t('coupons.form.percentage')}
                   </option>
                   <option value='fixed'>{t('coupons.form.fixed')}</option>
-                </select>
-              </label>
-              <label className='block text-sm'>
-                <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                  {t('coupons.form.value')}
-                </span>
-                <input
+                </Select>
+              </Field>
+              <Field
+                label={t('coupons.form.value')}
+                required
+              >
+                <Input
                   type='number'
                   min={0}
                   max={form.discountType === 'percentage' ? 100 : undefined}
@@ -420,33 +382,40 @@ export default function Coupons() {
                       discountValue: Number(e.target.value),
                     }))
                   }
-                  className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
                 />
-              </label>
-            </div>
-            <label className='block text-sm'>
-              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                {t('coupons.form.expiration')}
-              </span>
-              <input
-                type='date'
+              </Field>
+              <Field
+                label={t('coupons.form.expiration')}
                 required
-                value={form.expirationDate}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    expirationDate: e.target.value,
-                  }))
-                }
-                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-              />
-            </label>
-            <div className='grid grid-cols-2 gap-3'>
-              <label className='block text-sm'>
-                <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                  {t('coupons.form.usageLimit')}
-                </span>
-                <input
+              >
+                <Input
+                  type='date'
+                  required
+                  value={form.expirationDate}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      expirationDate: e.target.value,
+                    }))
+                  }
+                />
+              </Field>
+              <Field label={t('coupons.form.minOrder')}>
+                <Input
+                  type='number'
+                  min={0}
+                  step='0.01'
+                  value={form.minimumOrderAmount ?? 0}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      minimumOrderAmount: Number(e.target.value),
+                    }))
+                  }
+                />
+              </Field>
+              <Field label={t('coupons.form.usageLimit')}>
+                <Input
                   type='number'
                   min={1}
                   step={1}
@@ -459,98 +428,54 @@ export default function Coupons() {
                         e.target.value === '' ? null : Number(e.target.value),
                     }))
                   }
-                  className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
                 />
-              </label>
-              <label className='block text-sm'>
-                <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                  {t('coupons.form.minOrder')}
-                </span>
-                <input
+              </Field>
+              <Field
+                label={t('coupons.form.perCustomer')}
+                hint={t('coupons.form.perCustomerHint')}
+              >
+                <Input
                   type='number'
-                  min={0}
-                  step='0.01'
-                  value={form.minimumOrderAmount ?? 0}
+                  min={1}
+                  step={1}
+                  placeholder={t('common.unlimited')}
+                  value={form.perCustomerLimit ?? ''}
                   onChange={(e) =>
                     setForm((f) => ({
                       ...f,
-                      minimumOrderAmount: Number(e.target.value),
+                      perCustomerLimit:
+                        e.target.value === '' ? null : Number(e.target.value),
                     }))
                   }
-                  className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
                 />
-              </label>
+              </Field>
             </div>
-            <label className='block text-sm'>
-              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                {t('coupons.form.perCustomer')}
-              </span>
-              <input
-                type='number'
-                min={1}
-                step={1}
-                placeholder={t('common.unlimited')}
-                value={form.perCustomerLimit ?? ''}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    perCustomerLimit:
-                      e.target.value === '' ? null : Number(e.target.value),
-                  }))
-                }
-                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-              />
-              <span className='mt-1 block text-xs text-gray-500 dark:text-gray-400'>
-                {t('coupons.form.perCustomerHint')}
-              </span>
-            </label>
-            <label className='flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300'>
-              <input
-                type='checkbox'
-                checked={!!form.isActive}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, isActive: e.target.checked }))
-                }
-              />
-              {t('common.active')}
-            </label>
-            <label className='block text-sm'>
-              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                {t('common.description')}
-              </span>
-              <textarea
+            <Field label={t('common.description')}>
+              <Textarea
                 rows={2}
                 value={form.description || ''}
                 dir='auto'
                 onChange={(e) =>
                   setForm((f) => ({ ...f, description: e.target.value }))
                 }
-                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+                className='min-h-16'
               />
-            </label>
-            <div className='flex justify-end gap-2 pt-2'>
-              <Button
-                type='button'
-                disabled={saving}
-                onClick={() => setOpen(false)}
-                severity='secondary'
-                label={t('common.cancel')}
-              />
-              <Button
-                type='submit'
-                disabled={saving}
-                label={
-                  saving
-                    ? t('common.saving')
-                    : editing
-                      ? t('common.save')
-                      : t('common.create')
-                }
-              />
-            </div>
+            </Field>
+            <Switch
+              checked={!!form.isActive}
+              onCheckedChange={(isActive) =>
+                setForm((f) => ({ ...f, isActive }))
+              }
+              label={t('common.active')}
+            />
+            <FormActions
+              onCancel={() => setOpen(false)}
+              saving={saving}
+              submitLabel={editing ? t('common.save') : t('common.create')}
+            />
           </form>
-        </DialogWrapper>
+        </FormDialog>
       )}
-    </motion.div>
+    </>
   );
 }

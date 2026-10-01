@@ -1,97 +1,103 @@
-import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
-import * as SelectPrimitive from '@radix-ui/react-select';
+import { Check, ChevronDown } from 'lucide-react';
+import { useT } from '../../i18n/I18nProvider';
 import { cn } from '../../lib/cn';
+import { Popover, PopoverContent, PopoverTrigger } from './Popover';
+import { menuItemClass, selectClass } from './styles';
 
 export interface MultiSelectOption {
   value: string;
+  /** Already translated. */
   label: string;
-  labelAr: string;
 }
 
 export interface MultiSelectProps {
   options: MultiSelectOption[];
-  value?: string;
-  onChange?: (value: string) => void;
+  value: string[];
+  onChange: (value: string[]) => void;
   placeholder?: string;
-  placeholderAr?: string;
   className?: string;
-  lang?: 'en' | 'ar';
   disabled?: boolean;
+  'aria-label'?: string;
 }
 
+/** Pick several values from a list: a Radix Popover with a checkable listbox. */
 export function MultiSelect({
   options,
-  value = '',
+  value,
   onChange,
-  placeholder = 'Select...',
-  placeholderAr = 'اختر...',
+  placeholder,
   className,
-  lang = 'en',
   disabled = false,
+  ...aria
 }: MultiSelectProps) {
-  const [open, setOpen] = useState(false);
-  const isRTL = lang === 'ar';
-  const currentPlaceholder = isRTL ? placeholderAr : placeholder;
+  const { t } = useT();
+  const selected = options.filter((o) => value.includes(o.value));
+  const toggle = (v: string) =>
+    onChange(value.includes(v) ? value.filter((x) => x !== v) : [...value, v]);
 
   return (
-    <SelectPrimitive.Root
-      open={open}
-      onOpenChange={setOpen}
-      value={value}
-      onValueChange={onChange}
-      disabled={disabled}
-    >
-      <SelectPrimitive.Trigger
-        className={cn(
-          'flex h-10 w-full items-center justify-between rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-          'transition-colors duration-200',
-          'hover:border-brand-purple/50 focus-visible:border-brand-purple',
-          isRTL && 'flex-row-reverse',
-          className,
-        )}
-        dir={isRTL ? 'rtl' : 'ltr'}
-      >
-        <SelectPrimitive.Value placeholder={currentPlaceholder} />
-        <SelectPrimitive.Icon asChild>
-          <ChevronDown className='size-4 text-muted-foreground' />
-        </SelectPrimitive.Icon>
-      </SelectPrimitive.Trigger>
-
-      <SelectPrimitive.Portal>
-        <SelectPrimitive.Content
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type='button'
+          disabled={disabled}
+          aria-label={aria['aria-label']}
           className={cn(
-            'relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-lg border bg-background p-1 shadow-lg',
-            'animate-in fade-in zoom-in-95 duration-200',
-            'data-[state=closed]:animate-out data-[state=closed]:fade-out data-[state=closed]:zoom-out-95',
-            'border-brand-purple/20',
+            selectClass,
+            selected.length === 0 && 'text-muted-foreground',
+            className,
           )}
-          position='popper'
-          sideOffset={4}
         >
-          <SelectPrimitive.Viewport className='p-1'>
-            {options.map((option) => (
-              <SelectPrimitive.Item
+          <span className='min-w-0 truncate'>
+            {selected.length === 0
+              ? (placeholder ?? t('common.select'))
+              : selected.length === 1
+                ? selected[0].label
+                : t('common.selected', { count: selected.length })}
+          </span>
+          <ChevronDown
+            className='size-4 shrink-0 text-muted-foreground'
+            aria-hidden
+          />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className='max-h-72 w-[var(--radix-popover-trigger-width)] min-w-44 overflow-y-auto rounded-badge p-1'>
+        <div
+          role='listbox'
+          aria-multiselectable
+          aria-label={aria['aria-label']}
+        >
+          {options.map((option) => {
+            const checked = value.includes(option.value);
+            return (
+              <button
                 key={option.value}
-                value={option.value}
+                type='button'
+                role='option'
+                aria-selected={checked}
+                onClick={() => toggle(option.value)}
                 className={cn(
-                  'relative flex cursor-pointer select-none items-center rounded-md py-1.5 pr-8 pl-2 text-sm outline-none',
-                  'focus:bg-accent focus:text-accent-foreground',
-                  'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
-                  isRTL && 'flex-row-reverse pr-2 pl-8',
-                  'transition-colors duration-150',
+                  menuItemClass,
+                  'w-full text-start hover:bg-accent focus-visible:bg-accent',
                 )}
               >
-                <span className='flex-1'>
-                  {isRTL ? option.labelAr : option.label}
+                <span
+                  aria-hidden
+                  className={cn(
+                    'flex size-4 shrink-0 items-center justify-center rounded border',
+                    checked
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-input',
+                  )}
+                >
+                  {checked && <Check className='size-3' />}
                 </span>
-              </SelectPrimitive.Item>
-            ))}
-          </SelectPrimitive.Viewport>
-        </SelectPrimitive.Content>
-      </SelectPrimitive.Portal>
-    </SelectPrimitive.Root>
+                <span className='min-w-0 truncate'>{option.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

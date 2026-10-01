@@ -8,6 +8,8 @@ import {
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
+import { IconButton } from '../components/ui/IconButton';
+import { Tip } from '../components/ui/Tooltip';
 import {
   LayoutDashboard,
   ChartColumn,
@@ -38,7 +40,7 @@ import {
   Languages,
   Sun,
   Moon,
-  Monitor,
+  PanelLeft,
   ChevronRight,
   type LucideIcon,
 } from 'lucide-react';
@@ -228,12 +230,22 @@ const navGroups: NavGroup[] = [
   },
 ];
 
+/** `/orders/abc` belongs to `/orders`; `/` only matches itself. */
+const matchesPath = (pathname: string, path: string) =>
+  path === '/' ? pathname === '/' : pathname === path || pathname.startsWith(`${path}/`);
+
+/** Rows in the dark rail: quiet until hovered, solid when current. */
+const railItem =
+  'relative flex h-9 w-full items-center gap-3 rounded-control px-3 text-sm font-medium transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-foreground/60';
+const railIdle =
+  'text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground';
+
 export default function DashboardLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { theme, toggleTheme } = useTheme();
-  const { t, locale, setLocale } = useT();
+  const { t, tv, dir, locale, setLocale } = useT();
   // Desktop: collapsible rail. Mobile (<md): off-canvas drawer.
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -283,8 +295,20 @@ export default function DashboardLayout() {
     .filter((group) => group.items.length > 0);
 
   const showLabels = isSidebarOpen || mobileOpen;
+  // Collapsed rail: labels move into tooltips on the outer side.
+  const tipSide = dir === 'rtl' ? 'left' : 'right';
+  const current = navGroups
+    .flatMap((group) => group.items)
+    .find((item) => matchesPath(location.pathname, item.path));
 
-  const ThemeIcon = theme === 'light' ? Sun : theme === 'dark' ? Moon : Monitor;
+  const logout = () => {
+    authApi.logout(getRefreshToken());
+    clearAuthSession();
+    // Every cached admin query is staff data — the next sign-in on
+    // this tab must not see it.
+    queryClient.clear();
+    navigate('/login');
+  };
 
   return (
     <div className='min-h-screen bg-canvas'>
@@ -298,13 +322,13 @@ export default function DashboardLayout() {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar: dark in both themes */}
       <aside
         aria-label={t('nav.label')}
         className={cn(
-          'fixed start-0 top-0 z-50 flex h-full flex-col border-e border-border transition-[transform,width] duration-normal',
-          'bg-gradient-to-b from-brand-purple via-brand-indigo to-brand-cyan',
-          'max-w-[85vw] md:translate-x-0 md:rtl:translate-x-0 md:max-w-none',
+          'fixed start-0 top-0 z-50 flex h-full w-sidebar flex-col border-e border-sidebar-border bg-sidebar text-sidebar-foreground',
+          'transition-[transform,width] duration-normal',
+          'max-w-[85vw] md:max-w-none md:translate-x-0 md:rtl:translate-x-0',
           mobileOpen
             ? 'translate-x-0'
             : '-translate-x-full rtl:translate-x-full',
@@ -312,23 +336,35 @@ export default function DashboardLayout() {
         )}
       >
         {/* Logo */}
-        <div className='flex shrink-0 items-center justify-between p-4 border-b border-white/10'>
+        <div
+          className={cn(
+            'flex h-topbar shrink-0 items-center border-b border-sidebar-border px-4',
+            showLabels ? 'justify-between' : 'justify-center',
+          )}
+        >
           <Link
             to='/'
-            className='flex items-center gap-2.5'
+            className='flex min-w-0 items-center gap-2.5 rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-foreground/60'
           >
-            <div className='flex size-8 items-center justify-center rounded-control bg-white/20 text-white backdrop-blur-sm'>
-              <span className='text-sm font-bold'>TV</span>
-            </div>
+            <span className='flex size-8 shrink-0 items-center justify-center rounded-control bg-sidebar-foreground text-xs font-bold tracking-tight text-sidebar'>
+              TV
+            </span>
             {showLabels && (
-              <h1 className='text-lg font-semibold text-white'>TrendVaulta</h1>
+              <span className='min-w-0'>
+                <span className='block truncate text-sm font-semibold leading-5'>
+                  TrendVaulta
+                </span>
+                <span className='block truncate text-xs leading-4 text-sidebar-muted'>
+                  {t('nav.admin')}
+                </span>
+              </span>
             )}
           </Link>
           <button
             type='button'
             onClick={() => setMobileOpen(false)}
             aria-label={t('nav.closeMenu')}
-            className='rounded-control p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white md:hidden'
+            className={cn(railItem, railIdle, 'size-9 w-9 justify-center px-0 md:hidden')}
           >
             <X
               className='icon-sm'
@@ -338,62 +374,79 @@ export default function DashboardLayout() {
         </div>
 
         {/* Navigation */}
-        <nav className='mt-4 min-h-0 flex-1 overflow-y-auto px-2'>
+        <nav className='min-h-0 flex-1 space-y-5 overflow-y-auto px-3 py-4 [scrollbar-color:hsl(var(--sidebar-border))_transparent]'>
           {visibleGroups.map((group, groupIndex) => (
-            <div
-              key={groupIndex}
-              className='mb-6'
-            >
-              {group.label && showLabels && (
-                <p className='mb-2 px-3 text-xs font-medium text-white/60 uppercase tracking-wider'>
-                  {t(group.label)}
-                </p>
-              )}
-              <ul className='space-y-1'>
+            <div key={groupIndex}>
+              {group.label &&
+                (showLabels ? (
+                  <p className='mb-1.5 px-3 text-caption uppercase text-sidebar-muted/70'>
+                    {t(group.label)}
+                  </p>
+                ) : (
+                  <div
+                    aria-hidden
+                    className='mx-2 mb-3 border-t border-sidebar-border'
+                  />
+                ))}
+              <ul className='space-y-0.5'>
                 {group.items.map((item) => {
                   const Icon = item.icon;
-                  const isActive = location.pathname === item.path;
+                  const isActive = matchesPath(location.pathname, item.path);
                   const badge = item.badge === 'messages' ? unreadMessages : 0;
 
                   return (
                     <li key={item.path}>
-                      <Link
-                        to={item.path}
-                        aria-current={isActive ? 'page' : undefined}
-                        className={cn(
-                          'relative flex items-center gap-3 rounded-control px-3 py-2 text-sm font-medium transition-all duration-200',
-                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent',
-                          isActive
-                            ? 'bg-white/20 text-white shadow-lg'
-                            : 'text-white/80 hover:bg-white/10 hover:text-white',
-                        )}
+                      <Tip
+                        label={showLabels ? undefined : t(item.label)}
+                        side={tipSide}
                       >
-                        <Icon
-                          className='icon-sm shrink-0'
-                          aria-hidden
-                        />
-                        {!showLabels && (
-                          <span className='sr-only'>{t(item.label)}</span>
-                        )}
-                        {showLabels && <span>{t(item.label)}</span>}
-                        {badge > 0 &&
-                          (showLabels ? (
-                            <span className='ms-auto rounded-badge bg-white px-1.5 py-0.5 text-xs font-medium text-brand-purple'>
-                              {badge > 99 ? '99+' : badge}
-                              <span className='sr-only'>
-                                {' '}
-                                {t('common.unread')}
-                              </span>
+                        <Link
+                          to={item.path}
+                          aria-current={isActive ? 'page' : undefined}
+                          className={cn(
+                            railItem,
+                            !showLabels && 'justify-center px-0',
+                            isActive
+                              ? 'bg-sidebar-accent text-sidebar-foreground'
+                              : railIdle,
+                          )}
+                        >
+                          {isActive && (
+                            <span
+                              aria-hidden
+                              className='absolute inset-y-2 -start-3 w-0.5 rounded-e bg-sidebar-foreground'
+                            />
+                          )}
+                          <Icon
+                            className='icon-md'
+                            aria-hidden
+                          />
+                          {showLabels ? (
+                            <span className='min-w-0 truncate'>
+                              {t(item.label)}
                             </span>
                           ) : (
-                            // Collapsed rail: a dot, with the count for screen readers
-                            <span className='absolute end-2 top-2 size-2 rounded-full bg-white'>
-                              <span className='sr-only'>
-                                {badge} {t('common.unread')}
+                            <span className='sr-only'>{t(item.label)}</span>
+                          )}
+                          {badge > 0 &&
+                            (showLabels ? (
+                              <span className='ms-auto rounded-full bg-sidebar-foreground px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-none tabular-nums text-sidebar'>
+                                {badge > 99 ? '99+' : badge}
+                                <span className='sr-only'>
+                                  {' '}
+                                  {t('common.unread')}
+                                </span>
                               </span>
-                            </span>
-                          ))}
-                      </Link>
+                            ) : (
+                              // Collapsed rail: a dot, with the count for screen readers
+                              <span className='absolute end-2.5 top-1.5 size-2 rounded-full bg-sidebar-foreground ring-2 ring-sidebar'>
+                                <span className='sr-only'>
+                                  {badge} {t('common.unread')}
+                                </span>
+                              </span>
+                            ))}
+                        </Link>
+                      </Tip>
                     </li>
                   );
                 })}
@@ -402,150 +455,147 @@ export default function DashboardLayout() {
           ))}
         </nav>
 
-        {/* Sidebar footer */}
-        <div className='shrink-0 border-t border-white/10 px-2 py-4'>
-          <div className='space-y-1'>
-            <button
-              type='button'
-              onClick={toggleTheme}
-              aria-label={showLabels ? undefined : t('nav.toggleTheme')}
-              className={cn(
-                'flex w-full items-center gap-3 rounded-control px-3 py-2 text-sm font-medium transition-all duration-200',
-                'text-white/80 hover:bg-white/10 hover:text-white hover:shadow-sm',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent',
-                'group',
-              )}
-            >
-              <div className='relative flex items-center justify-center'>
-                <ThemeIcon
-                  className={cn(
-                    'icon-sm shrink-0 transition-transform duration-200 group-hover:scale-110',
-                    theme === 'dark' && 'rotate-180',
-                  )}
-                  aria-hidden
-                />
-              </div>
-              {showLabels && (
-                <span className='font-medium transition-colors duration-200 group-hover:text-white'>
-                  {t('nav.toggleTheme')}
+        {/* Sidebar footer: who is signed in, and the way out */}
+        <div className='shrink-0 border-t border-sidebar-border p-3'>
+          {showLabels && (
+            <div className='mb-1 flex items-center gap-2.5 px-3 py-2'>
+              <span className='flex size-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-xs font-semibold uppercase'>
+                {(role ?? '?').charAt(0)}
+              </span>
+              <span className='min-w-0'>
+                <span className='block truncate text-sm font-medium leading-5'>
+                  {tv('role', role)}
                 </span>
-              )}
-            </button>
-
+                <span className='block truncate text-xs leading-4 text-sidebar-muted'>
+                  TrendVaulta
+                </span>
+              </span>
+            </div>
+          )}
+          <Tip
+            label={showLabels ? undefined : t('nav.logout')}
+            side={tipSide}
+          >
             <button
               type='button'
-              onClick={() => {
-                authApi.logout(getRefreshToken());
-                clearAuthSession();
-                // Every cached admin query is staff data — the next sign-in on
-                // this tab must not see it.
-                queryClient.clear();
-                navigate('/login');
-              }}
+              onClick={logout}
               aria-label={showLabels ? undefined : t('nav.logout')}
               className={cn(
-                'flex w-full items-center gap-3 rounded-control px-3 py-2 text-sm font-medium transition-all duration-200',
-                'text-white/80 hover:bg-white/10 hover:text-white hover:shadow-sm',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent',
-                'group',
+                railItem,
+                railIdle,
+                !showLabels && 'justify-center px-0',
               )}
             >
               <LogOut
-                className={cn(
-                  'icon-sm shrink-0 rtl:-scale-x-100 transition-transform duration-200 group-hover:scale-110',
-                )}
+                className='icon-md rtl:-scale-x-100'
                 aria-hidden
               />
-              {showLabels && (
-                <span className='font-medium transition-colors duration-200 group-hover:text-white'>
-                  {t('nav.logout')}
-                </span>
-              )}
+              {showLabels && <span>{t('nav.logout')}</span>}
             </button>
-          </div>
+          </Tip>
         </div>
       </aside>
 
       {/* Main Content */}
       <main
         className={cn(
-          'transition-all duration-normal',
+          'transition-[margin] duration-normal',
           isSidebarOpen ? 'md:ms-sidebar' : 'md:ms-rail',
         )}
       >
         {/* Topbar */}
-        <header className='sticky top-0 z-40 border-b border-border bg-gradient-to-r from-brand-purple/10 via-brand-indigo/10 to-brand-cyan/10 backdrop-blur supports-[backdrop-filter]:bg-background/60'>
-          <div className='flex h-topbar items-center gap-3 px-4 sm:px-6'>
+        <header className='sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70'>
+          <div className='flex h-topbar items-center gap-2 px-4 sm:px-6'>
             {/* Mobile: open drawer */}
-            <button
-              type='button'
+            <IconButton
+              icon={<Menu aria-hidden />}
+              label={t('nav.openMenu')}
+              size='md'
+              tooltip={false}
               onClick={() => setMobileOpen(true)}
-              aria-label={t('nav.openMenu')}
-              className='rounded-control p-2 text-muted-foreground transition-colors hover:bg-brand-purple/20 hover:text-brand-purple md:hidden'
-            >
-              <Menu
-                className='icon-md'
-                aria-hidden
-              />
-            </button>
+              className='md:hidden'
+            />
             {/* Desktop: collapse rail */}
-            <button
-              type='button'
+            <IconButton
+              icon={
+                <PanelLeft
+                  className='rtl:-scale-x-100'
+                  aria-hidden
+                />
+              }
+              label={isSidebarOpen ? t('nav.collapse') : t('nav.expand')}
+              size='md'
+              aria-expanded={isSidebarOpen}
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              aria-label={isSidebarOpen ? t('nav.collapse') : t('nav.expand')}
-              className='hidden rounded-control p-2 text-muted-foreground transition-colors hover:bg-brand-purple/20 hover:text-brand-purple md:inline-flex'
+              className='hidden md:inline-flex'
+            />
+
+            <span
+              aria-hidden
+              className='mx-1 hidden h-5 w-px bg-border md:block'
+            />
+
+            {/* Where am I: Admin › current section */}
+            <nav
+              aria-label={t('nav.breadcrumb')}
+              className='flex min-w-0 items-center gap-1.5 text-sm'
             >
-              {isSidebarOpen ? (
-                <ChevronRight
-                  className='icon-md rtl:-rotate-180'
-                  aria-hidden
-                />
-              ) : (
-                <Menu
-                  className='icon-md'
-                  aria-hidden
-                />
-              )}
-            </button>
-
-            {/* Breadcrumb (simplified - can be enhanced later) */}
-            <div className='flex items-center gap-2 text-sm text-muted-foreground'>
-              <span className='font-medium text-foreground'>
+              <Link
+                to='/'
+                className='hidden rounded text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:inline'
+              >
                 {t('nav.admin')}
-              </span>
-            </div>
-
-            {/* Right side actions */}
-            <div className='ms-auto flex items-center gap-2'>
-              {/* Language switcher */}
-              <div className='relative group'>
-                <button
-                  type='button'
-                  onClick={() => setLocale(locale === 'en' ? 'ar' : 'en')}
-                  aria-label={t('common.switchLanguageLabel')}
-                  lang={locale === 'en' ? 'ar' : 'en'}
-                  className={cn(
-                    'inline-flex items-center gap-2 rounded-control border border-brand-purple/30 bg-white/50 px-3 py-1.5 text-sm font-medium transition-all duration-200',
-                    'text-foreground hover:bg-brand-purple/20 hover:border-brand-purple hover:text-brand-purple focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-                    'shadow-sm hover:shadow-md backdrop-blur-sm',
-                  )}
-                >
-                  <Languages
-                    className='icon-sm'
+              </Link>
+              {current && (
+                <>
+                  <ChevronRight
+                    className='icon-xs hidden text-muted-foreground rtl:-scale-x-100 sm:block'
                     aria-hidden
                   />
-                  <span className='hidden sm:inline font-semibold'>
-                    {locale === 'en' ? 'AR' : 'EN'}
+                  <span
+                    aria-current='page'
+                    className='truncate font-medium text-foreground'
+                  >
+                    {t(current.label)}
                   </span>
-                </button>
-              </div>
+                </>
+              )}
+            </nav>
+
+            <div className='ms-auto flex items-center gap-1'>
+              <button
+                type='button'
+                onClick={() => setLocale(locale === 'en' ? 'ar' : 'en')}
+                aria-label={t('common.switchLanguageLabel')}
+                lang={locale === 'en' ? 'ar' : 'en'}
+                className='inline-flex h-control items-center gap-2 rounded-control px-2.5 text-sm font-medium text-muted-foreground transition-colors duration-fast hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+              >
+                <Languages
+                  className='icon-sm'
+                  aria-hidden
+                />
+                <span className='hidden sm:inline'>
+                  {t('common.switchLanguage')}
+                </span>
+              </button>
+              <IconButton
+                icon={theme === 'dark' ? <Sun aria-hidden /> : <Moon aria-hidden />}
+                label={t('nav.toggleTheme')}
+                size='md'
+                aria-pressed={theme === 'dark'}
+                onClick={toggleTheme}
+              />
             </div>
           </div>
         </header>
 
         {/* Page content */}
-        <div className='p-4 sm:p-6 page-transition'>
-          <ErrorBoundary key={location.pathname}>
+        <div
+          // Keyed so each page fades in once; pages need no entrance of their own.
+          key={location.pathname}
+          className='page-transition mx-auto max-w-content p-4 sm:p-6 lg:p-8'
+        >
+          <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>
         </div>

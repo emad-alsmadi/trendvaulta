@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { format } from 'date-fns';
 import { Calendar as CalendarIcon, X } from 'lucide-react';
 import { DayPicker } from 'react-day-picker';
 import type { DateRange as DayPickerDateRange } from 'react-day-picker';
+import { useT } from '../../i18n/I18nProvider';
 import { cn } from '../../lib/cn';
 import { Button } from './Button';
+import { Popover, PopoverContent, PopoverTrigger } from './Popover';
+import { selectClass } from './styles';
 
 export type DateRange = DayPickerDateRange;
 
@@ -12,107 +14,85 @@ export interface DateRangePickerProps {
   value?: DateRange;
   onChange?: (range: DateRange | undefined) => void;
   placeholder?: string;
-  placeholderAr?: string;
   className?: string;
-  lang?: 'en' | 'ar';
   disabled?: boolean;
 }
 
+/** Calendar range picker in a Radix Popover; closes once both ends are chosen. */
 export function DateRangePicker({
   value,
   onChange,
-  placeholder = 'Select date range',
-  placeholderAr = 'اختر نطاق التاريخ',
+  placeholder,
   className,
-  lang = 'en',
   disabled = false,
 }: DateRangePickerProps) {
+  const { t, dir, formatDate } = useT();
   const [open, setOpen] = useState(false);
-  const isRTL = lang === 'ar';
-  const currentPlaceholder = isRTL ? placeholderAr : placeholder;
 
-  const formatDate = (date: Date) => {
-    return format(date, isRTL ? 'dd/MM/yyyy' : 'MM/dd/yyyy');
-  };
-
-  const displayValue =
-    value?.from && value?.to
-      ? `${formatDate(value.from)} - ${formatDate(value.to)}`
-      : value?.from
-        ? formatDate(value.from)
-        : '';
-
-  const handleClear = () => {
-    onChange?.(undefined);
-  };
+  const display = value?.from
+    ? value.to
+      ? `${formatDate(value.from)} – ${formatDate(value.to)}`
+      : formatDate(value.from)
+    : '';
 
   return (
-    <div className={cn('relative', className)}>
-      <Button
-        type='button'
-        variant='ghost'
-        onClick={() => setOpen(!open)}
-        disabled={disabled}
-        className={cn(
-          'w-full justify-start text-left font-normal',
-          !displayValue && 'text-muted-foreground',
-          isRTL && 'flex-row-reverse',
-          'hover:text-brand-purple',
-        )}
-      >
-        <CalendarIcon className='mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0 text-brand-purple' />
-        {displayValue || currentPlaceholder}
-        {displayValue && (
-          <X
-            className='ml-auto h-4 w-4 rtl:mr-auto rtl:ml-0'
-            onClick={(e) => {
-              e.stopPropagation();
-              handleClear();
-            }}
-          />
-        )}
-      </Button>
-
-      {open && (
-        <div
-          className={cn(
-            'absolute z-50 mt-2 rounded-lg border bg-background p-4 shadow-lg',
-            'animate-in fade-in zoom-in-95 duration-200',
-            'border-brand-purple/20',
-            isRTL ? 'right-0' : 'left-0',
-          )}
-        >
-          <DayPicker
-            mode='range'
-            selected={value}
-            onSelect={(range) => {
-              onChange?.(range);
-              if (range?.from && range?.to) {
-                setOpen(false);
-              }
-            }}
-            numberOfMonths={2}
-            className={cn('rounded-md', isRTL && '[&_[dir=ltr]]:rtl')}
-            dir={isRTL ? 'rtl' : 'ltr'}
+    <Popover
+      open={open}
+      onOpenChange={setOpen}
+    >
+      <div className={cn('relative', className)}>
+        <PopoverTrigger asChild>
+          <button
+            type='button'
             disabled={disabled}
-          />
-          <div className='mt-3 flex justify-end gap-2'>
-            <Button
-              variant='ghost'
-              size='sm'
-              onClick={() => setOpen(false)}
-            >
-              {isRTL ? 'إلغاء' : 'Cancel'}
-            </Button>
-            <Button
-              size='sm'
-              onClick={() => setOpen(false)}
-            >
-              {isRTL ? 'تأكيد' : 'Confirm'}
-            </Button>
-          </div>
+            className={cn(
+              selectClass,
+              'justify-start',
+              display ? 'pe-9' : 'text-muted-foreground',
+            )}
+          >
+            <CalendarIcon
+              className='size-4 shrink-0 text-muted-foreground'
+              aria-hidden
+            />
+            <span className='min-w-0 truncate'>
+              {display || placeholder || `${t('common.from')} – ${t('common.to')}`}
+            </span>
+          </button>
+        </PopoverTrigger>
+        {display && !disabled && (
+          <button
+            type='button'
+            onClick={() => onChange?.(undefined)}
+            aria-label={t('common.clearSelection')}
+            className='absolute end-2 top-1/2 inline-flex size-5 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+          >
+            <X
+              className='size-3.5'
+              aria-hidden
+            />
+          </button>
+        )}
+      </div>
+      <PopoverContent className='w-auto'>
+        <DayPicker
+          mode='range'
+          selected={value}
+          onSelect={(range) => {
+            onChange?.(range);
+            if (range?.from && range?.to) setOpen(false);
+          }}
+          dir={dir}
+        />
+        <div className='mt-3 flex justify-end'>
+          <Button
+            size='sm'
+            onClick={() => setOpen(false)}
+          >
+            {t('common.close')}
+          </Button>
         </div>
-      )}
-    </div>
+      </PopoverContent>
+    </Popover>
   );
 }

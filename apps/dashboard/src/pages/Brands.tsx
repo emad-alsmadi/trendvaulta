@@ -1,18 +1,5 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
-// @ts-ignore
-import { DataTable } from 'primereact/datatable';
-// @ts-ignore
-import { Column } from 'primereact/column';
-// @ts-ignore
-import { InputText } from 'primereact/inputtext';
-// @ts-ignore
-import { Dropdown } from 'primereact/dropdown';
-// @ts-ignore
-import { Button } from 'primereact/button';
-// @ts-ignore
-import { Dialog } from 'primereact/dialog';
+import { Plus, Pencil, Star, Tag, Trash2 } from 'lucide-react';
 import {
   useAdminBrands,
   useCreateBrandMutation,
@@ -31,17 +18,18 @@ import { useTableQuery, type SortOrder } from '../hooks/useTableQuery';
 import { ImageUploadField } from '../components/ui/ImageUploadField';
 import { useT } from '../i18n/I18nProvider';
 import { PageHeader } from '../components/ui/PageHeader';
-
-// @ts-ignore - PrimeReact types are bundled
-const ColumnWrapper = Column as any;
-// @ts-ignore - PrimeReact types are bundled
-const DropdownWrapper = Dropdown as any;
-// @ts-ignore - PrimeReact types are bundled
-const DataTableWrapper = DataTable as any;
-// @ts-ignore - PrimeReact types are bundled
-const InputTextWrapper = InputText as any;
-// @ts-ignore - PrimeReact types are bundled
-const DialogWrapper = Dialog as any;
+import { Alert } from '../components/ui/Alert';
+import { Button } from '../components/ui/Button';
+import { IconButton } from '../components/ui/IconButton';
+import {
+  DataTable,
+  RowActions,
+  type DataTableColumn,
+} from '../components/ui/DataTable';
+import { FilterBar, FilterBarItem } from '../components/ui/FilterBar';
+import { Field, Input, Select, Switch, Textarea } from '../components/ui/Field';
+import { FormDialog, FormDialogFooter } from '../components/ui/FormDialog';
+import { Badge, StatusBadge } from '../components/ui/StatusBadge';
 
 const emptyForm: BrandFormPayload = {
   name: '',
@@ -88,7 +76,7 @@ export default function Brands() {
   const [editing, setEditing] = useState<AdminBrand | null>(null);
   const [form, setForm] = useState<BrandFormPayload>(emptyForm);
 
-  const table = useTableQuery({ limit: 24, sort: 'name', order: 'asc' });
+  const table = useTableQuery({ limit: 25, sort: 'name', order: 'asc' });
   const { resetPage } = table;
 
   const brandsQ = useAdminBrands({
@@ -103,6 +91,8 @@ export default function Brands() {
 
   const brands = brandsQ.data?.data || [];
   const meta = brandsQ.data?.meta;
+  const filtered =
+    Boolean(appliedQ) || table.sort !== 'name' || table.order !== 'asc';
 
   function openCreate() {
     setEditing(null);
@@ -161,426 +151,307 @@ export default function Brands() {
     }
   }
 
+  const columns: DataTableColumn<AdminBrand>[] = [
+    {
+      key: 'name',
+      header: t('brands.columns.name'),
+      sortable: true,
+      cell: (brand) => (
+        <div className='flex items-center gap-3'>
+          <span className='flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-control border border-border bg-muted text-sm font-semibold uppercase text-muted-foreground'>
+            {brand.logo ? (
+              <img
+                src={brand.logo}
+                alt=''
+                loading='lazy'
+                className='size-full object-cover'
+              />
+            ) : (
+              brand.name.charAt(0)
+            )}
+          </span>
+          <div className='min-w-0'>
+            <p className='flex items-center gap-1.5 font-medium text-foreground'>
+              <span className='truncate'>{brand.name}</span>
+              {brand.featured && (
+                <Star
+                  className='size-3.5 shrink-0 fill-current'
+                  aria-label={t('brands.featured')}
+                />
+              )}
+            </p>
+            <p
+              className='truncate text-xs text-muted-foreground'
+              dir='ltr'
+            >
+              {brand.slug}
+            </p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'country',
+      header: t('brands.columns.country'),
+      cell: (brand) =>
+        brand.country || <span className='text-muted-foreground'>—</span>,
+    },
+    {
+      key: 'website',
+      header: t('brands.columns.website'),
+      className: 'max-w-[16rem]',
+      cell: (brand) =>
+        brand.website ? (
+          <span
+            className='block truncate text-muted-foreground'
+            dir='ltr'
+          >
+            {brand.website}
+          </span>
+        ) : (
+          <span className='text-muted-foreground'>{t('brands.noWebsite')}</span>
+        ),
+    },
+    {
+      key: 'status',
+      header: t('brands.columns.status'),
+      cell: (brand) => (
+        <div className='flex flex-wrap items-center gap-1.5'>
+          <StatusBadge status={brand.isActive === false ? 'inactive' : 'active'}>
+            {brand.isActive === false ? t('brands.inactive') : t('brands.active')}
+          </StatusBadge>
+          {brand.featured && <Badge plain>{t('brands.featured')}</Badge>}
+        </div>
+      ),
+    },
+    {
+      key: 'actions',
+      header: t('common.actions'),
+      actions: true,
+      cell: (brand) => (
+        <RowActions>
+          {can('brands:write') && (
+            <IconButton
+              icon={<Pencil aria-hidden />}
+              label={t('common.editItem', { name: brand.name })}
+              onClick={() => openEdit(brand)}
+            />
+          )}
+          {can('brands:delete') && (
+            <IconButton
+              icon={<Trash2 aria-hidden />}
+              label={t('common.deleteItem', { name: brand.name })}
+              onClick={() => void handleDelete(brand)}
+              disabled={deleteMut.isPending}
+            />
+          )}
+        </RowActions>
+      ),
+    },
+  ];
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
+    <>
       <PageHeader
         title={t('brands.title')}
         description={t('brands.subtitle')}
         actions={
           can('brands:write') && (
             <Button
+              variant='primary'
               onClick={openCreate}
-              label={t('brands.add')}
-              icon={
-                <Plus
-                  className='icon-sm'
-                  aria-hidden
-                />
-              }
-            />
+              icon={<Plus aria-hidden />}
+            >
+              {t('brands.add')}
+            </Button>
           )
         }
       />
 
-      <div className='mb-6 flex flex-col gap-3 sm:flex-row sm:items-end'>
-        <InputTextWrapper
-          value={search}
-          onChange={(e: any) => setSearch(e.target.value)}
-          placeholder={t('brands.searchPlaceholder')}
-          className='w-full sm:w-64'
-        />
-        <DropdownWrapper
-          value={`${table.sort}:${table.order}`}
-          options={[
-            { label: t('brands.sortNameAsc'), value: 'name:asc' },
-            { label: t('brands.sortNameDesc'), value: 'name:desc' },
-            { label: t('brands.sortNewest'), value: 'createdAt:desc' },
-            { label: t('brands.sortOldest'), value: 'createdAt:asc' },
-          ]}
-          onChange={(e: any) => {
-            const [field, order] = e.value.split(':');
-            table.setSort(field, order as SortOrder);
-          }}
-          placeholder={t('brands.sortLabel')}
-          className='w-full sm:w-48'
-        />
-        <Button
-          label={t('brands.searchLabel')}
-          onClick={() => {
-            setAppliedQ(search.trim());
-            resetPage();
-          }}
-          className='w-full sm:w-auto'
-        />
-        {(appliedQ || table.sort !== 'name' || table.order !== 'asc') && (
-          <Button
-            label='Clear'
-            onClick={() => {
-              setSearch('');
-              setAppliedQ('');
-              table.setSort('name', 'asc');
-              resetPage();
-            }}
-            severity='secondary'
-            className='w-full sm:w-auto'
-          />
-        )}
-      </div>
-
-      {brandsQ.isLoading && (
-        <p className='py-10 text-center text-sm text-gray-500'>
-          {t('brands.loading')}
-        </p>
-      )}
-      {brandsQ.isError && (
-        <div className='rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200'>
+      {brandsQ.isError ? (
+        <Alert tone='error'>
           {errorMessage(brandsQ.error, t('brands.loadFailed'))}
-        </div>
-      )}
-
-      {!brandsQ.isLoading && !brandsQ.isError && (
-        <div className='rounded-xl border border-gray-200 bg-card shadow-sm dark:border-gray-700 dark:bg-gray-800'>
-          <DataTableWrapper
-            value={brands}
-            paginator
-            rows={24}
-            totalRecords={meta?.total}
-            lazy
-            onPage={table.setPage}
-            first={(meta?.page ? meta.page - 1 : 0) * 24}
-            loading={brandsQ.isFetching}
-            emptyMessage={t('brands.empty')}
-            sortField={table.sort}
-            sortOrder={table.order === 'asc' ? 1 : -1}
-            onSort={table.toggleSort}
-            className='p-datatable-sm'
-          >
-            <ColumnWrapper
-              header={t('brands.columns.logo')}
-              body={(brand: any) => (
-                <div className='h-12 w-12 shrink-0 overflow-hidden rounded border border-border bg-gradient-to-br from-purple-400 to-cyan-500'>
-                  {brand.logo ? (
-                    <img
-                      src={brand.logo}
-                      alt=''
-                      className='h-full w-full object-cover'
-                    />
-                  ) : (
-                    <span className='flex h-full w-full items-center justify-center text-xl font-bold text-white'>
-                      {brand.name.charAt(0)}
-                    </span>
-                  )}
-                </div>
-              )}
-            />
-            <ColumnWrapper
-              field='name'
-              header={t('brands.columns.name')}
-              sortable
-              body={(brand: any) => (
-                <div className='flex flex-wrap items-center gap-1.5'>
-                  <span className='font-semibold text-foreground'>
-                    {brand.name}
-                  </span>
-                  {brand.isActive === false && (
-                    <span className='rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-gray-600 dark:bg-gray-700 dark:text-gray-300'>
-                      {t('common.inactive')}
-                    </span>
-                  )}
-                  {brand.featured && (
-                    <span className='rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'>
-                      {t('brands.featured')}
-                    </span>
-                  )}
-                </div>
-              )}
-            />
-            <ColumnWrapper
-              field='slug'
-              header={t('brands.columns.slug')}
-              sortable
-              body={(brand: any) => (
-                <span
-                  className='text-xs text-muted-foreground'
-                  dir='ltr'
-                >
-                  {brand.slug}
-                </span>
-              )}
-            />
-            <ColumnWrapper
-              field='country'
-              header={t('brands.columns.country')}
-              body={(brand: any) => brand.country || '—'}
-            />
-            <ColumnWrapper
-              field='website'
-              header={t('brands.columns.website')}
-              body={(brand: any) => (
-                <span
-                  className='truncate text-sm text-muted-foreground'
-                  dir={brand.website ? 'ltr' : undefined}
-                >
-                  {brand.website || t('brands.noWebsite')}
-                </span>
-              )}
-            />
-            <ColumnWrapper
-              header={t('common.actions')}
-              body={(brand: any) => (
-                <div className='flex gap-1'>
-                  {can('brands:write') && (
-                    <button
-                      type='button'
-                      onClick={() => openEdit(brand)}
-                      className='rounded p-1.5 hover:bg-accent transition-colors duration-200'
-                      aria-label={t('common.editItem', { name: brand.name })}
-                    >
-                      <Pencil
-                        className='icon-sm text-muted-foreground'
-                        aria-hidden
-                      />
-                    </button>
-                  )}
-                  {can('brands:delete') && (
-                    <button
-                      type='button'
-                      onClick={() => void handleDelete(brand)}
-                      disabled={deleteMut.isPending}
-                      className='rounded p-1.5 hover:bg-destructive/10 transition-colors duration-200'
-                      aria-label={t('common.deleteItem', { name: brand.name })}
-                    >
-                      <Trash2
-                        className='icon-sm text-muted-foreground hover:text-destructive'
-                        aria-hidden
-                      />
-                    </button>
-                  )}
-                </div>
-              )}
-            />
-          </DataTableWrapper>
-        </div>
-      )}
-
-      {!brandsQ.isLoading && !brandsQ.isError && (
-        <DataTableWrapper
-          value={brands}
-          paginator
-          rows={table.params.limit}
-          totalRecords={meta?.total}
-          lazy
-          onPage={table.setPage}
-          first={(meta?.page ? meta.page - 1 : 0) * table.params.limit}
-          loading={brandsQ.isFetching}
-          emptyMessage={t('brands.empty')}
-          sortField={table.sort}
-          sortOrder={table.order === 'asc' ? 1 : -1}
+        </Alert>
+      ) : (
+        <DataTable
+          caption={t('brands.title')}
+          data={brands}
+          columns={columns}
+          getKey={(brand) => brand._id}
+          loading={brandsQ.isLoading}
+          fetching={brandsQ.isFetching}
+          sort={table.sort}
+          order={table.order}
           onSort={table.toggleSort}
-          className='p-datatable-sm'
-        >
-          <Column
-            field='name'
-            header={t('brands.columns.name')}
-            sortable
-          />
-          <Column
-            field='slug'
-            header={t('brands.columns.slug')}
-          />
-          <Column
-            field='isActive'
-            header={t('brands.columns.status')}
-            body={(brand: any) => (
-              <span
-                className={brand.isActive ? 'text-green-600' : 'text-gray-500'}
+          meta={meta}
+          onPage={table.setPage}
+          onLimit={table.setLimit}
+          emptyIcon={<Tag aria-hidden />}
+          emptyTitle={t('brands.empty')}
+          emptyAction={
+            !filtered &&
+            can('brands:write') && (
+              <Button
+                variant='primary'
+                size='sm'
+                onClick={openCreate}
+                icon={<Plus aria-hidden />}
               >
-                {brand.isActive ? t('brands.active') : t('brands.inactive')}
-              </span>
-            )}
-          />
-          <Column
-            field='featured'
-            header={t('brands.columns.featured')}
-            body={(brand: any) => (
-              <span
-                className={brand.featured ? 'text-yellow-600' : 'text-gray-500'}
-              >
-                {brand.featured ? '★' : '—'}
-              </span>
-            )}
-          />
-          <Column
-            header={t('brands.columns.actions')}
-            body={(brand: any) => (
-              <div className='flex gap-2'>
-                {can('brands:write') && (
-                  <Button
-                    size='small'
-                    icon={<Pencil className='icon-sm' />}
-                    onClick={() => openEdit(brand)}
-                    label={t('brands.edit')}
-                  />
-                )}
-                {can('brands:delete') && (
-                  <Button
-                    size='small'
-                    severity='danger'
-                    icon={<Trash2 className='icon-sm' />}
-                    onClick={() => void handleDelete(brand)}
-                    label={t('brands.delete')}
-                  />
-                )}
-              </div>
-            )}
-          />
-        </DataTableWrapper>
+                {t('brands.add')}
+              </Button>
+            )
+          }
+          toolbar={
+            <FilterBar
+              search={{
+                value: search,
+                onChange: setSearch,
+                onSubmit: () => {
+                  setAppliedQ(search.trim());
+                  resetPage();
+                },
+                placeholder: t('brands.searchPlaceholder'),
+                label: t('brands.searchLabel'),
+                submitLabel: t('common.search'),
+              }}
+              canClear={filtered}
+              onClear={() => {
+                setSearch('');
+                setAppliedQ('');
+                table.setSort('name', 'asc');
+              }}
+            >
+              <FilterBarItem>
+                <Select
+                  aria-label={t('brands.sortLabel')}
+                  value={`${table.sort}:${table.order}`}
+                  onChange={(e) => {
+                    const [field, order] = e.target.value.split(':');
+                    table.setSort(field, order as SortOrder);
+                  }}
+                >
+                  <option value='name:asc'>{t('brands.sortNameAsc')}</option>
+                  <option value='name:desc'>{t('brands.sortNameDesc')}</option>
+                  <option value='createdAt:desc'>{t('brands.sortNewest')}</option>
+                  <option value='createdAt:asc'>{t('brands.sortOldest')}</option>
+                </Select>
+              </FilterBarItem>
+            </FilterBar>
+          }
+        />
       )}
 
       {open && (
-        <DialogWrapper
-          visible={open}
-          onHide={() => setOpen(false)}
-          header={
+        <FormDialog
+          onClose={() => setOpen(false)}
+          title={
             editing ? t('brands.form.editTitle') : t('brands.form.createTitle')
           }
-          modal
-          className='w-full max-w-lg'
+          busy={saving}
         >
           <form
             onSubmit={handleSubmit}
-            className='space-y-3'
+            className='space-y-4'
           >
-            <label className='block text-sm'>
-              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                {t('brands.form.name')}
-              </span>
-              <input
+            <div className='grid gap-4 sm:grid-cols-2'>
+              <Field
+                label={t('brands.form.name')}
                 required
-                value={form.name}
-                onChange={(e) => {
-                  const name = e.target.value;
-                  setForm((f) => ({
-                    ...f,
-                    name,
-                    slug: editing ? f.slug : slugify(name),
-                  }));
-                }}
-                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-              />
-            </label>
-            <label className='block text-sm'>
-              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                {t('brands.form.slug')}
-              </span>
-              <input
+              >
+                <Input
+                  required
+                  value={form.name}
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    setForm((f) => ({
+                      ...f,
+                      name,
+                      slug: editing ? f.slug : slugify(name),
+                    }));
+                  }}
+                />
+              </Field>
+              <Field
+                label={t('brands.form.slug')}
                 required
-                value={form.slug}
-                dir='ltr'
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, slug: e.target.value }))
-                }
-                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-              />
-            </label>
-            <label className='block text-sm'>
-              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                {t('brands.form.country')}
-              </span>
-              <input
-                value={form.country}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, country: e.target.value }))
-                }
-                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-              />
-            </label>
-            <label className='block text-sm'>
-              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                {t('brands.form.website')}
-              </span>
-              <input
-                value={form.website}
-                dir='ltr'
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, website: e.target.value }))
-                }
-                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-              />
-            </label>
+              >
+                <Input
+                  required
+                  value={form.slug}
+                  dir='ltr'
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, slug: e.target.value }))
+                  }
+                />
+              </Field>
+              <Field label={t('brands.form.country')}>
+                <Input
+                  value={form.country}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, country: e.target.value }))
+                  }
+                />
+              </Field>
+              <Field label={t('brands.form.website')}>
+                <Input
+                  value={form.website}
+                  dir='ltr'
+                  placeholder='https://'
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, website: e.target.value }))
+                  }
+                />
+              </Field>
+            </div>
             <ImageUploadField
               label={t('brands.form.logo')}
               value={form.logo ?? ''}
               onChange={(url) => setForm((f) => ({ ...f, logo: url }))}
             />
-            <label className='block text-sm'>
-              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                {t('common.description')}
-              </span>
-              <textarea
+            <Field label={t('common.description')}>
+              <Textarea
                 value={form.description}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, description: e.target.value }))
                 }
                 rows={3}
-                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
               />
-            </label>
-            <div className='flex flex-wrap gap-4'>
-              <label className='flex items-center gap-2 text-sm'>
-                <input
-                  type='checkbox'
-                  checked={form.isActive ?? true}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, isActive: e.target.checked }))
-                  }
-                  className='h-4 w-4 rounded border-gray-300'
-                />
-                <span className='text-gray-700 dark:text-gray-300'>
-                  {t('common.active')}
-                </span>
-              </label>
-              <label className='flex items-center gap-2 text-sm'>
-                <input
-                  type='checkbox'
-                  checked={form.featured ?? false}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, featured: e.target.checked }))
-                  }
-                  className='h-4 w-4 rounded border-gray-300'
-                />
-                <span className='text-gray-700 dark:text-gray-300'>
-                  {t('brands.form.featured')}
-                </span>
-              </label>
+            </Field>
+            <div className='flex flex-wrap gap-x-8 gap-y-2'>
+              <Switch
+                checked={form.isActive ?? true}
+                onCheckedChange={(isActive) =>
+                  setForm((f) => ({ ...f, isActive }))
+                }
+                label={t('common.active')}
+              />
+              <Switch
+                checked={form.featured ?? false}
+                onCheckedChange={(featured) =>
+                  setForm((f) => ({ ...f, featured }))
+                }
+                label={t('brands.form.featured')}
+              />
             </div>
-            <div className='flex justify-end gap-2 pt-2'>
+            <FormDialogFooter>
               <Button
-                type='button'
+                variant='ghost'
                 disabled={saving}
                 onClick={() => setOpen(false)}
-                severity='secondary'
-                label={t('common.cancel')}
-              />
+              >
+                {t('common.cancel')}
+              </Button>
               <Button
                 type='submit'
-                disabled={saving}
-                label={
-                  saving
-                    ? t('common.saving')
-                    : editing
-                      ? t('common.save')
-                      : t('common.create')
-                }
-              />
-            </div>
+                variant='primary'
+                loading={saving}
+              >
+                {editing ? t('common.save') : t('common.create')}
+              </Button>
+            </FormDialogFooter>
           </form>
-        </DialogWrapper>
+        </FormDialog>
       )}
-    </motion.div>
+    </>
   );
 }

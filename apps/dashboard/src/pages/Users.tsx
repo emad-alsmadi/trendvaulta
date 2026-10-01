@@ -1,19 +1,14 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Pencil, Trash2, Ban, CircleCheck, Receipt } from 'lucide-react';
-// @ts-ignore
-import { DataTable } from 'primereact/datatable';
-// @ts-ignore
-import { Column } from 'primereact/column';
-// @ts-ignore
-import { InputText } from 'primereact/inputtext';
-// @ts-ignore
-import { Dropdown } from 'primereact/dropdown';
-// @ts-ignore
-import { Dialog } from 'primereact/dialog';
-// @ts-ignore
-import { Button } from 'primereact/button';
+import {
+  Ban,
+  Check,
+  CircleCheck,
+  Pencil,
+  Receipt,
+  Trash2,
+  Users as UsersIcon,
+} from 'lucide-react';
 import {
   useAdminUsers,
   useDeleteUserMutation,
@@ -30,27 +25,23 @@ import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useTableQuery } from '../hooks/useTableQuery';
 import { useT } from '../i18n/I18nProvider';
+import { cn } from '../lib/cn';
 import { PageHeader } from '../components/ui/PageHeader';
-import { StatusBadge } from '../components/ui/StatusBadge';
-
-// @ts-ignore - PrimeReact types are bundled
-const ColumnWrapper = Column as any;
-// @ts-ignore - PrimeReact types are bundled
-const DropdownWrapper = Dropdown as any;
-// @ts-ignore - PrimeReact types are bundled
-const DataTableWrapper = DataTable as any;
-// @ts-ignore - PrimeReact types are bundled
-const InputTextWrapper = InputText as any;
-// @ts-ignore - PrimeReact types are bundled
-const DialogWrapper = Dialog as any;
+import { Alert } from '../components/ui/Alert';
+import { IconButton } from '../components/ui/IconButton';
+import { Tip } from '../components/ui/Tooltip';
+import {
+  DataTable,
+  RowActions,
+  type DataTableColumn,
+} from '../components/ui/DataTable';
+import { FilterBar, FilterBarItem } from '../components/ui/FilterBar';
+import { Field, Input, Select, Textarea } from '../components/ui/Field';
+import { FormActions, FormDialog } from '../components/ui/FormDialog';
+import { Badge, StatusBadge } from '../components/ui/StatusBadge';
+import { buttonVariants, focusRing, labelClass } from '../components/ui/styles';
 
 const ROLES: AppRole[] = ['user', 'moderator', 'admin'];
-
-const ROLE_OPTIONS = [
-  { label: 'User', value: 'user' },
-  { label: 'Moderator', value: 'moderator' },
-  { label: 'Admin', value: 'admin' },
-];
 
 type UserForm = {
   email: string;
@@ -186,359 +177,329 @@ export default function Users() {
     }
   }
 
+  const columns: DataTableColumn<AdminUser>[] = [
+    {
+      key: 'username',
+      header: t('users.columns.username'),
+      sortable: true,
+      cell: (user) => (
+        <div className='flex items-center gap-3'>
+          <span
+            aria-hidden
+            className='flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-semibold uppercase text-muted-foreground'
+          >
+            {user.username.charAt(0)}
+          </span>
+          <div className='min-w-0'>
+            <p className='flex flex-wrap items-center gap-1.5'>
+              <span
+                className='font-medium text-foreground'
+                dir='auto'
+              >
+                {user.username}
+              </span>
+              {user.disabled && (
+                <StatusBadge status='disabled'>
+                  {t('users.disabledBadge')}
+                </StatusBadge>
+              )}
+            </p>
+            {user.adminNotes && (
+              <p
+                className='max-w-[16rem] truncate text-xs text-muted-foreground'
+                title={user.adminNotes}
+                dir='auto'
+              >
+                {user.adminNotes}
+              </p>
+            )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'email',
+      header: t('users.columns.email'),
+      sortable: true,
+      cell: (user) => (
+        <div className='flex flex-wrap items-center gap-1.5'>
+          <span dir='ltr'>{user.email}</span>
+          {user.emailVerifiedAt === null && (
+            <StatusBadge
+              status='unconfirmed'
+              title={t('users.unconfirmedHint')}
+            >
+              {t('users.unconfirmed')}
+            </StatusBadge>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'roles',
+      header: t('users.columns.roles'),
+      cell: (user) => (
+        <div className='flex flex-wrap gap-1'>
+          {(user.roles?.length ? user.roles : [primaryRole(user.roles)]).map(
+            (role: string) => (
+              <Badge
+                key={role}
+                tone={role === 'admin' ? 'solid' : role === 'moderator' ? 'outline' : 'neutral'}
+                plain
+              >
+                {tv('role', role)}
+              </Badge>
+            ),
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'createdAt',
+      header: t('users.columns.joined'),
+      sortable: true,
+      className: 'whitespace-nowrap text-muted-foreground',
+      cell: (user) => (user.createdAt ? formatDate(user.createdAt) : '—'),
+    },
+    {
+      key: 'actions',
+      header: t('users.columns.actions'),
+      actions: true,
+      cell: (user) => (
+        <RowActions>
+          {can('orders:read') && (
+            <Tip label={t('users.orderHistory')}>
+              <Link
+                to={`/orders?user=${user._id}`}
+                aria-label={t('users.ordersOf', { name: user.username })}
+                className={cn(
+                  buttonVariants({ variant: 'ghost', size: 'icon-sm' }),
+                  'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <Receipt aria-hidden />
+              </Link>
+            </Tip>
+          )}
+          {can('users:write') && (
+            <IconButton
+              icon={
+                user.disabled ? <CircleCheck aria-hidden /> : <Ban aria-hidden />
+              }
+              label={
+                user.disabled
+                  ? t('users.enableUser', { name: user.username })
+                  : t('users.disableUser', { name: user.username })
+              }
+              onClick={() => void handleToggleDisabled(user)}
+              disabled={updateMut.isPending}
+            />
+          )}
+          {can('users:write') && (
+            <IconButton
+              icon={<Pencil aria-hidden />}
+              label={t('users.editUser', { name: user.username })}
+              onClick={() => openEdit(user)}
+            />
+          )}
+          {can('users:delete') && (
+            <IconButton
+              icon={<Trash2 aria-hidden />}
+              label={t('users.deleteUser', { name: user.username })}
+              onClick={() => void handleDelete(user)}
+              disabled={deleteMut.isPending}
+            />
+          )}
+        </RowActions>
+      ),
+    },
+  ];
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
+    <>
       <PageHeader
         title={t('users.title')}
         description={t('users.subtitle')}
       />
 
-      <div className='mb-6 flex flex-col gap-3 sm:flex-row sm:items-center'>
-        <InputTextWrapper
-          value={search}
-          onChange={(e: any) => setSearch(e.target.value)}
-          placeholder={t('users.searchPlaceholder')}
-          className='w-full sm:w-64'
-        />
-        <DropdownWrapper
-          value={roleFilter}
-          options={ROLE_OPTIONS}
-          onChange={(e: any) => {
-            setRoleFilter(e.value || '');
-            resetPage();
-          }}
-          placeholder={t('users.filterRole')}
-          className='w-full sm:w-48'
-          showClear
-        />
-        <Button
-          label={t('users.searchLabel')}
-          onClick={() => {
-            setAppliedQ(search.trim());
-            resetPage();
-          }}
-          className='w-full sm:w-auto'
-        />
-        {(appliedQ || roleFilter) && (
-          <Button
-            label='Clear'
-            onClick={() => {
-              setSearch('');
-              setAppliedQ('');
-              setRoleFilter('');
-              resetPage();
-            }}
-            severity='secondary'
-            className='w-full sm:w-auto'
-          />
-        )}
-      </div>
-
-      {usersQ.isLoading && (
-        <p className='py-10 text-center text-sm text-muted-foreground'>
-          {t('users.loading')}
-        </p>
-      )}
-
-      {usersQ.isError && (
-        <div className='rounded-card border border-destructive bg-destructive/10 px-4 py-6 text-sm text-foreground'>
+      {usersQ.isError ? (
+        <Alert tone='error'>
           {errorMessage(usersQ.error, t('users.loadFailed'))}
-        </div>
-      )}
-
-      {!usersQ.isLoading && !usersQ.isError && (
-        <div className='rounded-xl border border-gray-200 bg-card shadow-sm dark:border-gray-700 dark:bg-gray-800'>
-          <DataTableWrapper
-            value={users}
-            paginator
-            rows={25}
-            totalRecords={meta?.total}
-            lazy
-            onPage={table.setPage}
-            first={(meta?.page ? meta.page - 1 : 0) * 25}
-            loading={usersQ.isFetching}
-            emptyMessage={t('users.empty')}
-            sortField={table.sort}
-            sortOrder={table.order === 'asc' ? 1 : -1}
-            onSort={table.toggleSort}
-            className='p-datatable-sm'
-          >
-            <ColumnWrapper
-              field='username'
-              header={t('users.columns.username')}
-              sortable
-              body={(user: any) => (
-                <div className='flex flex-col'>
-                  <span
-                    className='font-medium text-foreground'
-                    dir='auto'
-                  >
-                    {user.username}
-                  </span>
-                  {user.disabled && (
-                    <StatusBadge status='disabled'>
-                      {t('users.disabledBadge')}
-                    </StatusBadge>
-                  )}
-                  {user.adminNotes && (
-                    <p
-                      className='mt-0.5 max-w-xs truncate text-xs text-muted-foreground'
-                      title={user.adminNotes}
-                    >
-                      {user.adminNotes}
-                    </p>
-                  )}
-                </div>
-              )}
-            />
-            <ColumnWrapper
-              field='email'
-              header={t('users.columns.email')}
-              sortable
-              body={(user: any) => (
-                <div className='flex flex-col'>
-                  <span className='text-sm text-foreground'>{user.email}</span>
-                  {user.emailVerifiedAt === null && (
-                    <StatusBadge status='unconfirmed'>
-                      {t('users.unconfirmed')}
-                    </StatusBadge>
-                  )}
-                </div>
-              )}
-            />
-            <ColumnWrapper
-              field='roles'
-              header={t('users.columns.roles')}
-              body={(user: any) => (
-                <div className='flex flex-wrap gap-1'>
-                  {(user.roles?.length
-                    ? user.roles
-                    : [primaryRole(user.roles)]
-                  ).map((role: string) => (
-                    <StatusBadge
-                      status={role}
+        </Alert>
+      ) : (
+        <DataTable
+          caption={t('users.title')}
+          data={users}
+          columns={columns}
+          getKey={(user) => user._id}
+          loading={usersQ.isLoading}
+          fetching={usersQ.isFetching}
+          sort={table.sort}
+          order={table.order}
+          onSort={table.toggleSort}
+          meta={meta}
+          onPage={table.setPage}
+          onLimit={table.setLimit}
+          rowClassName={(user) => (user.disabled ? 'opacity-70' : undefined)}
+          emptyIcon={<UsersIcon aria-hidden />}
+          emptyTitle={t('users.empty')}
+          toolbar={
+            <FilterBar
+              search={{
+                value: search,
+                onChange: setSearch,
+                onSubmit: () => {
+                  setAppliedQ(search.trim());
+                  resetPage();
+                },
+                placeholder: t('users.searchPlaceholder'),
+                label: t('users.searchLabel'),
+                submitLabel: t('common.search'),
+              }}
+              canClear={Boolean(appliedQ || roleFilter)}
+              onClear={() => {
+                setSearch('');
+                setAppliedQ('');
+                setRoleFilter('');
+                resetPage();
+              }}
+            >
+              <FilterBarItem>
+                <Select
+                  aria-label={t('users.filterRole')}
+                  value={roleFilter}
+                  onChange={(e) => {
+                    setRoleFilter(e.target.value as AppRole | '');
+                    resetPage();
+                  }}
+                >
+                  <option value=''>{t('users.allRoles')}</option>
+                  {ROLES.map((role) => (
+                    <option
                       key={role}
+                      value={role}
                     >
                       {tv('role', role)}
-                    </StatusBadge>
+                    </option>
                   ))}
-                </div>
-              )}
-            />
-            <ColumnWrapper
-              field='createdAt'
-              header={t('users.columns.joined')}
-              sortable
-              body={(user: any) =>
-                user.createdAt ? formatDate(user.createdAt) : '—'
-              }
-            />
-            <ColumnWrapper
-              header={t('users.columns.actions')}
-              body={(user: any) => (
-                <div className='flex items-center gap-1'>
-                  {can('orders:read') && (
-                    <Link
-                      to={`/orders?user=${user._id}`}
-                      className='rounded p-1.5 hover:bg-accent transition-colors duration-200'
-                      aria-label={t('users.ordersOf', { name: user.username })}
-                      title={t('users.orderHistory')}
-                    >
-                      <Receipt
-                        className='icon-sm text-muted-foreground hover:text-brand-cyan transition-colors duration-200'
-                        aria-hidden
-                      />
-                    </Link>
-                  )}
-                  {can('users:write') && (
+                </Select>
+              </FilterBarItem>
+            </FilterBar>
+          }
+        />
+      )}
+
+      {open && (
+        <FormDialog
+          onClose={() => setOpen(false)}
+          title={t('users.form.title')}
+          description={editing?.email}
+          busy={saving}
+        >
+          <form
+            onSubmit={handleSubmit}
+            className='space-y-4'
+          >
+            <div className='grid gap-4 sm:grid-cols-2'>
+              <Field
+                label={t('users.form.username')}
+                required
+              >
+                <Input
+                  required
+                  value={form.username}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, username: e.target.value }))
+                  }
+                />
+              </Field>
+              <Field
+                label={t('users.form.email')}
+                required
+              >
+                <Input
+                  type='email'
+                  dir='ltr'
+                  required
+                  value={form.email}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, email: e.target.value }))
+                  }
+                />
+              </Field>
+            </div>
+            <div
+              role='group'
+              aria-labelledby='user-roles-label'
+              className='space-y-1.5'
+            >
+              <p
+                id='user-roles-label'
+                className={labelClass}
+              >
+                {t('users.form.roles')}
+              </p>
+              <div className='flex flex-wrap gap-2'>
+                {ROLES.map((role) => {
+                  const selected = form.roles.includes(role);
+                  return (
                     <button
+                      key={role}
                       type='button'
-                      onClick={() => void handleToggleDisabled(user)}
-                      disabled={updateMut.isPending}
-                      className='rounded p-1.5 hover:bg-accent transition-colors duration-200'
-                      aria-label={
-                        user.disabled
-                          ? t('users.enableUser', { name: user.username })
-                          : t('users.disableUser', { name: user.username })
-                      }
-                      title={
-                        user.disabled
-                          ? t('users.enableAccount')
-                          : t('users.disableAccount')
-                      }
+                      aria-pressed={selected}
+                      onClick={() => toggleRole(role)}
+                      className={cn(
+                        'inline-flex h-control items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors duration-fast',
+                        focusRing,
+                        selected
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-border-strong bg-background text-foreground hover:bg-accent',
+                      )}
                     >
-                      {user.disabled ? (
-                        <CircleCheck
-                          className='icon-sm text-metric-green'
-                          aria-hidden
-                        />
-                      ) : (
-                        <Ban
-                          className='icon-sm text-metric-orange'
+                      {selected && (
+                        <Check
+                          className='size-3.5'
                           aria-hidden
                         />
                       )}
+                      {tv('role', role)}
                     </button>
-                  )}
-                  {can('users:write') && (
-                    <button
-                      type='button'
-                      onClick={() => openEdit(user)}
-                      className='rounded p-1.5 hover:bg-accent transition-colors duration-200'
-                      aria-label={t('users.editUser', { name: user.username })}
-                    >
-                      <Pencil
-                        className='icon-sm text-muted-foreground hover:text-brand-indigo transition-colors duration-200'
-                        aria-hidden
-                      />
-                    </button>
-                  )}
-                  {can('users:delete') && (
-                    <button
-                      type='button'
-                      onClick={() => void handleDelete(user)}
-                      disabled={deleteMut.isPending}
-                      className='rounded p-1.5 hover:bg-destructive/10 transition-colors duration-200'
-                      aria-label={t('users.deleteUser', {
-                        name: user.username,
-                      })}
-                    >
-                      <Trash2
-                        className='icon-sm text-muted-foreground hover:text-destructive transition-colors duration-200'
-                        aria-hidden
-                      />
-                    </button>
-                  )}
-                </div>
-              )}
-            />
-          </DataTableWrapper>
-        </div>
-      )}
-
-      <DialogWrapper
-        visible={open}
-        onHide={() => setOpen(false)}
-        header={t('users.form.title')}
-        modal
-        className='w-full max-w-lg'
-      >
-        <form
-          onSubmit={handleSubmit}
-          className='space-y-4'
-        >
-          <div>
-            <label className='mb-1 block text-sm font-medium text-foreground'>
-              {t('users.form.username')}
-            </label>
-            <InputTextWrapper
-              required
-              value={form.username}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setForm((f) => ({ ...f, username: e.target.value }))
-              }
-              className='w-full'
-            />
-          </div>
-          <div>
-            <label className='mb-1 block text-sm font-medium text-foreground'>
-              {t('users.form.email')}
-            </label>
-            <InputTextWrapper
-              type='email'
-              dir='ltr'
-              required
-              value={form.email}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setForm((f) => ({ ...f, email: e.target.value }))
-              }
-              className='w-full'
-            />
-          </div>
-          <div>
-            <label className='mb-2 block text-sm font-medium text-foreground'>
-              {t('users.form.roles')}
-            </label>
-            <div className='flex flex-wrap gap-2'>
-              {ROLES.map((role) => {
-                const selected = form.roles.includes(role);
-                const roleColors: Record<string, string> = {
-                  admin: 'border-brand-purple bg-brand-purple text-white',
-                  moderator: 'border-brand-indigo bg-brand-indigo text-white',
-                  user: 'border-brand-cyan bg-brand-cyan text-white',
-                };
-                return (
-                  <Button
-                    key={role}
-                    type='button'
-                    onClick={() => toggleRole(role)}
-                    severity={selected ? undefined : 'secondary'}
-                    className={`rounded-full ${
-                      selected
-                        ? roleColors[role] ||
-                          'bg-primary text-primary-foreground'
-                        : 'border-border text-foreground'
-                    }`}
-                  >
-                    {tv('role', role)}
-                  </Button>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
-          <div>
-            <label className='mb-1 block text-sm font-medium text-foreground'>
-              {t('users.form.password')}
-            </label>
-            <InputTextWrapper
-              type='password'
-              autoComplete='new-password'
-              minLength={8}
-              value={form.password}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setForm((f) => ({ ...f, password: e.target.value }))
-              }
-              placeholder={t('users.form.passwordPlaceholder')}
-              className='w-full'
+            <Field label={t('users.form.password')}>
+              <Input
+                type='password'
+                autoComplete='new-password'
+                minLength={8}
+                value={form.password}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, password: e.target.value }))
+                }
+                placeholder={t('users.form.passwordPlaceholder')}
+              />
+            </Field>
+            <Field label={t('users.form.notes')}>
+              <Textarea
+                rows={3}
+                maxLength={2000}
+                value={form.adminNotes}
+                dir='auto'
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, adminNotes: e.target.value }))
+                }
+                placeholder={t('users.form.notesPlaceholder')}
+              />
+            </Field>
+            <FormActions
+              onCancel={() => setOpen(false)}
+              saving={saving}
+              submitLabel={t('users.form.save')}
             />
-          </div>
-          <div>
-            <label className='mb-1 block text-sm font-medium text-foreground'>
-              {t('users.form.notes')}
-            </label>
-            <textarea
-              rows={3}
-              maxLength={2000}
-              value={form.adminNotes}
-              dir='auto'
-              onChange={(e) =>
-                setForm((f) => ({ ...f, adminNotes: e.target.value }))
-              }
-              placeholder={t('users.form.notesPlaceholder')}
-              className='w-full rounded-control border border-input bg-background px-3 py-2 text-foreground'
-            />
-          </div>
-          <div className='flex justify-end gap-2 pt-2'>
-            <Button
-              type='button'
-              disabled={saving}
-              onClick={() => setOpen(false)}
-              severity='secondary'
-              label={t('common.cancel')}
-            />
-            <Button
-              type='submit'
-              disabled={saving}
-              label={saving ? t('users.form.saving') : t('users.form.save')}
-              className='bg-brand-purple hover:bg-brand-purple-light'
-            />
-          </div>
-        </form>
-      </DialogWrapper>
-    </motion.div>
+          </form>
+        </FormDialog>
+      )}
+    </>
   );
 }

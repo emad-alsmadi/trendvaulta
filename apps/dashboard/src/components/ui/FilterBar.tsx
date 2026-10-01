@@ -1,165 +1,108 @@
-import { forwardRef, type ReactNode } from 'react';
-import { Filter, X } from 'lucide-react';
+import type { FormEvent, ReactNode } from 'react';
+import { X } from 'lucide-react';
+import { useT } from '../../i18n/I18nProvider';
 import { cn } from '../../lib/cn';
 import { SearchInput } from './Field';
 import { Button } from './Button';
 
-export type FilterItem = {
-  id: string;
+export type FilterBarSearch = {
+  value: string;
+  onChange: (value: string) => void;
+  /** Search-on-submit pages pass this; the search button then appears. */
+  onSubmit?: () => void;
+  placeholder?: string;
+  /** Accessible name — the placeholder never replaces a label. */
   label: string;
-  labelAr: string;
-  value: string | number;
+  /** Text for the submit button (defaults to the label). */
+  submitLabel?: string;
 };
 
-export interface FilterBarProps {
-  searchValue?: string;
-  onSearchChange?: (value: string) => void;
-  onSearchSubmit?: () => void;
-  searchPlaceholder?: string;
-  searchPlaceholderAr?: string;
-  filters?: {
-    id: string;
-    label: string;
-    labelAr: string;
-    value: string | number | '';
-    options: FilterItem[];
-    onChange: (value: string | number | '') => void;
-  }[];
-  onClearFilters?: () => void;
-  hasActiveFilters?: boolean;
+/**
+ * The toolbar above a table: search first, then the filter selects, then a
+ * quiet "clear filters" once something is applied. Page-level actions (export,
+ * bulk) go in `actions`, pushed to the end.
+ */
+export function FilterBar({
+  search,
+  children,
+  onClear,
+  canClear = false,
+  actions,
+  className,
+}: {
+  search?: FilterBarSearch;
+  /** Filter controls — give each one <FilterBarItem> for a consistent width. */
   children?: ReactNode;
+  onClear?: () => void;
+  canClear?: boolean;
+  actions?: ReactNode;
   className?: string;
-  lang?: 'en' | 'ar';
+}) {
+  const { t } = useT();
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    search?.onSubmit?.();
+  };
+
+  return (
+    <div
+      className={cn(
+        'flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center',
+        className,
+      )}
+    >
+      {search && (
+        <form
+          role='search'
+          onSubmit={submit}
+          className='flex min-w-0 gap-2 sm:w-72 sm:flex-none lg:w-80'
+        >
+          <SearchInput
+            value={search.value}
+            onChange={(e) => search.onChange(e.target.value)}
+            placeholder={search.placeholder}
+            aria-label={search.label}
+            wrapperClassName='min-w-0 flex-1'
+          />
+          {search.onSubmit && (
+            <Button
+              type='submit'
+              variant='secondary'
+            >
+              {search.submitLabel ?? search.label}
+            </Button>
+          )}
+        </form>
+      )}
+      {children}
+      {canClear && onClear && (
+        <Button
+          variant='ghost'
+          onClick={onClear}
+          icon={<X aria-hidden />}
+          className='text-muted-foreground hover:text-foreground'
+        >
+          {t('common.clearFilters')}
+        </Button>
+      )}
+      {actions && (
+        <div className='flex flex-wrap items-center gap-2 sm:ms-auto'>
+          {actions}
+        </div>
+      )}
+    </div>
+  );
 }
 
-export const FilterBar = forwardRef<HTMLDivElement, FilterBarProps>(
-  (
-    {
-      searchValue = '',
-      onSearchChange,
-      onSearchSubmit,
-      searchPlaceholder = 'Search...',
-      searchPlaceholderAr = 'بحث...',
-      filters = [],
-      onClearFilters,
-      hasActiveFilters = false,
-      children,
-      className,
-      lang = 'en',
-    },
-    ref,
-  ) => {
-    const isRTL = lang === 'ar';
-    const currentPlaceholder = isRTL ? searchPlaceholderAr : searchPlaceholder;
-
-    return (
-      <div
-        ref={ref}
-        className={cn(
-          'flex flex-col gap-3 sm:flex-row sm:items-center',
-          className,
-        )}
-      >
-        {/* Search Input */}
-        {onSearchChange && (
-          <form
-            className='relative flex-1'
-            onSubmit={(e) => {
-              e.preventDefault();
-              onSearchSubmit?.();
-            }}
-          >
-            <SearchInput
-              value={searchValue}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder={currentPlaceholder}
-              aria-label={isRTL ? 'بحث' : 'Search'}
-              className='w-full focus-visible:ring-brand-purple'
-            />
-          </form>
-        )}
-
-        {/* Filter Dropdowns */}
-        <div className='flex flex-wrap gap-2'>
-          {filters.map((filter) => (
-            <div
-              key={filter.id}
-              className='relative'
-            >
-              <label
-                htmlFor={filter.id}
-                className='sr-only'
-              >
-                {isRTL ? filter.labelAr : filter.label}
-              </label>
-              <select
-                id={filter.id}
-                value={filter.value}
-                onChange={(e) =>
-                  filter.onChange(
-                    e.target.value === ''
-                      ? ''
-                      : isNaN(Number(e.target.value))
-                        ? e.target.value
-                        : Number(e.target.value),
-                  )
-                }
-                className={cn(
-                  'h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm',
-                  'appearance-none pr-8 pl-3',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                  'disabled:cursor-not-allowed disabled:opacity-50',
-                  'transition-colors duration-200',
-                  'hover:border-brand-purple/50 focus-visible:border-brand-purple',
-                  isRTL ? 'pl-8 pr-3' : 'pr-8 pl-3',
-                  'min-w-[140px] sm:min-w-[160px]',
-                )}
-                dir={isRTL ? 'rtl' : 'ltr'}
-              >
-                <option value=''>
-                  {isRTL ? filter.labelAr : filter.label}
-                </option>
-                {filter.options.map((option) => (
-                  <option
-                    key={option.id}
-                    value={option.value}
-                  >
-                    {isRTL ? option.labelAr : option.label}
-                  </option>
-                ))}
-              </select>
-              <Filter
-                className={cn(
-                  'pointer-events-none absolute top-1/2 size-4 -translate-y-1/2 text-brand-purple',
-                  isRTL ? 'left-2.5' : 'right-2.5',
-                )}
-                aria-hidden
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* Clear Filters Button */}
-        {hasActiveFilters && onClearFilters && (
-          <Button
-            variant='ghost'
-            size='sm'
-            onClick={onClearFilters}
-            className={cn(
-              'gap-1.5 text-muted-foreground hover:text-foreground',
-              isRTL && 'flex-row-reverse',
-            )}
-          >
-            <X className='size-4' />
-            <span>{isRTL ? 'مسح الفلاتر' : 'Clear Filters'}</span>
-          </Button>
-        )}
-
-        {/* Additional children */}
-        {children}
-      </div>
-    );
-  },
-);
-
-FilterBar.displayName = 'FilterBar';
+/** Width wrapper for a filter control: full width on phones, compact beside search. */
+export function FilterBarItem({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn('w-full min-w-0 sm:w-44', className)}>{children}</div>
+  );
+}

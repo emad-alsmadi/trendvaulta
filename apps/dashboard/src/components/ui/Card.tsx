@@ -9,7 +9,7 @@ type CardProps = HTMLAttributes<HTMLElement> & {
   as?: 'section' | 'div' | 'article' | 'aside';
 };
 
-/** Bordered surface (12px radius, no shadow). */
+/** Bordered surface (12px radius, hairline shadow). */
 export function Card({
   padded = true,
   as: Tag = 'section',
@@ -21,8 +21,6 @@ export function Card({
       className={cn(
         cardClass,
         padded && cardPadding,
-        'transition-all duration-300 hover:shadow-lg hover:border-primary/20',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
         className,
       )}
       {...props}
@@ -129,18 +127,17 @@ export function StatCard({
     <Card
       as='div'
       className={cn(
-        'flex h-full flex-col gap-3 group relative overflow-hidden',
+        'flex h-full flex-col gap-3 transition-colors duration-normal hover:border-border-strong',
         className,
       )}
     >
-      <div className='absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100' />
-      <div className='relative flex items-center justify-between gap-3'>
+      <div className='flex items-center justify-between gap-3'>
         <p className={text.caption}>{label}</p>
         {icon && (
           <span
             className={cn(
-              'transition-colors duration-300 [&_svg]:size-4',
-              iconClassName || 'text-muted-foreground group-hover:text-primary',
+              'flex size-8 items-center justify-center rounded-control border border-border bg-muted text-muted-foreground [&_svg]:size-4',
+              iconClassName,
             )}
             aria-hidden
           >
@@ -148,16 +145,9 @@ export function StatCard({
           </span>
         )}
       </div>
-      <p
-        className={cn(
-          text.kpi,
-          'relative group-hover:scale-105 transition-transform duration-300',
-        )}
-      >
-        {value}
-      </p>
+      <p className={text.kpi}>{value}</p>
       {delta && (
-        <p className='relative flex items-center gap-1 text-body-sm text-muted-foreground'>
+        <p className='flex items-center gap-1 text-body-sm text-muted-foreground'>
           <span className='inline-flex items-center gap-0.5 font-medium text-foreground'>
             <DeltaIcon
               className='size-3.5 rtl:-scale-x-100'
@@ -168,7 +158,7 @@ export function StatCard({
           {delta.label}
         </p>
       )}
-      {footer && <div className='relative mt-auto'>{footer}</div>}
+      {footer && <div className='mt-auto'>{footer}</div>}
     </Card>
   );
 }

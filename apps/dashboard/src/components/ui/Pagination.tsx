@@ -1,149 +1,109 @@
-import { Button } from './Button';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { useT } from '../../i18n/I18nProvider';
+import { buttonVariants } from './styles';
 
 export type PaginationProps = {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
   className?: string;
-  showEdges?: boolean;
   disabled?: boolean;
 };
 
+/** 1 … 4 5 [6] 7 8 … 20 — first, last and one either side of the current page. */
+function getVisiblePages(current: number, total: number): (number | 'gap')[] {
+  const out: (number | 'gap')[] = [];
+  for (let p = 1; p <= total; p++) {
+    if (p === 1 || p === total || Math.abs(p - current) <= 1) out.push(p);
+    else if (out[out.length - 1] !== 'gap') out.push('gap');
+  }
+  return out;
+}
+
 /**
- * Professional pagination component with edge navigation and responsive design.
- * Follows the monochrome design system with smooth transitions.
+ * Page buttons for a card grid (no "rows per page" or range). Tables use
+ * <TablePagination>, which shares the same button treatment.
  */
 export function Pagination({
   currentPage,
   totalPages,
   onPageChange,
   className,
-  showEdges = true,
   disabled = false,
 }: PaginationProps) {
-  const { t } = useT();
+  const { t, formatNumber } = useT();
 
   if (totalPages <= 1) return null;
 
-  const pages = getVisiblePages(currentPage, totalPages);
+  const square = buttonVariants({ variant: 'ghost', size: 'icon-sm' });
+  const edge = buttonVariants({ variant: 'secondary', size: 'icon-sm' });
 
   return (
     <nav
       className={cn('flex items-center justify-center gap-1', className)}
-      aria-label='Pagination'
+      aria-label={t('pagination.label')}
     >
-      {showEdges && (
-        <Button
-          variant='ghost'
-          size='sm'
-          onClick={() => onPageChange(1)}
-          disabled={disabled || currentPage === 1}
-          icon={<ChevronsLeft className='icon-sm' aria-hidden />}
-          aria-label={t('common.firstPage')}
-        />
-      )}
-
-      <Button
-        variant='ghost'
-        size='sm'
+      <button
+        type='button'
         onClick={() => onPageChange(currentPage - 1)}
         disabled={disabled || currentPage === 1}
-        icon={<ChevronLeft className='icon-sm' aria-hidden />}
-        aria-label={t('common.previousPage')}
-      />
+        aria-label={t('pagination.previous')}
+        className={edge}
+      >
+        <ChevronLeft
+          className='rtl:-scale-x-100'
+          aria-hidden
+        />
+      </button>
 
-      {pages.map((page, index) => {
-        if (page === 'ellipsis') {
-          return (
-            <span
-              key={`ellipsis-${index}`}
-              className='px-3 py-1.5 text-sm text-muted-foreground'
+      <ul className='hidden items-center gap-1 sm:flex'>
+        {getVisiblePages(currentPage, totalPages).map((page, index) =>
+          page === 'gap' ? (
+            <li
+              key={`gap-${index}`}
               aria-hidden
+              className='w-8 text-center text-body-sm text-muted-foreground'
             >
               …
-            </span>
-          );
-        }
+            </li>
+          ) : (
+            <li key={page}>
+              <button
+                type='button'
+                onClick={() => onPageChange(page)}
+                disabled={disabled}
+                aria-label={t('pagination.page', { page: formatNumber(page) })}
+                aria-current={page === currentPage ? 'page' : undefined}
+                className={cn(
+                  square,
+                  'text-body-sm tabular-nums',
+                  page === currentPage &&
+                    'bg-primary text-primary-foreground hover:bg-primary/90',
+                )}
+              >
+                {formatNumber(page)}
+              </button>
+            </li>
+          ),
+        )}
+      </ul>
+      <span className='px-2 text-body-sm tabular-nums text-muted-foreground sm:hidden'>
+        {currentPage} / {totalPages}
+      </span>
 
-        return (
-          <Button
-            key={page}
-            variant={page === currentPage ? 'primary' : 'ghost'}
-            size='sm'
-            onClick={() => onPageChange(page)}
-            disabled={disabled}
-            className={cn(
-              'min-w-[2.5rem]',
-              page === currentPage && 'shadow-md'
-            )}
-          >
-            {page}
-          </Button>
-        );
-      })}
-
-      <Button
-        variant='ghost'
-        size='sm'
+      <button
+        type='button'
         onClick={() => onPageChange(currentPage + 1)}
         disabled={disabled || currentPage === totalPages}
-        icon={<ChevronRight className='icon-sm' aria-hidden />}
-        aria-label={t('common.nextPage')}
-      />
-
-      {showEdges && (
-        <Button
-          variant='ghost'
-          size='sm'
-          onClick={() => onPageChange(totalPages)}
-          disabled={disabled || currentPage === totalPages}
-          icon={<ChevronsRight className='icon-sm' aria-hidden />}
-          aria-label={t('common.lastPage')}
+        aria-label={t('pagination.next')}
+        className={edge}
+      >
+        <ChevronRight
+          className='rtl:-scale-x-100'
+          aria-hidden
         />
-      )}
+      </button>
     </nav>
   );
-}
-
-/**
- * Calculate which page numbers to show with ellipsis for large page counts.
- */
-function getVisiblePages(current: number, total: number): (number | 'ellipsis')[] {
-  const pages: (number | 'ellipsis')[] = [];
-  const maxVisible = 7;
-
-  if (total <= maxVisible) {
-    return Array.from({ length: total }, (_, i) => i + 1);
-  }
-
-  // Always show first page
-  pages.push(1);
-
-  if (current <= 4) {
-    // Near start: 1 2 3 4 5 ... last
-    for (let i = 2; i <= 5; i++) {
-      pages.push(i);
-    }
-    pages.push('ellipsis');
-    pages.push(total);
-  } else if (current >= total - 3) {
-    // Near end: 1 ... last-4 last-3 last-2 last-1 last
-    pages.push('ellipsis');
-    for (let i = total - 4; i <= total; i++) {
-      pages.push(i);
-    }
-  } else {
-    // Middle: 1 ... current-1 current current+1 ... last
-    pages.push('ellipsis');
-    pages.push(current - 1);
-    pages.push(current);
-    pages.push(current + 1);
-    pages.push('ellipsis');
-    pages.push(total);
-  }
-
-  return pages;
 }

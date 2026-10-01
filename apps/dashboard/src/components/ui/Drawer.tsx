@@ -1,17 +1,18 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
+import { useT } from '../../i18n/I18nProvider';
 import { cn } from '../../lib/cn';
-import { IconButton } from './IconButton';
-import { text } from './styles';
+import { buttonVariants, text } from './styles';
 
 /**
- * Drawer/slide-over panel for filters, mobile navigation, or contextual editing.
- * Built on Radix Dialog with side positioning.
+ * Slide-over panel for filters or contextual editing, on Radix Dialog (focus
+ * trap, Escape, focus return). `end` is the inline-end edge: right in LTR,
+ * left in RTL.
  */
 export function Drawer({
   open,
   onOpenChange,
-  side = 'right',
+  side = 'end',
   title,
   children,
   footer,
@@ -19,101 +20,52 @@ export function Drawer({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  side?: 'left' | 'right' | 'top' | 'bottom';
-  title?: React.ReactNode;
+  side?: 'start' | 'end';
+  title: React.ReactNode;
   children: React.ReactNode;
   footer?: React.ReactNode;
   className?: string;
 }) {
-  const sideClasses = {
-    left: 'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left-full data-[state=open]:slide-in-from-left-full',
-    right:
-      'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-right-full',
-    top: 'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-top-full data-[state=open]:slide-in-from-top-full',
-    bottom:
-      'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom-full data-[state=open]:slide-in-from-bottom-full',
-  };
-
-  const sizeClasses = {
-    left: 'h-full w-80 max-w-[90vw]',
-    right: 'h-full w-80 max-w-[90vw]',
-    top: 'w-full h-auto max-h-[50vh]',
-    bottom: 'w-full h-auto max-h-[50vh]',
-  };
-
+  const { t } = useT();
   return (
     <Dialog.Root
       open={open}
       onOpenChange={onOpenChange}
     >
       <Dialog.Portal>
-        <Dialog.Overlay className='fixed inset-0 z-[90] bg-backdrop data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0' />
+        <Dialog.Overlay className='fixed inset-0 z-50 bg-backdrop data-[state=open]:animate-overlay-in' />
         <Dialog.Content
+          aria-describedby={undefined}
           className={cn(
-            'fixed z-[95] rounded-card border border-border bg-card shadow-overlay',
-            sizeClasses[side],
-            sideClasses[side],
-            'transition-all duration-300 ease-out',
+            'fixed inset-y-0 z-50 flex w-[22rem] max-w-[90vw] flex-col border-border bg-card text-card-foreground shadow-overlay focus:outline-none',
+            'data-[state=open]:animate-overlay-in',
+            side === 'end' ? 'end-0 border-s' : 'start-0 border-e',
             className,
           )}
         >
-          {title && (
-            <div className='flex items-center justify-between border-b border-border p-4'>
-              <Dialog.Title className={text.section}>{title}</Dialog.Title>
-              <Dialog.Close asChild>
-                <IconButton
-                  icon={<X aria-hidden />}
-                  aria-label='Close'
-                  variant='ghost'
-                  size='sm'
-                />
-              </Dialog.Close>
-            </div>
-          )}
-          <div className='flex-1 overflow-y-auto p-4'>{children}</div>
+          <div className='flex shrink-0 items-center justify-between gap-4 border-b border-border px-5 py-4'>
+            <Dialog.Title className={text.section}>{title}</Dialog.Title>
+            <Dialog.Close asChild>
+              <button
+                type='button'
+                aria-label={t('common.close')}
+                className={cn(
+                  buttonVariants({ variant: 'ghost', size: 'icon-sm' }),
+                  '-me-2 text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <X aria-hidden />
+              </button>
+            </Dialog.Close>
+          </div>
+          <div className='min-h-0 flex-1 overflow-y-auto p-5'>{children}</div>
           {footer && (
-            <div className='flex items-center justify-end gap-2 border-t border-border p-4'>
+            <div className='flex shrink-0 items-center justify-end gap-2 border-t border-border bg-muted/40 px-5 py-4'>
               {footer}
             </div>
           )}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
-  );
-}
-
-/**
- * Drawer trigger button.
- */
-export function DrawerTrigger({
-  asChild,
-  children,
-  ...props
-}: React.ComponentProps<typeof Dialog.Trigger>) {
-  return (
-    <Dialog.Trigger
-      asChild={asChild}
-      {...props}
-    >
-      {children}
-    </Dialog.Trigger>
-  );
-}
-
-/**
- * Drawer close button.
- */
-export function DrawerClose({
-  asChild,
-  children,
-  ...props
-}: React.ComponentProps<typeof Dialog.Close>) {
-  return (
-    <Dialog.Close
-      asChild={asChild}
-      {...props}
-    >
-      {children}
-    </Dialog.Close>
   );
 }

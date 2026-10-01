@@ -75,21 +75,30 @@ export function TablePagination({
 
       <div className='flex flex-wrap items-center gap-3'>
         {onLimit && (
-          <label className='flex items-center gap-2 text-body-sm text-muted-foreground'>
-            <span className='sr-only sm:not-sr-only'>{t('pagination.rows')}</span>
+          <div className='flex items-center gap-2 text-body-sm text-muted-foreground'>
+            <span
+              aria-hidden
+              className='hidden sm:inline'
+            >
+              {t('pagination.rows')}
+            </span>
             <Select
               value={meta.limit}
               onChange={(e) => onLimit(Number(e.target.value))}
               aria-label={t('pagination.rowsPerPage')}
-              className='h-control-sm w-auto'
+              size='sm'
+              className='w-[4.5rem]'
             >
-              {PAGE_SIZES.map((n) => (
+              {(PAGE_SIZES.includes(meta.limit)
+                ? PAGE_SIZES
+                : [...PAGE_SIZES, meta.limit].sort((a, b) => a - b)
+              ).map((n) => (
                 <option key={n} value={n}>
                   {n}
                 </option>
               ))}
             </Select>
-          </label>
+          </div>
         )}
 
         <div className='flex items-center gap-1'>

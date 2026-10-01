@@ -25,17 +25,18 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          'bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80',
+          'bg-primary text-primary-foreground shadow-card hover:bg-primary/90 active:bg-primary/80',
+        /** Kept for older call sites; the brand is the primary black. */
         brand:
-          'bg-brand-purple text-white hover:bg-brand-purple-light active:bg-brand-purple/80',
+          'bg-primary text-primary-foreground shadow-card hover:bg-primary/90 active:bg-primary/80',
         secondary:
-          'border border-border-strong bg-background text-foreground hover:bg-accent active:bg-muted',
+          'border border-border-strong bg-background text-foreground shadow-card hover:bg-accent active:bg-muted',
         ghost: 'text-foreground hover:bg-accent active:bg-muted',
         subtle:
           'bg-secondary text-secondary-foreground hover:bg-border/60 active:bg-border',
         // No red: the icon, the wording, its place (last) and a confirm dialog carry it.
         destructive:
-          'border border-border-strong bg-background text-foreground hover:border-foreground hover:bg-accent active:bg-muted',
+          'border border-border-strong bg-background text-foreground shadow-card hover:border-foreground hover:bg-accent active:bg-muted',
         link: 'text-foreground underline-offset-4 hover:underline',
       },
       size: {
@@ -47,7 +48,7 @@ export const buttonVariants = cva(
         'icon-lg': 'size-10',
       },
     },
-    compoundVariants: [{ variant: 'link', className: 'h-auto px-0' }],
+    compoundVariants: [{ variant: 'link', className: 'h-auto px-0 shadow-none' }],
     defaultVariants: { variant: 'secondary', size: 'md' },
   },
 );
@@ -56,21 +57,22 @@ export type ButtonVariantProps = VariantProps<typeof buttonVariants>;
 /* ---- Form controls: one height, border, radius and focus treatment ---- */
 
 const controlBase = [
-  'w-full rounded-control border border-input bg-background text-sm text-foreground',
-  'placeholder:text-muted-foreground transition-all duration-200 ease-out',
-  'hover:border-foreground/50 hover:shadow-sm',
-  'focus-visible:border-primary focus-visible:shadow-md',
+  'w-full rounded-control border border-input bg-background text-sm text-foreground shadow-card',
+  'placeholder:text-muted-foreground transition-[border-color,box-shadow] duration-fast ease-out',
+  'hover:border-foreground/40',
+  'focus-visible:border-foreground',
   focusRing,
-  'disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-50',
+  'disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-60',
+  'read-only:bg-muted/60',
   // Errors: a heavier edge, never a colour (the message carries an icon).
-  'aria-[invalid=true]:border-destructive aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-destructive',
+  'aria-[invalid=true]:border-foreground aria-[invalid=true]:ring-1 aria-[invalid=true]:ring-foreground',
 ].join(' ');
 
-export const inputClass = `${controlBase} block h-control px-3 shadow-sm`;
-export const textareaClass = `${controlBase} block min-h-24 px-3 py-2 leading-5 shadow-sm`;
-/** Pair with the chevron in <Select>; `pe-9` leaves room for it. */
-export const selectClass = `${controlBase} block h-control cursor-pointer appearance-none truncate ps-3 pe-9 shadow-sm`;
-export const checkboxClass = `size-4 shrink-0 cursor-pointer rounded border-input accent-primary ${focusRing} ${disabled} transition-all duration-200 hover:scale-110`;
+export const inputClass = `${controlBase} block h-control px-3`;
+export const textareaClass = `${controlBase} block min-h-24 px-3 py-2 leading-5`;
+/** The Radix select trigger: text at the start, chevron at the end. */
+export const selectClass = `${controlBase} flex h-control cursor-pointer items-center justify-between gap-2 px-3 text-start`;
+export const checkboxClass = `size-4 shrink-0 cursor-pointer rounded border-input accent-primary ${focusRing} ${disabled}`;
 
 export const labelClass = 'block text-sm font-medium text-foreground';
 export const hintClass = 'text-xs text-muted-foreground';
@@ -78,11 +80,14 @@ export const hintClass = 'text-xs text-muted-foreground';
 /* ---- Surfaces ---- */
 
 export const cardClass =
-  'rounded-card border border-border bg-card text-card-foreground';
+  'rounded-card border border-border bg-card text-card-foreground shadow-card';
 export const cardPadding = 'p-5 sm:p-6';
-/** Dropdowns, popovers, tooltips: the only surfaces with a shadow. */
+/** Dropdowns, popovers, tooltips: the only surfaces with a deep shadow. */
 export const overlayClass =
   'rounded-badge border border-border bg-popover text-popover-foreground shadow-overlay';
+/** One row inside a menu or select list. */
+export const menuItemClass =
+  'relative flex min-h-8 cursor-pointer select-none items-center gap-2 rounded-control px-2 py-1.5 text-sm text-foreground outline-none transition-colors duration-fast data-[highlighted]:bg-accent data-[disabled]:pointer-events-none data-[disabled]:opacity-50';
 
 /* ---- Tables ---- */
 
@@ -90,7 +95,7 @@ export const table = {
   /** Scrolls sideways inside its card on narrow screens — never the page. */
   wrap: 'relative w-full overflow-x-auto',
   root: 'w-full border-collapse text-sm',
-  head: 'sticky top-0 z-10 bg-muted',
+  head: 'sticky top-0 z-10 bg-muted/60 backdrop-blur',
   th: 'h-10 whitespace-nowrap border-b border-border px-4 text-start align-middle text-caption uppercase text-muted-foreground',
   row: 'border-b border-border transition-colors duration-fast last:border-0 hover:bg-muted/50 data-[selected=true]:bg-muted',
   td: 'px-4 py-3 align-middle',

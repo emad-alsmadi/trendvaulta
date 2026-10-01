@@ -1,69 +1,45 @@
-import { X } from 'lucide-react';
+import { useT } from '../../i18n/I18nProvider';
 import { cn } from '../../lib/cn';
+import { Tag } from './StatusBadge';
 
 export interface FilterChip {
   id: string;
+  /** Already translated, e.g. "Status: Pending". */
   label: string;
-  labelAr: string;
   onRemove: () => void;
 }
 
-export interface FilterChipsProps {
-  chips: FilterChip[];
-  onClearAll?: () => void;
-  clearAllLabel?: string;
-  clearAllLabelAr?: string;
-  className?: string;
-  lang?: 'en' | 'ar';
-}
-
+/** Applied filters as removable chips, with "clear all" once there are several. */
 export function FilterChips({
   chips,
   onClearAll,
-  clearAllLabel = 'Clear all',
-  clearAllLabelAr = 'مسح الكل',
   className,
-  lang = 'en',
-}: FilterChipsProps) {
-  const isRTL = lang === 'ar';
-  const currentClearAllLabel = isRTL ? clearAllLabelAr : clearAllLabel;
-
-  if (chips.length === 0) {
-    return null;
-  }
+}: {
+  chips: FilterChip[];
+  onClearAll?: () => void;
+  className?: string;
+}) {
+  const { t } = useT();
+  if (chips.length === 0) return null;
 
   return (
     <div className={cn('flex flex-wrap items-center gap-2', className)}>
-      <span className='text-sm text-muted-foreground'>
-        {isRTL ? 'الفلاتر النشطة:' : 'Active filters:'}
-      </span>
       {chips.map((chip) => (
-        <button
+        <Tag
           key={chip.id}
-          type='button'
-          onClick={chip.onRemove}
-          className={cn(
-            'inline-flex items-center gap-1.5 rounded-full border border-brand-purple/20 bg-brand-purple/5 px-3 py-1 text-xs font-medium text-brand-purple',
-            'hover:bg-brand-purple/10 hover:border-brand-purple/30',
-            'transition-all duration-200',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2',
-            isRTL && 'flex-row-reverse',
-          )}
+          onRemove={chip.onRemove}
+          removeLabel={t('common.removeFilter', { name: chip.label })}
         >
-          {isRTL ? chip.labelAr : chip.label}
-          <X className='size-3' />
-        </button>
+          {chip.label}
+        </Tag>
       ))}
       {onClearAll && chips.length > 1 && (
         <button
           type='button'
           onClick={onClearAll}
-          className={cn(
-            'text-xs font-medium text-muted-foreground underline-offset-4 hover:underline',
-            'transition-colors duration-200',
-          )}
+          className='rounded text-xs font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
         >
-          {currentClearAllLabel}
+          {t('common.clearAll')}
         </button>
       )}
     </div>

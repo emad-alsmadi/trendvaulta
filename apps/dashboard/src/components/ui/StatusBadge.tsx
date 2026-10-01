@@ -70,10 +70,10 @@ export const statusTone = (status: string | null | undefined): BadgeTone =>
   STATUS_TONE[String(status ?? '').toLowerCase()] ?? 'tint';
 
 const TONE_CLASS: Record<BadgeTone, string> = {
-  solid: 'bg-brand-purple text-white',
-  outline: 'border border-brand-indigo text-brand-indigo',
-  tint: 'bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/20',
-  attention: 'border border-metric-orange font-semibold text-metric-orange',
+  solid: 'bg-primary text-primary-foreground',
+  outline: 'border border-foreground/70 text-foreground',
+  tint: 'border border-border bg-muted text-foreground',
+  attention: 'border-2 border-foreground font-semibold text-foreground',
   ended: 'border border-dashed border-muted-foreground text-muted-foreground',
   neutral: 'bg-muted text-muted-foreground',
 };
@@ -164,16 +164,19 @@ export function StatusBadge({
   children,
   tone,
   className,
+  title,
 }: {
   status: string | null | undefined;
   children: ReactNode;
   tone?: BadgeTone;
   className?: string;
+  title?: string;
 }) {
   return (
     <Badge
       tone={tone ?? statusTone(status)}
       className={className}
+      title={title}
     >
       {children}
     </Badge>
@@ -196,7 +199,7 @@ export function Tag({
   return (
     <span
       className={cn(
-        'inline-flex h-6 max-w-full items-center gap-1 rounded-badge border border-brand-purple/30 bg-brand-purple/5 px-2 text-xs font-medium text-brand-purple',
+        'inline-flex h-6 max-w-full items-center gap-1 rounded-badge border border-border bg-muted px-2 text-xs font-medium text-foreground',
         onRemove && 'pe-1',
         className,
       )}
@@ -207,7 +210,7 @@ export function Tag({
           type='button'
           onClick={onRemove}
           aria-label={removeLabel}
-          className='inline-flex size-4 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-brand-purple/20 hover:text-brand-purple focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple'
+          className='inline-flex size-4 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
         >
           <X
             className='size-3'

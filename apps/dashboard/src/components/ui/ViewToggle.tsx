@@ -1,7 +1,7 @@
-import { LayoutGrid, List, TreePine } from 'lucide-react';
-import { Button } from './Button';
+import { LayoutGrid, List, ListTree } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { useT } from '../../i18n/I18nProvider';
+import { focusRing } from './styles';
 
 export type ViewMode = 'card' | 'list' | 'tree';
 
@@ -13,10 +13,7 @@ export type ViewToggleProps = {
   disabled?: boolean;
 };
 
-/**
- * Professional view toggle component for switching between card, list, and tree views.
- * Uses lucide-react icons and follows the monochrome design system.
- */
+/** Segmented icon toggle between card, list and tree views. */
 export function ViewToggle({
   currentView,
   onViewChange,
@@ -28,39 +25,48 @@ export function ViewToggle({
 
   if (availableViews.length <= 1) return null;
 
-  const views: { mode: ViewMode; icon: React.ReactNode; label: string }[] = [
-    { mode: 'card', icon: <LayoutGrid className='icon-sm' aria-hidden />, label: t('common.cardView') },
-    { mode: 'list', icon: <List className='icon-sm' aria-hidden />, label: t('common.listView') },
-    { mode: 'tree', icon: <TreePine className='icon-sm' aria-hidden />, label: t('common.treeView') },
-  ];
-
-  const visibleViews = views.filter((v) => availableViews.includes(v.mode));
+  const views = [
+    { mode: 'card' as const, Icon: LayoutGrid, label: t('common.cardView') },
+    { mode: 'list' as const, Icon: List, label: t('common.listView') },
+    { mode: 'tree' as const, Icon: ListTree, label: t('common.treeView') },
+  ].filter((v) => availableViews.includes(v.mode));
 
   return (
     <div
       className={cn(
-        'inline-flex items-center rounded-control border border-border bg-card p-1',
-        className
+        'inline-flex h-control items-center gap-0.5 rounded-control border border-border bg-muted p-0.5',
+        className,
       )}
       role='group'
       aria-label={t('common.viewAs')}
     >
-      {visibleViews.map((view) => (
-        <Button
-          key={view.mode}
-          variant={currentView === view.mode ? 'primary' : 'ghost'}
-          size='sm'
-          onClick={() => onViewChange(view.mode)}
-          disabled={disabled}
-          icon={view.icon}
-          aria-label={view.label}
-          aria-pressed={currentView === view.mode}
-          className={cn(
-            'min-w-[2.5rem]',
-            currentView === view.mode && 'shadow-sm'
-          )}
-        />
-      ))}
+      {views.map(({ mode, Icon, label }) => {
+        const selected = currentView === mode;
+        return (
+          <button
+            key={mode}
+            type='button'
+            onClick={() => onViewChange(mode)}
+            disabled={disabled}
+            aria-label={label}
+            title={label}
+            aria-pressed={selected}
+            className={cn(
+              'inline-flex h-full w-9 items-center justify-center rounded transition-colors duration-fast',
+              'disabled:cursor-not-allowed disabled:opacity-50',
+              focusRing,
+              selected
+                ? 'border border-border bg-background text-foreground shadow-card'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <Icon
+              className='size-4'
+              aria-hidden
+            />
+          </button>
+        );
+      })}
     </div>
   );
 }

@@ -6,10 +6,9 @@ import {
   type InputHTMLAttributes,
   type ReactElement,
   type ReactNode,
-  type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from 'react';
-import { AlertCircle, ChevronDown, Search } from 'lucide-react';
+import { AlertCircle, Search } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import {
   checkboxClass,
@@ -17,7 +16,6 @@ import {
   hintClass,
   inputClass,
   labelClass,
-  selectClass,
   textareaClass,
 } from './styles';
 
@@ -138,27 +136,8 @@ export const Textarea = forwardRef<
   );
 });
 
-/** Native select (keyboard and mobile pickers for free) with a drawn chevron. */
-export const Select = forwardRef<
-  HTMLSelectElement,
-  SelectHTMLAttributes<HTMLSelectElement> & { wrapperClassName?: string }
->(function Select({ className, wrapperClassName, children, ...props }, ref) {
-  return (
-    <div className={cn('relative', wrapperClassName)}>
-      <select
-        ref={ref}
-        className={cn(selectClass, className)}
-        {...props}
-      >
-        {children}
-      </select>
-      <ChevronDown
-        className='pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground'
-        aria-hidden
-      />
-    </div>
-  );
-});
+/** The Radix select lives in ./Select; re-exported so forms import one module. */
+export { Select } from './Select';
 
 /** Search box with a leading icon; the placeholder never replaces a label. */
 export const SearchInput = forwardRef<

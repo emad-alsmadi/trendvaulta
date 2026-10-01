@@ -1,41 +1,36 @@
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
-import { forwardRef } from 'react';
+import { forwardRef, type ReactElement, type ReactNode } from 'react';
 import { cn } from '../../lib/cn';
-import { cardClass } from './styles';
 
 const TooltipProvider = TooltipPrimitive.Provider;
-
 const TooltipRoot = TooltipPrimitive.Root;
-
 const TooltipTrigger = TooltipPrimitive.Trigger;
 
 const TooltipContent = forwardRef<
   React.ElementRef<typeof TooltipPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
->(({ className, sideOffset = 4, ...props }, ref) => (
-  <TooltipPrimitive.Content
-    ref={ref}
-    sideOffset={sideOffset}
-    className={cn(
-      'z-50 overflow-hidden rounded-badge px-2.5 py-1.5 text-xs text-popover-foreground shadow-overlay',
-      'animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95',
-      'data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
-      cardClass,
-      className,
-    )}
-    {...props}
-  />
+>(({ className, sideOffset = 6, ...props }, ref) => (
+  <TooltipPrimitive.Portal>
+    <TooltipPrimitive.Content
+      ref={ref}
+      sideOffset={sideOffset}
+      className={cn(
+        // Inverted, so it reads on both the light canvas and the dark sidebar.
+        'z-[110] max-w-xs rounded-control bg-foreground px-2 py-1 text-xs font-medium text-background shadow-overlay',
+        'animate-pop-in',
+        className,
+      )}
+      {...props}
+    />
+  </TooltipPrimitive.Portal>
 ));
 TooltipContent.displayName = TooltipPrimitive.Content.displayName;
 
 /**
- * Tooltip wrapper. Provides hover/focus information for controls.
+ * Tooltip root (Radix): hover/focus information for a control.
  *
- * @example
  * <Tooltip>
- *   <TooltipTrigger>
- *     <IconButton icon={<Info />} aria-label="Info" />
- *   </TooltipTrigger>
+ *   <TooltipTrigger asChild><IconButton … /></TooltipTrigger>
  *   <TooltipContent>Additional information</TooltipContent>
  * </Tooltip>
  */
@@ -44,9 +39,28 @@ export function Tooltip({
   ...props
 }: React.ComponentProps<typeof TooltipRoot>) {
   return (
-    <TooltipProvider>
+    <TooltipProvider delayDuration={200}>
       <TooltipRoot {...props}>{children}</TooltipRoot>
     </TooltipProvider>
+  );
+}
+
+/** One-line form: `<Tip label='Edit'><button …/></Tip>`. No label, no tooltip. */
+export function Tip({
+  label,
+  side = 'top',
+  children,
+}: {
+  label?: ReactNode;
+  side?: 'top' | 'right' | 'bottom' | 'left';
+  children: ReactElement;
+}) {
+  if (!label) return children;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side={side}>{label}</TooltipContent>
+    </Tooltip>
   );
 }
 

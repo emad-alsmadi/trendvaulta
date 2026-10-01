@@ -1,17 +1,5 @@
 import { useState } from 'react';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
-// @ts-ignore
-import { DataTable } from 'primereact/datatable';
-// @ts-ignore
-import { Column } from 'primereact/column';
-// @ts-ignore
-import { InputText } from 'primereact/inputtext';
-// @ts-ignore
-import { Dropdown } from 'primereact/dropdown';
-// @ts-ignore
-import { Button } from 'primereact/button';
-// @ts-ignore
-import { Dialog } from 'primereact/dialog';
+import { ChevronDown, Package, Plus, Pencil, Star, Trash2 } from 'lucide-react';
 import {
   useAdminBrands,
   useAdminProducts,
@@ -39,28 +27,33 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { Card } from '../components/ui/Card';
 import { StatusBadge, Badge } from '../components/ui/StatusBadge';
 import { Alert } from '../components/ui/Alert';
-import { SkeletonCard } from '../components/ui/Skeleton';
-import { Field } from '../components/ui/Field';
+import { Button } from '../components/ui/Button';
+import { IconButton } from '../components/ui/IconButton';
+import { Skeleton } from '../components/ui/Skeleton';
+import { EmptyState } from '../components/ui/EmptyState';
 import {
-  inputClass,
-  selectClass,
-  textareaClass,
-} from '../components/ui/styles';
+  Checkbox,
+  Field,
+  Input,
+  Select,
+  Switch,
+  Textarea,
+} from '../components/ui/Field';
+import {
+  DataTable,
+  RowActions,
+  type DataTableColumn,
+} from '../components/ui/DataTable';
+import { FilterBar, FilterBarItem } from '../components/ui/FilterBar';
+import {
+  FormActions,
+  FormDialog,
+  FormSection,
+} from '../components/ui/FormDialog';
+import { TablePagination } from '../components/ui/TablePagination';
+import { Thumbnail } from '../components/ui/Table';
 import { useT } from '../i18n/I18nProvider';
 import { ViewToggle, type ViewMode } from '../components/ui/ViewToggle';
-import { Pagination } from '../components/ui/Pagination';
-import { motion } from 'framer-motion';
-
-// @ts-ignore - PrimeReact types are bundled
-const ColumnWrapper = Column as any;
-// @ts-ignore - PrimeReact types are bundled
-const DropdownWrapper = Dropdown as any;
-// @ts-ignore - PrimeReact types are bundled
-const DataTableWrapper = DataTable as any;
-// @ts-ignore - PrimeReact types are bundled
-const InputTextWrapper = InputText as any;
-// @ts-ignore - PrimeReact types are bundled
-const DialogWrapper = Dialog as any;
 
 const emptyForm: ProductFormPayload = {
   title: '',
@@ -81,22 +74,22 @@ const emptyForm: ProductFormPayload = {
   shippingInfo: { dimensions: {}, requiresSpecialHandling: false },
 };
 
-// Must match the Product model enum (apps/api/models/Product.js).
 /** Values product.controller.js accepts for ?sort=. */
 const SORT_OPTIONS = [
-  { label: 'Newest', value: 'newest' },
-  { label: 'Bestselling', value: 'bestselling' },
-  { label: 'Price: Low to High', value: 'price_asc' },
-  { label: 'Price: High to Low', value: 'price_desc' },
-  { label: 'Rating', value: 'rating' },
-];
+  'newest',
+  'bestselling',
+  'price_asc',
+  'price_desc',
+  'rating',
+] as const;
+// Must match the Product model enum (apps/api/models/Product.js).
 const CATEGORY_OPTIONS = [
-  { label: 'Makeup', value: 'makeup' },
-  { label: 'Skincare', value: 'skincare' },
-  { label: 'Perfumes', value: 'perfumes' },
-  { label: 'Clothing', value: 'clothing' },
-  { label: 'Accessories', value: 'accessories' },
-  { label: 'Home', value: 'home' },
+  'makeup',
+  'skincare',
+  'perfumes',
+  'clothing',
+  'accessories',
+  'home',
 ];
 
 /** Empty numeric input → undefined, so "not set" is distinct from 0. */
@@ -185,11 +178,34 @@ function brandName(product: AdminProduct) {
   return '—';
 }
 
+/** Optional measurement: empty stays "not set" rather than 0. */
+function MeasureField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number | undefined;
+  onChange: (value: number | undefined) => void;
+}) {
+  return (
+    <Field label={label}>
+      <Input
+        type='number'
+        min={0}
+        step='0.01'
+        value={value ?? ''}
+        onChange={(e) => onChange(numberOrUndefined(e.target.value))}
+      />
+    </Field>
+  );
+}
+
 export default function Products() {
   const { can } = usePermissions();
   const toast = useToast();
   const confirm = useConfirm();
-  const { t, formatCurrency, formatNumber } = useT();
+  const { t, tv, formatCurrency, formatNumber } = useT();
   const [search, setSearch] = useState('');
   const [appliedQ, setAppliedQ] = useState('');
   const [category, setCategory] = useState('');
@@ -228,6 +244,7 @@ export default function Products() {
   const meta = productsQ.data?.meta;
 
   const hasVariants = (form.variants?.length ?? 0) > 0;
+  const hasFilters = Boolean(appliedQ || category || sortPreset !== 'newest');
 
   // Suggestions only: free text stays allowed so a product filed under a
   // value that predates the Categories screen can still be saved as-is.
@@ -321,391 +338,433 @@ export default function Products() {
     }
   }
 
+  const categoryLine = (product: AdminProduct) =>
+    [
+      brandName(product),
+      product.category ? tv('productCategory', product.category) : null,
+      product.subcategory || null,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+
+  const badges = (product: AdminProduct) => (
+    <>
+      {product.isActive === false && (
+        <StatusBadge status='inactive'>{t('products.inactive')}</StatusBadge>
+      )}
+      {product.featured && (
+        <Badge
+          tone='solid'
+          plain
+        >
+          <Star
+            className='me-1 inline size-3 fill-current align-[-1px]'
+            aria-hidden
+          />
+          {t('products.featured')}
+        </Badge>
+      )}
+    </>
+  );
+
+  const actions = (product: AdminProduct) => (
+    <RowActions>
+      {can('products:write') && (
+        <IconButton
+          icon={<Pencil aria-hidden />}
+          label={t('products.edit', { title: product.title })}
+          onClick={() => openEdit(product)}
+        />
+      )}
+      {can('products:delete') && (
+        <IconButton
+          icon={<Trash2 aria-hidden />}
+          label={t('products.delete', { title: product.title })}
+          onClick={() => void handleDelete(product)}
+          disabled={deleteMut.isPending}
+        />
+      )}
+    </RowActions>
+  );
+
+  const columns: DataTableColumn<AdminProduct>[] = [
+    {
+      key: 'title',
+      header: t('products.columns.title'),
+      cell: (product) => (
+        <div className='flex items-center gap-3'>
+          <Thumbnail src={product.cover} />
+          <div className='min-w-0'>
+            <p className='max-w-[22rem] truncate font-medium text-foreground'>
+              {product.title}
+            </p>
+            <p className='truncate text-xs text-muted-foreground'>
+              {categoryLine(product)}
+            </p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      header: t('common.status'),
+      cell: (product) => (
+        <div className='flex flex-wrap gap-1.5'>
+          {product.isActive !== false && !product.featured ? (
+            <StatusBadge status='active'>{t('common.active')}</StatusBadge>
+          ) : (
+            badges(product)
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'price',
+      header: t('products.columns.price'),
+      numeric: true,
+      className: 'font-medium',
+      cell: (product) => formatCurrency(Number(product.price || 0)),
+    },
+    {
+      key: 'stock',
+      header: t('products.columns.stock'),
+      numeric: true,
+      cell: (product) => formatNumber(product.stock ?? 0),
+    },
+    {
+      key: 'actions',
+      header: t('products.columns.actions'),
+      actions: true,
+      cell: actions,
+    },
+  ];
+
+  const toolbar = (
+    <FilterBar
+      search={{
+        value: search,
+        onChange: setSearch,
+        onSubmit: () => {
+          setAppliedQ(search.trim());
+          resetPage();
+        },
+        placeholder: t('products.searchPlaceholder'),
+        label: t('products.searchLabel'),
+        submitLabel: t('common.search'),
+      }}
+      canClear={hasFilters}
+      onClear={() => {
+        setSearch('');
+        setAppliedQ('');
+        setCategory('');
+        setSortPreset('newest');
+        resetPage();
+      }}
+      actions={
+        <ViewToggle
+          currentView={viewMode}
+          onViewChange={setViewMode}
+          availableViews={['card', 'list']}
+        />
+      }
+    >
+      <FilterBarItem>
+        <Select
+          aria-label={t('products.filterCategory')}
+          value={category}
+          onChange={(e) => {
+            setCategory(e.target.value);
+            resetPage();
+          }}
+        >
+          <option value=''>{t('products.allCategories')}</option>
+          {CATEGORY_OPTIONS.map((c) => (
+            <option
+              key={c}
+              value={c}
+            >
+              {tv('productCategory', c)}
+            </option>
+          ))}
+        </Select>
+      </FilterBarItem>
+      <FilterBarItem>
+        <Select
+          aria-label={t('products.sortLabel')}
+          value={sortPreset}
+          onChange={(e) => {
+            setSortPreset(e.target.value || 'newest');
+            resetPage();
+          }}
+        >
+          {SORT_OPTIONS.map((s) => (
+            <option
+              key={s}
+              value={s}
+            >
+              {t(`products.sort.${s}`)}
+            </option>
+          ))}
+        </Select>
+      </FilterBarItem>
+    </FilterBar>
+  );
+
   return (
-    <div className='page-transition'>
+    <>
       <PageHeader
         title={t('products.title')}
         description={t('products.subtitle')}
         actions={
           can('products:write') && (
             <Button
+              variant='primary'
               onClick={openCreate}
               disabled={!brands.length}
               title={!brands.length ? t('products.needBrand') : undefined}
-              icon={
-                <Plus
-                  className='icon-sm'
-                  aria-hidden
-                />
-              }
-              label={t('products.add')}
-            />
+              icon={<Plus aria-hidden />}
+            >
+              {t('products.add')}
+            </Button>
           )
         }
       />
 
-      <div className='mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between'>
-        <div className='flex flex-1 flex-col gap-3 sm:flex-row sm:items-end'>
-          <InputTextWrapper
-            value={search}
-            onChange={(e: any) => setSearch(e.target.value)}
-            placeholder={t('products.searchPlaceholder')}
-            className='w-full sm:w-64'
-          />
-          <DropdownWrapper
-            value={category}
-            options={CATEGORY_OPTIONS}
-            onChange={(e: any) => {
-              setCategory(e.value || '');
-              resetPage();
-            }}
-            placeholder={t('products.filterCategory')}
-            className='w-full sm:w-40'
-            showClear
-          />
-          <DropdownWrapper
-            value={sortPreset}
-            options={SORT_OPTIONS}
-            onChange={(e: any) => {
-              setSortPreset(e.value || 'newest');
-              resetPage();
-            }}
-            placeholder={t('products.sortLabel')}
-            className='w-full sm:w-48'
-          />
-          <Button
-            label={t('products.searchLabel')}
-            onClick={() => {
-              setAppliedQ(search.trim());
-              resetPage();
-            }}
-            className='w-full sm:w-auto'
-          />
-          {(appliedQ || category || sortPreset !== 'newest') && (
-            <Button
-              label='Clear'
-              onClick={() => {
-                setSearch('');
-                setAppliedQ('');
-                setCategory('');
-                setSortPreset('newest');
-                resetPage();
-              }}
-              severity='secondary'
-              className='w-full sm:w-auto'
-            />
-          )}
-        </div>
-        <ViewToggle
-          currentView={viewMode}
-          onViewChange={setViewMode}
-          availableViews={['card', 'list']}
-        />
-      </div>
-
-      {productsQ.isLoading && (
-        <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
-          {[...Array(6)].map((_, i) => (
-            <SkeletonCard key={i} />
-          ))}
-        </div>
-      )}
-      {productsQ.isError && (
+      {productsQ.isError ? (
         <Alert tone='error'>
           {errorMessage(productsQ.error, t('products.loadFailed'))}
         </Alert>
-      )}
+      ) : viewMode === 'list' ? (
+        <DataTable
+          caption={t('products.title')}
+          data={products}
+          columns={columns}
+          getKey={(product) => product._id}
+          loading={productsQ.isLoading}
+          fetching={productsQ.isFetching}
+          meta={meta}
+          onPage={table.setPage}
+          onLimit={table.setLimit}
+          emptyIcon={<Package aria-hidden />}
+          emptyTitle={t('products.empty')}
+          toolbar={toolbar}
+        />
+      ) : (
+        <div className='space-y-4'>
+          <Card className='p-3 sm:p-4'>{toolbar}</Card>
 
-      {!productsQ.isLoading && !productsQ.isError && (
-        <>
-          {viewMode === 'card' ? (
-            <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
-              {products.length === 0 ? (
-                <p className='col-span-full py-10 text-center text-sm text-muted-foreground'>
-                  {t('products.empty')}
-                </p>
-              ) : (
-                products.map((product, index) => (
-                  <motion.div
-                    key={product._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                  >
-                    <Card className='overflow-hidden group bg-gradient-to-br from-brand-fuchsia/5 to-brand-purple/5 border-brand-fuchsia/10'>
-                      <div className='relative h-44 bg-muted overflow-hidden'>
-                        {product.cover ? (
-                          <img
-                            src={product.cover}
-                            alt=''
-                            className='h-full w-full object-cover transition-transform duration-300 group-hover:scale-105'
-                          />
-                        ) : (
-                          <div className='h-full w-full bg-muted' />
-                        )}
-                        <div className='absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100' />
-                      </div>
-                      <div className='p-4'>
-                        <div className='mb-2 flex items-start justify-between gap-2'>
-                          <div className='flex-1'>
-                            <h3 className='line-clamp-2 text-lg font-semibold text-foreground group-hover:text-primary transition-colors duration-200'>
-                              {product.title}
-                            </h3>
-                            <div className='mt-1 flex flex-wrap gap-1.5'>
-                              {product.isActive === false && (
-                                <StatusBadge status='inactive'>
-                                  {t('products.inactive')}
-                                </StatusBadge>
-                              )}
-                              {product.featured && (
-                                <Badge tone='solid'>
-                                  {t('products.featured')}
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                          <div className='flex shrink-0 gap-1'>
-                            {can('products:write') && (
-                              <button
-                                type='button'
-                                onClick={() => openEdit(product)}
-                                className='rounded p-1.5 hover:bg-accent transition-colors duration-200'
-                                aria-label={t('products.edit', {
-                                  title: product.title,
-                                })}
-                              >
-                                <Pencil
-                                  className='icon-sm text-muted-foreground hover:text-primary transition-colors duration-200'
-                                  aria-hidden
-                                />
-                              </button>
-                            )}
-                            {can('products:delete') && (
-                              <button
-                                type='button'
-                                onClick={() => void handleDelete(product)}
-                                disabled={deleteMut.isPending}
-                                className='rounded p-1.5 hover:bg-accent transition-colors duration-200'
-                                aria-label={t('products.delete', {
-                                  title: product.title,
-                                })}
-                              >
-                                <Trash2
-                                  className='icon-sm text-muted-foreground hover:text-destructive transition-colors duration-200'
-                                  aria-hidden
-                                />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        <p className='mb-1 text-sm text-muted-foreground'>
-                          {brandName(product)} ·{' '}
-                          {product.category
-                            ? product.category.charAt(0).toUpperCase() +
-                              product.category.slice(1)
-                            : '—'}
-                          {product.subcategory
-                            ? ` / ${product.subcategory}`
-                            : ''}
-                        </p>
-                        <div className='flex items-center justify-between text-sm'>
-                          <span className='font-semibold text-foreground tabular-nums group-hover:text-primary transition-colors duration-200'>
-                            {formatCurrency(Number(product.price || 0))}
-                          </span>
-                          <span className='text-muted-foreground tabular-nums'>
-                            {t('products.stock', {
-                              count: formatNumber(product.stock ?? 0),
-                            })}
-                            {product.isActive === false
-                              ? t('products.inactiveSuffix')
-                              : ''}
-                          </span>
-                        </div>
-                      </div>
-                    </Card>
-                  </motion.div>
-                ))
-              )}
+          {productsQ.isLoading ? (
+            <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Card
+                  key={i}
+                  as='div'
+                  padded={false}
+                  className='overflow-hidden'
+                >
+                  <Skeleton
+                    variant='custom'
+                    className='aspect-[4/3] w-full rounded-none'
+                  />
+                  <div className='space-y-2 p-4'>
+                    <Skeleton className='w-3/4' />
+                    <Skeleton className='w-1/2' />
+                  </div>
+                </Card>
+              ))}
             </div>
+          ) : products.length === 0 ? (
+            <Card padded={false}>
+              <EmptyState
+                icon={<Package aria-hidden />}
+                title={t('products.empty')}
+              />
+            </Card>
           ) : (
-            <div className='rounded-xl border border-gray-200 bg-card shadow-sm dark:border-gray-700 dark:bg-gray-800'>
-              <DataTableWrapper
-                value={products}
-                paginator
-                rows={24}
-                totalRecords={meta?.total}
-                lazy
-                onPage={table.setPage}
-                first={(meta?.page ? meta.page - 1 : 0) * 24}
-                loading={productsQ.isFetching}
-                emptyMessage={t('products.empty')}
-                className='p-datatable-sm'
-              >
-                <ColumnWrapper
-                  header={t('products.columns.image')}
-                  body={(product: any) => (
-                    <div className='h-12 w-12 shrink-0 overflow-hidden rounded border border-border bg-muted'>
+            <ul
+              aria-busy={productsQ.isFetching || undefined}
+              className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+            >
+              {products.map((product) => (
+                <li key={product._id}>
+                  <Card
+                    as='article'
+                    padded={false}
+                    className='group flex h-full flex-col overflow-hidden transition-colors duration-normal hover:border-border-strong'
+                  >
+                    <div className='relative aspect-[4/3] overflow-hidden border-b border-border bg-muted'>
                       {product.cover ? (
                         <img
                           src={product.cover}
                           alt=''
-                          className='h-full w-full object-cover'
+                          loading='lazy'
+                          className={
+                            'size-full object-cover transition-transform duration-slow group-hover:scale-[1.03]' +
+                            (product.isActive === false ? ' opacity-60 grayscale' : '')
+                          }
                         />
                       ) : (
-                        <div className='h-full w-full bg-muted' />
-                      )}
-                    </div>
-                  )}
-                />
-                <ColumnWrapper
-                  field='title'
-                  header={t('products.columns.title')}
-                  body={(product: any) => (
-                    <div className='min-w-0'>
-                      <h3 className='font-semibold text-foreground truncate'>
-                        {product.title}
-                      </h3>
-                      <p className='text-sm text-muted-foreground'>
-                        {brandName(product)} ·{' '}
-                        {product.category
-                          ? product.category.charAt(0).toUpperCase() +
-                            product.category.slice(1)
-                          : '—'}
-                      </p>
-                    </div>
-                  )}
-                />
-                <ColumnWrapper
-                  field='price'
-                  header={t('products.columns.price')}
-                  body={(product: any) =>
-                    formatCurrency(Number(product.price || 0))
-                  }
-                />
-                <ColumnWrapper
-                  field='stock'
-                  header={t('products.columns.stock')}
-                  body={(product: any) =>
-                    `${formatNumber(product.stock ?? 0)} ${t('common.productsInStock')}`
-                  }
-                />
-                <ColumnWrapper
-                  header={t('products.columns.actions')}
-                  body={(product: any) => (
-                    <div className='flex gap-1'>
-                      {can('products:write') && (
-                        <button
-                          type='button'
-                          onClick={() => openEdit(product)}
-                          className='rounded p-1.5 hover:bg-accent transition-colors duration-200'
-                          aria-label={t('products.edit', {
-                            title: product.title,
-                          })}
-                        >
-                          <Pencil
-                            className='icon-sm text-muted-foreground hover:text-primary transition-colors duration-200'
+                        <span className='flex size-full items-center justify-center text-muted-foreground'>
+                          <Package
+                            className='icon-xl'
                             aria-hidden
                           />
-                        </button>
+                        </span>
                       )}
-                      {can('products:delete') && (
-                        <button
-                          type='button'
-                          onClick={() => void handleDelete(product)}
-                          disabled={deleteMut.isPending}
-                          className='rounded p-1.5 hover:bg-accent transition-colors duration-200'
-                          aria-label={t('products.delete', {
-                            title: product.title,
-                          })}
-                        >
-                          <Trash2
-                            className='icon-sm text-muted-foreground hover:text-destructive transition-colors duration-200'
-                            aria-hidden
-                          />
-                        </button>
-                      )}
+                      <div className='absolute start-3 top-3 flex flex-wrap gap-1.5'>
+                        {badges(product)}
+                      </div>
                     </div>
-                  )}
-                />
-              </DataTableWrapper>
-            </div>
+                    <div className='flex flex-1 flex-col gap-3 p-4'>
+                      <div className='min-w-0'>
+                        <h3 className='line-clamp-2 text-card-title text-foreground'>
+                          {product.title}
+                        </h3>
+                        <p className='mt-1 truncate text-xs text-muted-foreground'>
+                          {categoryLine(product)}
+                        </p>
+                      </div>
+                      <div className='mt-auto flex items-end justify-between gap-2'>
+                        <div>
+                          <p className='text-section tabular-nums text-foreground'>
+                            {formatCurrency(Number(product.price || 0))}
+                          </p>
+                          <p className='text-xs tabular-nums text-muted-foreground'>
+                            {t('products.stock', {
+                              count: formatNumber(product.stock ?? 0),
+                            })}
+                          </p>
+                        </div>
+                        {actions(product)}
+                      </div>
+                    </div>
+                  </Card>
+                </li>
+              ))}
+            </ul>
           )}
-        </>
-      )}
 
-      {!productsQ.isLoading && !productsQ.isError && meta && (
-        <div className='flex items-center justify-between'>
-          <p className='text-sm text-muted-foreground'>
-            {t('common.showing', {
-              from: (meta.page - 1) * meta.limit + 1,
-              to: Math.min(meta.page * meta.limit, meta.total),
-              total: meta.total,
-            })}
-          </p>
-          <Pagination
-            currentPage={meta.page}
-            totalPages={Math.ceil(meta.total / meta.limit)}
-            onPageChange={table.setPage}
-            disabled={productsQ.isFetching}
-          />
+          {!productsQ.isLoading && meta && (
+            <TablePagination
+              meta={meta}
+              onPage={table.setPage}
+              busy={productsQ.isFetching}
+              className=''
+            />
+          )}
         </div>
       )}
 
       {open && (
-        <DialogWrapper
-          visible={open}
-          onHide={() => setOpen(false)}
-          header={editing ? t('products.editTitle') : t('products.createTitle')}
-          modal
-          className='w-full max-w-3xl'
+        <FormDialog
+          onClose={() => setOpen(false)}
+          title={editing ? t('products.editTitle') : t('products.createTitle')}
+          busy={saving}
+          size='editor'
         >
           <form
             onSubmit={handleSubmit}
-            className='space-y-3'
+            className='space-y-5'
           >
-            <Field label={t('products.form.title')}>
-              <input
+            <div className='grid gap-4 sm:grid-cols-2'>
+              <Field
+                label={t('products.form.title')}
                 required
-                value={form.title}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, title: e.target.value }))
-                }
-                className={inputClass}
-              />
-            </Field>
-            <Field label={t('products.form.brand')}>
-              <select
-                required
-                value={form.brand}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, brand: e.target.value }))
-                }
-                className={selectClass}
+                className='sm:col-span-2'
               >
-                <option value=''>{t('products.form.selectBrand')}</option>
-                {brands.map((b) => (
+                <Input
+                  required
+                  value={form.title}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, title: e.target.value }))
+                  }
+                />
+              </Field>
+              <Field
+                label={t('products.form.brand')}
+                required
+              >
+                <Select
+                  required
+                  value={form.brand}
+                  placeholder={t('products.form.selectBrand')}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, brand: e.target.value }))
+                  }
+                >
+                  {brands.map((b) => (
+                    <option
+                      key={b._id}
+                      value={b._id}
+                    >
+                      {b.name}
+                    </option>
+                  ))}
+                  {/* Keep the edited product's brand selectable even if the
+                      list didn't include it, instead of showing "Select brand". */}
+                  {form.brand && !brands.some((b) => b._id === form.brand) && (
+                    <option value={form.brand}>
+                      {(editing &&
+                        typeof editing.brand === 'object' &&
+                        editing.brand?.name) ||
+                        form.brand}
+                    </option>
+                  )}
+                </Select>
+              </Field>
+              <Field label={t('products.form.sku')}>
+                <Input
+                  value={form.sku}
+                  dir='ltr'
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, sku: e.target.value }))
+                  }
+                />
+              </Field>
+              <Field label={t('products.form.category')}>
+                <Select
+                  value={form.category}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, category: e.target.value }))
+                  }
+                >
+                  {CATEGORY_OPTIONS.map((c) => (
+                    <option
+                      key={c}
+                      value={c}
+                    >
+                      {tv('productCategory', c)}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field
+                label={t('products.form.subcategory')}
+                required
+              >
+                <Input
+                  value={form.subcategory}
+                  list='product-subcategories'
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, subcategory: e.target.value }))
+                  }
+                />
+              </Field>
+              <datalist id='product-subcategories'>
+                {subcategoryOptions.map((c) => (
                   <option
-                    key={b._id}
-                    value={b._id}
+                    key={c._id}
+                    value={c.slug}
                   >
-                    {b.name}
+                    {c.name}
                   </option>
                 ))}
-                {/* Keep the edited product's brand selectable even if the
-                    list didn't include it, instead of showing "Select brand". */}
-                {form.brand && !brands.some((b) => b._id === form.brand) && (
-                  <option value={form.brand}>
-                    {(editing &&
-                      typeof editing.brand === 'object' &&
-                      editing.brand?.name) ||
-                      form.brand}
-                  </option>
-                )}
-              </select>
-            </Field>
-            <div className='grid grid-cols-2 gap-3'>
-              <Field label={t('products.form.price')}>
-                <input
+              </datalist>
+              <Field
+                label={t('products.form.price')}
+                required
+              >
+                <Input
                   type='number'
                   min={0}
                   step='0.01'
@@ -717,28 +776,22 @@ export default function Products() {
                       price: Number(e.target.value),
                     }))
                   }
-                  className={inputClass}
                 />
               </Field>
-              <Field label={t('products.form.stock')}>
+              <Field
+                label={t('products.form.stock')}
+                hint={
+                  hasVariants ? t('products.form.stockFromVariants') : undefined
+                }
+              >
                 {hasVariants ? (
-                  <>
-                    <input
-                      type='number'
-                      readOnly
-                      value={variantStockTotal(form.variants)}
-                      aria-describedby='stock-from-variants'
-                      className={inputClass + ' cursor-not-allowed'}
-                    />
-                    <span
-                      id='stock-from-variants'
-                      className='mt-1 block text-xs text-muted-foreground'
-                    >
-                      {t('products.form.stockFromVariants')}
-                    </span>
-                  </>
+                  <Input
+                    type='number'
+                    readOnly
+                    value={variantStockTotal(form.variants)}
+                  />
                 ) : (
-                  <input
+                  <Input
                     type='number'
                     min={0}
                     value={form.stock}
@@ -748,290 +801,119 @@ export default function Products() {
                         stock: Number(e.target.value),
                       }))
                     }
-                    className={inputClass}
                   />
                 )}
               </Field>
-            </div>
-            <Field label={t('products.form.category')}>
-              <select
-                value={form.category}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, category: e.target.value }))
-                }
-                className={selectClass}
+              <Field
+                label={t('products.form.description')}
+                required
+                className='sm:col-span-2'
               >
-                {CATEGORY_OPTIONS.map((c) => (
-                  <option
-                    key={c.value}
-                    value={c.value}
-                  >
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <div>
-              <label
-                htmlFor='subcategory'
-                className='block text-sm font-medium text-foreground mb-1.5'
-              >
-                {t('products.form.subcategory')}
-              </label>
-              <input
-                id='subcategory'
-                value={form.subcategory}
-                list='product-subcategories'
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, subcategory: e.target.value }))
-                }
-                className={inputClass}
-              />
-              <datalist id='product-subcategories'>
-                {subcategoryOptions.map((c) => (
-                  <option
-                    key={c._id}
-                    value={c.slug}
-                  >
-                    {c.name}
-                  </option>
-                ))}
-              </datalist>
+                <Textarea
+                  value={form.description}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, description: e.target.value }))
+                  }
+                  rows={3}
+                />
+              </Field>
             </div>
-            <ImageUploadField
-              label={t('products.form.cover')}
-              required
-              value={form.cover}
-              onChange={(url) => setForm((f) => ({ ...f, cover: url }))}
-            />
-            <GalleryField
-              value={form.images || []}
-              onChange={(images) => setForm((f) => ({ ...f, images }))}
-            />
-            <Field label={t('products.form.sku')}>
-              <input
-                value={form.sku}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, sku: e.target.value }))
-                }
-                className={inputClass}
+
+            <div className='space-y-4 border-t border-border pt-5'>
+              <ImageUploadField
+                label={t('products.form.cover')}
+                required
+                value={form.cover}
+                onChange={(url) => setForm((f) => ({ ...f, cover: url }))}
               />
-            </Field>
-            <Field label={t('products.form.description')}>
-              <textarea
-                value={form.description}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, description: e.target.value }))
-                }
-                rows={3}
-                className={textareaClass}
+              <GalleryField
+                value={form.images || []}
+                onChange={(images) => setForm((f) => ({ ...f, images }))}
               />
-            </Field>
-            <VariantsEditor
-              value={form.variants || []}
-              onChange={(variants) => setForm((f) => ({ ...f, variants }))}
-            />
+            </div>
+
+            <div className='border-t border-border pt-5'>
+              <VariantsEditor
+                value={form.variants || []}
+                onChange={(variants) => setForm((f) => ({ ...f, variants }))}
+              />
+            </div>
+
             <details
-              className='rounded-lg border border-gray-200 p-3 text-sm dark:border-gray-700'
+              className='group rounded-badge border border-border'
               open={physicalOpen}
               onToggle={(e) => setPhysicalOpen(e.currentTarget.open)}
             >
-              <summary className='cursor-pointer font-medium text-foreground'>
+              <summary className='flex cursor-pointer list-none items-center justify-between gap-2 rounded-badge px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden'>
                 {t('products.form.physical')}
+                <ChevronDown
+                  className='size-4 text-muted-foreground transition-transform duration-normal group-open:rotate-180'
+                  aria-hidden
+                />
               </summary>
-              <div className='mt-3 space-y-3'>
-                <label className='block text-xs'>
-                  <span className='mb-1 block text-muted-foreground'>
-                    {t('products.form.material')}
-                  </span>
-                  <input
+              <div className='space-y-4 border-t border-border p-4'>
+                <Field label={t('products.form.material')}>
+                  <Input
                     value={form.material ?? ''}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, material: e.target.value }))
                     }
-                    className={inputClass + ' px-2 py-1.5 text-sm'}
                   />
-                </label>
-                <div className='grid grid-cols-2 gap-2 sm:grid-cols-4'>
-                  <label className='block text-xs'>
-                    <span className='mb-1 block text-muted-foreground'>
-                      {t('products.form.weightKg')}
-                    </span>
-                    <input
-                      type='number'
-                      min={0}
-                      step='0.01'
-                      value={form.weight ?? ''}
-                      onChange={(e) => {
-                        const v = numberOrUndefined(e.target.value);
-                        setForm((f) => ({ ...f, weight: v }));
-                      }}
-                      className={inputClass + ' px-2 py-1.5 text-sm'}
-                    />
-                  </label>
-                  <label className='block text-xs'>
-                    <span className='mb-1 block text-muted-foreground'>
-                      {t('products.form.lengthCm')}
-                    </span>
-                    <input
-                      type='number'
-                      min={0}
-                      step='0.01'
-                      value={form.dimensions?.length ?? ''}
-                      onChange={(e) => {
-                        const v = numberOrUndefined(e.target.value);
+                </Field>
+                <div className='grid grid-cols-2 gap-3 sm:grid-cols-4'>
+                  <MeasureField
+                    label={t('products.form.weightKg')}
+                    value={form.weight}
+                    onChange={(v) => setForm((f) => ({ ...f, weight: v }))}
+                  />
+                  {(['length', 'width', 'height'] as const).map((side) => (
+                    <MeasureField
+                      key={side}
+                      label={t(`products.form.${side}Cm`)}
+                      value={form.dimensions?.[side]}
+                      onChange={(v) =>
                         setForm((f) => ({
                           ...f,
-                          dimensions: { ...f.dimensions, length: v },
-                        }));
-                      }}
-                      className={inputClass + ' px-2 py-1.5 text-sm'}
+                          dimensions: { ...f.dimensions, [side]: v },
+                        }))
+                      }
                     />
-                  </label>
-                  <label className='block text-xs'>
-                    <span className='mb-1 block text-muted-foreground'>
-                      {t('products.form.widthCm')}
-                    </span>
-                    <input
-                      type='number'
-                      min={0}
-                      step='0.01'
-                      value={form.dimensions?.width ?? ''}
-                      onChange={(e) => {
-                        const v = numberOrUndefined(e.target.value);
-                        setForm((f) => ({
-                          ...f,
-                          dimensions: { ...f.dimensions, width: v },
-                        }));
-                      }}
-                      className={inputClass + ' px-2 py-1.5 text-sm'}
-                    />
-                  </label>
-                  <label className='block text-xs'>
-                    <span className='mb-1 block text-muted-foreground'>
-                      {t('products.form.heightCm')}
-                    </span>
-                    <input
-                      type='number'
-                      min={0}
-                      step='0.01'
-                      value={form.dimensions?.height ?? ''}
-                      onChange={(e) => {
-                        const v = numberOrUndefined(e.target.value);
-                        setForm((f) => ({
-                          ...f,
-                          dimensions: { ...f.dimensions, height: v },
-                        }));
-                      }}
-                      className={inputClass + ' px-2 py-1.5 text-sm'}
-                    />
-                  </label>
+                  ))}
                 </div>
-                <p className='pt-1 text-xs font-medium uppercase tracking-wide text-muted-foreground'>
-                  {t('products.form.packed')}
-                </p>
-                <div className='grid grid-cols-2 gap-2 sm:grid-cols-4'>
-                  <label className='block text-xs'>
-                    <span className='mb-1 block text-muted-foreground'>
-                      {t('products.form.weightKg')}
-                    </span>
-                    <input
-                      type='number'
-                      min={0}
-                      step='0.01'
-                      value={form.shippingInfo?.weight ?? ''}
-                      onChange={(e) => {
-                        const v = numberOrUndefined(e.target.value);
+                <FormSection title={t('products.form.packed')}>
+                  <div className='grid grid-cols-2 gap-3 sm:grid-cols-4'>
+                    <MeasureField
+                      label={t('products.form.weightKg')}
+                      value={form.shippingInfo?.weight}
+                      onChange={(v) =>
                         setForm((f) => ({
                           ...f,
                           shippingInfo: { ...f.shippingInfo, weight: v },
-                        }));
-                      }}
-                      className={inputClass + ' px-2 py-1.5 text-sm'}
+                        }))
+                      }
                     />
-                  </label>
-                  <label className='block text-xs'>
-                    <span className='mb-1 block text-muted-foreground'>
-                      {t('products.form.lengthCm')}
-                    </span>
-                    <input
-                      type='number'
-                      min={0}
-                      step='0.01'
-                      value={form.shippingInfo?.dimensions?.length ?? ''}
-                      onChange={(e) => {
-                        const v = numberOrUndefined(e.target.value);
-                        setForm((f) => ({
-                          ...f,
-                          shippingInfo: {
-                            ...f.shippingInfo,
-                            dimensions: {
-                              ...f.shippingInfo?.dimensions,
-                              length: v,
+                    {(['length', 'width', 'height'] as const).map((side) => (
+                      <MeasureField
+                        key={side}
+                        label={t(`products.form.${side}Cm`)}
+                        value={form.shippingInfo?.dimensions?.[side]}
+                        onChange={(v) =>
+                          setForm((f) => ({
+                            ...f,
+                            shippingInfo: {
+                              ...f.shippingInfo,
+                              dimensions: {
+                                ...f.shippingInfo?.dimensions,
+                                [side]: v,
+                              },
                             },
-                          },
-                        }));
-                      }}
-                      className={inputClass + ' px-2 py-1.5 text-sm'}
-                    />
-                  </label>
-                  <label className='block text-xs'>
-                    <span className='mb-1 block text-muted-foreground'>
-                      {t('products.form.widthCm')}
-                    </span>
-                    <input
-                      type='number'
-                      min={0}
-                      step='0.01'
-                      value={form.shippingInfo?.dimensions?.width ?? ''}
-                      onChange={(e) => {
-                        const v = numberOrUndefined(e.target.value);
-                        setForm((f) => ({
-                          ...f,
-                          shippingInfo: {
-                            ...f.shippingInfo,
-                            dimensions: {
-                              ...f.shippingInfo?.dimensions,
-                              width: v,
-                            },
-                          },
-                        }));
-                      }}
-                      className={inputClass + ' px-2 py-1.5 text-sm'}
-                    />
-                  </label>
-                  <label className='block text-xs'>
-                    <span className='mb-1 block text-muted-foreground'>
-                      {t('products.form.heightCm')}
-                    </span>
-                    <input
-                      type='number'
-                      min={0}
-                      step='0.01'
-                      value={form.shippingInfo?.dimensions?.height ?? ''}
-                      onChange={(e) => {
-                        const v = numberOrUndefined(e.target.value);
-                        setForm((f) => ({
-                          ...f,
-                          shippingInfo: {
-                            ...f.shippingInfo,
-                            dimensions: {
-                              ...f.shippingInfo?.dimensions,
-                              height: v,
-                            },
-                          },
-                        }));
-                      }}
-                      className={inputClass + ' px-2 py-1.5 text-sm'}
-                    />
-                  </label>
-                </div>
-                <label className='flex items-center gap-2 text-sm'>
-                  <input
-                    type='checkbox'
-                    checked={Boolean(
-                      form.shippingInfo?.requiresSpecialHandling,
-                    )}
+                          }))
+                        }
+                      />
+                    ))}
+                  </div>
+                  <Checkbox
+                    checked={Boolean(form.shippingInfo?.requiresSpecialHandling)}
                     onChange={(e) =>
                       setForm((f) => ({
                         ...f,
@@ -1041,65 +923,38 @@ export default function Products() {
                         },
                       }))
                     }
-                    className='h-4 w-4 rounded border-border'
+                    label={t('products.form.specialHandling')}
                   />
-                  <span className='text-foreground'>
-                    {t('products.form.specialHandling')}
-                  </span>
-                </label>
+                </FormSection>
               </div>
             </details>
-            <div className='flex flex-wrap gap-4'>
-              <label className='flex items-center gap-2 text-sm'>
-                <input
-                  type='checkbox'
-                  checked={form.isActive ?? true}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, isActive: e.target.checked }))
-                  }
-                  className='h-4 w-4 rounded border-border'
-                />
-                <span className='text-foreground'>
-                  {t('products.form.active')}
-                </span>
-              </label>
-              <label className='flex items-center gap-2 text-sm'>
-                <input
-                  type='checkbox'
-                  checked={form.featured ?? false}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, featured: e.target.checked }))
-                  }
-                  className='h-4 w-4 rounded border-border'
-                />
-                <span className='text-foreground'>
-                  {t('products.form.featured')}
-                </span>
-              </label>
-            </div>
-            <div className='flex justify-end gap-2 pt-2'>
-              <Button
-                type='button'
-                disabled={saving}
-                onClick={() => setOpen(false)}
-                severity='secondary'
-                label={t('common.cancel')}
-              />
-              <Button
-                type='submit'
-                disabled={saving}
-                label={
-                  saving
-                    ? t('products.form.saving')
-                    : editing
-                      ? t('products.form.save')
-                      : t('products.form.create')
+
+            <div className='flex flex-wrap gap-x-8 gap-y-2'>
+              <Switch
+                checked={form.isActive ?? true}
+                onCheckedChange={(isActive) =>
+                  setForm((f) => ({ ...f, isActive }))
                 }
+                label={t('products.form.active')}
+              />
+              <Switch
+                checked={form.featured ?? false}
+                onCheckedChange={(featured) =>
+                  setForm((f) => ({ ...f, featured }))
+                }
+                label={t('products.form.featured')}
               />
             </div>
+            <FormActions
+              onCancel={() => setOpen(false)}
+              saving={saving}
+              submitLabel={
+                editing ? t('products.form.save') : t('products.form.create')
+              }
+            />
           </form>
-        </DialogWrapper>
+        </FormDialog>
       )}
-    </div>
+    </>
   );
 }

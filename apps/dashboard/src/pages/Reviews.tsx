@@ -1,18 +1,5 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { MessageSquareReply, Trash2 } from 'lucide-react';
-// @ts-ignore
-import { DataTable } from 'primereact/datatable';
-// @ts-ignore
-import { Column } from 'primereact/column';
-// @ts-ignore
-import { InputText } from 'primereact/inputtext';
-// @ts-ignore
-import { Dropdown } from 'primereact/dropdown';
-// @ts-ignore
-import { Button } from 'primereact/button';
-// @ts-ignore
-import { Dialog } from 'primereact/dialog';
+import { CornerDownRight, MessageSquareReply, Star, Trash2 } from 'lucide-react';
 import {
   useAdminReviews,
   useDeleteAdminReviewMutation,
@@ -26,17 +13,18 @@ import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useTableQuery } from '../hooks/useTableQuery';
 import { useT } from '../i18n/I18nProvider';
 import { PageHeader } from '../components/ui/PageHeader';
-
-// @ts-ignore - PrimeReact types are bundled
-const ColumnWrapper = Column as any;
-// @ts-ignore - PrimeReact types are bundled
-const DropdownWrapper = Dropdown as any;
-// @ts-ignore - PrimeReact types are bundled
-const DataTableWrapper = DataTable as any;
-// @ts-ignore - PrimeReact types are bundled
-const InputTextWrapper = InputText as any;
-// @ts-ignore - PrimeReact types are bundled
-const DialogWrapper = Dialog as any;
+import { Alert } from '../components/ui/Alert';
+import { Button } from '../components/ui/Button';
+import { IconButton } from '../components/ui/IconButton';
+import {
+  DataTable,
+  RowActions,
+  type DataTableColumn,
+} from '../components/ui/DataTable';
+import { FilterBar, FilterBarItem } from '../components/ui/FilterBar';
+import { Field, Select, Textarea } from '../components/ui/Field';
+import { FormDialog, FormDialogFooter } from '../components/ui/FormDialog';
+import { Rating } from '../components/ui/Rating';
 
 function productLabel(review: AdminReview, fallback: string) {
   if (review.product && typeof review.product === 'object') {
@@ -60,6 +48,8 @@ export default function Reviews() {
   const productOf = (r: AdminReview) =>
     productLabel(r, t('reviews.productFallback'));
   const userOf = (r: AdminReview) => userLabel(r, t('reviews.userFallback'));
+  const ratingLabel = (n: number) =>
+    t(n === 1 ? 'reviews.starOne' : 'reviews.starMany', { n: formatNumber(n) });
   const table = useTableQuery({ limit: 25, sort: 'createdAt', order: 'desc' });
   const { resetPage } = table;
   const [search, setSearch] = useState('');
@@ -139,268 +129,263 @@ export default function Reviews() {
     }
   }
 
+  const columns: DataTableColumn<AdminReview>[] = [
+    {
+      key: 'product',
+      header: t('reviews.columns.product'),
+      className: 'max-w-[14rem]',
+      cell: (review) => (
+        <span
+          className='block truncate font-medium text-foreground'
+          dir='auto'
+        >
+          {productOf(review)}
+        </span>
+      ),
+    },
+    {
+      key: 'user',
+      header: t('reviews.columns.user'),
+      className: 'max-w-[14rem]',
+      cell: (review) => (
+        <span
+          className='block truncate text-muted-foreground'
+          dir='auto'
+        >
+          {userOf(review)}
+        </span>
+      ),
+    },
+    {
+      key: 'rating',
+      header: t('reviews.columns.rating'),
+      sortable: true,
+      cell: (review) => (
+        <Rating
+          value={review.rating}
+          label={ratingLabel(review.rating)}
+        />
+      ),
+    },
+    {
+      key: 'comment',
+      header: t('reviews.columns.comment'),
+      className: 'max-w-[22rem]',
+      cell: (review) => (
+        <>
+          <p
+            className='truncate'
+            dir='auto'
+            title={review.comment || undefined}
+          >
+            {review.comment || '—'}
+          </p>
+          {review.reply?.text && (
+            <p
+              className='mt-1 flex items-center gap-1 text-xs text-muted-foreground'
+              title={review.reply.text}
+            >
+              <CornerDownRight
+                className='size-3 shrink-0 rtl:-scale-x-100'
+                aria-hidden
+              />
+              <span
+                className='truncate'
+                dir='auto'
+              >
+                {review.reply.text}
+              </span>
+            </p>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'createdAt',
+      header: t('reviews.columns.date'),
+      sortable: true,
+      className: 'whitespace-nowrap text-muted-foreground',
+      cell: (review) => (review.createdAt ? formatDate(review.createdAt) : '—'),
+    },
+    {
+      key: 'actions',
+      header: t('common.actions'),
+      actions: true,
+      cell: (review) => (
+        <RowActions>
+          {can('reviews:write') && (
+            <IconButton
+              icon={
+                <MessageSquareReply
+                  className='rtl:-scale-x-100'
+                  aria-hidden
+                />
+              }
+              label={
+                review.reply ? t('reviews.editReply') : t('reviews.replyTo')
+              }
+              onClick={() => openReply(review)}
+              className={review.reply ? 'text-foreground' : undefined}
+            />
+          )}
+          {can('reviews:delete') && (
+            <IconButton
+              icon={<Trash2 aria-hidden />}
+              label={t('reviews.deleteReview')}
+              onClick={() => void handleDelete(review)}
+              disabled={deleteMut.isPending}
+            />
+          )}
+        </RowActions>
+      ),
+    },
+  ];
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
+    <>
       <PageHeader
         title={t('reviews.title')}
         description={t('reviews.subtitle')}
       />
 
-      <div className='mb-6 flex flex-col gap-3 sm:flex-row sm:items-end'>
-        <InputTextWrapper
-          value={search}
-          onChange={(e: any) => setSearch(e.target.value)}
-          placeholder={t('reviews.searchPlaceholder')}
-          className='w-full sm:w-64'
-        />
-        <DropdownWrapper
-          value={ratingFilter}
-          options={[5, 4, 3, 2, 1].map((r) => ({
-            label: t(r === 1 ? 'reviews.starOne' : 'reviews.starMany', {
-              n: formatNumber(r),
-            }),
-            value: r,
-          }))}
-          onChange={(e: any) => {
-            setRatingFilter(e.value);
-            resetPage();
-          }}
-          placeholder={t('reviews.filterRating')}
-          className='w-full sm:w-40'
-          showClear
-        />
-        <Button
-          label={t('reviews.searchLabel')}
-          onClick={() => {
-            setAppliedQ(search.trim());
-            resetPage();
-          }}
-          className='w-full sm:w-auto'
-        />
-        {(appliedQ || ratingFilter) && (
-          <Button
-            label='Clear'
-            onClick={() => {
-              setSearch('');
-              setAppliedQ('');
-              setRatingFilter('');
-              resetPage();
-            }}
-            severity='secondary'
-            className='w-full sm:w-auto'
-          />
-        )}
-      </div>
-
-      {reviewsQ.isLoading && (
-        <p className='py-10 text-center text-sm text-gray-500'>
-          {t('reviews.loading')}
-        </p>
-      )}
-
-      {reviewsQ.isError && (
-        <div className='rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200'>
+      {reviewsQ.isError ? (
+        <Alert tone='error'>
           {errorMessage(reviewsQ.error, t('reviews.loadFailed'))}
-        </div>
+        </Alert>
+      ) : (
+        <DataTable
+          caption={t('reviews.title')}
+          data={reviews}
+          columns={columns}
+          getKey={(review) => review._id}
+          loading={reviewsQ.isLoading}
+          fetching={reviewsQ.isFetching}
+          sort={table.sort}
+          order={table.order}
+          onSort={table.toggleSort}
+          meta={meta}
+          onPage={table.setPage}
+          onLimit={table.setLimit}
+          emptyIcon={<Star aria-hidden />}
+          emptyTitle={t('reviews.empty')}
+          toolbar={
+            <FilterBar
+              search={{
+                value: search,
+                onChange: setSearch,
+                onSubmit: () => {
+                  setAppliedQ(search.trim());
+                  resetPage();
+                },
+                placeholder: t('reviews.searchPlaceholder'),
+                label: t('reviews.searchLabel'),
+                submitLabel: t('common.search'),
+              }}
+              canClear={Boolean(appliedQ || ratingFilter)}
+              onClear={() => {
+                setSearch('');
+                setAppliedQ('');
+                setRatingFilter('');
+                resetPage();
+              }}
+            >
+              <FilterBarItem>
+                <Select
+                  aria-label={t('reviews.filterRating')}
+                  value={ratingFilter}
+                  onChange={(e) => {
+                    setRatingFilter(e.target.value);
+                    resetPage();
+                  }}
+                >
+                  <option value=''>{t('reviews.allRatings')}</option>
+                  {[5, 4, 3, 2, 1].map((r) => (
+                    <option
+                      key={r}
+                      value={r}
+                    >
+                      {ratingLabel(r)}
+                    </option>
+                  ))}
+                </Select>
+              </FilterBarItem>
+            </FilterBar>
+          }
+        />
       )}
 
-      {!reviewsQ.isLoading && !reviewsQ.isError && (
-        <div className='rounded-xl border border-gray-200 bg-card shadow-sm dark:border-gray-700 dark:bg-gray-800'>
-          <DataTableWrapper
-            value={reviews}
-            paginator
-            rows={25}
-            totalRecords={meta?.total}
-            lazy
-            onPage={table.setPage}
-            first={(meta?.page ? meta.page - 1 : 0) * 25}
-            loading={reviewsQ.isFetching}
-            emptyMessage={t('reviews.empty')}
-            sortField={table.sort}
-            sortOrder={table.order === 'asc' ? 1 : -1}
-            onSort={table.toggleSort}
-            className='p-datatable-sm'
-          >
-            <ColumnWrapper
-              header={t('reviews.columns.product')}
-              body={(review: any) => productOf(review)}
-            />
-            <ColumnWrapper
-              header={t('reviews.columns.user')}
-              body={(review: any) => userOf(review)}
-            />
-            <ColumnWrapper
-              field='rating'
-              header={t('reviews.columns.rating')}
-              sortable
-              body={(review: any) => (
-                <span dir='ltr'>{formatNumber(review.rating)}/5</span>
-              )}
-            />
-            <ColumnWrapper
-              header={t('reviews.columns.comment')}
-              body={(review: any) => (
-                <div>
-                  <p
-                    className='truncate'
-                    dir='auto'
-                  >
-                    {review.comment || '—'}
-                  </p>
-                  {review.reply?.text && (
-                    <p
-                      className='mt-0.5 truncate text-xs text-primary'
-                      title={review.reply.text}
-                    >
-                      {t('reviews.replied', { text: review.reply.text })}
-                    </p>
-                  )}
-                </div>
-              )}
-            />
-            <ColumnWrapper
-              field='createdAt'
-              header={t('reviews.columns.date')}
-              sortable
-              body={(review: any) =>
-                review.createdAt ? formatDate(review.createdAt) : '—'
-              }
-            />
-            <ColumnWrapper
-              header={t('common.actions')}
-              body={(review: any) => (
-                <div className='flex items-center gap-1'>
-                  {can('reviews:write') && (
-                    <button
-                      type='button'
-                      onClick={() => openReply(review)}
-                      className='rounded p-1.5 hover:bg-accent transition-colors duration-200'
-                      aria-label={
-                        review.reply
-                          ? t('reviews.editReply')
-                          : t('reviews.replyTo')
-                      }
-                      title={
-                        review.reply
-                          ? t('reviews.editReply')
-                          : t('reviews.reply')
-                      }
-                    >
-                      <MessageSquareReply
-                        className={`icon-sm rtl:-scale-x-100 ${review.reply ? 'text-primary' : 'text-muted-foreground'}`}
-                        aria-hidden
-                      />
-                    </button>
-                  )}
-                  {can('reviews:delete') && (
-                    <button
-                      type='button'
-                      onClick={() => void handleDelete(review)}
-                      disabled={deleteMut.isPending}
-                      className='rounded p-1.5 hover:bg-destructive/10 transition-colors duration-200'
-                      aria-label={t('reviews.deleteReview')}
-                    >
-                      <Trash2
-                        className='icon-sm text-muted-foreground hover:text-destructive transition-colors duration-200'
-                        aria-hidden
-                      />
-                    </button>
-                  )}
-                </div>
-              )}
-            />
-          </DataTableWrapper>
-        </div>
-      )}
-
-      {!!replying && (
-        <DialogWrapper
-          visible={!!replying}
-          onHide={() => setReplying(null)}
-          header={t('reviews.replyTitle')}
-          modal
-          className='w-full max-w-lg'
+      {replying && (
+        <FormDialog
+          onClose={() => setReplying(null)}
+          title={t('reviews.replyTitle')}
+          busy={replyBusy}
         >
-          <blockquote className='mb-4 rounded-lg bg-gray-50 p-3 text-sm dark:bg-gray-900'>
-            <p className='mb-1 text-xs text-gray-500'>
-              {userOf(replying)} · {productOf(replying)} ·{' '}
-              <span
-                className='text-amber-600 dark:text-amber-400'
-                dir='ltr'
-              >
-                {formatNumber(replying.rating)}/5
-              </span>
-            </p>
-            <p
-              className='whitespace-pre-line text-gray-800 dark:text-gray-200'
+          <figure className='mb-5 rounded-badge border border-border bg-muted/60 p-4'>
+            <figcaption className='mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground'>
+              <Rating
+                value={replying.rating}
+                label={ratingLabel(replying.rating)}
+              />
+              <span dir='auto'>{userOf(replying)}</span>
+              <span aria-hidden>·</span>
+              <span dir='auto'>{productOf(replying)}</span>
+            </figcaption>
+            <blockquote
+              className='whitespace-pre-line text-sm text-foreground'
               dir='auto'
             >
               {replying.comment || '—'}
-            </p>
-          </blockquote>
-          <form
-            onSubmit={handleSaveReply}
-            className='space-y-3'
-          >
-            <label className='block text-sm'>
-              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                {t('reviews.storeReply')}
-              </span>
-              <textarea
+            </blockquote>
+          </figure>
+          <form onSubmit={handleSaveReply}>
+            <Field
+              label={t('reviews.storeReply')}
+              hint={
+                <>
+                  {t('reviews.replyHint')}{' '}
+                  <span dir='ltr'>{formatNumber(replyText.length)}/1000</span>
+                </>
+              }
+            >
+              <Textarea
                 rows={4}
                 maxLength={1000}
                 value={replyText}
                 dir='auto'
                 onChange={(e) => setReplyText(e.target.value)}
-                aria-describedby='reply-help'
-                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
               />
-              <span
-                id='reply-help'
-                className='mt-1 block text-xs text-gray-500 dark:text-gray-400'
-              >
-                {t('reviews.replyHint')}{' '}
-                <span dir='ltr'>{formatNumber(replyText.length)}/1000</span>
-              </span>
-            </label>
-            <div className='flex flex-wrap items-center justify-between gap-2 pt-2'>
-              {replying.reply ? (
+            </Field>
+            <FormDialogFooter>
+              {replying.reply && (
                 <Button
-                  type='button'
+                  variant='destructive'
+                  className='me-auto'
                   disabled={replyBusy}
                   onClick={() => void handleRemoveReply()}
-                  severity='danger'
-                  label={t('reviews.removeReply')}
-                />
-              ) : (
-                <span />
+                  icon={<Trash2 aria-hidden />}
+                >
+                  {t('reviews.removeReply')}
+                </Button>
               )}
-              <div className='flex gap-2'>
-                <Button
-                  type='button'
-                  disabled={replyBusy}
-                  onClick={() => setReplying(null)}
-                  severity='secondary'
-                  label={t('common.cancel')}
-                />
-                <Button
-                  type='submit'
-                  disabled={replyBusy}
-                  label={
-                    replyMut.isPending
-                      ? t('common.saving')
-                      : t('reviews.publishReply')
-                  }
-                />
-              </div>
-            </div>
+              <Button
+                variant='ghost'
+                disabled={replyBusy}
+                onClick={() => setReplying(null)}
+              >
+                {t('common.cancel')}
+              </Button>
+              <Button
+                type='submit'
+                variant='primary'
+                loading={replyMut.isPending}
+                disabled={replyBusy}
+              >
+                {t('reviews.publishReply')}
+              </Button>
+            </FormDialogFooter>
           </form>
-        </DialogWrapper>
+        </FormDialog>
       )}
-    </motion.div>
+    </>
   );
 }
