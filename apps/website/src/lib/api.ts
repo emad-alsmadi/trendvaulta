@@ -285,6 +285,11 @@ export const authApi = {
     const { data } = await api.post(endpoints.auth.verifyEmail, { token });
     return data;
   },
+  /** Remember the shopper's storefront language for their emails (P1-02). */
+  updateLocale: async (locale: 'en' | 'ar'): Promise<{ locale: string }> => {
+    const { data } = await api.put(endpoints.auth.locale, { locale });
+    return data;
+  },
   /** Email a new confirmation link to the signed-in user (1 per minute). */
   resendVerification: async (): Promise<{ emailVerified: boolean }> => {
     const { data } = await api.post(endpoints.auth.resendVerification);
@@ -571,6 +576,8 @@ export type OrderCheckoutPayload = {
   };
   /** Guest checkout only: where the receipt and order link are sent. */
   email?: string;
+  /** Storefront language, for a guest's order emails. */
+  locale?: 'en' | 'ar';
   /** Physical shipping intent — server sets shippingPrice */
   delivery?: boolean;
   shippingMethod?: 'none' | 'standard' | 'express';

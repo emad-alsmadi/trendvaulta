@@ -220,6 +220,8 @@ ProductSchema.index({ featured: 1, isActive: 1 });
 ProductSchema.index({ isActive: 1, category: 1, price: 1 });
 ProductSchema.index({ isActive: 1, brand: 1 });
 ProductSchema.index({ isActive: 1, createdAt: -1 });
+// Sitemap shards page through active products in _id order
+ProductSchema.index({ isActive: 1, _id: 1 });
 // Full-text search index (replaces $regex scans)
 ProductSchema.index(
   { title: 'text', description: 'text', subcategory: 'text' },

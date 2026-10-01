@@ -781,9 +781,22 @@ async function generateReviews(users, products) {
     'Worth every penny. Highly recommend to others.',
   ];
 
-  for (let i = 0; i < 80; i++) {
+  // Track used (user, product) pairs to avoid duplicates
+  const usedPairs = new Set();
+  const targetReviews = Math.min(80, users.length * products.length);
+
+  let attempts = 0;
+  const maxAttempts = targetReviews * 10; // Prevent infinite loop
+
+  while (reviews.length < targetReviews && attempts < maxAttempts) {
+    attempts++;
     const user = users[Math.floor(Math.random() * users.length)];
     const product = products[Math.floor(Math.random() * products.length)];
+
+    const pairKey = `${user._id.toString()}-${product._id.toString()}`;
+    if (usedPairs.has(pairKey)) continue;
+
+    usedPairs.add(pairKey);
     const rating = Math.floor(Math.random() * 5) + 1;
     const comment = comments[Math.floor(Math.random() * comments.length)];
 
@@ -864,7 +877,13 @@ async function seedDashboardData(users, products) {
 
   console.log(`⭐ Generating and inserting reviews...`);
   const reviews = await generateReviews(allUsers, products);
-  await Review.insertMany(reviews);
+  // Use ordered: false to skip duplicates if any old index conflicts exist
+  await Review.insertMany(reviews, { ordered: false }).catch((err) => {
+    if (err.code !== 11000) throw err; // Re-throw non-duplicate errors
+    console.log(
+      '⚠️  Some reviews skipped due to duplicates (expected with old data)',
+    );
+  });
 
   return {
     categories: CATEGORIES.length,
@@ -1081,10 +1100,12 @@ const importData = async () => {
     const admin = await seedAdminUser();
     const contentCounts = await seedContent(admin);
 
-    // Seed dashboard-specific data (pass users directly)
-    const allUsers = [...createdUsers];
-    if (admin) allUsers.push(admin);
-    const dashboardCounts = await seedDashboardData(allUsers, insertedProducts);
+    // Seed dashboard-specific data (pass admin for reviews/orders)
+    const usersForDashboard = admin ? [admin] : [];
+    const dashboardCounts = await seedDashboardData(
+      usersForDashboard,
+      insertedProducts,
+    );
 
     console.log('✅ Data imported successfully!');
     console.log(`📊 Summary:`);

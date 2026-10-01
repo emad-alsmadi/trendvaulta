@@ -302,7 +302,8 @@ export default function DashboardLayout() {
       <aside
         aria-label={t('nav.label')}
         className={cn(
-          'fixed start-0 top-0 z-50 flex h-full flex-col border-e border-border bg-card transition-[transform,width] duration-normal',
+          'fixed start-0 top-0 z-50 flex h-full flex-col border-e border-border transition-[transform,width] duration-normal',
+          'bg-gradient-to-b from-brand-purple via-brand-indigo to-brand-cyan',
           'max-w-[85vw] md:translate-x-0 md:rtl:translate-x-0 md:max-w-none',
           mobileOpen
             ? 'translate-x-0'
@@ -311,25 +312,23 @@ export default function DashboardLayout() {
         )}
       >
         {/* Logo */}
-        <div className='flex shrink-0 items-center justify-between p-4'>
+        <div className='flex shrink-0 items-center justify-between p-4 border-b border-white/10'>
           <Link
             to='/'
             className='flex items-center gap-2.5'
           >
-            <div className='flex size-8 items-center justify-center rounded-control bg-primary text-primary-foreground'>
+            <div className='flex size-8 items-center justify-center rounded-control bg-white/20 text-white backdrop-blur-sm'>
               <span className='text-sm font-bold'>TV</span>
             </div>
             {showLabels && (
-              <h1 className='text-lg font-semibold text-foreground'>
-                TrendVaulta
-              </h1>
+              <h1 className='text-lg font-semibold text-white'>TrendVaulta</h1>
             )}
           </Link>
           <button
             type='button'
             onClick={() => setMobileOpen(false)}
             aria-label={t('nav.closeMenu')}
-            className='rounded-control p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:hidden'
+            className='rounded-control p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white md:hidden'
           >
             <X
               className='icon-sm'
@@ -346,7 +345,7 @@ export default function DashboardLayout() {
               className='mb-6'
             >
               {group.label && showLabels && (
-                <p className='mb-2 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider'>
+                <p className='mb-2 px-3 text-xs font-medium text-white/60 uppercase tracking-wider'>
                   {t(group.label)}
                 </p>
               )}
@@ -362,11 +361,11 @@ export default function DashboardLayout() {
                         to={item.path}
                         aria-current={isActive ? 'page' : undefined}
                         className={cn(
-                          'relative flex items-center gap-3 rounded-control px-3 py-2 text-sm font-medium transition-colors',
-                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                          'relative flex items-center gap-3 rounded-control px-3 py-2 text-sm font-medium transition-all duration-200',
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent',
                           isActive
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                            ? 'bg-white/20 text-white shadow-lg'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white',
                         )}
                       >
                         <Icon
@@ -379,7 +378,7 @@ export default function DashboardLayout() {
                         {showLabels && <span>{t(item.label)}</span>}
                         {badge > 0 &&
                           (showLabels ? (
-                            <span className='ms-auto rounded-badge bg-foreground px-1.5 py-0.5 text-xs font-medium text-primary-foreground'>
+                            <span className='ms-auto rounded-badge bg-white px-1.5 py-0.5 text-xs font-medium text-brand-purple'>
                               {badge > 99 ? '99+' : badge}
                               <span className='sr-only'>
                                 {' '}
@@ -388,7 +387,7 @@ export default function DashboardLayout() {
                             </span>
                           ) : (
                             // Collapsed rail: a dot, with the count for screen readers
-                            <span className='absolute end-2 top-2 size-2 rounded-full bg-foreground'>
+                            <span className='absolute end-2 top-2 size-2 rounded-full bg-white'>
                               <span className='sr-only'>
                                 {badge} {t('common.unread')}
                               </span>
@@ -404,7 +403,7 @@ export default function DashboardLayout() {
         </nav>
 
         {/* Sidebar footer */}
-        <div className='shrink-0 border-t border-border px-2 py-4'>
+        <div className='shrink-0 border-t border-white/10 px-2 py-4'>
           <div className='space-y-1'>
             <button
               type='button'
@@ -412,8 +411,8 @@ export default function DashboardLayout() {
               aria-label={showLabels ? undefined : t('nav.toggleTheme')}
               className={cn(
                 'flex w-full items-center gap-3 rounded-control px-3 py-2 text-sm font-medium transition-all duration-200',
-                'text-muted-foreground hover:bg-accent hover:text-foreground hover:shadow-sm',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                'text-white/80 hover:bg-white/10 hover:text-white hover:shadow-sm',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent',
                 'group',
               )}
             >
@@ -427,7 +426,7 @@ export default function DashboardLayout() {
                 />
               </div>
               {showLabels && (
-                <span className='font-medium transition-colors duration-200 group-hover:text-primary'>
+                <span className='font-medium transition-colors duration-200 group-hover:text-white'>
                   {t('nav.toggleTheme')}
                 </span>
               )}
@@ -446,8 +445,8 @@ export default function DashboardLayout() {
               aria-label={showLabels ? undefined : t('nav.logout')}
               className={cn(
                 'flex w-full items-center gap-3 rounded-control px-3 py-2 text-sm font-medium transition-all duration-200',
-                'text-muted-foreground hover:bg-accent hover:text-foreground hover:shadow-sm',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                'text-white/80 hover:bg-white/10 hover:text-white hover:shadow-sm',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent',
                 'group',
               )}
             >
@@ -458,7 +457,7 @@ export default function DashboardLayout() {
                 aria-hidden
               />
               {showLabels && (
-                <span className='font-medium transition-colors duration-200 group-hover:text-destructive'>
+                <span className='font-medium transition-colors duration-200 group-hover:text-white'>
                   {t('nav.logout')}
                 </span>
               )}
@@ -475,14 +474,14 @@ export default function DashboardLayout() {
         )}
       >
         {/* Topbar */}
-        <header className='sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60'>
+        <header className='sticky top-0 z-40 border-b border-border bg-gradient-to-r from-brand-purple/10 via-brand-indigo/10 to-brand-cyan/10 backdrop-blur supports-[backdrop-filter]:bg-background/60'>
           <div className='flex h-topbar items-center gap-3 px-4 sm:px-6'>
             {/* Mobile: open drawer */}
             <button
               type='button'
               onClick={() => setMobileOpen(true)}
               aria-label={t('nav.openMenu')}
-              className='rounded-control p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:hidden'
+              className='rounded-control p-2 text-muted-foreground transition-colors hover:bg-brand-purple/20 hover:text-brand-purple md:hidden'
             >
               <Menu
                 className='icon-md'
@@ -494,7 +493,7 @@ export default function DashboardLayout() {
               type='button'
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               aria-label={isSidebarOpen ? t('nav.collapse') : t('nav.expand')}
-              className='hidden rounded-control p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:inline-flex'
+              className='hidden rounded-control p-2 text-muted-foreground transition-colors hover:bg-brand-purple/20 hover:text-brand-purple md:inline-flex'
             >
               {isSidebarOpen ? (
                 <ChevronRight
@@ -526,9 +525,9 @@ export default function DashboardLayout() {
                   aria-label={t('common.switchLanguageLabel')}
                   lang={locale === 'en' ? 'ar' : 'en'}
                   className={cn(
-                    'inline-flex items-center gap-2 rounded-control border border-border px-3 py-1.5 text-sm font-medium transition-all duration-200',
-                    'text-foreground hover:bg-accent hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-                    'shadow-sm hover:shadow-md',
+                    'inline-flex items-center gap-2 rounded-control border border-brand-purple/30 bg-white/50 px-3 py-1.5 text-sm font-medium transition-all duration-200',
+                    'text-foreground hover:bg-brand-purple/20 hover:border-brand-purple hover:text-brand-purple focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                    'shadow-sm hover:shadow-md backdrop-blur-sm',
                   )}
                 >
                   <Languages

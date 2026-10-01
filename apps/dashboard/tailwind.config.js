@@ -58,6 +58,10 @@ export default {
           'indigo-light': '#818cf8',
           'cyan-light': '#22d3ee',
         },
+        // Brand light opacity variants
+        'brand-purple': '#9333ea',
+        'brand-indigo': '#6366f1',
+        'brand-cyan': '#06b6d4',
         // Dashboard metric colors
         metric: {
           blue: '#3b82f6',
@@ -67,6 +71,23 @@ export default {
           pink: '#ec4899',
           teal: '#14b8a6',
         },
+        // Metric light variants for backgrounds
+        'metric-green': '#10b981',
+        'metric-teal': '#14b8a6',
+        'metric-blue': '#3b82f6',
+        'metric-orange': '#f59e0b',
+        'metric-red': '#ef4444',
+        'metric-pink': '#ec4899',
+        // Light opacity variants for backgrounds
+        'brand-purple-light': '#a855f7',
+        'brand-indigo-light': '#818cf8',
+        'brand-cyan-light': '#22d3ee',
+        'metric-green-light': '#34d399',
+        'metric-teal-light': '#2dd4bf',
+        'metric-blue-light': '#60a5fa',
+        'metric-orange-light': '#fbbf24',
+        'metric-red-light': '#f87171',
+        'metric-pink-light': '#f472b6',
       },
       borderColor: {
         DEFAULT: token('border'),

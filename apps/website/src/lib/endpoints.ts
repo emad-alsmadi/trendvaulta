@@ -15,6 +15,7 @@ export const endpoints = {
     logout: '/auth/logout',
     profile: '/auth/profile',
     verifyEmail: '/auth/verify-email',
+    locale: '/auth/locale',
     resendVerification: '/auth/verify-email/resend',
   },
   addresses: {

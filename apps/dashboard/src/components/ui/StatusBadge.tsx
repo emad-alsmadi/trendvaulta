@@ -13,7 +13,13 @@ import { cn } from '../../lib/cn';
  *   ended      ⃠ icon, dashed outline, muted — void / closed out  (canceled, refunded, inactive)
  *   neutral    no mark, grey fill            — plain tag          (categories, brands, roles)
  */
-export type BadgeTone = 'solid' | 'outline' | 'tint' | 'attention' | 'ended' | 'neutral';
+export type BadgeTone =
+  | 'solid'
+  | 'outline'
+  | 'tint'
+  | 'attention'
+  | 'ended'
+  | 'neutral';
 
 /** The one map from a status value to its treatment — extend it here, not per page. */
 const STATUS_TONE: Record<string, BadgeTone> = {
@@ -25,6 +31,7 @@ const STATUS_TONE: Record<string, BadgeTone> = {
   published: 'solid',
   subscribed: 'solid',
   in_stock: 'solid',
+  featured: 'solid',
   // moving
   shipped: 'outline',
   processing: 'outline',
@@ -38,12 +45,13 @@ const STATUS_TONE: Record<string, BadgeTone> = {
   unpaid: 'tint',
   draft: 'tint',
   read: 'tint',
+  unconfirmed: 'tint',
   // needs a person
   needs_attention: 'attention',
   failed: 'attention',
   refund_failed: 'attention',
   low_stock: 'attention',
-  out_of_stock: 'attention',
+  out_of_stock: 'ended',
   // void / closed out
   canceled: 'ended',
   cancelled: 'ended',
@@ -52,6 +60,7 @@ const STATUS_TONE: Record<string, BadgeTone> = {
   closed: 'ended',
   unsubscribed: 'ended',
   inactive: 'ended',
+  disabled: 'ended',
   expired: 'ended',
   hidden: 'ended',
 };
@@ -61,30 +70,53 @@ export const statusTone = (status: string | null | undefined): BadgeTone =>
   STATUS_TONE[String(status ?? '').toLowerCase()] ?? 'tint';
 
 const TONE_CLASS: Record<BadgeTone, string> = {
-  solid: 'bg-primary text-primary-foreground',
-  outline: 'border border-input text-foreground',
-  tint: 'bg-muted text-foreground',
-  attention: 'border border-foreground font-semibold text-foreground',
-  ended: 'border border-dashed border-input text-muted-foreground',
+  solid: 'bg-brand-purple text-white',
+  outline: 'border border-brand-indigo text-brand-indigo',
+  tint: 'bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/20',
+  attention: 'border border-metric-orange font-semibold text-metric-orange',
+  ended: 'border border-dashed border-muted-foreground text-muted-foreground',
   neutral: 'bg-muted text-muted-foreground',
 };
 
 function Mark({ tone }: { tone: BadgeTone }) {
   switch (tone) {
     case 'solid':
-      return <span aria-hidden className='size-2 shrink-0 rounded-full bg-current' />;
+      return (
+        <span
+          aria-hidden
+          className='size-2 shrink-0 rounded-full bg-current'
+        />
+      );
     case 'outline':
       return (
-        <span aria-hidden className='flex size-2 shrink-0 overflow-hidden rounded-full border border-current'>
+        <span
+          aria-hidden
+          className='flex size-2 shrink-0 overflow-hidden rounded-full border border-current'
+        >
           <span className='h-full w-1/2 bg-current' />
         </span>
       );
     case 'tint':
-      return <span aria-hidden className='size-2 shrink-0 rounded-full border border-current' />;
+      return (
+        <span
+          aria-hidden
+          className='size-2 shrink-0 rounded-full border border-current'
+        />
+      );
     case 'attention':
-      return <AlertTriangle aria-hidden className='size-3 shrink-0' />;
+      return (
+        <AlertTriangle
+          aria-hidden
+          className='size-3 shrink-0'
+        />
+      );
     case 'ended':
-      return <Ban aria-hidden className='size-3 shrink-0' />;
+      return (
+        <Ban
+          aria-hidden
+          className='size-3 shrink-0'
+        />
+      );
     default:
       return null;
   }
@@ -100,7 +132,13 @@ type BadgeProps = {
 };
 
 /** Generic badge in one of the tones. Prefer <StatusBadge> for a status value. */
-export function Badge({ tone = 'neutral', children, className, plain, title }: BadgeProps) {
+export function Badge({
+  tone = 'neutral',
+  children,
+  className,
+  plain,
+  title,
+}: BadgeProps) {
   return (
     <span
       title={title}
@@ -133,7 +171,10 @@ export function StatusBadge({
   className?: string;
 }) {
   return (
-    <Badge tone={tone ?? statusTone(status)} className={className}>
+    <Badge
+      tone={tone ?? statusTone(status)}
+      className={className}
+    >
       {children}
     </Badge>
   );
@@ -155,7 +196,7 @@ export function Tag({
   return (
     <span
       className={cn(
-        'inline-flex h-6 max-w-full items-center gap-1 rounded-badge border border-border bg-background px-2 text-xs font-medium text-foreground',
+        'inline-flex h-6 max-w-full items-center gap-1 rounded-badge border border-brand-purple/30 bg-brand-purple/5 px-2 text-xs font-medium text-brand-purple',
         onRemove && 'pe-1',
         className,
       )}
@@ -166,9 +207,12 @@ export function Tag({
           type='button'
           onClick={onRemove}
           aria-label={removeLabel}
-          className='inline-flex size-4 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+          className='inline-flex size-4 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-brand-purple/20 hover:text-brand-purple focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-purple'
         >
-          <X className='size-3' aria-hidden />
+          <X
+            className='size-3'
+            aria-hidden
+          />
         </button>
       )}
     </span>

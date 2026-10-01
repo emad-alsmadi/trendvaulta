@@ -129,6 +129,16 @@ const nextConfig: NextConfig = {
         source: '/api/:path*',
         destination: `${apiBaseUrl}/api/:path*`,
       },
+      // The API generates the sitemap (apps/api/services/sitemap.service.js);
+      // it is served from this origin, outside the /api path robots.txt disallows.
+      {
+        source: '/sitemap.xml',
+        destination: `${apiBaseUrl}/api/sitemap.xml`,
+      },
+      {
+        source: '/sitemaps/:file',
+        destination: `${apiBaseUrl}/api/sitemaps/:file`,
+      },
     ];
   },
 };

@@ -1,6 +1,18 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
+// @ts-ignore
+import { DataTable } from 'primereact/datatable';
+// @ts-ignore
+import { Column } from 'primereact/column';
+// @ts-ignore
+import { InputText } from 'primereact/inputtext';
+// @ts-ignore
+import { Dropdown } from 'primereact/dropdown';
+// @ts-ignore
+import { Button } from 'primereact/button';
+// @ts-ignore
+import { Dialog } from 'primereact/dialog';
 import {
   useAdminBrands,
   useCreateBrandMutation,
@@ -16,10 +28,20 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useTableQuery, type SortOrder } from '../hooks/useTableQuery';
-import { TablePagination } from '../components/ui/TablePagination';
 import { ImageUploadField } from '../components/ui/ImageUploadField';
-import { FormDialog } from '../components/ui/FormDialog';
 import { useT } from '../i18n/I18nProvider';
+import { PageHeader } from '../components/ui/PageHeader';
+
+// @ts-ignore - PrimeReact types are bundled
+const ColumnWrapper = Column as any;
+// @ts-ignore - PrimeReact types are bundled
+const DropdownWrapper = Dropdown as any;
+// @ts-ignore - PrimeReact types are bundled
+const DataTableWrapper = DataTable as any;
+// @ts-ignore - PrimeReact types are bundled
+const InputTextWrapper = InputText as any;
+// @ts-ignore - PrimeReact types are bundled
+const DialogWrapper = Dialog as any;
 
 const emptyForm: BrandFormPayload = {
   name: '',
@@ -103,8 +125,6 @@ export default function Brands() {
     setOpen(true);
   }
 
-
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.name.trim() || !form.slug.trim()) {
@@ -147,173 +167,286 @@ export default function Brands() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            {t('brands.title')}
-          </h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            {t('brands.subtitle')}
-          </p>
-        </div>
-        {can('brands:write') && (
-          <button
-            type="button"
-            onClick={openCreate}
-            className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-          >
-            <Plus className="me-2 h-5 w-5" aria-hidden />
-            {t('brands.add')}
-          </button>
-        )}
-      </div>
+      <PageHeader
+        title={t('brands.title')}
+        description={t('brands.subtitle')}
+        actions={
+          can('brands:write') && (
+            <Button
+              onClick={openCreate}
+              label={t('brands.add')}
+              icon={<Plus className='icon-sm' aria-hidden />}
+            />
+          )
+        }
+      />
 
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row">
-        <form
-          className="relative flex-1"
-          onSubmit={(e) => {
-            e.preventDefault();
+      <div className='mb-6 flex flex-col gap-3 sm:flex-row sm:items-end'>
+        <InputTextWrapper
+          value={search}
+          onChange={(e: any) => setSearch(e.target.value)}
+          placeholder={t('brands.searchPlaceholder')}
+          className='w-full sm:w-64'
+        />
+        <DropdownWrapper
+          value={`${table.sort}:${table.order}`}
+          options={[
+            { label: t('brands.sortNameAsc'), value: 'name:asc' },
+            { label: t('brands.sortNameDesc'), value: 'name:desc' },
+            { label: t('brands.sortNewest'), value: 'createdAt:desc' },
+            { label: t('brands.sortOldest'), value: 'createdAt:asc' },
+          ]}
+          onChange={(e) => {
+            const [field, order] = e.value.split(':');
+            table.setSort(field, order as SortOrder);
+          }}
+          placeholder={t('brands.sortLabel')}
+          className='w-full sm:w-48'
+        />
+        <Button
+          label={t('brands.searchLabel')}
+          onClick={() => {
             setAppliedQ(search.trim());
             resetPage();
           }}
-        >
-          <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" aria-hidden />
-          <input
-            type="search"
-            aria-label={t('brands.searchLabel')}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('brands.searchPlaceholder')}
-            className="w-full rounded-lg border border-gray-300 bg-white py-2 ps-10 pe-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+          className='w-full sm:w-auto'
+        />
+        {(appliedQ || table.sort !== 'name' || table.order !== 'asc') && (
+          <Button
+            label='Clear'
+            onClick={() => {
+              setSearch('');
+              setAppliedQ('');
+              table.setSort('name', 'asc');
+              resetPage();
+            }}
+            severity='secondary'
+            className='w-full sm:w-auto'
           />
-        </form>
-        <select
-          value={`${table.sort}:${table.order}`}
-          onChange={(e) => {
-            // The grid has no column headers to click, so sort is a control.
-            const [field, order] = e.target.value.split(':');
-            table.setSort(field, order as SortOrder);
-          }}
-          aria-label={t('brands.sortLabel')}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-        >
-          <option value="name:asc">{t('brands.sortNameAsc')}</option>
-          <option value="name:desc">{t('brands.sortNameDesc')}</option>
-          <option value="createdAt:desc">{t('brands.sortNewest')}</option>
-          <option value="createdAt:asc">{t('brands.sortOldest')}</option>
-        </select>
+        )}
       </div>
 
       {brandsQ.isLoading && (
-        <p className="py-10 text-center text-sm text-gray-500">{t('brands.loading')}</p>
+        <p className='py-10 text-center text-sm text-gray-500'>
+          {t('brands.loading')}
+        </p>
       )}
       {brandsQ.isError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+        <div className='rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200'>
           {errorMessage(brandsQ.error, t('brands.loadFailed'))}
         </div>
       )}
 
       {!brandsQ.isLoading && !brandsQ.isError && (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {brands.length === 0 ? (
-            <p className="col-span-full py-10 text-center text-sm text-gray-500">
-              {t('brands.empty')}
-            </p>
-          ) : (
-            brands.map((brand) => (
-              <div
-                key={brand._id}
-                className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800"
-              >
-                <div className="flex h-36 items-center justify-center bg-gradient-to-br from-purple-400 to-cyan-500">
+        <div className='rounded-xl border border-gray-200 bg-card shadow-sm dark:border-gray-700 dark:bg-gray-800'>
+          <DataTableWrapper
+            value={brands}
+            paginator
+            rows={24}
+            totalRecords={meta?.total}
+            lazy
+            onPage={table.setPage}
+            first={(meta?.page ? meta.page - 1 : 0) * 24}
+            loading={brandsQ.isFetching}
+            emptyMessage={t('brands.empty')}
+            sortField={table.sort}
+            sortOrder={table.order === 'asc' ? 1 : -1}
+            onSort={table.toggleSort}
+            className='p-datatable-sm'
+          >
+            <ColumnWrapper
+              header={t('brands.columns.logo')}
+              body={(brand: any) => (
+                <div className='h-12 w-12 shrink-0 overflow-hidden rounded border border-border bg-gradient-to-br from-purple-400 to-cyan-500'>
                   {brand.logo ? (
                     <img
                       src={brand.logo}
-                      alt=""
-                      className="h-full w-full object-cover"
+                      alt=''
+                      className='h-full w-full object-cover'
                     />
                   ) : (
-                    <span className="text-4xl font-bold text-white">
+                    <span className='flex h-full w-full items-center justify-center text-xl font-bold text-white'>
                       {brand.name.charAt(0)}
                     </span>
                   )}
                 </div>
-                <div className="p-4">
-                  <div className="mb-2 flex items-start justify-between gap-2">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                          {brand.name}
-                        </h3>
-                        {brand.isActive === false && (
-                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-                            {t('common.inactive')}
-                          </span>
-                        )}
-                        {brand.featured && (
-                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
-                            {t('brands.featured')}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-500" dir="ltr">{brand.slug}</p>
-                    </div>
-                    <div className="flex gap-1">
-                      {can('brands:write') && (
-                        <button
-                          type="button"
-                          onClick={() => openEdit(brand)}
-                          className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700"
-                          aria-label={t('common.editItem', { name: brand.name })}
-                        >
-                          <Pencil className="h-4 w-4 text-gray-500" aria-hidden />
-                        </button>
-                      )}
-                      {can('brands:delete') && (
-                        <button
-                          type="button"
-                          onClick={() => void handleDelete(brand)}
-                          disabled={deleteMut.isPending}
-                          className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
-                          aria-label={t('common.deleteItem', { name: brand.name })}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" aria-hidden />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {brand.country || '—'}
-                  </p>
-                  <p className="truncate text-sm text-gray-500 dark:text-gray-400" dir={brand.website ? 'ltr' : undefined}>
-                    {brand.website || t('brands.noWebsite')}
-                  </p>
+              )}
+            />
+            <ColumnWrapper
+              field='name'
+              header={t('brands.columns.name')}
+              sortable
+              body={(brand: any) => (
+                <div className='flex flex-wrap items-center gap-1.5'>
+                  <span className='font-semibold text-foreground'>
+                    {brand.name}
+                  </span>
+                  {brand.isActive === false && (
+                    <span className='rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-gray-600 dark:bg-gray-700 dark:text-gray-300'>
+                      {t('common.inactive')}
+                    </span>
+                  )}
+                  {brand.featured && (
+                    <span className='rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'>
+                      {t('brands.featured')}
+                    </span>
+                  )}
                 </div>
-              </div>
-            ))
-          )}
+              )}
+            />
+            <ColumnWrapper
+              field='slug'
+              header={t('brands.columns.slug')}
+              sortable
+              body={(brand: any) => (
+                <span
+                  className='text-xs text-muted-foreground'
+                  dir='ltr'
+                >
+                  {brand.slug}
+                </span>
+              )}
+            />
+            <ColumnWrapper
+              field='country'
+              header={t('brands.columns.country')}
+              body={(brand: any) => brand.country || '—'}
+            />
+            <ColumnWrapper
+              field='website'
+              header={t('brands.columns.website')}
+              body={(brand: any) => (
+                <span
+                  className='truncate text-sm text-muted-foreground'
+                  dir={brand.website ? 'ltr' : undefined}
+                >
+                  {brand.website || t('brands.noWebsite')}
+                </span>
+              )}
+            />
+            <ColumnWrapper
+              header={t('common.actions')}
+              body={(brand: any) => (
+                <div className='flex gap-1'>
+                  {can('brands:write') && (
+                    <button
+                      type='button'
+                      onClick={() => openEdit(brand)}
+                      className='rounded p-1.5 hover:bg-accent transition-colors duration-200'
+                      aria-label={t('common.editItem', { name: brand.name })}
+                    >
+                      <Pencil
+                        className='icon-sm text-muted-foreground'
+                        aria-hidden
+                      />
+                    </button>
+                  )}
+                  {can('brands:delete') && (
+                    <button
+                      type='button'
+                      onClick={() => void handleDelete(brand)}
+                      disabled={deleteMut.isPending}
+                      className='rounded p-1.5 hover:bg-destructive/10 transition-colors duration-200'
+                      aria-label={t('common.deleteItem', { name: brand.name })}
+                    >
+                      <Trash2
+                        className='icon-sm text-muted-foreground hover:text-destructive'
+                        aria-hidden
+                      />
+                    </button>
+                  )}
+                </div>
+              )}
+            />
+          </DataTableWrapper>
         </div>
       )}
 
       {!brandsQ.isLoading && !brandsQ.isError && (
-        <TablePagination
-          meta={meta}
-          busy={brandsQ.isFetching}
+        <DataTableWrapper
+          value={brands}
+          paginator
+          rows={table.params.limit}
+          totalRecords={meta?.total}
+          lazy
           onPage={table.setPage}
-          onLimit={table.setLimit}
-        />
+          first={(meta?.page ? meta.page - 1 : 0) * table.params.limit}
+          loading={brandsQ.isFetching}
+          emptyMessage={t('brands.empty')}
+          sortField={table.sort}
+          sortOrder={table.order === 'asc' ? 1 : -1}
+          onSort={table.toggleSort}
+          className='p-datatable-sm'
+        >
+          <Column
+            field='name'
+            header={t('brands.columns.name')}
+            sortable
+          />
+          <Column
+            field='slug'
+            header={t('brands.columns.slug')}
+          />
+          <Column
+            field='isActive'
+            header={t('brands.columns.status')}
+            body={(brand: any) => (
+              <span className={brand.isActive ? 'text-green-600' : 'text-gray-500'}>
+                {brand.isActive ? t('brands.active') : t('brands.inactive')}
+              </span>
+            )}
+          />
+          <Column
+            field='featured'
+            header={t('brands.columns.featured')}
+            body={(brand: any) => (
+              <span className={brand.featured ? 'text-yellow-600' : 'text-gray-500'}>
+                {brand.featured ? '★' : '—'}
+              </span>
+            )}
+          />
+          <Column
+            header={t('brands.columns.actions')}
+            body={(brand: any) => (
+              <div className='flex gap-2'>
+                {can('brands:write') && (
+                  <Button
+                    size='small'
+                    icon={<Pencil className='icon-sm' />}
+                    onClick={() => openEdit(brand)}
+                    label={t('brands.edit')}
+                  />
+                )}
+                {can('brands:delete') && (
+                  <Button
+                    size='small'
+                    severity='danger'
+                    icon={<Trash2 className='icon-sm' />}
+                    onClick={() => void handleDelete(brand)}
+                    label={t('brands.delete')}
+                  />
+                )}
+              </div>
+            )}
+          />
+        </DataTableWrapper>
       )}
 
-      {open && (
-        <FormDialog
-          onClose={() => setOpen(false)}
-          title={editing ? t('brands.form.editTitle') : t('brands.form.createTitle')}
-          busy={saving}
-          maxWidthClass="max-w-lg"
-        >
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <label className="block text-sm">
-              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+      <DialogWrapper
+        visible={open}
+        onHide={() => setOpen(false)}
+        header={
+          editing ? t('brands.form.editTitle') : t('brands.form.createTitle')
+        }
+        modal
+        className='w-full max-w-lg'
+      >
+          <form
+            onSubmit={handleSubmit}
+            className='space-y-3'
+          >
+            <label className='block text-sm'>
+              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
                 {t('brands.form.name')}
               </span>
               <input
@@ -327,25 +460,25 @@ export default function Brands() {
                     slug: editing ? f.slug : slugify(name),
                   }));
                 }}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
               />
             </label>
-            <label className="block text-sm">
-              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+            <label className='block text-sm'>
+              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
                 {t('brands.form.slug')}
               </span>
               <input
                 required
                 value={form.slug}
-                dir="ltr"
+                dir='ltr'
                 onChange={(e) =>
                   setForm((f) => ({ ...f, slug: e.target.value }))
                 }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
               />
             </label>
-            <label className="block text-sm">
-              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+            <label className='block text-sm'>
+              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
                 {t('brands.form.country')}
               </span>
               <input
@@ -353,20 +486,20 @@ export default function Brands() {
                 onChange={(e) =>
                   setForm((f) => ({ ...f, country: e.target.value }))
                 }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
               />
             </label>
-            <label className="block text-sm">
-              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+            <label className='block text-sm'>
+              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
                 {t('brands.form.website')}
               </span>
               <input
                 value={form.website}
-                dir="ltr"
+                dir='ltr'
                 onChange={(e) =>
                   setForm((f) => ({ ...f, website: e.target.value }))
                 }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
               />
             </label>
             <ImageUploadField
@@ -374,8 +507,8 @@ export default function Brands() {
               value={form.logo ?? ''}
               onChange={(url) => setForm((f) => ({ ...f, logo: url }))}
             />
-            <label className="block text-sm">
-              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
+            <label className='block text-sm'>
+              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
                 {t('common.description')}
               </span>
               <textarea
@@ -384,52 +517,59 @@ export default function Brands() {
                   setForm((f) => ({ ...f, description: e.target.value }))
                 }
                 rows={3}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
               />
             </label>
-            <div className="flex flex-wrap gap-4">
-              <label className="flex items-center gap-2 text-sm">
+            <div className='flex flex-wrap gap-4'>
+              <label className='flex items-center gap-2 text-sm'>
                 <input
-                  type="checkbox"
+                  type='checkbox'
                   checked={form.isActive ?? true}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, isActive: e.target.checked }))
                   }
-                  className="h-4 w-4 rounded border-gray-300"
+                  className='h-4 w-4 rounded border-gray-300'
                 />
-                <span className="text-gray-700 dark:text-gray-300">{t('common.active')}</span>
+                <span className='text-gray-700 dark:text-gray-300'>
+                  {t('common.active')}
+                </span>
               </label>
-              <label className="flex items-center gap-2 text-sm">
+              <label className='flex items-center gap-2 text-sm'>
                 <input
-                  type="checkbox"
+                  type='checkbox'
                   checked={form.featured ?? false}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, featured: e.target.checked }))
                   }
-                  className="h-4 w-4 rounded border-gray-300"
+                  className='h-4 w-4 rounded border-gray-300'
                 />
-                <span className="text-gray-700 dark:text-gray-300">{t('brands.form.featured')}</span>
+                <span className='text-gray-700 dark:text-gray-300'>
+                  {t('brands.form.featured')}
+                </span>
               </label>
             </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
+            <div className='flex justify-end gap-2 pt-2'>
+              <Button
+                type='button'
                 disabled={saving}
                 onClick={() => setOpen(false)}
-                className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                type="submit"
+                severity='secondary'
+                label={t('common.cancel')}
+              />
+              <Button
+                type='submit'
                 disabled={saving}
-                className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
-              >
-                {saving ? t('common.saving') : editing ? t('common.save') : t('common.create')}
-              </button>
+                label={
+                  saving
+                    ? t('common.saving')
+                    : editing
+                      ? t('common.save')
+                      : t('common.create')
+                }
+              />
             </div>
-          </form>
-        </FormDialog>
+            </form>
+          </DialogWrapper>
       )}
     </motion.div>
   );

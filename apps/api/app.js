@@ -120,6 +120,7 @@ app.use('/api/', require('./routes/settings'));
 app.use('/api/', require('./routes/shipping'));
 app.use('/api/', require('./routes/newsletter'));
 app.use('/api/', require('./routes/contact'));
+app.use('/api/', require('./routes/sitemap'));
 app.use('/api/', require('./routes/trendvaulta'));
 
 // Friendly roots (this process is API-only; the Next.js app is a separate server)

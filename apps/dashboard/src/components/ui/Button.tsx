@@ -36,7 +36,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         type={type}
         disabled={disabled || loading}
         aria-busy={loading || undefined}
-        className={cn(buttonVariants({ variant, size }), className)}
+        className={cn(
+          buttonVariants({ variant, size }),
+          className,
+          'focus-visible:ring-brand-purple',
+        )}
         {...props}
       >
         {/* The label stays in the flow (invisible) so the width doesn't jump. */}

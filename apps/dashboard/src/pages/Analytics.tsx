@@ -284,6 +284,7 @@ export default function Analytics() {
                 value: 0,
                 label: i18n.t('analytics.lastDays', { days }),
               }}
+              className='bg-gradient-to-br from-brand-purple/5 to-brand-indigo/5 border-brand-purple/20'
             />
             <StatCard
               label={i18n.t('analytics.ordersTotal')}
@@ -292,6 +293,7 @@ export default function Analytics() {
                 value: 0,
                 label: i18n.t('analytics.lastDays', { days }),
               }}
+              className='bg-gradient-to-br from-brand-cyan/5 to-brand-indigo/5 border-brand-cyan/20'
             />
             <StatCard
               label={i18n.t('analytics.averageOrder')}
@@ -300,6 +302,7 @@ export default function Analytics() {
                 value: 0,
                 label: i18n.t('analytics.lastDays', { days }),
               }}
+              className='bg-gradient-to-br from-metric-green/5 to-metric-teal/5 border-metric-green/20'
             />
           </>
         )}
@@ -307,7 +310,7 @@ export default function Analytics() {
 
       {/* Daily Totals (Table or Charts) */}
       {asTable ? (
-        <Card>
+        <Card className='bg-gradient-to-br from-brand-purple/5 to-brand-fuchsia/5 border-brand-purple/10'>
           <CardHeader title={i18n.t('analytics.dailyTotals')} />
           <div className='overflow-x-auto'>
             <table className='w-full min-w-[420px] text-sm'>
@@ -358,7 +361,7 @@ export default function Analytics() {
         // Revenue and orders are different scales, so they get a chart each
         // rather than a second y-axis.
         <div className='grid grid-cols-1 gap-6 lg:grid-cols-2'>
-          <Card>
+          <Card className='bg-gradient-to-br from-brand-purple/5 to-brand-indigo/5 border-brand-purple/10'>
             <CardHeader title={i18n.t('analytics.revenue')} />
             <ResponsiveContainer
               width='100%'
@@ -431,7 +434,7 @@ export default function Analytics() {
             </ResponsiveContainer>
           </Card>
 
-          <Card>
+          <Card className='bg-gradient-to-br from-brand-cyan/5 to-brand-indigo/5 border-brand-cyan/10'>
             <CardHeader title={i18n.t('analytics.orders')} />
             <ResponsiveContainer
               width='100%'
@@ -487,7 +490,7 @@ export default function Analytics() {
 
       {/* Top Products and Brands */}
       <div className='grid grid-cols-1 gap-6 lg:grid-cols-2'>
-        <Card>
+        <Card className='bg-gradient-to-br from-metric-blue/5 to-metric-teal/5 border-metric-blue/10'>
           <CardHeader title={i18n.t('analytics.topProducts')} />
           <LeaderChart
             rows={q.data?.topProducts ?? []}
@@ -495,7 +498,7 @@ export default function Analytics() {
             emptyLabel={i18n.t('analytics.empty')}
           />
         </Card>
-        <Card>
+        <Card className='bg-gradient-to-br from-metric-green/5 to-metric-teal/5 border-metric-green/10'>
           <CardHeader title={i18n.t('analytics.topBrands')} />
           <LeaderChart
             rows={q.data?.topBrands ?? []}

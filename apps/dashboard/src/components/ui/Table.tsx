@@ -81,14 +81,23 @@ export function THead({
 
 export function Th({
   numeric,
+  actions,
   className,
   scope = 'col',
   ...props
-}: ThHTMLAttributes<HTMLTableCellElement> & { numeric?: boolean }) {
+}: ThHTMLAttributes<HTMLTableCellElement> & {
+  numeric?: boolean;
+  actions?: boolean;
+}) {
   return (
     <th
       scope={scope}
-      className={cn(table.th, numeric && 'text-end', className)}
+      className={cn(
+        table.th,
+        numeric && 'text-end',
+        actions && 'text-end',
+        className,
+      )}
       {...props}
     />
   );

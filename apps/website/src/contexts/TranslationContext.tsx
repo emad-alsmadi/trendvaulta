@@ -17,6 +17,11 @@ import {
   type Locale,
 } from '@/lib/locale';
 import { createPriceFormatter, createTranslator, type Translate } from '@/lib/i18n';
+import { authApi } from '@/lib/api';
+import { getAuthToken } from '@/lib/authCookies';
+import { useHasAuthToken } from '@/hooks/auth/useHasAuthToken';
+
+const LOCALE_SYNC_KEY = 'tv_locale_synced';
 
 interface TranslationContextType {
   locale: Locale;
@@ -82,6 +87,30 @@ export function TranslationProvider({
     document.documentElement.lang = locale;
     document.documentElement.dir = dir;
   }, [locale, dir]);
+
+  // A signed-in shopper's emails follow the language they use here (P1-02):
+  // tell the API after sign-in and after each switch. Keyed on the session
+  // token so a sign-in on the same tab (another account) syncs again.
+  const signedIn = useHasAuthToken();
+  useEffect(() => {
+    if (!signedIn) return;
+    const marker = `${locale}:${(getAuthToken() || '').slice(-16)}`;
+    try {
+      if (sessionStorage.getItem(LOCALE_SYNC_KEY) === marker) return;
+    } catch {
+      // storage unavailable: just sync
+    }
+    authApi
+      .updateLocale(locale)
+      .then(() => {
+        try {
+          sessionStorage.setItem(LOCALE_SYNC_KEY, marker);
+        } catch {
+          // ignore
+        }
+      })
+      .catch(() => {});
+  }, [signedIn, locale]);
 
   // One-time migration for readers who chose Arabic before the cookie
   // existed (the old build kept it in localStorage).

@@ -37,7 +37,7 @@
 | الرمز | الحالة | المشكلة | الدليل |
 |---|---|---|---|
 | API-315 | ⬜ | `/c/*` والـ navigation تستخدم قائمة ثابتة ولا تقرأ الـ Category CMS. الـ mapper يُسقط `imageUrl` و`description` و`subcategories` | [categoryPage.ts](../apps/website/src/lib/categoryPage.ts)، [categoriesQuery.ts](../apps/website/src/hooks/storefront/categoriesQuery.ts) |
-| WEB-418 | ⬜ | الـ sitemap محدود بـ 100 منتج و50 brand، بلا subcategories وبلا sharding | [sitemap.ts](../apps/website/src/app/sitemap.ts) |
+| WEB-418 | ✅ | الـ sitemap محدود بـ 100 منتج و50 brand، بلا subcategories وبلا sharding — انتقل التوليد إلى الـ API (sitemap index + shards + cache) | [sitemap.service.js](../apps/api/services/sitemap.service.js) |
 | DASH-609 | 🟡 | Shipping Zones: الـ handle يُتحقق منه في الواجهة فقط. الـ Joi بلا uniqueness ولا pattern ولا منع لـ `none`، والحذف hard delete | [ShippingZone.js:102](../apps/api/models/ShippingZone.js#L102) |
 | API-203 | 🟡 | handle غير موجود في الـ zone يُحفظ كما هو ويُحتسب بالسعر الـ standard | [commerce.js](../apps/api/utils/commerce.js) |
 | API-202 | 🟡 | الإصلاح في الواجهة فقط. الـ Joi ما زال يرفض `shippingMethod: ''` | [Order.js:422](../apps/api/models/Order.js#L422) |

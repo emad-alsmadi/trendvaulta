@@ -1,5 +1,17 @@
 import { useState } from 'react';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
+// @ts-ignore
+import { DataTable } from 'primereact/datatable';
+// @ts-ignore
+import { Column } from 'primereact/column';
+// @ts-ignore
+import { InputText } from 'primereact/inputtext';
+// @ts-ignore
+import { Dropdown } from 'primereact/dropdown';
+// @ts-ignore
+import { Button } from 'primereact/button';
+// @ts-ignore
+import { Dialog } from 'primereact/dialog';
 import {
   useAdminBrands,
   useAdminProducts,
@@ -23,23 +35,31 @@ import { VariantsEditor } from '../components/products/VariantsEditor';
 import { cleanVariant, validateVariants } from '../lib/variants';
 import { useTableQuery } from '../hooks/useTableQuery';
 import { useAdminCategories } from '../hooks/useAdminCategories';
-import { FormDialog } from '../components/ui/FormDialog';
 import { PageHeader } from '../components/ui/PageHeader';
-import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { StatusBadge, Badge } from '../components/ui/StatusBadge';
 import { Alert } from '../components/ui/Alert';
 import { SkeletonCard } from '../components/ui/Skeleton';
-import { Field, SearchInput, Select } from '../components/ui/Field';
+import { Field } from '../components/ui/Field';
 import {
   inputClass,
   selectClass,
   textareaClass,
 } from '../components/ui/styles';
 import { useT } from '../i18n/I18nProvider';
-import { Pagination } from '../components/ui/Pagination';
 import { ViewToggle, type ViewMode } from '../components/ui/ViewToggle';
 import { motion } from 'framer-motion';
+
+// @ts-ignore - PrimeReact types are bundled
+const ColumnWrapper = Column as any;
+// @ts-ignore - PrimeReact types are bundled
+const DropdownWrapper = Dropdown as any;
+// @ts-ignore - PrimeReact types are bundled
+const DataTableWrapper = DataTable as any;
+// @ts-ignore - PrimeReact types are bundled
+const InputTextWrapper = InputText as any;
+// @ts-ignore - PrimeReact types are bundled
+const DialogWrapper = Dialog as any;
 
 const emptyForm: ProductFormPayload = {
   title: '',
@@ -62,22 +82,20 @@ const emptyForm: ProductFormPayload = {
 
 // Must match the Product model enum (apps/api/models/Product.js).
 /** Values product.controller.js accepts for ?sort=. */
-const SORT_PRESETS = [
-  'newest',
-  'bestselling',
-  'price_asc',
-  'price_desc',
-  'rating',
-] as const;
-
-/** Labels come from tv('productCategory', value). */
-const CATEGORIES = [
-  'makeup',
-  'skincare',
-  'perfumes',
-  'clothing',
-  'accessories',
-  'home',
+const SORT_OPTIONS = [
+  { label: 'Newest', value: 'newest' },
+  { label: 'Bestselling', value: 'bestselling' },
+  { label: 'Price: Low to High', value: 'price_asc' },
+  { label: 'Price: High to Low', value: 'price_desc' },
+  { label: 'Rating', value: 'rating' },
+];
+const CATEGORY_OPTIONS = [
+  { label: 'Makeup', value: 'makeup' },
+  { label: 'Skincare', value: 'skincare' },
+  { label: 'Perfumes', value: 'perfumes' },
+  { label: 'Clothing', value: 'clothing' },
+  { label: 'Accessories', value: 'accessories' },
+  { label: 'Home', value: 'home' },
 ];
 
 /** Empty numeric input → undefined, so "not set" is distinct from 0. */
@@ -170,7 +188,7 @@ export default function Products() {
   const { can } = usePermissions();
   const toast = useToast();
   const confirm = useConfirm();
-  const { t, tv, formatCurrency, formatNumber } = useT();
+  const { t, formatCurrency, formatNumber } = useT();
   const [search, setSearch] = useState('');
   const [appliedQ, setAppliedQ] = useState('');
   const [category, setCategory] = useState('');
@@ -310,76 +328,67 @@ export default function Products() {
         actions={
           can('products:write') && (
             <Button
-              variant='primary'
               onClick={openCreate}
               disabled={!brands.length}
               title={!brands.length ? t('products.needBrand') : undefined}
-            >
-              <Plus
-                className='icon-sm me-2'
-                aria-hidden
-              />
-              {t('products.add')}
-            </Button>
+              icon={<Plus className='icon-sm' aria-hidden />}
+              label={t('products.add')}
+            />
           )
         }
       />
 
-      <div className='mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
-        <div className='flex flex-1 flex-col gap-3 sm:flex-row'>
-          <form
-            className='relative flex-1'
-            onSubmit={(e) => {
-              e.preventDefault();
+      <div className='mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between'>
+        <div className='flex flex-1 flex-col gap-3 sm:flex-row sm:items-end'>
+          <InputTextWrapper
+            value={search}
+            onChange={(e: any) => setSearch(e.target.value)}
+            placeholder={t('products.searchPlaceholder')}
+            className='w-full sm:w-64'
+          />
+          <DropdownWrapper
+            value={category}
+            options={CATEGORY_OPTIONS}
+            onChange={(e: any) => {
+              setCategory(e.value || '');
+              resetPage();
+            }}
+            placeholder={t('products.filterCategory')}
+            className='w-full sm:w-40'
+            showClear
+          />
+          <DropdownWrapper
+            value={sortPreset}
+            options={SORT_OPTIONS}
+            onChange={(e: any) => {
+              setSortPreset(e.value || 'newest');
+              resetPage();
+            }}
+            placeholder={t('products.sortLabel')}
+            className='w-full sm:w-48'
+          />
+          <Button
+            label={t('products.searchLabel')}
+            onClick={() => {
               setAppliedQ(search.trim());
               resetPage();
             }}
-          >
-            <SearchInput
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t('products.searchPlaceholder')}
-              aria-label={t('products.searchLabel')}
-              className='w-full'
+            className='w-full sm:w-auto'
+          />
+          {(appliedQ || category || sortPreset !== 'newest') && (
+            <Button
+              label='Clear'
+              onClick={() => {
+                setSearch('');
+                setAppliedQ('');
+                setCategory('');
+                setSortPreset('newest');
+                resetPage();
+              }}
+              severity='secondary'
+              className='w-full sm:w-auto'
             />
-          </form>
-          <Select
-            value={category}
-            onChange={(e) => {
-              setCategory(e.target.value);
-              resetPage();
-            }}
-            aria-label={t('products.filterCategory')}
-            className='w-full sm:w-48'
-          >
-            <option value=''>{t('products.allCategories')}</option>
-            {CATEGORIES.map((c) => (
-              <option
-                key={c}
-                value={c}
-              >
-                {tv('productCategory', c)}
-              </option>
-            ))}
-          </Select>
-          <Select
-            value={sortPreset}
-            onChange={(e) => {
-              setSortPreset(e.target.value);
-              resetPage();
-            }}
-            aria-label={t('products.sortLabel')}
-            className='w-full sm:w-48'
-          >
-            {SORT_PRESETS.map((s) => (
-              <option
-                key={s}
-                value={s}
-              >
-                {t(`products.sort.${s}`)}
-              </option>
-            ))}
-          </Select>
+          )}
         </div>
         <ViewToggle
           currentView={viewMode}
@@ -417,7 +426,7 @@ export default function Products() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
                   >
-                    <Card className='overflow-hidden group'>
+                    <Card className='overflow-hidden group bg-gradient-to-br from-brand-fuchsia/5 to-brand-purple/5 border-brand-fuchsia/10'>
                       <div className='relative h-44 bg-muted overflow-hidden'>
                         {product.cover ? (
                           <img
@@ -486,7 +495,8 @@ export default function Products() {
                         <p className='mb-1 text-sm text-muted-foreground'>
                           {brandName(product)} ·{' '}
                           {product.category
-                            ? tv('productCategory', product.category)
+                            ? product.category.charAt(0).toUpperCase() +
+                              product.category.slice(1)
                             : '—'}
                           {product.subcategory
                             ? ` / ${product.subcategory}`
@@ -512,88 +522,105 @@ export default function Products() {
               )}
             </div>
           ) : (
-            <Card>
-              {products.length === 0 ? (
-                <p className='py-10 text-center text-sm text-muted-foreground'>
-                  {t('products.empty')}
-                </p>
-              ) : (
-                <div className='divide-y divide-border'>
-                  {products.map((product, index) => (
-                    <motion.div
-                      key={product._id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className='flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors duration-200'
-                    >
-                      <div className='h-16 w-16 shrink-0 overflow-hidden rounded border border-border bg-muted'>
-                        {product.cover ? (
-                          <img
-                            src={product.cover}
-                            alt=''
-                            className='h-full w-full object-cover'
+            <div className='rounded-xl border border-gray-200 bg-card shadow-sm dark:border-gray-700 dark:bg-gray-800'>
+              <DataTableWrapper
+                value={products}
+                paginator
+                rows={24}
+                totalRecords={meta?.total}
+                lazy
+                onPage={table.setPage}
+                first={(meta?.page ? meta.page - 1 : 0) * 24}
+                loading={productsQ.isFetching}
+                emptyMessage={t('products.empty')}
+                className='p-datatable-sm'
+              >
+                <ColumnWrapper
+                  header={t('products.columns.image')}
+                  body={(product: any) => (
+                    <div className='h-12 w-12 shrink-0 overflow-hidden rounded border border-border bg-muted'>
+                      {product.cover ? (
+                        <img
+                          src={product.cover}
+                          alt=''
+                          className='h-full w-full object-cover'
+                        />
+                      ) : (
+                        <div className='h-full w-full bg-muted' />
+                      )}
+                    </div>
+                  )}
+                />
+                <ColumnWrapper
+                  field='title'
+                  header={t('products.columns.title')}
+                  body={(product: any) => (
+                    <div className='min-w-0'>
+                      <h3 className='font-semibold text-foreground truncate'>
+                        {product.title}
+                      </h3>
+                      <p className='text-sm text-muted-foreground'>
+                        {brandName(product)} ·{' '}
+                        {product.category
+                          ? product.category.charAt(0).toUpperCase() +
+                            product.category.slice(1)
+                          : '—'}
+                      </p>
+                    </div>
+                  )}
+                />
+                <ColumnWrapper
+                  field='price'
+                  header={t('products.columns.price')}
+                  body={(product: any) => formatCurrency(Number(product.price || 0))}
+                />
+                <ColumnWrapper
+                  field='stock'
+                  header={t('products.columns.stock')}
+                  body={(product: any) =>
+                    `${formatNumber(product.stock ?? 0)} ${t('common.productsInStock')}`
+                  }
+                />
+                <ColumnWrapper
+                  header={t('products.columns.actions')}
+                  body={(product: any) => (
+                    <div className='flex gap-1'>
+                      {can('products:write') && (
+                        <button
+                          type='button'
+                          onClick={() => openEdit(product)}
+                          className='rounded p-1.5 hover:bg-accent transition-colors duration-200'
+                          aria-label={t('products.edit', {
+                            title: product.title,
+                          })}
+                        >
+                          <Pencil
+                            className='icon-sm text-muted-foreground hover:text-primary transition-colors duration-200'
+                            aria-hidden
                           />
-                        ) : (
-                          <div className='h-full w-full bg-muted' />
-                        )}
-                      </div>
-                      <div className='flex-1 min-w-0'>
-                        <h3 className='font-semibold text-foreground truncate'>
-                          {product.title}
-                        </h3>
-                        <p className='text-sm text-muted-foreground'>
-                          {brandName(product)} ·{' '}
-                          {tv('productCategory', product.category || '—')}
-                        </p>
-                      </div>
-                      <div className='text-right'>
-                        <p className='font-semibold text-foreground tabular-nums'>
-                          {formatCurrency(Number(product.price || 0))}
-                        </p>
-                        <p className='text-sm text-muted-foreground tabular-nums'>
-                          {formatNumber(product.stock ?? 0)}{' '}
-                          {t('common.productsInStock')}
-                        </p>
-                      </div>
-                      <div className='flex gap-1'>
-                        {can('products:write') && (
-                          <button
-                            type='button'
-                            onClick={() => openEdit(product)}
-                            className='rounded p-1.5 hover:bg-accent transition-colors duration-200'
-                            aria-label={t('products.edit', {
-                              title: product.title,
-                            })}
-                          >
-                            <Pencil
-                              className='icon-sm text-muted-foreground hover:text-primary transition-colors duration-200'
-                              aria-hidden
-                            />
-                          </button>
-                        )}
-                        {can('products:delete') && (
-                          <button
-                            type='button'
-                            onClick={() => void handleDelete(product)}
-                            disabled={deleteMut.isPending}
-                            className='rounded p-1.5 hover:bg-accent transition-colors duration-200'
-                            aria-label={t('products.delete', {
-                              title: product.title,
-                            })}
-                          >
-                            <Trash2
-                              className='icon-sm text-muted-foreground hover:text-destructive transition-colors duration-200'
-                              aria-hidden
-                            />
-                          </button>
-                        )}
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </Card>
+                        </button>
+                      )}
+                      {can('products:delete') && (
+                        <button
+                          type='button'
+                          onClick={() => void handleDelete(product)}
+                          disabled={deleteMut.isPending}
+                          className='rounded p-1.5 hover:bg-accent transition-colors duration-200'
+                          aria-label={t('products.delete', {
+                            title: product.title,
+                          })}
+                        >
+                          <Trash2
+                            className='icon-sm text-muted-foreground hover:text-destructive transition-colors duration-200'
+                            aria-hidden
+                          />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                />
+              </DataTableWrapper>
+            </div>
           )}
         </>
       )}
@@ -616,13 +643,13 @@ export default function Products() {
         </div>
       )}
 
-      {open && (
-        <FormDialog
-          onClose={() => setOpen(false)}
-          title={editing ? t('products.editTitle') : t('products.createTitle')}
-          busy={saving}
-          maxWidthClass='max-w-3xl'
-        >
+      <DialogWrapper
+        visible={open}
+        onHide={() => setOpen(false)}
+        header={editing ? t('products.editTitle') : t('products.createTitle')}
+        modal
+        className='w-full max-w-3xl'
+      >
           <form
             onSubmit={handleSubmit}
             className='space-y-3'
@@ -725,12 +752,12 @@ export default function Products() {
                 }
                 className={selectClass}
               >
-                {CATEGORIES.map((c) => (
+                {CATEGORY_OPTIONS.map((c) => (
                   <option
-                    key={c}
-                    value={c}
+                    key={c.value}
+                    value={c.value}
                   >
-                    {tv('productCategory', c)}
+                    {c.label}
                   </option>
                 ))}
               </select>
@@ -1044,26 +1071,25 @@ export default function Products() {
             <div className='flex justify-end gap-2 pt-2'>
               <Button
                 type='button'
-                variant='secondary'
                 disabled={saving}
                 onClick={() => setOpen(false)}
-              >
-                {t('common.cancel')}
-              </Button>
+                severity='secondary'
+                label={t('common.cancel')}
+              />
               <Button
                 type='submit'
-                variant='primary'
                 disabled={saving}
-              >
-                {saving
-                  ? t('products.form.saving')
-                  : editing
-                    ? t('products.form.save')
-                    : t('products.form.create')}
-              </Button>
+                label={
+                  saving
+                    ? t('products.form.saving')
+                    : editing
+                      ? t('products.form.save')
+                      : t('products.form.create')
+                }
+              />
             </div>
-          </form>
-        </FormDialog>
+            </form>
+          </DialogWrapper>
       )}
     </div>
   );

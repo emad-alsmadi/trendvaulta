@@ -2,6 +2,16 @@ import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { RefreshCw, X } from 'lucide-react';
+// @ts-ignore
+import { DataTable } from 'primereact/datatable';
+// @ts-ignore
+import { Column } from 'primereact/column';
+// @ts-ignore
+import { InputText } from 'primereact/inputtext';
+// @ts-ignore
+import { Dropdown } from 'primereact/dropdown';
+// @ts-ignore
+import { Button } from 'primereact/button';
 import {
   useAdminOrders,
   useUpdateOrderStatusMutation,
@@ -16,38 +26,48 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useTableQuery } from '../hooks/useTableQuery';
-import { SortableHeader } from '../components/ui/SortableHeader';
 import { useT } from '../i18n/I18nProvider';
 import { orderStatusOutcome } from '../lib/orderStatusOutcome';
-import { SearchInput, Select } from '../components/ui/Field';
-import { Pagination } from '../components/ui/Pagination';
 import { PageHeader } from '../components/ui/PageHeader';
-import { Button } from '../components/ui/Button';
 import { StatusBadge } from '../components/ui/StatusBadge';
-import { Table, TableCard, THead, Th, Td } from '../components/ui/Table';
 import { cn } from '../lib/cn';
 
+// @ts-ignore - PrimeReact types are bundled
+const ColumnWrapper = Column as any;
+// @ts-ignore - PrimeReact types are bundled
+const DropdownWrapper = Dropdown as any;
+// @ts-ignore - PrimeReact types are bundled
+const DataTableWrapper = DataTable as any;
+// @ts-ignore - PrimeReact types are bundled
+const InputTextWrapper = InputText as any;
+
 // Filter values are API values; labels come from tv(group, value).
-const STATUS_FILTERS = [
-  'pending',
-  'paid',
-  'shipped',
-  'delivered',
-  'canceled',
-  'needs_attention',
-  'refunded',
+const STATUS_OPTIONS = [
+  { label: 'Pending', value: 'pending' },
+  { label: 'Paid', value: 'paid' },
+  { label: 'Shipped', value: 'shipped' },
+  { label: 'Delivered', value: 'delivered' },
+  { label: 'Canceled', value: 'canceled' },
+  { label: 'Needs Attention', value: 'needs_attention' },
+  { label: 'Refunded', value: 'refunded' },
 ];
 
 // Mirrors the paymentStatus values order.controller.js accepts.
-const PAYMENT_FILTERS = ['unpaid', 'pending', 'paid', 'failed', 'refunded'];
+const PAYMENT_OPTIONS = [
+  { label: 'Unpaid', value: 'unpaid' },
+  { label: 'Pending', value: 'pending' },
+  { label: 'Paid', value: 'paid' },
+  { label: 'Failed', value: 'failed' },
+  { label: 'Refunded', value: 'refunded' },
+];
 
 /** Open return steps first — the ones that need someone to act. */
-const RETURN_FILTERS = [
-  'requested',
-  'approved',
-  'received',
-  'refunded',
-  'rejected',
+const RETURN_OPTIONS = [
+  { label: 'Requested', value: 'requested' },
+  { label: 'Approved', value: 'approved' },
+  { label: 'Received', value: 'received' },
+  { label: 'Refunded', value: 'refunded' },
+  { label: 'Rejected', value: 'rejected' },
 ];
 
 function triggersRefund(order: AdminOrder, next: string) {
@@ -154,8 +174,7 @@ export default function Orders() {
     }
   }
 
-  function onSearchSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function onSearchSubmit() {
     setAppliedQ(search.trim());
     resetPage();
   }
@@ -171,7 +190,6 @@ export default function Orders() {
         description={t('orders.subtitle')}
         actions={
           <Button
-            variant='secondary'
             onClick={() => void ordersQ.refetch()}
             disabled={ordersQ.isFetching}
             icon={
@@ -186,78 +204,68 @@ export default function Orders() {
         }
       />
 
-      <div className='mb-6 flex flex-col gap-3 sm:flex-row sm:items-center'>
-        <div className='flex flex-1 flex-col gap-3 sm:flex-row'>
-          <Select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              resetPage();
-            }}
-            aria-label={t('orders.filterStatus')}
-            className='w-full sm:w-48'
-          >
-            <option value=''>{t('orders.allStatuses')}</option>
-            {STATUS_FILTERS.map((s) => (
-              <option
-                key={s}
-                value={s}
-              >
-                {tv('orderStatus', s)}
-              </option>
-            ))}
-          </Select>
-          <Select
-            value={paymentFilter}
-            onChange={(e) => {
-              setPaymentFilter(e.target.value);
-              resetPage();
-            }}
-            aria-label={t('orders.filterPayment')}
-            className='w-full sm:w-48'
-          >
-            <option value=''>{t('orders.allPayments')}</option>
-            {PAYMENT_FILTERS.map((s) => (
-              <option
-                key={s}
-                value={s}
-              >
-                {tv('paymentStatus', s)}
-              </option>
-            ))}
-          </Select>
-          <Select
-            value={returnFilter}
-            onChange={(e) => {
-              setReturnFilter(e.target.value);
-              resetPage();
-            }}
-            aria-label={t('orders.filterReturn')}
-            className='w-full sm:w-48'
-          >
-            <option value=''>{t('orders.allReturns')}</option>
-            {RETURN_FILTERS.map((s) => (
-              <option
-                key={s}
-                value={s}
-              >
-                {tv('returnStatus', s)}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <form
-          onSubmit={onSearchSubmit}
-          className='flex-1'
-        >
-          <SearchInput
+      <div className='mb-6 flex flex-col gap-3 sm:flex-row sm:items-end'>
+        <div className='flex-1'>
+          <InputTextWrapper
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e: any) => setSearch(e.target.value)}
             placeholder={t('orders.searchPlaceholder')}
-            aria-label={t('orders.searchLabel')}
             className='w-full'
           />
-        </form>
+        </div>
+        <DropdownWrapper
+          value={statusFilter}
+          options={STATUS_OPTIONS}
+          onChange={(e: any) => {
+            setStatusFilter(e.value || '');
+            resetPage();
+          }}
+          placeholder={t('orders.filterStatus')}
+          className='w-full sm:w-40'
+          showClear
+        />
+        <DropdownWrapper
+          value={paymentFilter}
+          options={PAYMENT_OPTIONS}
+          onChange={(e: any) => {
+            setPaymentFilter(e.value || '');
+            resetPage();
+          }}
+          placeholder={t('orders.filterPayment')}
+          className='w-full sm:w-40'
+          showClear
+        />
+        <DropdownWrapper
+          value={returnFilter}
+          options={RETURN_OPTIONS}
+          onChange={(e: any) => {
+            setReturnFilter(e.value || '');
+            resetPage();
+          }}
+          placeholder={t('orders.filterReturn')}
+          className='w-full sm:w-40'
+          showClear
+        />
+        <Button
+          label={t('orders.searchLabel')}
+          onClick={onSearchSubmit}
+          className='w-full sm:w-auto'
+        />
+        {(appliedQ || statusFilter || paymentFilter || returnFilter) && (
+          <Button
+            label='Clear'
+            onClick={() => {
+              setSearch('');
+              setAppliedQ('');
+              setStatusFilter('');
+              setPaymentFilter('');
+              setReturnFilter('');
+              resetPage();
+            }}
+            severity='secondary'
+            className='w-full sm:w-auto'
+          />
+        )}
       </div>
 
       {customerId && (
@@ -324,185 +332,129 @@ export default function Orders() {
       )}
 
       {!ordersQ.isLoading && !ordersQ.isError && (
-        <TableCard
-          toolbar={
-            <div className='flex items-center justify-between'>
-              <p className='text-sm text-muted-foreground'>
-                {meta &&
-                  t('common.showing', {
-                    from: (meta.page - 1) * meta.limit + 1,
-                    to: Math.min(meta.page * meta.limit, meta.total),
-                    total: meta.total,
-                  })}
-              </p>
-            </div>
-          }
-          footer={
-            meta && (
-              <Pagination
-                currentPage={meta.page}
-                totalPages={Math.ceil(meta.total / meta.limit)}
-                onPageChange={table.setPage}
-                disabled={ordersQ.isFetching}
-              />
-            )
-          }
-        >
-          <Table>
-            <THead>
-              <tr>
-                <Th>{t('orders.columns.order')}</Th>
-                <Th>{t('orders.columns.customer')}</Th>
-                <SortableHeader
-                  field='totalPrice'
-                  active={table.sort}
-                  order={table.order}
-                  onSort={table.toggleSort}
+        <div className='rounded-xl border border-gray-200 bg-card shadow-sm dark:border-gray-700 dark:bg-gray-800'>
+          <DataTableWrapper
+            value={orders}
+            paginator
+            rows={25}
+            totalRecords={meta?.total}
+            lazy
+            onPage={table.setPage}
+            first={(meta?.page ? meta.page - 1 : 0) * 25}
+            loading={ordersQ.isFetching}
+            emptyMessage={t('orders.empty')}
+            sortField={table.sort}
+            sortOrder={table.order === 'asc' ? 1 : -1}
+            onSort={table.toggleSort}
+            className='p-datatable-sm'
+          >
+            <ColumnWrapper
+              field='_id'
+              header={t('orders.columns.order')}
+              body={(order: any) => (
+                <Link
+                  to={`/orders/${order._id}`}
+                  className='font-mono text-xs font-semibold text-foreground hover:underline'
+                  dir='ltr'
                 >
-                  {t('orders.columns.total')}
-                </SortableHeader>
-                <SortableHeader
-                  field='paymentStatus'
-                  active={table.sort}
-                  order={table.order}
-                  onSort={table.toggleSort}
-                >
-                  {t('orders.columns.payment')}
-                </SortableHeader>
-                <SortableHeader
-                  field='status'
-                  active={table.sort}
-                  order={table.order}
-                  onSort={table.toggleSort}
-                >
-                  {t('orders.columns.status')}
-                </SortableHeader>
-                <SortableHeader
-                  field='createdAt'
-                  active={table.sort}
-                  order={table.order}
-                  onSort={table.toggleSort}
-                >
-                  {t('orders.columns.date')}
-                </SortableHeader>
-                <Th>{t('orders.columns.nextAction')}</Th>
-              </tr>
-            </THead>
-            <tbody>
-              {orders.length === 0 ? (
-                <tr>
-                  <Td
-                    colSpan={7}
-                    className='text-center'
-                  >
-                    {t('orders.empty')}
-                  </Td>
-                </tr>
-              ) : (
-                orders.map((order, index) => {
-                  const next = order.allowedNextStatuses || [];
-                  return (
-                    <motion.tr
-                      key={order._id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                    >
-                      <Td>
-                        <Link
-                          to={`/orders/${order._id}`}
-                          className='font-mono text-xs font-semibold text-foreground hover:underline'
-                          dir='ltr'
-                        >
-                          {shortId(order._id)}
-                        </Link>
-                      </Td>
-                      <Td dir='auto'>
-                        {customerLabel(order, customerFallback, (email) =>
-                          t('orders.guestCustomer', { email }),
-                        )}
-                      </Td>
-                      <Td numeric>
-                        {formatCurrency(Number(order.totalPrice || 0))}
-                      </Td>
-                      <Td>
-                        <div className='flex flex-col'>
-                          <span className='text-sm text-foreground'>
-                            {tv('paymentStatus', order.paymentStatus)}
-                          </span>
-                          {order.paymentStatus === 'refunded' && (
-                            <span className='mt-1 text-xs text-muted-foreground'>
-                              {t('orders.refundedAmount', {
-                                amount: formatCurrency(
-                                  Number(
-                                    order.refundAmount ?? order.totalPrice ?? 0,
-                                  ),
-                                ),
-                              })}
-                              {order.refundedAt
-                                ? ` · ${formatDate(order.refundedAt)}`
-                                : ''}
-                            </span>
-                          )}
-                        </div>
-                      </Td>
-                      <Td>
-                        <div className='flex flex-col gap-1'>
-                          <StatusBadge status={order.status}>
-                            {tv('orderStatus', order.status)}
-                          </StatusBadge>
-                          {order.attentionReason && (
-                            <StatusBadge status={order.attentionReason}>
-                              {tv('attentionReason', order.attentionReason)}
-                            </StatusBadge>
-                          )}
-                          {order.returnRequest &&
-                            order.returnRequest.status !== 'none' && (
-                              <StatusBadge status={order.returnRequest.status}>
-                                {tv('returnStatus', order.returnRequest.status)}
-                              </StatusBadge>
-                            )}
-                        </div>
-                      </Td>
-                      <Td>
-                        {order.createdAt ? formatDate(order.createdAt) : '—'}
-                      </Td>
-                      <Td actions>
-                        {next.length === 0 || !can('orders:write') ? (
-                          <span className='text-xs text-muted-foreground'>
-                            —
-                          </span>
-                        ) : (
-                          <Select
-                            value=''
-                            disabled={updateMut.isPending}
-                            aria-label={t('orders.updateStatusFor', {
-                              id: order._id,
-                            })}
-                            onChange={(e) =>
-                              void onChangeStatus(order, e.target.value)
-                            }
-                            className='w-32'
-                          >
-                            <option value=''>{t('orders.setStatus')}</option>
-                            {next.map((s) => (
-                              <option
-                                key={s}
-                                value={s}
-                              >
-                                {tv('orderStatus', s)}
-                              </option>
-                            ))}
-                          </Select>
-                        )}
-                      </Td>
-                    </motion.tr>
-                  );
-                })
+                  {shortId(order._id)}
+                </Link>
               )}
-            </tbody>
-          </Table>
-        </TableCard>
+            />
+            <ColumnWrapper
+              header={t('orders.columns.customer')}
+              body={(order: any) =>
+                customerLabel(order, customerFallback, (email: any) =>
+                  t('orders.guestCustomer', { email }),
+                )
+              }
+            />
+            <ColumnWrapper
+              field='totalPrice'
+              header={t('orders.columns.total')}
+              sortable
+              body={(order: any) =>
+                formatCurrency(Number(order.totalPrice || 0))
+              }
+            />
+            <ColumnWrapper
+              field='paymentStatus'
+              header={t('orders.columns.payment')}
+              sortable
+              body={(order: any) => (
+                <div className='flex flex-col'>
+                  <span className='text-sm text-foreground'>
+                    {tv('paymentStatus', order.paymentStatus)}
+                  </span>
+                  {order.paymentStatus === 'refunded' && (
+                    <span className='mt-1 text-xs text-muted-foreground'>
+                      {t('orders.refundedAmount', {
+                        amount: formatCurrency(
+                          Number(order.refundAmount ?? order.totalPrice ?? 0),
+                        ),
+                      })}
+                      {order.refundedAt
+                        ? ` · ${formatDate(order.refundedAt)}`
+                        : ''}
+                    </span>
+                  )}
+                </div>
+              )}
+            />
+            <ColumnWrapper
+              field='status'
+              header={t('orders.columns.status')}
+              sortable
+              body={(order: any) => (
+                <div className='flex flex-col gap-1'>
+                  <StatusBadge status={order.status}>
+                    {tv('orderStatus', order.status)}
+                  </StatusBadge>
+                  {order.attentionReason && (
+                    <StatusBadge status={order.attentionReason}>
+                      {tv('attentionReason', order.attentionReason)}
+                    </StatusBadge>
+                  )}
+                  {order.returnRequest &&
+                    order.returnRequest.status !== 'none' && (
+                      <StatusBadge status={order.returnRequest.status}>
+                        {tv('returnStatus', order.returnRequest.status)}
+                      </StatusBadge>
+                    )}
+                </div>
+              )}
+            />
+            <ColumnWrapper
+              field='createdAt'
+              header={t('orders.columns.date')}
+              sortable
+              body={(order: any) =>
+                order.createdAt ? formatDate(order.createdAt) : '—'
+              }
+            />
+            <ColumnWrapper
+              header={t('orders.columns.nextAction')}
+              body={(order: any) => {
+                const next = order.allowedNextStatuses || [];
+                return next.length === 0 || !can('orders:write') ? (
+                  <span className='text-xs text-muted-foreground'>—</span>
+                ) : (
+                  <DropdownWrapper
+                    value=''
+                    options={next.map((s: any) => ({
+                      label: tv('orderStatus', s),
+                      value: s,
+                    }))}
+                    onChange={(e: any) => void onChangeStatus(order, e.value)}
+                    placeholder={t('orders.setStatus')}
+                    className='w-32'
+                    disabled={updateMut.isPending}
+                  />
+                );
+              }}
+            />
+          </DataTableWrapper>
+        </div>
       )}
     </motion.div>
   );

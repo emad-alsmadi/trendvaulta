@@ -77,7 +77,7 @@ function isStripeUnavailableForFallback(stripeErr: unknown): boolean {
 export default function CheckoutPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { t, formatPrice } = useTranslation();
+  const { t, formatPrice, locale } = useTranslation();
   const cart = useCart();
   const createOrder = useCreateOrderMutation();
   const confirm = useConfirm();
@@ -326,6 +326,8 @@ export default function CheckoutPage() {
           ? appliedCoupon.code
           : undefined,
       ...(isGuest && values.email ? { email: values.email.trim() } : {}),
+      // A guest's order emails come in the language they shopped in (P1-02)
+      locale,
     };
 
     // Best-effort: save a brand-new address to the book before we leave for

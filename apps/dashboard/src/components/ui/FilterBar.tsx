@@ -1,90 +1,165 @@
-import type { ReactNode } from 'react';
-import { X } from 'lucide-react';
-import { useT } from '../../i18n/I18nProvider';
+import { forwardRef, type ReactNode } from 'react';
+import { Filter, X } from 'lucide-react';
 import { cn } from '../../lib/cn';
+import { SearchInput } from './Field';
 import { Button } from './Button';
-import { Tag } from './StatusBadge';
 
-export type ActiveFilter = {
-  key: string;
-  /** Already-translated, e.g. "Status: Paid". */
+export type FilterItem = {
+  id: string;
   label: string;
-  onRemove: () => void;
+  labelAr: string;
+  value: string | number;
 };
 
-/**
- * The one toolbar above a table: search and filter controls wrap from the
- * start, results count / view controls sit at the end, and active filters show
- * as removable chips underneath with a "Clear filters" ghost button.
- */
-export function FilterBar({
-  children,
-  end,
-  active = [],
-  onClear,
-  className,
-}: {
-  /** SearchInput, Select, date inputs… each sized by the caller (e.g. w-full sm:w-64). */
-  children: ReactNode;
-  /** Results count, density or view toggles. */
-  end?: ReactNode;
-  active?: ActiveFilter[];
-  /** Shown when there is at least one active filter. */
-  onClear?: () => void;
+export interface FilterBarProps {
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
+  onSearchSubmit?: () => void;
+  searchPlaceholder?: string;
+  searchPlaceholderAr?: string;
+  filters?: {
+    id: string;
+    label: string;
+    labelAr: string;
+    value: string | number | '';
+    options: FilterItem[];
+    onChange: (value: string | number | '') => void;
+  }[];
+  onClearFilters?: () => void;
+  hasActiveFilters?: boolean;
+  children?: ReactNode;
   className?: string;
-}) {
-  const { t } = useT();
-  return (
-    <div className={cn('space-y-3', className)}>
-      <div className='flex flex-wrap items-center gap-2 sm:gap-3'>
-        <div className='flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:gap-3'>{children}</div>
-        {end && <div className='flex items-center gap-2 text-body-sm text-muted-foreground'>{end}</div>}
-      </div>
-      {active.length > 0 && (
-        <div className='flex flex-wrap items-center gap-2'>
-          {active.map((f) => (
-            <Tag key={f.key} onRemove={f.onRemove} removeLabel={t('common.removeFilter', { name: f.label })}>
-              {f.label}
-            </Tag>
-          ))}
-          {onClear && (
-            <Button variant='ghost' size='sm' onClick={onClear} icon={<X aria-hidden />}>
-              {t('common.clearFilters')}
-            </Button>
-          )}
-        </div>
-      )}
-    </div>
-  );
+  lang?: 'en' | 'ar';
 }
 
-/** Appears above a table while rows are selected: count, bulk actions, clear. */
-export function BulkActionBar({
-  count,
-  onClear,
-  children,
-}: {
-  count: number;
-  onClear: () => void;
-  children: ReactNode;
-}) {
-  const { t, formatNumber } = useT();
-  if (count === 0) return null;
-  return (
-    <div
-      role='region'
-      aria-label={t('common.selected', { count: formatNumber(count) })}
-      className='flex flex-wrap items-center gap-3 rounded-badge bg-primary px-4 py-2 text-sm text-primary-foreground'
-    >
-      <span className='font-medium tabular-nums'>{t('common.selected', { count: formatNumber(count) })}</span>
-      <div className='flex flex-wrap items-center gap-2'>{children}</div>
-      <button
-        type='button'
-        onClick={onClear}
-        className='ms-auto rounded-control px-2 py-1 text-body-sm underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground'
+export const FilterBar = forwardRef<HTMLDivElement, FilterBarProps>(
+  (
+    {
+      searchValue = '',
+      onSearchChange,
+      onSearchSubmit,
+      searchPlaceholder = 'Search...',
+      searchPlaceholderAr = 'بحث...',
+      filters = [],
+      onClearFilters,
+      hasActiveFilters = false,
+      children,
+      className,
+      lang = 'en',
+    },
+    ref,
+  ) => {
+    const isRTL = lang === 'ar';
+    const currentPlaceholder = isRTL ? searchPlaceholderAr : searchPlaceholder;
+
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          'flex flex-col gap-3 sm:flex-row sm:items-center',
+          className,
+        )}
       >
-        {t('common.clearSelection')}
-      </button>
-    </div>
-  );
-}
+        {/* Search Input */}
+        {onSearchChange && (
+          <form
+            className='relative flex-1'
+            onSubmit={(e) => {
+              e.preventDefault();
+              onSearchSubmit?.();
+            }}
+          >
+            <SearchInput
+              value={searchValue}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder={currentPlaceholder}
+              aria-label={isRTL ? 'بحث' : 'Search'}
+              className='w-full focus-visible:ring-brand-purple'
+            />
+          </form>
+        )}
+
+        {/* Filter Dropdowns */}
+        <div className='flex flex-wrap gap-2'>
+          {filters.map((filter) => (
+            <div
+              key={filter.id}
+              className='relative'
+            >
+              <label
+                htmlFor={filter.id}
+                className='sr-only'
+              >
+                {isRTL ? filter.labelAr : filter.label}
+              </label>
+              <select
+                id={filter.id}
+                value={filter.value}
+                onChange={(e) =>
+                  filter.onChange(
+                    e.target.value === ''
+                      ? ''
+                      : isNaN(Number(e.target.value))
+                        ? e.target.value
+                        : Number(e.target.value),
+                  )
+                }
+                className={cn(
+                  'h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm',
+                  'appearance-none pr-8 pl-3',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                  'disabled:cursor-not-allowed disabled:opacity-50',
+                  'transition-colors duration-200',
+                  'hover:border-brand-purple/50 focus-visible:border-brand-purple',
+                  isRTL ? 'pl-8 pr-3' : 'pr-8 pl-3',
+                  'min-w-[140px] sm:min-w-[160px]',
+                )}
+                dir={isRTL ? 'rtl' : 'ltr'}
+              >
+                <option value=''>
+                  {isRTL ? filter.labelAr : filter.label}
+                </option>
+                {filter.options.map((option) => (
+                  <option
+                    key={option.id}
+                    value={option.value}
+                  >
+                    {isRTL ? option.labelAr : option.label}
+                  </option>
+                ))}
+              </select>
+              <Filter
+                className={cn(
+                  'pointer-events-none absolute top-1/2 size-4 -translate-y-1/2 text-brand-purple',
+                  isRTL ? 'left-2.5' : 'right-2.5',
+                )}
+                aria-hidden
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Clear Filters Button */}
+        {hasActiveFilters && onClearFilters && (
+          <Button
+            variant='ghost'
+            size='sm'
+            onClick={onClearFilters}
+            className={cn(
+              'gap-1.5 text-muted-foreground hover:text-foreground',
+              isRTL && 'flex-row-reverse',
+            )}
+          >
+            <X className='size-4' />
+            <span>{isRTL ? 'مسح الفلاتر' : 'Clear Filters'}</span>
+          </Button>
+        )}
+
+        {/* Additional children */}
+        {children}
+      </div>
+    );
+  },
+);
+
+FilterBar.displayName = 'FilterBar';
