@@ -11,37 +11,37 @@ const KNOWN_CATEGORIES = [
     id: 'makeup',
     label: 'Makeup',
     href: '/products?category=makeup',
-    imageUrl: '/images/1.webp',
+    imageUrl: '/images/1.jpeg',
   },
   {
     id: 'perfumes',
     label: 'Perfumes',
     href: '/products?category=perfumes',
-    imageUrl: '/images/2.webp',
+    imageUrl: '/images/2.jpeg',
   },
   {
     id: 'clothing',
     label: 'Clothing',
     href: '/products?category=clothing',
-    imageUrl: '/images/3.webp',
+    imageUrl: '/images/3.jpeg',
   },
   {
     id: 'skincare',
     label: 'Skincare',
     href: '/products?category=skincare',
-    imageUrl: '/images/4.webp',
+    imageUrl: '/images/4.jpeg',
   },
   {
     id: 'accessories',
     label: 'Accessories',
     href: '/products?category=accessories',
-    imageUrl: '/images/1.webp',
+    imageUrl: '/images/1.jpeg',
   },
   {
     id: 'home',
     label: 'Home',
     href: '/products?category=home',
-    imageUrl: '/images/2.webp',
+    imageUrl: '/images/2.jpeg',
   },
 ];
 

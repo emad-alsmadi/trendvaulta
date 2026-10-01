@@ -13,7 +13,7 @@ const DEFAULT_HERO_SLIDES = [
     subtitle: 'Skincare and makeup picks with clear prices.',
     ctaLabel: 'Shop beauty',
     ctaHref: '/products?category=beauty',
-    imageUrl: '/images/1.webp',
+    imageUrl: '/images/1.jpeg',
     tone: 'rose',
     translations: {
       ar: {
@@ -31,7 +31,7 @@ const DEFAULT_HERO_SLIDES = [
     subtitle: 'Layer-ready looks without the noise.',
     ctaLabel: 'Shop fashion',
     ctaHref: '/products?category=fashion',
-    imageUrl: '/images/2.webp',
+    imageUrl: '/images/2.jpeg',
     tone: 'indigo',
     translations: {
       ar: {
@@ -49,7 +49,7 @@ const DEFAULT_HERO_SLIDES = [
     subtitle: 'Seasonal deals curated for TrendVaulta shoppers.',
     ctaLabel: 'See offers',
     ctaHref: '/offers',
-    imageUrl: '/images/3.webp',
+    imageUrl: '/images/3.jpeg',
     tone: 'teal',
     translations: {
       ar: {
@@ -67,7 +67,7 @@ const DEFAULT_HERO_SLIDES = [
     subtitle: 'Thoughtful details for calm, polished days.',
     ctaLabel: 'Explore lifestyle',
     ctaHref: '/products?category=lifestyle',
-    imageUrl: '/images/4.webp',
+    imageUrl: '/images/4.jpeg',
     tone: 'stone',
     translations: {
       ar: {

@@ -18,7 +18,9 @@ const {
 } = require('../controllers/shipping.controller');
 
 router.get('/shipping/zones', getShippingZones);
-router.get('/shipping/methods', verfiyToken, getShippingMethodsForAddress);
+// Public like /shipping/zones: guests check out with an email (plan P0-03)
+// and need the delivery options for their address; nothing here is per-user.
+router.get('/shipping/methods', getShippingMethodsForAddress);
 
 router.get(
   '/admin/shipping/zones',

@@ -84,7 +84,7 @@ const DEFAULT_CATEGORIES = [
   {
     slug: 'makeup',
     name: 'Makeup',
-    imageUrl: '/images/1.webp',
+    imageUrl: '/images/1.jpeg',
     description:
       'Foundations, lipsticks, eyeshadows and everyday essentials from world-renowned beauty brands.',
     children: ['foundation', 'lipstick', 'eyeshadow', 'mascara', 'blush', 'concealer', 'primer', 'setting-spray'],
@@ -92,7 +92,7 @@ const DEFAULT_CATEGORIES = [
   {
     slug: 'perfumes',
     name: 'Perfumes',
-    imageUrl: '/images/2.webp',
+    imageUrl: '/images/2.jpeg',
     description:
       'Signature fragrances, body mists and gift sets — find a scent that feels like you.',
     children: ['eau-de-parfum', 'eau-de-toilette', 'body-mist', 'gift-sets', 'cologne', 'roll-on'],
@@ -100,7 +100,7 @@ const DEFAULT_CATEGORIES = [
   {
     slug: 'clothing',
     name: 'Clothing',
-    imageUrl: '/images/3.webp',
+    imageUrl: '/images/3.jpeg',
     description:
       'Dresses, tops, jackets and activewear — wardrobe staples and seasonal edits.',
     children: ['dresses', 'tops', 'pants', 'jackets', 'accessories', 'sweaters', 'skirts', 'activewear'],
@@ -108,7 +108,7 @@ const DEFAULT_CATEGORIES = [
   {
     slug: 'skincare',
     name: 'Skincare',
-    imageUrl: '/images/4.webp',
+    imageUrl: '/images/4.jpeg',
     description:
       'Cleansers, serums, moisturizers and SPF for every skin type and ritual.',
     children: ['cleanser', 'moisturizer', 'serum', 'sunscreen', 'masks', 'toner', 'exfoliator', 'eye-cream'],
@@ -116,14 +116,14 @@ const DEFAULT_CATEGORIES = [
   {
     slug: 'accessories',
     name: 'Accessories',
-    imageUrl: '/images/1.webp',
+    imageUrl: '/images/1.jpeg',
     description: 'Jewelry, bags, watches and sunglasses to finish every look.',
     children: ['jewelry', 'bags', 'scarves', 'belts', 'watches', 'sunglasses', 'hats', 'wallets'],
   },
   {
     slug: 'home',
     name: 'Home & Living',
-    imageUrl: '/images/2.webp',
+    imageUrl: '/images/2.jpeg',
     description:
       'Decor, bedding, lighting and kitchen pieces that make a house feel like home.',
     children: ['decor', 'kitchen', 'bedding', 'lighting', 'furniture', 'rugs', 'curtains', 'organization'],

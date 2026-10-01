@@ -885,7 +885,7 @@ const STOREFRONT_MODULES = [
         subtitle: 'Skincare and makeup picks with clear prices.',
         ctaLabel: 'Shop skincare',
         ctaHref: '/c/skincare',
-        imageUrl: '/images/1.webp',
+        imageUrl: '/images/1.jpeg',
         tone: 'rose',
         translations: {
           ar: {
@@ -905,7 +905,7 @@ const STOREFRONT_MODULES = [
         subtitle: 'Layer-ready looks without the noise.',
         ctaLabel: 'Shop clothing',
         ctaHref: '/c/clothing',
-        imageUrl: '/images/2.webp',
+        imageUrl: '/images/2.jpeg',
         tone: 'indigo',
         translations: {
           ar: {
@@ -925,7 +925,7 @@ const STOREFRONT_MODULES = [
         subtitle: 'Seasonal deals curated for TrendVaulta shoppers.',
         ctaLabel: 'See offers',
         ctaHref: '/offers',
-        imageUrl: '/images/3.webp',
+        imageUrl: '/images/3.jpeg',
         tone: 'teal',
         translations: {
           ar: {
