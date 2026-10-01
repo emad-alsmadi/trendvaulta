@@ -12,7 +12,6 @@ import {
   LogOut,
   MessageSquare,
   Scale,
-  Search,
   Shield,
   ShieldCheck,
   Sparkles,
@@ -21,6 +20,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Drawer } from '@/components/ui/Drawer';
+import { SearchField } from '@/components/ui/SearchField';
 import { buttonVariants } from '@/components/ui/Button';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { ACCOUNT_LINKS, type NavCategory } from '@/components/navigation/NavMenus';
@@ -129,7 +129,7 @@ export function MobileNavDrawer({
     >
       <form
         role='search'
-        className='relative px-1 pt-1'
+        className='px-1 pt-1'
         onSubmit={(e) => {
           e.preventDefault();
           const q = query.trim();
@@ -141,14 +141,14 @@ export function MobileNavDrawer({
         <label htmlFor='nav-search-drawer' className='sr-only'>
           {t('catalog.searchLabel')}
         </label>
-        <Search aria-hidden className='pointer-events-none absolute start-4 top-1/2 mt-0.5 h-4 w-4 -translate-y-1/2 text-ink-subtle' />
-        <input
+        <SearchField
           id='nav-search-drawer'
-          type='search'
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t('catalog.searchPlaceholder')}
-          className='w-full rounded-control border border-line bg-surface-sunken py-2.5 pe-3 ps-9 text-sm text-ink placeholder:text-ink-subtle focus:border-fuchsia-300 focus:bg-surface focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20'
+          onClear={() => setQuery('')}
+          clearLabel={t('brandsPage.clearSearch')}
+          inputClassName='bg-surface-sunken focus-visible:bg-surface'
         />
       </form>
 

@@ -10,7 +10,6 @@ import {
   Sparkles,
   Heart,
   Menu,
-  Search,
   Truck,
   Globe,
 } from 'lucide-react';
@@ -22,6 +21,7 @@ import { useConfirm } from '@/components/confirm/ConfirmProvider';
 import { DeliverToControl } from '@/components/navigation/DeliverToControl';
 import { AccountMenu, CategoriesMenu, MoreMenu } from '@/components/navigation/NavMenus';
 import { MobileNavDrawer } from '@/components/navigation/MobileNavDrawer';
+import { SearchField } from '@/components/ui/SearchField';
 import { useTranslation } from '@/contexts/TranslationContext';
 import {
   CATEGORIES,
@@ -242,14 +242,12 @@ export function Navbar() {
               >
                 {t('catalog.searchLabel')}
               </label>
-              <Search className='pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400' />
-              <input
+              <SearchField
                 id='nav-search'
-                type='search'
                 value={navSearch}
                 onChange={(e) => setNavSearch(e.target.value)}
                 placeholder={t('common.search')}
-                className='w-full rounded-lg border border-stone-200 bg-stone-50 py-2 ps-9 pe-20 text-sm text-stone-900 placeholder:text-stone-400 focus:border-fuchsia-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20'
+                inputClassName='bg-surface-sunken pe-20 focus-visible:bg-surface'
               />
               <button
                 type='submit'

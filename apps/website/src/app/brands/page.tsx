@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Search, X } from 'lucide-react';
+import { SearchField } from '@/components/ui/SearchField';
 import { useBrands } from '@/hooks/brands/brandsQuery';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { intlLocale } from '@/lib/locale';
@@ -128,27 +128,15 @@ export default function BrandsPage() {
               <label htmlFor='brand-search' className='sr-only'>
                 {t('brandsPage.searchLabel')}
               </label>
-              <div className='relative'>
-                <Search aria-hidden className='pointer-events-none absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subtle' />
-                <input
-                  id='brand-search'
-                  type='search'
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder={t('brandsPage.searchPlaceholder')}
-                  className='h-11 w-full rounded-control border border-line bg-surface pe-10 ps-10 text-sm text-ink placeholder:text-ink-subtle transition-shadow focus:border-fuchsia-300 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/20 [&::-webkit-search-cancel-button]:hidden'
-                />
-                {query && (
-                  <button
-                    type='button'
-                    onClick={() => setQuery('')}
-                    aria-label={t('brandsPage.clearSearch')}
-                    className='absolute end-1.5 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-control text-ink-muted transition-colors hover:bg-surface-muted hover:text-ink'
-                  >
-                    <X aria-hidden className='h-4 w-4' />
-                  </button>
-                )}
-              </div>
+              <SearchField
+                id='brand-search'
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t('brandsPage.searchPlaceholder')}
+                onClear={() => setQuery('')}
+                clearLabel={t('brandsPage.clearSearch')}
+                inputClassName='h-11'
+              />
               <p className='mt-2 text-xs text-ink-muted' role='status'>
                 {t('brandsPage.count', { count: shown })}
               </p>
