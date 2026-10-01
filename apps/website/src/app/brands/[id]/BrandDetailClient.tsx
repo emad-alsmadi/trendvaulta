@@ -1,198 +1,300 @@
 'use client';
 
+import { useState } from 'react';
+import Link from 'next/link';
 import { BrandLogo } from '@/components/ui/BrandLogo';
 import { useBrandById } from '@/hooks/brands/brandsQuery';
 import { useProducts } from '@/hooks/products/productsQuery';
 import { motion } from 'framer-motion';
 import {
-  Star,
-  Globe,
+  ArrowUpRight,
+  BadgeCheck,
+  ChevronRight,
   MapPin,
-  ShoppingCart,
-  Heart,
+  ShieldCheck,
+  Star,
 } from 'lucide-react';
 import { ProductCard } from '@/components/products/ProductCard';
+import { Pagination } from '@/components/ui/Pagination';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/Select';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { ProductGridSkeleton, Skeleton, SkeletonGroup } from '@/components/ui/Skeleton';
 
+const LIMIT = 12;
+const GRID = 'grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+
+const sortOptions = [
+  { value: 'createdAt', labelKey: 'catalog.sort.featured' },
+  { value: 'bestselling', labelKey: 'catalog.sort.bestselling' },
+  { value: 'price', labelKey: 'catalog.sort.priceAsc' },
+  { value: '-price', labelKey: 'catalog.sort.priceDesc' },
+  { value: '-averageRating', labelKey: 'catalog.sort.rating' },
+  { value: '-createdAt', labelKey: 'catalog.sort.newest' },
+];
+
 export function BrandDetailClient({ id }: { id: string }) {
   const { t } = useTranslation();
+  const [page, setPage] = useState(1);
+  const [sort, setSort] = useState('createdAt');
   const {
     data: brand,
     isLoading: brandLoading,
     error: brandError,
   } = useBrandById(id);
-  const { data: productsResponse, isLoading: productsLoading } = useProducts({
+  const {
+    data: productsResponse,
+    isLoading: productsLoading,
+    isFetching: productsFetching,
+  } = useProducts({
     brand: id,
-    limit: 12,
-    sort: 'createdAt',
+    limit: LIMIT,
+    sort,
+    page,
   });
   const products = productsResponse?.data || [];
+  const totalProducts = productsResponse?.meta?.total ?? products.length;
+  const totalPages = productsResponse?.meta?.pages ?? 1;
 
   if (brandLoading) {
     return (
       <SkeletonGroup
         label={t('brandsPage.detail.loading')}
-        className='mx-auto max-w-7xl py-6'
+        className='mx-auto max-w-[1320px] py-6'
       >
-        <div aria-hidden className='flex items-center gap-5'>
-          <Skeleton className='h-20 w-20 shrink-0 rounded-2xl' />
-          <div className='min-w-0 flex-1'>
-            <Skeleton className='h-8 w-56 max-w-full' />
-            <Skeleton className='mt-3 h-4 w-80 max-w-full' />
-          </div>
+        <div aria-hidden className='flex flex-col items-center gap-5 py-8'>
+          <Skeleton className='h-28 w-28 shrink-0 rounded-full' />
+          <Skeleton className='h-9 w-56 max-w-full' />
+          <Skeleton className='h-4 w-80 max-w-full' />
         </div>
-        <ProductGridSkeleton className='mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' />
+        <ProductGridSkeleton className={`mt-10 ${GRID}`} />
       </SkeletonGroup>
     );
   }
 
   if (brandError || !brand) {
     return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <div className='text-center text-red-600'>
+      <div className='flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center'>
+        <p className='text-heading text-ink'>
           {t('brandsPage.detail.notFound')}
-        </div>
+        </p>
+        <Link
+          href='/brands'
+          className='text-sm font-semibold text-ink underline underline-offset-4 hover:text-accent'
+        >
+          {t('brandsPage.title')}
+        </Link>
       </div>
     );
   }
 
+  const trustItems = [
+    {
+      icon: ShieldCheck,
+      title: t('brandsPage.detail.trust.secureCheckout'),
+      text: t('brandsPage.detail.trust.secureCheckoutText'),
+    },
+    {
+      icon: BadgeCheck,
+      title: t('brandsPage.detail.trust.authentic'),
+      text: t('brandsPage.detail.trust.authenticText', { brand: brand.name }),
+    },
+    {
+      icon: Star,
+      title: t('productPage.reviews.title'),
+      text: t('brandsPage.detail.trust.reviewsText'),
+    },
+  ];
+
   return (
-    <div className='min-h-screen bg-white'>
-      {/* Brand Banner */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className='relative bg-gradient-to-r from-fuchsia-600 via-purple-600 to-cyan-600 text-white'
-      >
-        <div className='container mx-auto px-4 py-16'>
-          <div className='flex flex-col md:flex-row items-center gap-8'>
-            <BrandLogo
-              src={brand.logo}
-              alt={brand.name}
-              width={128}
-              height={128}
-              className='h-full w-full object-contain'
-              frameClassName='w-32 h-32 bg-white rounded-2xl p-4 shadow-xl'
-            />
-            <div className='flex-1 text-center md:text-start'>
-              <h1 className='text-4xl md:text-5xl font-bold mb-4'>
+    <div className='-mx-4 -my-6 bg-surface px-4 py-6 sm:-mx-6 sm:px-6 lg:-mx-20 lg:px-20 lg:py-10'>
+      <div className='mx-auto max-w-[1320px]'>
+        <nav aria-label={t('nav.breadcrumb')}>
+          <ol className='flex flex-wrap items-center gap-1.5 text-xs text-ink-muted'>
+            <li>
+              <Link href='/' className='transition-colors hover:text-ink'>
+                {t('common.home')}
+              </Link>
+            </li>
+            <li className='flex items-center gap-1.5'>
+              <ChevronRight className='h-3 w-3 rtl:-scale-x-100' aria-hidden />
+              <Link href='/brands' className='transition-colors hover:text-ink'>
+                {t('brandsPage.title')}
+              </Link>
+            </li>
+            <li className='flex items-center gap-1.5'>
+              <ChevronRight className='h-3 w-3 rtl:-scale-x-100' aria-hidden />
+              <span aria-current='page' className='text-ink'>
                 {brand.name}
-              </h1>
-              {brand.country && (
-                <div className='flex items-center justify-center md:justify-start gap-2 mb-3'>
-                  <MapPin className='h-5 w-5' />
-                  <span className='text-lg'>{brand.country}</span>
-                </div>
-              )}
-              {brand.website && (
-                <a
-                  href={brand.website}
-                  target='_blank'
-                  rel='noopener noreferrer'
-                  className='inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition-colors'
-                >
-                  <Globe className='h-4 w-4' />
-                  {t('brandsPage.visitWebsite')}
-                </a>
-              )}
-            </div>
-          </div>
-        </div>
-      </motion.div>
+              </span>
+            </li>
+          </ol>
+        </nav>
 
-      <div className='container mx-auto px-4 py-12'>
-        {/* Brand Description */}
-        {brand.description && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className='bg-white/70 backdrop-blur-xl rounded-2xl border border-white/30 p-8 shadow-lg mb-8'
-          >
-            <h2 className='text-2xl font-bold text-gray-900 mb-4'>
-              {t('brandsPage.detail.about', { brand: brand.name })}
-            </h2>
-            <p className='text-gray-700 leading-relaxed'>{brand.description}</p>
-          </motion.div>
-        )}
-
-        {/* Featured Products */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
+        {/* Brand header */}
+        <motion.header
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          className='mx-auto flex max-w-3xl flex-col items-center py-10 text-center sm:py-14'
         >
-          <div className='flex items-center justify-between mb-6'>
-            <h2 className='text-3xl font-bold text-gray-900'>
-              {t('brandsPage.detail.productsFrom', { brand: brand.name })}
-            </h2>
-            <span className='text-gray-600'>
-              {t('brandsPage.detail.productCount', { count: products.length })}
-            </span>
-          </div>
+          <BrandLogo
+            src={brand.logo}
+            alt={brand.name}
+            width={112}
+            height={112}
+            className='h-full w-full object-contain'
+            frameClassName='h-28 w-28 overflow-hidden rounded-full border border-line bg-surface p-4 shadow-soft'
+            fallback={
+              <span
+                aria-hidden
+                className='flex h-28 w-28 items-center justify-center rounded-full border border-line bg-surface-muted text-4xl font-semibold text-ink shadow-soft'
+              >
+                {brand.name.charAt(0).toUpperCase()}
+              </span>
+            }
+          />
 
-          {productsLoading ? (
-            <ProductGridSkeleton className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' />
-          ) : products.length > 0 ? (
-            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'>
-              {products.map((product) => (
-                <ProductCard
-                  key={product._id}
-                  product={product}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className='text-center py-12 bg-white/70 backdrop-blur-xl rounded-2xl border border-white/30'>
-              <p className='text-gray-600 text-lg'>
-                {t('brandsPage.detail.emptyProducts')}
-              </p>
-            </div>
+          {brand.country && (
+            <p className='mt-6 inline-flex items-center gap-1.5 text-eyebrow uppercase text-ink-muted rtl:tracking-normal'>
+              <MapPin className='h-3.5 w-3.5' aria-hidden />
+              {brand.country}
+            </p>
           )}
-        </motion.div>
+          <h1
+            className={`text-4xl font-semibold tracking-tight text-ink sm:text-display ${brand.country ? 'mt-3' : 'mt-6'}`}
+          >
+            {brand.name}
+          </h1>
+          {brand.description && (
+            <p className='mt-4 text-base leading-relaxed text-ink-muted'>
+              {brand.description}
+            </p>
+          )}
+          {brand.website && (
+            <a
+              href={brand.website}
+              target='_blank'
+              rel='noopener noreferrer'
+              className='mt-6 inline-flex items-center gap-1.5 border-b border-ink pb-0.5 text-sm font-semibold text-ink transition-colors hover:border-accent hover:text-accent'
+            >
+              {t('brandsPage.visitWebsite')}
+              <ArrowUpRight className='h-4 w-4 rtl:-scale-x-100' aria-hidden />
+            </a>
+          )}
+        </motion.header>
 
-        {/* Trust Elements */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className='mt-12 grid grid-cols-1 md:grid-cols-3 gap-6'
-        >
-          <div className='bg-white/70 backdrop-blur-xl rounded-2xl border border-white/30 p-6 text-center shadow-lg'>
-            <div className='w-12 h-12 bg-fuchsia-100 rounded-full flex items-center justify-center mx-auto mb-4'>
-              <ShoppingCart className='h-6 w-6 text-fuchsia-600' />
+        {/* Products */}
+        <section aria-labelledby='brand-products-heading'>
+          <div className='flex flex-col gap-3 border-y border-line py-4 sm:flex-row sm:items-center sm:justify-between'>
+            <div className='flex flex-wrap items-baseline gap-x-3 gap-y-1'>
+              <h2
+                id='brand-products-heading'
+                className='text-heading text-ink'
+              >
+                {t('brandsPage.detail.productsFrom', { brand: brand.name })}
+              </h2>
+              <span
+                role='status'
+                className='text-sm tabular-nums text-ink-muted'
+              >
+                {t('brandsPage.detail.productCount', { count: totalProducts })}
+                {productsFetching && productsResponse ? (
+                  <span className='ms-2 text-xs text-ink-subtle'>
+                    {t('catalog.updating')}
+                  </span>
+                ) : null}
+              </span>
             </div>
-            <h3 className='font-semibold text-gray-900 mb-2'>
-              {t('brandsPage.detail.trust.secureCheckout')}
-            </h3>
-            <p className='text-sm text-gray-600'>
-              {t('brandsPage.detail.trust.secureCheckoutText')}
-            </p>
+            <Select
+              value={sort}
+              onValueChange={(value) => {
+                setSort(value);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger
+                aria-label={t('catalog.sortLabel')}
+                className='w-full sm:w-52'
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent align='end'>
+                {sortOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {t(option.labelKey)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <div className='bg-white/70 backdrop-blur-xl rounded-2xl border border-white/30 p-6 text-center shadow-lg'>
-            <div className='w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4'>
-              <Heart className='h-6 w-6 text-purple-600' />
-            </div>
-            <h3 className='font-semibold text-gray-900 mb-2'>
-              {t('brandsPage.detail.trust.authentic')}
-            </h3>
-            <p className='text-sm text-gray-600'>
-              {t('brandsPage.detail.trust.authenticText', { brand: brand.name })}
-            </p>
+
+          <div className='mt-8'>
+            {productsLoading && !productsResponse ? (
+              <ProductGridSkeleton className={GRID} />
+            ) : products.length > 0 ? (
+              <>
+                <div className={GRID}>
+                  {products.map((product) => (
+                    <ProductCard
+                      key={product._id}
+                      product={product}
+                      badges={product.badges ?? []}
+                    />
+                  ))}
+                </div>
+                {totalPages > 1 && (
+                  <div className='mt-10'>
+                    <Pagination
+                      currentPage={page}
+                      totalPages={totalPages}
+                      onPageChange={(next) => {
+                        setPage(next);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                    />
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className='rounded-card bg-surface-muted px-6 py-16 text-center'>
+                <p className='text-base text-ink-muted'>
+                  {t('brandsPage.detail.emptyProducts')}
+                </p>
+                <Link
+                  href='/products'
+                  className='mt-4 inline-block text-sm font-semibold text-ink underline underline-offset-4 hover:text-accent'
+                >
+                  {t('catalog.browseAll')}
+                </Link>
+              </div>
+            )}
           </div>
-          <div className='bg-white/70 backdrop-blur-xl rounded-2xl border border-white/30 p-6 text-center shadow-lg'>
-            <div className='w-12 h-12 bg-cyan-100 rounded-full flex items-center justify-center mx-auto mb-4'>
-              <Star className='h-6 w-6 text-cyan-600' />
-            </div>
-            <h3 className='font-semibold text-gray-900 mb-2'>
-              {t('productPage.reviews.title')}
-            </h3>
-            <p className='text-sm text-gray-600'>
-              {t('brandsPage.detail.trust.reviewsText')}
-            </p>
-          </div>
-        </motion.div>
+        </section>
+
+        {/* Trust */}
+        <ul className='mt-16 grid grid-cols-1 divide-y divide-line border-y border-line md:grid-cols-3 md:divide-x md:divide-y-0 md:rtl:divide-x-reverse'>
+          {trustItems.map(({ icon: Icon, title, text }) => (
+            <li
+              key={title}
+              className='flex items-start gap-4 px-2 py-6 md:px-8'
+            >
+              <Icon
+                className='mt-0.5 h-6 w-6 shrink-0 text-ink'
+                strokeWidth={1.5}
+                aria-hidden
+              />
+              <div>
+                <h3 className='text-sm font-semibold text-ink'>{title}</h3>
+                <p className='mt-1 text-sm text-ink-muted'>{text}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

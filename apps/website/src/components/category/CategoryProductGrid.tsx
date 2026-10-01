@@ -108,8 +108,8 @@ export function CategoryProductGrid({ category, subcategory }: Props) {
 
   return (
     <div>
-      <div className='mb-4 flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center'>
-        <div role='status' className='flex flex-wrap items-center gap-2 text-sm text-stone-600'>
+      <div className='mb-8 flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center'>
+        <div role='status' className='flex flex-wrap items-center gap-2 text-sm tabular-nums text-ink-muted'>
           {isLoading && !response ? (
             <>
               <Skeleton className='h-4 w-40' />
@@ -152,7 +152,7 @@ export function CategoryProductGrid({ category, subcategory }: Props) {
 
           <Link
             href={allFiltersHref}
-            className='inline-flex items-center gap-2 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 transition-colors hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500'
+            className='inline-flex h-10 shrink-0 items-center gap-2 rounded-control border border-line bg-surface px-4 text-sm font-medium text-ink transition-colors duration-(--dur-fast) hover:border-ink-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40'
           >
             <SlidersHorizontal className='h-4 w-4' aria-hidden />
             {t('catalog.allFilters')}
@@ -163,9 +163,14 @@ export function CategoryProductGrid({ category, subcategory }: Props) {
       {isLoading && !response ? (
         <ProductGridSkeleton className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' />
       ) : error && !response ? (
-        <div className='rounded-xl border border-rose-100 bg-white py-12 text-center'>
+        <div className='rounded-card bg-surface-muted px-6 py-16 text-center'>
           <p className='text-rose-600'>{t('catalog.catalogLoadFailed')}</p>
-          <Button type='button' className='mt-4' onClick={() => refetch()}>
+          <Button
+            type='button'
+            variant='solid'
+            className='mt-4'
+            onClick={() => refetch()}
+          >
             {t('catalog.retry')}
           </Button>
         </div>
@@ -182,7 +187,7 @@ export function CategoryProductGrid({ category, subcategory }: Props) {
           </div>
 
           {meta.pages > 1 && (
-            <div className='mt-8'>
+            <div className='mt-12 border-t border-line pt-8'>
               <Pagination
                 currentPage={currentPage}
                 totalPages={meta.pages}
@@ -192,13 +197,13 @@ export function CategoryProductGrid({ category, subcategory }: Props) {
           )}
         </>
       ) : (
-        <div className='rounded-xl border border-stone-100 bg-white py-12 text-center'>
-          <p className='text-lg text-stone-500'>
+        <div className='rounded-card bg-surface-muted px-6 py-16 text-center'>
+          <p className='text-base text-ink-muted'>
             {t('catalog.emptyCategory')}
           </p>
           <Link
             href='/products'
-            className='mt-4 inline-block text-sm font-semibold text-fuchsia-700 hover:text-fuchsia-800'
+            className='mt-4 inline-block text-sm font-semibold text-ink underline underline-offset-4 hover:text-accent'
           >
             {t('catalog.browseAll')}
           </Link>

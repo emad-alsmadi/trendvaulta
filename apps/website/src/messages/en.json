@@ -198,11 +198,18 @@
     "trustTrackedShipping": "Tracked shipping on every order",
     "trustEasyReturns": "Easy returns within policy",
     "checkoutNote": "Coupons apply at checkout. Payment is processed securely when Stripe is configured.",
-    "shippingAtCheckout": "Calculated at checkout"
+    "shippingAtCheckout": "Calculated at checkout",
+    "itemCount": "{count} items"
   },
   "checkoutPage": {
     "title": "Checkout",
     "heading": "Contact & checkout",
+    "sections": {
+      "contact": "Contact",
+      "address": "Shipping address",
+      "delivery": "Delivery",
+      "payment": "Payment"
+    },
     "intro": "After you confirm, you'll finish payment on Stripe's secure page (card or wallet). Enter the address your order should ship to; tracked local delivery is optional.",
     "savedAddresses": {
       "title": "Saved addresses",
@@ -369,7 +376,11 @@
     "reviews": {
       "title": "Customer Reviews"
     },
-    "share": "Share"
+    "share": "Share",
+    "totalForQty": "Total for {count} items",
+    "each": "{price} each",
+    "description": "Description",
+    "deliveryReturns": "Delivery & returns"
   },
   "cartNotice": {
     "lowStock": "Only {count} left — quantity adjusted",

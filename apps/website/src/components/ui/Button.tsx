@@ -20,6 +20,11 @@ const buttonVariants = cva(
           'bg-gradient-to-r from-purple-100 via-pink-100 to-cyan-100 text-purple-800 hover:from-purple-200 hover:via-pink-200 hover:to-cyan-200',
         ghost:
           'bg-white/40 text-purple-700 backdrop-blur-sm hover:bg-white/60 hover:text-purple-800',
+        // Editorial pair for commerce screens (PDP, cart, checkout): one
+        // solid ink action, one hairline alternative.
+        solid:
+          'bg-ink text-white shadow-soft hover:bg-stone-800 hover:shadow-raised focus-visible:ring-stone-500',
+        line: 'border border-ink bg-surface text-ink hover:bg-ink hover:text-white focus-visible:ring-stone-500',
         link: 'text-fuchsia-600 underline-offset-4 hover:text-fuchsia-700 hover:underline active:scale-100',
       },
       size: {

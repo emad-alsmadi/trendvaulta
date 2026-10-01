@@ -61,30 +61,37 @@ export async function CategoryLanding({
     ? Array.from(new Set([subcategory, ...subcategories]))
     : subcategories;
 
+  const tabClass = (active: boolean) =>
+    `inline-block whitespace-nowrap border-b-2 pb-3 pt-1 text-sm transition-colors duration-(--dur-fast) ${
+      active
+        ? 'border-ink font-semibold text-ink'
+        : 'border-transparent text-ink-muted hover:text-ink'
+    }`;
+
   return (
-    <div className='min-h-screen bg-stone-50'>
+    <div className='-mx-4 -my-6 bg-surface px-4 py-6 sm:-mx-6 sm:px-6 lg:-mx-20 lg:px-20 lg:py-10'>
       <JsonLd data={breadcrumbJsonLd} />
 
-      <div className='mx-auto max-w-[1400px] px-4 py-8 sm:px-6 lg:px-8'>
-        <nav aria-label={t('nav.breadcrumb')} className='mb-4'>
-          <ol className='flex flex-wrap items-center gap-1 text-sm text-stone-500'>
+      <div className='mx-auto max-w-[1400px]'>
+        <nav aria-label={t('nav.breadcrumb')}>
+          <ol className='flex flex-wrap items-center gap-1.5 text-xs text-ink-muted'>
             {crumbs.map((crumb, index) => {
               const isLast = index === crumbs.length - 1;
               return (
-                <li key={crumb.href} className='flex items-center gap-1'>
+                <li key={crumb.href} className='flex items-center gap-1.5'>
                   {index > 0 ? (
-                    <ChevronRight className='h-3.5 w-3.5 rtl:-scale-x-100' aria-hidden />
+                    <ChevronRight className='h-3 w-3 rtl:-scale-x-100' aria-hidden />
                   ) : null}
                   {isLast ? (
-                    <span aria-current='page' className='font-semibold text-stone-900'>
-                      {crumb.href === '/' ? t('common.home') : crumb.name}
+                    <span aria-current='page' className='text-ink'>
+                      {crumb.name}
                     </span>
                   ) : (
                     <Link
                       href={crumb.href}
-                      className='transition-colors hover:text-stone-900'
+                      className='transition-colors hover:text-ink'
                     >
-                      {crumb.href === '/' ? t('common.home') : crumb.name}
+                      {crumb.name}
                     </Link>
                   )}
                 </li>
@@ -93,48 +100,51 @@ export async function CategoryLanding({
           </ol>
         </nav>
 
-        <header className='mb-6 overflow-hidden rounded-2xl border border-stone-200 bg-white'>
-          <div className='grid grid-cols-1 md:grid-cols-[1.4fr_1fr]'>
-            <div className='p-6 sm:p-8'>
-              <p className='text-xs font-medium uppercase tracking-wider text-fuchsia-700'>
-                {subLabel ? label : t('catalog.category.eyebrow')}
-              </p>
-              <h1 className='mt-2 text-3xl font-extrabold text-stone-900 sm:text-4xl'>
-                {subLabel ?? label}
-              </h1>
-              <p className='mt-3 max-w-xl text-sm text-stone-600 sm:text-base'>
-                {categoryDescription(def, t)}
-              </p>
-            </div>
-            {def.image ? (
-              <div className='relative min-h-[160px] border-t border-stone-200/80 md:border-s md:border-t-0'>
-                <Image
-                  src={def.image}
-                  alt={label}
-                  fill
-                  className='object-cover'
-                  priority
-                  sizes='(max-width: 768px) 100vw, 50vw'
-                />
-              </div>
-            ) : null}
+        {/* Editorial banner: the category image carries the section, copy sits
+            on a dark wash so it stays readable over any photo. */}
+        <header className='relative mt-5 overflow-hidden rounded-panel bg-ink'>
+          {def.image ? (
+            <>
+              <Image
+                src={def.image}
+                alt=''
+                fill
+                className='object-cover'
+                priority
+                sizes='(max-width: 1400px) 100vw, 1400px'
+              />
+              <div
+                aria-hidden
+                className='absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/45 to-ink/10'
+              />
+            </>
+          ) : null}
+          <div className='relative flex min-h-[240px] flex-col justify-end p-6 sm:min-h-[340px] sm:p-10 lg:p-14'>
+            <p className='text-eyebrow uppercase text-white/80 rtl:tracking-normal'>
+              {subLabel ? label : t('catalog.category.eyebrow')}
+            </p>
+            <h1 className='mt-3 text-4xl font-semibold tracking-tight text-white sm:text-display'>
+              {subLabel ?? label}
+            </h1>
+            <p className='mt-3 max-w-xl text-sm leading-relaxed text-white/85 sm:text-base'>
+              {categoryDescription(def, t)}
+            </p>
           </div>
         </header>
 
         {chips.length > 0 ? (
-          <nav aria-label={t('catalog.category.subcategoriesAria', {
-            category: label,
-          })} className='mb-6'>
-            <ul className='flex flex-wrap gap-2'>
-              <li>
+          <nav
+            aria-label={t('catalog.category.subcategoriesAria', {
+              category: label,
+            })}
+            className='mt-8 border-b border-line'
+          >
+            <ul className='hide-scrollbar -mb-px flex gap-6 overflow-x-auto sm:gap-8'>
+              <li className='shrink-0'>
                 <Link
                   href={categoryHref(def.slug)}
                   aria-current={!subcategory ? 'page' : undefined}
-                  className={`inline-block rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                    !subcategory
-                      ? 'border-stone-900 bg-stone-900 text-white'
-                      : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300'
-                  }`}
+                  className={tabClass(!subcategory)}
                 >
                   {t('catalog.category.all', { category: label })}
                 </Link>
@@ -142,15 +152,11 @@ export async function CategoryLanding({
               {chips.map((sub) => {
                 const active = sub === subcategory;
                 return (
-                  <li key={sub}>
+                  <li key={sub} className='shrink-0'>
                     <Link
                       href={categoryHref(def.slug, sub)}
                       aria-current={active ? 'page' : undefined}
-                      className={`inline-block rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                        active
-                          ? 'border-stone-900 bg-stone-900 text-white'
-                          : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300'
-                      }`}
+                      className={tabClass(active)}
                     >
                       {subcategoryLabel(sub, t)}
                     </Link>
@@ -161,9 +167,11 @@ export async function CategoryLanding({
           </nav>
         ) : null}
 
-        <Suspense fallback={<GridFallback />}>
-          <CategoryProductGrid category={def.slug} subcategory={subcategory} />
-        </Suspense>
+        <div className='mt-6'>
+          <Suspense fallback={<GridFallback />}>
+            <CategoryProductGrid category={def.slug} subcategory={subcategory} />
+          </Suspense>
+        </div>
       </div>
     </div>
   );
