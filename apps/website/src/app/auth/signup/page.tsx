@@ -3,7 +3,17 @@
 import Link from 'next/link';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { Loader2, Sparkles } from 'lucide-react';
+import { AuthSplitLayout } from '@/components/auth/AuthSplitLayout';
+import {
+  AlertCircle,
+  Heart,
+  Loader2,
+  Lock,
+  Mail,
+  ShieldCheck,
+  Tag,
+  User,
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { REDIRECT_PARAM, getSafeRedirectPath } from '@/lib/safeRedirect';
@@ -17,6 +27,17 @@ import {
   logErrorForDev,
 } from '@/lib/userFacingError';
 import { useTranslation } from '@/contexts/TranslationContext';
+
+const HIGHLIGHTS = [
+  { icon: Heart, text: 'auth.perkWishlist' },
+  { icon: Tag, text: 'auth.perkDeals' },
+  { icon: ShieldCheck, text: 'auth.perkStripe' },
+] as const;
+
+const fieldIconClass =
+  'pointer-events-none absolute start-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400';
+const labelClass = 'mb-1.5 block text-sm font-medium text-gray-700';
+const fieldErrorClass = 'mt-1.5 text-xs font-medium text-red-600';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -64,180 +85,153 @@ export default function SignupPage() {
     'auth.hasAccountPrompt',
   ).split('{link}');
 
+  const pending = registerMutation.isPending || isSubmitting;
+
   return (
-    <div className='relative mx-auto max-w-6xl overflow-hidden rounded-3xl border border-white/25 bg-white/20 p-4 backdrop-blur-xl sm:p-6'>
-      <motion.div
-        aria-hidden
-        className='pointer-events-none absolute -inset-24 opacity-70'
-        animate={{ rotate: [0, -8, 0], scale: [1, 1.03, 1] }}
-        transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
-        style={{
-          background:
-            'radial-gradient(closest-side, rgba(245,158,11,0.22), transparent 70%), radial-gradient(closest-side, rgba(236,72,153,0.22), transparent 70%), radial-gradient(closest-side, rgba(99,102,241,0.20), transparent 70%)',
-        }}
-      />
-
-      <div className='relative grid gap-6 lg:grid-cols-2 lg:items-stretch'>
-        <motion.section
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.65, ease: 'easeOut' }}
-          className='order-2 rounded-3xl border border-white/30 bg-white/35 p-6 shadow-sm backdrop-blur-xl sm:p-8 lg:order-1'
-        >
-          <div className='flex items-start justify-between gap-3'>
-            <div>
-              <div className='text-2xl font-extrabold tracking-tight text-indigo-950'>
-                {t('auth.createAccountTitle')}
-              </div>
-              <div className='mt-1 text-sm font-semibold text-indigo-950/80'>
-                {t('auth.signupSubtitle')}
-              </div>
-            </div>
-            {meQuery.data?.user && (
-              <div className='rounded-full border border-white/35 bg-emerald-500/15 px-3 py-1 text-xs font-extrabold text-emerald-900'>
-                {t('auth.signedIn')}
-              </div>
-            )}
-          </div>
-
-          <form
-            onSubmit={onSubmit}
-            className='mt-6 space-y-4'
-          >
-            <div>
-              <label htmlFor='signup-username' className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                {t('auth.username')}
-              </label>
-              <Input
-                id='signup-username'
-                aria-invalid={errors.username ? true : undefined}
-                aria-describedby={errors.username ? 'signup-username-error' : undefined}
-                placeholder={t('auth.usernamePlaceholder')}
-                {...register('username')}
-              />
-              {errors.username?.message && (
-                <div id='signup-username-error' role='alert' className='mt-2 text-sm font-semibold text-rose-700'>
-                  {t(errors.username.message)}
-                </div>
-              )}
-            </div>
-            <div>
-              <label htmlFor='signup-email' className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                {t('auth.email')}
-              </label>
-              <Input
-                id='signup-email'
-                aria-invalid={errors.email ? true : undefined}
-                aria-describedby={errors.email ? 'signup-email-error' : undefined}
-                type='email'
-                placeholder='you@example.com'
-                {...register('email')}
-              />
-              {errors.email?.message && (
-                <div id='signup-email-error' role='alert' className='mt-2 text-sm font-semibold text-rose-700'>
-                  {t(errors.email.message)}
-                </div>
-              )}
-            </div>
-            <div>
-              <label htmlFor='signup-password' className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
-                {t('auth.password')}
-              </label>
-              <Input
-                id='signup-password'
-                aria-invalid={errors.password ? true : undefined}
-                aria-describedby={errors.password ? 'signup-password-error' : undefined}
-                type='password'
-                placeholder='••••••••'
-                {...register('password')}
-              />
-              {errors.password?.message && (
-                <div id='signup-password-error' role='alert' className='mt-2 text-sm font-semibold text-rose-700'>
-                  {t(errors.password.message)}
-                </div>
-              )}
-            </div>
-
-            {registerMutation.error && (
-              <motion.div
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className='rounded-2xl border border-rose-200 bg-rose-50/90 p-4 text-sm font-semibold text-rose-900'
-              >
-                {getUserFacingErrorMessage(
-                  registerMutation.error,
-                  t('auth.signupFailed'),
-                  t,
-                )}
-              </motion.div>
-            )}
-
-            <Button
-              type='submit'
-              className='w-full'
-              disabled={registerMutation.isPending || isSubmitting}
-            >
-              {registerMutation.isPending || isSubmitting ? (
-                <span className='inline-flex items-center gap-2'>
-                  <Loader2 className='h-4 w-4 animate-spin' />
-                  {t('auth.creating')}
-                </span>
-              ) : (
-                t('auth.createAccount')
-              )}
-            </Button>
-
-            <div className='text-sm font-semibold text-indigo-950/80'>
-              {hasAccountBefore}
-              <Link
-                className='font-extrabold text-indigo-700 hover:underline'
-                href='/auth/login'
-              >
-                {t('auth.login')}
-              </Link>
-              {hasAccountAfter}
-            </div>
-          </form>
-        </motion.section>
-
-        <motion.section
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.65, ease: 'easeOut', delay: 0.05 }}
-          className='order-1 hidden overflow-hidden rounded-3xl border border-white/30 bg-gradient-to-br from-amber-500/80 via-rose-500/80 to-fuchsia-600/80 p-10 text-white shadow-sm lg:block lg:order-2'
-        >
-          <motion.div
-            animate={{ y: [0, -10, 0] }}
-            transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            <div className='inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-extrabold'>
-              <Sparkles className='h-4 w-4' />
-              {t('auth.newHere')}
-            </div>
-            <h1 className='mt-4 text-4xl font-extrabold tracking-tight'>
-              {t('auth.signupHeading')}
-            </h1>
-            <p className='mt-3 text-sm text-white/90'>
-              {t('auth.signupIntro')}
-            </p>
-
-            <div className='mt-8 grid gap-3'>
-              {[
-                'auth.perkWishlist',
-                'auth.perkDeals',
-                'auth.perkStripe',
-              ].map((perkKey) => (
-                <div
-                  key={perkKey}
-                  className='rounded-2xl bg-white/12 p-4 text-sm font-semibold'
-                >
-                  {t(perkKey)}
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        </motion.section>
+    <AuthSplitLayout
+      badge='auth.newHere'
+      heading='auth.signupHeading'
+      intro='auth.signupIntro'
+      highlights={HIGHLIGHTS}
+    >
+      <div className='flex items-start justify-between gap-3'>
+        <h1 className='text-2xl font-bold tracking-tight text-gray-900'>
+          {t('auth.createAccountTitle')}
+        </h1>
+        {meQuery.data?.user && (
+          <span className='rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800'>
+            {t('auth.signedIn')}
+          </span>
+        )}
       </div>
-    </div>
+      <p className='mt-2 text-sm text-gray-500'>{t('auth.signupSubtitle')}</p>
+
+      <form onSubmit={onSubmit} className='mt-8 space-y-5'>
+        {registerMutation.error && (
+          <motion.div
+            role='alert'
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className='flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-800'
+          >
+            <AlertCircle className='mt-0.5 h-4 w-4 shrink-0' aria-hidden />
+            {getUserFacingErrorMessage(
+              registerMutation.error,
+              t('auth.signupFailed'),
+              t,
+            )}
+          </motion.div>
+        )}
+
+        <div>
+          <label htmlFor='signup-username' className={labelClass}>
+            {t('auth.username')}
+          </label>
+          <div className='relative'>
+            <User className={fieldIconClass} aria-hidden />
+            <Input
+              id='signup-username'
+              aria-invalid={errors.username ? true : undefined}
+              aria-describedby={
+                errors.username ? 'signup-username-error' : undefined
+              }
+              autoComplete='username'
+              placeholder={t('auth.usernamePlaceholder')}
+              disabled={pending}
+              {...register('username')}
+              className='ps-10'
+            />
+          </div>
+          {errors.username?.message && (
+            <div
+              id='signup-username-error'
+              role='alert'
+              className={fieldErrorClass}
+            >
+              {t(errors.username.message)}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor='signup-email' className={labelClass}>
+            {t('auth.email')}
+          </label>
+          <div className='relative'>
+            <Mail className={fieldIconClass} aria-hidden />
+            <Input
+              id='signup-email'
+              aria-invalid={errors.email ? true : undefined}
+              aria-describedby={errors.email ? 'signup-email-error' : undefined}
+              type='email'
+              autoComplete='email'
+              placeholder='you@example.com'
+              dir='ltr'
+              disabled={pending}
+              {...register('email')}
+              className='ps-10'
+            />
+          </div>
+          {errors.email?.message && (
+            <div id='signup-email-error' role='alert' className={fieldErrorClass}>
+              {t(errors.email.message)}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor='signup-password' className={labelClass}>
+            {t('auth.password')}
+          </label>
+          <div className='relative'>
+            <Lock className={fieldIconClass} aria-hidden />
+            <Input
+              id='signup-password'
+              aria-invalid={errors.password ? true : undefined}
+              aria-describedby={
+                errors.password ? 'signup-password-error' : undefined
+              }
+              type='password'
+              autoComplete='new-password'
+              placeholder='••••••••'
+              disabled={pending}
+              {...register('password')}
+              className='ps-10'
+            />
+          </div>
+          {errors.password?.message && (
+            <div
+              id='signup-password-error'
+              role='alert'
+              className={fieldErrorClass}
+            >
+              {t(errors.password.message)}
+            </div>
+          )}
+        </div>
+
+        <Button type='submit' className='w-full' disabled={pending}>
+          {pending ? (
+            <span className='inline-flex items-center gap-2'>
+              <Loader2 className='h-4 w-4 animate-spin' />
+              {t('auth.creating')}
+            </span>
+          ) : (
+            t('auth.createAccount')
+          )}
+        </Button>
+
+        <p className='text-center text-sm text-gray-500'>
+          {hasAccountBefore}
+          <Link
+            className='font-semibold text-indigo-700 hover:underline'
+            href='/auth/login'
+          >
+            {t('auth.login')}
+          </Link>
+          {hasAccountAfter}
+        </p>
+      </form>
+    </AuthSplitLayout>
   );
 }

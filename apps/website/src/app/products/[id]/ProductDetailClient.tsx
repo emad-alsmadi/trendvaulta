@@ -315,11 +315,11 @@ export function ProductDetailClient({ id }: { id: string }) {
 
         <div className='mt-6 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-16'>
           {/* Gallery — thumbnails run down the side on desktop, under the
-              image on phones. */}
+              image on phones. Sticks while the info column scrolls. */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className='flex min-w-0 flex-col-reverse gap-3 lg:flex-row lg:gap-4 lg:self-start'
+            className='flex min-w-0 flex-col-reverse gap-3 lg:sticky lg:top-24 lg:flex-row lg:gap-4 lg:self-start'
           >
             {images.length > 1 && (
               <div className='hide-scrollbar flex gap-2 overflow-x-auto lg:max-h-[640px] lg:w-20 lg:shrink-0 lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden'>
@@ -393,12 +393,12 @@ export function ProductDetailClient({ id }: { id: string }) {
             </div>
           </motion.div>
 
-          {/* Product info — stays in view while the gallery scrolls */}
+          {/* Product info — the taller column; the gallery sticks beside it */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
-            className='min-w-0 lg:sticky lg:top-24 lg:self-start'
+            className='min-w-0'
           >
             {/* Brand + secondary actions */}
             <div className='flex items-center justify-between gap-3'>

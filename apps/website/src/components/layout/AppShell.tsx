@@ -5,7 +5,7 @@ import { Footer } from '@/components/layout/Footer'
 import { useTranslation } from '@/contexts/TranslationContext';
 import { usePathname } from 'next/navigation';
 
-const STANDALONE_ROUTES = ['/auth/login'];
+const STANDALONE_ROUTES = ['/auth/login', '/auth/signup'];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();

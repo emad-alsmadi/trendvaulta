@@ -377,7 +377,7 @@
       "title": "Customer Reviews"
     },
     "share": "Share",
-    "totalForQty": "Total for {count} items",
+    "totalForQty": "Total (qty {count})",
     "each": "{price} each",
     "description": "Description",
     "deliveryReturns": "Delivery & returns"

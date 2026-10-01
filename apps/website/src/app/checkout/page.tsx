@@ -1004,7 +1004,9 @@ export default function CheckoutPage() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.05 }}
-          className='rounded-card border border-line bg-surface p-5 shadow-soft sm:p-6 lg:sticky lg:top-24 lg:self-start'
+          // On phones the summary comes first, so the shopper sees what they
+          // are paying for before the form; on desktop it sits beside it.
+          className='order-first rounded-card border border-line bg-surface p-5 shadow-soft sm:p-6 lg:sticky lg:top-24 lg:order-none lg:self-start'
         >
           <div className='flex items-center justify-between gap-3'>
             <h2 className='text-heading text-ink'>
