@@ -3,9 +3,22 @@
 import { Navbar } from '@/components/navigation/Navbar';
 import { Footer } from '@/components/layout/Footer'
 import { useTranslation } from '@/contexts/TranslationContext';
+import { usePathname } from 'next/navigation';
+
+const STANDALONE_ROUTES = ['/auth/login'];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
+  const pathname = usePathname();
+
+  // Standalone pages own the full viewport: no Navbar, no Footer.
+  if (STANDALONE_ROUTES.includes(pathname)) {
+    return (
+      <main id='main-content' tabIndex={-1} className='focus:outline-none'>
+        {children}
+      </main>
+    );
+  }
 
   return (
     <div className='min-h-screen bg-gray-50'>
