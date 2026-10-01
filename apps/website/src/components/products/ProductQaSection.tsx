@@ -11,6 +11,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/Accordion';
 import { Button } from '@/components/ui/Button';
+import { Textarea } from '@/components/ui/Textarea';
 import { useToast } from '@/components/ui/Toast';
 import { useTranslation } from '@/contexts/TranslationContext';
 import {
@@ -154,14 +155,13 @@ export function ProductQaSection({ productId }: Props) {
           >
             {t('productQa.questionLabel')}
           </label>
-          <textarea
+          <Textarea
             id='pdp-qa-question'
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             rows={3}
             maxLength={QUESTION_MAX}
             placeholder={t('productQa.questionPlaceholder')}
-            className='w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 focus:border-fuchsia-400 focus:outline-none focus:ring-2 focus:ring-fuchsia-200'
             disabled={createQuestion.isPending}
           />
           <div className='mt-2 flex items-center justify-between gap-3'>

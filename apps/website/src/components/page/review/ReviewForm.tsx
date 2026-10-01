@@ -5,6 +5,7 @@ import axios from 'axios';
 import { Star } from 'lucide-react';
 import { Review, ReviewPayload, ReviewUpdatePayload } from '@/types';
 import { Button } from '../../ui/Button';
+import { Textarea } from '../../ui/Textarea';
 import { useTranslation } from '@/contexts/TranslationContext';
 
 interface ReviewFormProps {
@@ -173,13 +174,13 @@ export function ReviewForm({
         >
           {t('reviews.form.commentLabel')}
         </label>
-        <textarea
+        <Textarea
           id='comment'
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           placeholder={t('reviews.form.commentPlaceholder')}
           rows={4}
-          className='w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none'
+          className='resize-none px-4 py-3'
           required
           minLength={3}
           maxLength={1000}

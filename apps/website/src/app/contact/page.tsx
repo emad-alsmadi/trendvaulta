@@ -19,6 +19,8 @@ import {
   logErrorForDev,
 } from '@/lib/userFacingError';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { Input } from '@/components/ui/Input';
+import { Textarea } from '@/components/ui/Textarea';
 import {
   Select,
   SelectContent,
@@ -249,7 +251,7 @@ export default function ContactPage() {
                       >
                         {t('addresses.name')}
                       </label>
-                      <input
+                      <Input
                         type='text'
                         id='name'
                         aria-invalid={fieldErrors.name ? true : undefined}
@@ -258,7 +260,7 @@ export default function ContactPage() {
                         value={formData.name}
                         onChange={handleChange}
                         required
-                        className='w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors'
+                        className='h-12 px-4 aria-invalid:border-rose-500'
                         placeholder={t('checkoutPage.form.namePlaceholder')}
                       />
                       {fieldErrors.name && (
@@ -274,7 +276,7 @@ export default function ContactPage() {
                       >
                         {t('auth.email')}
                       </label>
-                      <input
+                      <Input
                         type='email'
                         id='email'
                         aria-invalid={fieldErrors.email ? true : undefined}
@@ -283,7 +285,7 @@ export default function ContactPage() {
                         value={formData.email}
                         onChange={handleChange}
                         required
-                        className='w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors'
+                        className='h-12 px-4 aria-invalid:border-rose-500'
                         placeholder='your@email.com'
                       />
                       {fieldErrors.email && (
@@ -316,7 +318,7 @@ export default function ContactPage() {
                         id='subject'
                         aria-invalid={fieldErrors.subject ? true : undefined}
                         aria-describedby={fieldErrors.subject ? 'subject-error' : undefined}
-                        className='h-12 w-full px-4 aria-[invalid=true]:border-rose-500'
+                        className='h-12 w-full px-4 aria-invalid:border-rose-500'
                       >
                         <SelectValue placeholder={t('contact.form.subjectPlaceholder')} />
                       </SelectTrigger>
@@ -342,7 +344,7 @@ export default function ContactPage() {
                     >
                       {t('contact.form.message')}
                     </label>
-                    <textarea
+                    <Textarea
                       id='message'
                       aria-invalid={fieldErrors.message ? true : undefined}
                       aria-describedby={fieldErrors.message ? 'message-error' : undefined}
@@ -351,7 +353,7 @@ export default function ContactPage() {
                       onChange={handleChange}
                       required
                       rows={6}
-                      className='w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-fuchsia-500 focus:border-transparent transition-colors resize-none'
+                      className='resize-none px-4 py-3 aria-invalid:border-rose-500'
                       placeholder={t('contact.form.messagePlaceholder')}
                       maxLength={2000}
                     />

@@ -11,6 +11,7 @@ import {
   Loader2,
   CheckCircle2,
 } from 'lucide-react';
+import { Input } from '@/components/ui/Input';
 import { useSubscribeNewsletter } from '@/hooks/marketing/marketingMutations';
 import {
   getUserFacingErrorMessage,
@@ -67,7 +68,7 @@ function NewsletterForm() {
         {t('footer.newsletter')}
       </label>
       <div className='flex gap-2'>
-        <input
+        <Input
           id='footer-newsletter-email'
           type='email'
           value={email}
@@ -75,7 +76,7 @@ function NewsletterForm() {
           placeholder='you@example.com'
           maxLength={100}
           disabled={subscribe.isPending}
-          className='min-w-0 flex-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500'
+          className='w-auto min-w-0 flex-1 border-gray-700 bg-gray-800 text-white placeholder:text-gray-500 hover:border-gray-600 focus-visible:border-fuchsia-500 focus-visible:ring-fuchsia-500/40'
         />
         <button
           type='submit'

@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronRight, X, ChevronDown, ChevronUp, Star } from 'lucide-react';
+import * as AccordionPrimitive from '@radix-ui/react-accordion';
+import { ChevronRight, X, ChevronDown, Star } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
+import { Input } from '@/components/ui/Input';
 import { useBrands } from '@/hooks/brands/brandsQuery';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { useTranslation } from '@/contexts/TranslationContext';
@@ -80,6 +82,42 @@ function Count({ value }: { value?: number }) {
   );
 }
 
+const DEFAULT_OPEN_SECTIONS = ['ideas', 'categories', 'price', 'availability'];
+
+/** One collapsible filter group; the last one drops its divider. */
+function FilterSection({
+  value,
+  title,
+  children,
+}: {
+  value: string;
+  title: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <AccordionPrimitive.Item
+      value={value}
+      className='border-b border-stone-100 py-4 first:pt-0 last:border-b-0 last:pb-0'
+    >
+      <AccordionPrimitive.Header asChild>
+        <h4>
+          <AccordionPrimitive.Trigger className='group flex w-full items-center justify-between rounded-control text-start text-sm font-semibold text-stone-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30'>
+            {title}
+            <ChevronDown
+              aria-hidden
+              className='h-4 w-4 text-stone-500 transition-transform duration-(--dur-fast) group-data-[state=open]:rotate-180'
+            />
+          </AccordionPrimitive.Trigger>
+        </h4>
+      </AccordionPrimitive.Header>
+      <AccordionPrimitive.Content className='overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down'>
+        {/* Padding keeps focus rings and the swatch hover inside the clip */}
+        <div className='px-0.5 pb-0.5 pt-3'>{children}</div>
+      </AccordionPrimitive.Content>
+    </AccordionPrimitive.Item>
+  );
+}
+
 export function CategorySidebar({
   onAfterNavigate,
   variant = 'sidebar',
@@ -139,24 +177,6 @@ export function CategorySidebar({
     setPriceMin(urlMin || '0');
     setPriceMax(urlMax || '500');
   }
-
-  const [expandedSections, setExpandedSections] = useState({
-    ideas: true,
-    categories: true,
-    price: true,
-    availability: true,
-    brands: false,
-    size: false,
-    color: false,
-    rating: false,
-  });
-
-  const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [section]: !prev[section],
-    }));
-  };
 
   const pushParams = (mutate: (params: URLSearchParams) => void) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -261,23 +281,9 @@ export function CategorySidebar({
           </div>
         )}
 
-        {/* Shopping ideas */}
-        <div className='mb-4 border-b border-stone-100 pb-4'>
-          <button
-            type='button'
-            onClick={() => toggleSection('ideas')}
-            className='mb-3 flex w-full items-center justify-between'
-          >
-            <h4 className='text-sm font-semibold text-stone-900'>
-              {t('catalog.sidebar.popularIdeas')}
-            </h4>
-            {expandedSections.ideas ? (
-              <ChevronUp className='h-4 w-4 text-stone-500' />
-            ) : (
-              <ChevronDown className='h-4 w-4 text-stone-500' />
-            )}
-          </button>
-          {expandedSections.ideas && (
+        <AccordionPrimitive.Root type='multiple' defaultValue={DEFAULT_OPEN_SECTIONS}>
+          {/* Shopping ideas */}
+          <FilterSection value='ideas' title={t('catalog.sidebar.popularIdeas')}>
             <ul className='flex flex-wrap gap-2'>
               {shoppingIdeas.map((idea) => (
                 <li key={idea.id}>
@@ -291,25 +297,10 @@ export function CategorySidebar({
                 </li>
               ))}
             </ul>
-          )}
-        </div>
+          </FilterSection>
 
-        {/* Categories */}
-        <div className='mb-4 border-b border-stone-100 pb-4'>
-          <button
-            type='button'
-            onClick={() => toggleSection('categories')}
-            className='mb-3 flex w-full items-center justify-between'
-          >
-            <h4 className='text-sm font-semibold text-stone-900'>{t('common.categories')}</h4>
-            {expandedSections.categories ? (
-              <ChevronUp className='h-4 w-4 text-stone-500' />
-            ) : (
-              <ChevronDown className='h-4 w-4 text-stone-500' />
-            )}
-          </button>
-
-          {expandedSections.categories && (
+          {/* Categories */}
+          <FilterSection value='categories' title={t('common.categories')}>
             <nav className='space-y-1'>
               {CATEGORIES.map((category) => (
                 <div key={category.slug}>
@@ -365,24 +356,10 @@ export function CategorySidebar({
                 </Link>
               </div>
             </nav>
-          )}
-        </div>
+          </FilterSection>
 
-        {/* Availability + deals — API flags (inStock / onSale) */}
-        <div className='mb-4 border-b border-stone-100 pb-4'>
-          <button
-            type='button'
-            onClick={() => toggleSection('availability')}
-            className='mb-3 flex w-full items-center justify-between'
-          >
-            <h4 className='text-sm font-semibold text-stone-900'>{t('catalog.sidebar.availability')}</h4>
-            {expandedSections.availability ? (
-              <ChevronUp className='h-4 w-4 text-stone-500' />
-            ) : (
-              <ChevronDown className='h-4 w-4 text-stone-500' />
-            )}
-          </button>
-          {expandedSections.availability && (
+          {/* Availability + deals — API flags (inStock / onSale) */}
+          <FilterSection value='availability' title={t('catalog.sidebar.availability')}>
             <div className='space-y-2'>
               <label className='flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-stone-700 hover:bg-stone-50'>
                 <Checkbox
@@ -407,26 +384,10 @@ export function CategorySidebar({
                 </span>
               </label>
             </div>
-          )}
-        </div>
+          </FilterSection>
 
-        {/* Brands — API-backed multi-select (brand=<id>,<id>) */}
-        <div className='mb-4 border-b border-stone-100 pb-4'>
-          <button
-            type='button'
-            onClick={() => toggleSection('brands')}
-            className='mb-3 flex w-full items-center justify-between'
-          >
-            <h4 className='text-sm font-semibold text-stone-900'>
-              {t('common.brands')}
-            </h4>
-            {expandedSections.brands ? (
-              <ChevronUp className='h-4 w-4 text-stone-500' />
-            ) : (
-              <ChevronDown className='h-4 w-4 text-stone-500' />
-            )}
-          </button>
-          {expandedSections.brands && (
+          {/* Brands — API-backed multi-select (brand=<id>,<id>) */}
+          <FilterSection value='brands' title={t('common.brands')}>
             <ul className='max-h-64 space-y-1 overflow-y-auto'>
               {!facets && brandsLoading && brandOptions.length === 0 && (
                 <li className='px-3 py-2 text-sm text-stone-400'>
@@ -461,25 +422,10 @@ export function CategorySidebar({
                 );
               })}
             </ul>
-          )}
-        </div>
+          </FilterSection>
 
-        {/* Price Range — API-backed */}
-        <div className='mb-4 border-b border-stone-100 pb-4'>
-          <button
-            type='button'
-            onClick={() => toggleSection('price')}
-            className='mb-3 flex w-full items-center justify-between'
-          >
-            <h4 className='text-sm font-semibold text-stone-900'>{t('catalog.sidebar.price')}</h4>
-            {expandedSections.price ? (
-              <ChevronUp className='h-4 w-4 text-stone-500' />
-            ) : (
-              <ChevronDown className='h-4 w-4 text-stone-500' />
-            )}
-          </button>
-
-          {expandedSections.price && (
+          {/* Price Range — API-backed */}
+          <FilterSection value='price' title={t('catalog.sidebar.price')}>
             <div className='space-y-3'>
               <div className='flex flex-wrap gap-1.5'>
                 {pricePresets.map((preset) => {
@@ -507,14 +453,13 @@ export function CategorySidebar({
                   {t('catalog.sidebar.minPrice')}
                 </label>
                 <span className='text-xs font-medium text-stone-500'>$</span>
-                <input
+                <Input
                   id='filter-min-price'
                   type='number'
                   min={0}
                   placeholder={t('catalog.sidebar.min')}
                   value={priceMin}
                   onChange={(e) => setPriceMin(e.target.value)}
-                  className='w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-fuchsia-500'
                 />
               </div>
               <div className='flex items-center gap-2'>
@@ -522,14 +467,13 @@ export function CategorySidebar({
                   {t('catalog.sidebar.maxPrice')}
                 </label>
                 <span className='text-xs font-medium text-stone-500'>$</span>
-                <input
+                <Input
                   id='filter-max-price'
                   type='number'
                   min={0}
                   placeholder={t('catalog.sidebar.max')}
                   value={priceMax}
                   onChange={(e) => setPriceMax(e.target.value)}
-                  className='w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-fuchsia-500'
                 />
               </div>
               <button
@@ -540,25 +484,10 @@ export function CategorySidebar({
                 {t('catalog.sidebar.applyPrice')}
               </button>
             </div>
-          )}
-        </div>
+          </FilterSection>
 
-        {/* Size — API facet (variants.size) */}
-        <div className='mb-4 border-b border-stone-100 pb-4'>
-          <button
-            type='button'
-            onClick={() => toggleSection('size')}
-            className='mb-3 flex w-full items-center justify-between'
-          >
-            <h4 className='text-sm font-semibold text-stone-900'>{t('catalog.sidebar.size')}</h4>
-            {expandedSections.size ? (
-              <ChevronUp className='h-4 w-4 text-stone-500' />
-            ) : (
-              <ChevronDown className='h-4 w-4 text-stone-500' />
-            )}
-          </button>
-
-          {expandedSections.size && (
+          {/* Size — API facet (variants.size) */}
+          <FilterSection value='size' title={t('catalog.sidebar.size')}>
             <div className='flex flex-wrap gap-2'>
               {sizeOptions.length === 0 && (
                 <p className='px-1 text-sm text-stone-400'>{t('catalog.sidebar.noSizes')}</p>
@@ -584,25 +513,10 @@ export function CategorySidebar({
                 );
               })}
             </div>
-          )}
-        </div>
+          </FilterSection>
 
-        {/* Color — API facet (variants.color, case-insensitive) */}
-        <div className='mb-4 border-b border-stone-100 pb-4'>
-          <button
-            type='button'
-            onClick={() => toggleSection('color')}
-            className='mb-3 flex w-full items-center justify-between'
-          >
-            <h4 className='text-sm font-semibold text-stone-900'>{t('catalog.sidebar.color')}</h4>
-            {expandedSections.color ? (
-              <ChevronUp className='h-4 w-4 text-stone-500' />
-            ) : (
-              <ChevronDown className='h-4 w-4 text-stone-500' />
-            )}
-          </button>
-
-          {expandedSections.color && (
+          {/* Color — API facet (variants.color, case-insensitive) */}
+          <FilterSection value='color' title={t('catalog.sidebar.color')}>
             <div className='flex flex-wrap gap-3'>
               {colorOptions.length === 0 && (
                 <p className='px-1 text-sm text-stone-400'>{t('catalog.sidebar.noColors')}</p>
@@ -635,27 +549,10 @@ export function CategorySidebar({
                 );
               })}
             </div>
-          )}
-        </div>
+          </FilterSection>
 
-        {/* Rating — API filter (minRating), single choice */}
-        <div>
-          <button
-            type='button'
-            onClick={() => toggleSection('rating')}
-            className='mb-3 flex w-full items-center justify-between'
-          >
-            <h4 className='text-sm font-semibold text-stone-900'>
-              {t('catalog.sidebar.rating')}
-            </h4>
-            {expandedSections.rating ? (
-              <ChevronUp className='h-4 w-4 text-stone-500' />
-            ) : (
-              <ChevronDown className='h-4 w-4 text-stone-500' />
-            )}
-          </button>
-
-          {expandedSections.rating && (
+          {/* Rating — API filter (minRating), single choice */}
+          <FilterSection value='rating' title={t('catalog.sidebar.rating')}>
             <div className='space-y-2' role='radiogroup' aria-label={t('catalog.sidebar.rating')}>
               {ratings.map((rating) => {
                 const selected = urlRating === String(rating);
@@ -693,8 +590,8 @@ export function CategorySidebar({
                 );
               })}
             </div>
-          )}
-        </div>
+          </FilterSection>
+        </AccordionPrimitive.Root>
       </div>
     </div>
   );

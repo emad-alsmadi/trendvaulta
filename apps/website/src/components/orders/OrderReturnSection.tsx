@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
+import { Textarea } from '@/components/ui/Textarea';
 import {
   Select,
   SelectContent,
@@ -281,14 +282,13 @@ function ReturnRequestForm({ order }: { order: Order }) {
 
           <label className='block text-sm'>
             <span className='mb-1 block font-semibold text-indigo-950'>{t('returns.reasonLabel')}</span>
-            <textarea
+            <Textarea
               required
               rows={3}
               maxLength={500}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder={t('returns.reasonPlaceholder')}
-              className='w-full rounded-xl border border-indigo-200 bg-white/80 px-3 py-2 text-sm text-indigo-950'
             />
           </label>
 

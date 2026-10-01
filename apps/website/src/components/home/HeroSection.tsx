@@ -4,6 +4,7 @@ import { Search, Sparkles, Shirt, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { HeroPromoCarousel } from '@/components/home/HeroPromoCarousel';
+import { Input } from '@/components/ui/Input';
 import {
   DEMO_FALLBACK_ENABLED,
   type DemoHeroSlide,
@@ -76,13 +77,13 @@ export function HeroSection({
               >
                 {t('home.hero.searchLabel')}
               </label>
-              <input
+              <Input
                 id='home-search'
                 type='text'
                 placeholder={t('home.hero.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
-                className='w-full rounded-lg border border-stone-200 bg-white/90 py-4 pe-28 ps-12 text-gray-900 shadow-lg backdrop-blur-sm placeholder:text-gray-500 focus:outline-none focus:ring-4 focus:ring-fuchsia-500/20'
+                className='h-14 bg-white/90 pe-28 ps-12 text-base shadow-lg backdrop-blur-sm focus-visible:ring-4'
               />
               <Search className='pointer-events-none absolute start-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400' />
               <button
