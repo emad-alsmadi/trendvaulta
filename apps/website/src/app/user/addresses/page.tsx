@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Edit, Trash2, MapPin, Check } from 'lucide-react';
+import { Plus, Pencil, Trash2, MapPin, Check } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
+import { useConfirm } from '@/components/confirm/ConfirmProvider';
 import { useForm } from 'react-hook-form';
 import {
   useAddresses,
@@ -18,12 +19,37 @@ import {
 import type { Address, AddressPayload } from '@/types';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { Skeleton, SkeletonGroup, SkeletonText } from '@/components/ui/Skeleton';
+import {
+  FIELD,
+  FIELD_ERROR,
+  FIELD_LABEL,
+  PANEL,
+  UserEmptyState,
+  UserPageHeader,
+} from '../UserPage';
+
+const EMPTY_ADDRESS: AddressPayload = {
+  label: 'Home',
+  name: '',
+  phone: '',
+  address: '',
+  city: '',
+  zip: '',
+  country: 'US',
+  isDefault: false,
+};
+
+const ACTION_BASE =
+  'inline-flex items-center gap-1.5 rounded-full bg-stone-200/60 px-3.5 py-2 text-xs font-semibold text-ink transition-colors duration-(--dur-fast) hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30 disabled:pointer-events-none disabled:opacity-50';
+const ACTION = `${ACTION_BASE} hover:bg-ink`;
+const ACTION_DANGER = `${ACTION_BASE} hover:bg-rose-600`;
 
 export default function AddressesPage() {
   const { toast } = useToast();
   const { t } = useTranslation();
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const confirm = useConfirm();
+  // `null` = no form open, 'new' = adding, otherwise the id being edited.
+  const [formFor, setFormFor] = useState<string | null>(null);
 
   const addressesQuery = useAddresses();
   const createAddress = useCreateAddress();
@@ -33,70 +59,24 @@ export default function AddressesPage() {
 
   const addresses = addressesQuery.data ?? [];
   const isAtLimit = addresses.length >= MAX_ADDRESSES;
+  const saving = createAddress.isPending || updateAddress.isPending;
 
   const {
     register,
     handleSubmit,
     reset,
-    setValue,
     formState: { errors },
   } = useForm<AddressPayload>({
-    defaultValues: {
-      label: 'Home',
-      name: '',
-      phone: '',
-      address: '',
-      city: '',
-      zip: '',
-      country: 'US',
-      isDefault: false,
-    },
+    defaultValues: EMPTY_ADDRESS,
     mode: 'onTouched',
   });
 
-  const onSubmitCreate = async (data: AddressPayload) => {
-    try {
-      await createAddress.mutateAsync(data);
-      toast(t('addresses.toast.added'), { variant: 'success' });
-      reset();
-      setShowCreateForm(false);
-    } catch (err) {
-      toast(t('addresses.toast.addFailed'), { variant: 'error' });
-    }
+  const openCreate = () => {
+    reset(EMPTY_ADDRESS);
+    setFormFor('new');
   };
 
-  const onSubmitEdit = async (data: AddressPayload, id: string) => {
-    try {
-      await updateAddress.mutateAsync({ addressId: id, payload: data });
-      toast(t('addresses.toast.updated'), { variant: 'success' });
-      setEditingId(null);
-    } catch (err) {
-      toast(t('addresses.toast.updateFailed'), { variant: 'error' });
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm(t('addresses.confirmDelete'))) return;
-    try {
-      await deleteAddress.mutateAsync(id);
-      toast(t('addresses.toast.deleted'), { variant: 'success' });
-    } catch (err) {
-      toast(t('addresses.toast.deleteFailed'), { variant: 'error' });
-    }
-  };
-
-  const handleSetDefault = async (id: string) => {
-    try {
-      await setDefaultAddress.mutateAsync(id);
-      toast(t('addresses.toast.defaultUpdated'), { variant: 'success' });
-    } catch (err) {
-      toast(t('addresses.toast.defaultFailed'), { variant: 'error' });
-    }
-  };
-
-  const startEdit = (addr: Address) => {
-    setEditingId(addr._id);
-    setShowCreateForm(false);
+  const openEdit = (addr: Address) => {
     reset({
       label: addr.label || 'Home',
       name: addr.name,
@@ -107,53 +87,279 @@ export default function AddressesPage() {
       country: addr.country || 'US',
       isDefault: addr.isDefault,
     });
+    setFormFor(addr._id);
   };
 
-  const cancelEdit = () => {
-    setEditingId(null);
-    reset();
+  const closeForm = () => {
+    setFormFor(null);
+    reset(EMPTY_ADDRESS);
   };
+
+  const onSubmit = async (data: AddressPayload) => {
+    if (formFor === 'new') {
+      try {
+        await createAddress.mutateAsync(data);
+        toast(t('addresses.toast.added'), { variant: 'success' });
+        closeForm();
+      } catch {
+        toast(t('addresses.toast.addFailed'), { variant: 'error' });
+      }
+      return;
+    }
+    if (!formFor) return;
+    try {
+      await updateAddress.mutateAsync({ addressId: formFor, payload: data });
+      toast(t('addresses.toast.updated'), { variant: 'success' });
+      closeForm();
+    } catch {
+      toast(t('addresses.toast.updateFailed'), { variant: 'error' });
+    }
+  };
+
+  const handleDelete = (addr: Address) =>
+    confirm({
+      variant: 'danger',
+      title: t('addresses.confirmDelete'),
+      description: `${addr.address}, ${addr.city}`,
+      confirmLabel: t('addresses.delete'),
+      cancelLabel: t('confirmDialog.cancel'),
+      onConfirm: async () => {
+        try {
+          await deleteAddress.mutateAsync(addr._id);
+          toast(t('addresses.toast.deleted'), { variant: 'success' });
+        } catch {
+          toast(t('addresses.toast.deleteFailed'), { variant: 'error' });
+        }
+      },
+    });
+
+  const handleSetDefault = async (id: string) => {
+    try {
+      await setDefaultAddress.mutateAsync(id);
+      toast(t('addresses.toast.defaultUpdated'), { variant: 'success' });
+    } catch {
+      toast(t('addresses.toast.defaultFailed'), { variant: 'error' });
+    }
+  };
+
+  // One form for both adding and editing; `formFor` decides which on submit.
+  const form = (
+    <form onSubmit={handleSubmit(onSubmit)} noValidate>
+      <h2 className='text-heading text-ink'>
+        {formFor === 'new'
+          ? t('addresses.addNewAddress')
+          : t('addresses.editAddress')}
+      </h2>
+
+      <div className='mt-5 grid gap-4 sm:grid-cols-2'>
+        <div>
+          <label htmlFor='addr-label' className={FIELD_LABEL}>
+            {t('addresses.labelPlaceholder')}
+          </label>
+          <Input
+            id='addr-label'
+            className={FIELD}
+            placeholder={t('addresses.labelPlaceholderExample')}
+            {...register('label')}
+          />
+        </div>
+        <div>
+          <label htmlFor='addr-name' className={FIELD_LABEL}>
+            {t('checkoutPage.form.fullName')}
+          </label>
+          <Input
+            id='addr-name'
+            className={FIELD}
+            autoComplete='name'
+            aria-invalid={errors.name ? true : undefined}
+            aria-describedby={errors.name ? 'addr-name-error' : undefined}
+            {...register('name', {
+              required: t('checkoutPage.validation.nameRequired'),
+              minLength: {
+                value: 2,
+                message: t('addresses.validation.minChars', { count: 2 }),
+              },
+            })}
+          />
+          {errors.name && (
+            <p id='addr-name-error' role='alert' className={FIELD_ERROR}>
+              {errors.name.message}
+            </p>
+          )}
+        </div>
+        <div>
+          <label htmlFor='addr-phone' className={FIELD_LABEL}>
+            {t('checkout.phone')}
+          </label>
+          <Input
+            id='addr-phone'
+            type='tel'
+            dir='ltr'
+            className={FIELD}
+            autoComplete='tel'
+            aria-invalid={errors.phone ? true : undefined}
+            aria-describedby={errors.phone ? 'addr-phone-error' : undefined}
+            {...register('phone', {
+              required: t('checkoutPage.validation.phoneRequired'),
+              minLength: {
+                value: 6,
+                message: t('addresses.validation.minChars', { count: 6 }),
+              },
+            })}
+          />
+          {errors.phone && (
+            <p id='addr-phone-error' role='alert' className={FIELD_ERROR}>
+              {errors.phone.message}
+            </p>
+          )}
+        </div>
+        <div>
+          <label htmlFor='addr-country' className={FIELD_LABEL}>
+            {t('addresses.countryPlaceholder')}
+          </label>
+          <Input
+            id='addr-country'
+            className={`${FIELD} uppercase`}
+            autoComplete='country'
+            placeholder='US'
+            aria-invalid={errors.country ? true : undefined}
+            aria-describedby={errors.country ? 'addr-country-error' : undefined}
+            {...register('country', {
+              maxLength: {
+                value: 2,
+                message: t('addresses.validation.countryCode'),
+              },
+              minLength: {
+                value: 2,
+                message: t('addresses.validation.countryCode'),
+              },
+            })}
+          />
+          {errors.country && (
+            <p id='addr-country-error' role='alert' className={FIELD_ERROR}>
+              {errors.country.message}
+            </p>
+          )}
+        </div>
+        <div className='sm:col-span-2'>
+          <label htmlFor='addr-address' className={FIELD_LABEL}>
+            {t('checkoutPage.form.streetAddress')}
+          </label>
+          <Input
+            id='addr-address'
+            className={FIELD}
+            autoComplete='street-address'
+            placeholder={t('checkoutPage.form.streetPlaceholder')}
+            aria-invalid={errors.address ? true : undefined}
+            aria-describedby={errors.address ? 'addr-address-error' : undefined}
+            {...register('address', {
+              required: t('checkoutPage.validation.addressRequired'),
+              minLength: {
+                value: 5,
+                message: t('addresses.validation.minChars', { count: 5 }),
+              },
+            })}
+          />
+          {errors.address && (
+            <p id='addr-address-error' role='alert' className={FIELD_ERROR}>
+              {errors.address.message}
+            </p>
+          )}
+        </div>
+        <div>
+          <label htmlFor='addr-city' className={FIELD_LABEL}>
+            {t('checkout.city')}
+          </label>
+          <Input
+            id='addr-city'
+            className={FIELD}
+            autoComplete='address-level2'
+            aria-invalid={errors.city ? true : undefined}
+            aria-describedby={errors.city ? 'addr-city-error' : undefined}
+            {...register('city', {
+              required: t('checkoutPage.validation.cityRequired'),
+              minLength: {
+                value: 2,
+                message: t('addresses.validation.minChars', { count: 2 }),
+              },
+            })}
+          />
+          {errors.city && (
+            <p id='addr-city-error' role='alert' className={FIELD_ERROR}>
+              {errors.city.message}
+            </p>
+          )}
+        </div>
+        <div>
+          <label htmlFor='addr-zip' className={FIELD_LABEL}>
+            {t('checkoutPage.form.zipLabel')}
+          </label>
+          <Input
+            id='addr-zip'
+            className={FIELD}
+            autoComplete='postal-code'
+            aria-invalid={errors.zip ? true : undefined}
+            aria-describedby={errors.zip ? 'addr-zip-error' : undefined}
+            {...register('zip', {
+              required: t('checkoutPage.validation.zipRequired'),
+              minLength: {
+                value: 2,
+                message: t('addresses.validation.minChars', { count: 2 }),
+              },
+            })}
+          />
+          {errors.zip && (
+            <p id='addr-zip-error' role='alert' className={FIELD_ERROR}>
+              {errors.zip.message}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className='mt-6 flex flex-wrap gap-3'>
+        <Button
+          type='submit'
+          variant='solid'
+          loading={saving}
+          className='rounded-full px-7'
+        >
+          {formFor === 'new' ? t('addresses.save') : t('addresses.update')}
+        </Button>
+        <button
+          type='button'
+          onClick={closeForm}
+          className='inline-flex h-12 items-center rounded-full bg-stone-200/60 px-6 text-sm font-semibold text-ink transition-colors hover:bg-stone-200'
+        >
+          {t('confirmDialog.cancel')}
+        </button>
+      </div>
+    </form>
+  );
 
   return (
     <div className='space-y-6'>
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
-        className='rounded-3xl border border-white/40 bg-white/55 p-6 shadow-sm backdrop-blur-xl'
-      >
-        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
-          <div>
-            <div className='inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/40 px-3 py-1 text-xs font-extrabold text-indigo-950'>
-              <MapPin className='h-4 w-4 text-fuchsia-700' />
-              {t('common.addresses')}
-            </div>
-            <h1 className='mt-4 text-3xl font-extrabold tracking-tight text-indigo-950 sm:text-4xl'>
-              {t('addresses.title')}
-            </h1>
-            <p className='mt-2 text-sm font-semibold text-indigo-950/80'>
-              {t('addresses.subtitle', { max: MAX_ADDRESSES })}
-            </p>
-          </div>
-          {!isAtLimit && !showCreateForm && !editingId && (
+      <UserPageHeader
+        title={t('addresses.title')}
+        subtitle={t('addresses.subtitle', { max: MAX_ADDRESSES })}
+        action={
+          !isAtLimit && formFor === null ? (
             <Button
+              variant='solid'
               size='sm'
-              onClick={() => {
-                reset();
-                setShowCreateForm(true);
-              }}
+              className='rounded-full px-5'
+              onClick={openCreate}
             >
-              <Plus className='me-2 h-4 w-4' />
+              <Plus className='h-4 w-4' aria-hidden />
               {t('addresses.addAddress')}
             </Button>
-          )}
-        </div>
-      </motion.div>
+          ) : undefined
+        }
+      />
 
       {addressesQuery.isLoading && (
-        <SkeletonGroup className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'>
-          {Array.from({ length: 3 }, (_, i) => (
-            <div key={i} aria-hidden className='rounded-card border border-line bg-surface p-5'>
+        <SkeletonGroup className='grid gap-x-12 gap-y-10 sm:grid-cols-2'>
+          {Array.from({ length: 2 }, (_, i) => (
+            <div key={i} aria-hidden className={PANEL}>
               <Skeleton className='h-4 w-1/3' />
               <SkeletonText lines={3} className='mt-4' />
             </div>
@@ -161,305 +367,116 @@ export default function AddressesPage() {
         </SkeletonGroup>
       )}
 
-      {!addressesQuery.isLoading && addresses.length === 0 && (
+      {formFor === 'new' && !addressesQuery.isLoading && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className='rounded-3xl border border-white/30 bg-white/35 p-12 text-center shadow-sm backdrop-blur-xl'
+          className={PANEL}
         >
-          <MapPin className='mx-auto h-12 w-12 text-indigo-950/30' />
-          <h2 className='mt-4 text-xl font-bold text-indigo-950'>{t('addresses.emptyTitle')}</h2>
-          <p className='mt-2 text-sm text-indigo-950/70'>
-            {t('addresses.emptyBody')}
-          </p>
-          {!isAtLimit && (
-            <Button
-              className='mt-6'
-              size='lg'
-              onClick={() => {
-                reset();
-                setShowCreateForm(true);
-              }}
-            >
-              <Plus className='me-2 h-4 w-4' />
-              {t('addresses.addAddress')}
-            </Button>
-          )}
+          {form}
         </motion.div>
+      )}
+
+      {!addressesQuery.isLoading && addresses.length === 0 && formFor === null && (
+        <UserEmptyState
+          icon={<MapPin className='h-6 w-6' strokeWidth={1.5} aria-hidden />}
+          title={t('addresses.emptyTitle')}
+          description={t('addresses.emptyBody')}
+          action={
+            !isAtLimit ? (
+              <Button
+                variant='solid'
+                className='rounded-full px-7'
+                onClick={openCreate}
+              >
+                <Plus className='h-4 w-4' aria-hidden />
+                {t('addresses.addAddress')}
+              </Button>
+            ) : undefined
+          }
+        />
       )}
 
       {!addressesQuery.isLoading && addresses.length > 0 && (
-        <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'>
-          {addresses.map((addr) => (
-            <motion.div
-              key={addr._id}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className='relative rounded-3xl border border-white/30 bg-white/35 p-5 shadow-sm backdrop-blur-xl'
-            >
-              {addr.isDefault && (
-                <span className='absolute -top-2 start-4 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'>
-                  {t('checkoutPage.savedAddresses.default')}
-                </span>
-              )}
+        <div className='grid gap-x-12 gap-y-10 sm:grid-cols-2'>
+          {addresses.map((addr) => {
+            const editing = formFor === addr._id;
+            return (
+              <motion.div
+                key={addr._id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className={`${PANEL} ${editing ? 'sm:col-span-2' : 'flex flex-col'}`}
+              >
+                {editing ? (
+                  form
+                ) : (
+                  <>
+                    <div className='flex items-center justify-between gap-3'>
+                      <div className='flex min-w-0 items-center gap-3'>
+                        <span className='flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-stone-200/60 text-ink'>
+                          <MapPin className='h-4 w-4' strokeWidth={1.5} aria-hidden />
+                        </span>
+                        <span className='truncate text-base font-semibold text-ink'>
+                          {addr.label || t('checkoutPage.savedAddresses.home')}
+                        </span>
+                      </div>
+                      {addr.isDefault && (
+                        <span className='shrink-0 rounded-full bg-ink px-2.5 py-1 text-xs font-semibold text-white'>
+                          {t('checkoutPage.savedAddresses.default')}
+                        </span>
+                      )}
+                    </div>
 
-              {editingId === addr._id ? (
-                <form onSubmit={handleSubmit((d) => onSubmitEdit(d, addr._id))} className='space-y-3'>
-                  <div className='grid gap-2 sm:grid-cols-2'>
-                    <Input
-                      id='addr-edit-label'
-                      aria-label={t('addresses.labelPlaceholder')}
-                      placeholder={t('addresses.labelPlaceholder')}
-                      {...register('label')}
-                      defaultValue={addr.label || 'Home'}
-                    />
-                    <Input
-                      id='addr-edit-country'
-                      aria-invalid={errors.country ? true : undefined}
-                      aria-describedby={errors.country ? 'addr-edit-country-error' : undefined}
-                      aria-label={t('addresses.countryPlaceholder')}
-                      placeholder={t('addresses.countryPlaceholder')}
-                      {...register('country', {
-                        maxLength: { value: 2, message: t('addresses.validation.countryCode') },
-                        minLength: { value: 2, message: t('addresses.validation.countryCode') },
-                      })}
-                      defaultValue={addr.country || 'US'}
-                    />
-                  </div>
-                  {errors.country && (
-                    <p id='addr-edit-country-error' role='alert' className='text-sm text-rose-600'>{errors.country.message}</p>
-                  )}
-                  <Input
-                    id='addr-edit-name'
-                    aria-label={t('checkoutPage.form.fullName')}
-                    aria-invalid={errors.name ? true : undefined}
-                    aria-describedby={errors.name ? 'addr-edit-name-error' : undefined}
-                    placeholder={t('checkoutPage.form.fullName')}
-                    {...register('name', { required: t('checkoutPage.validation.nameRequired') })}
-                    defaultValue={addr.name}
-                  />
-                  {errors.name && (
-                    <p id='addr-edit-name-error' role='alert' className='text-sm text-rose-600'>{errors.name.message}</p>
-                  )}
-                  <Input
-                    id='addr-edit-phone'
-                    aria-label={t('checkout.phone')}
-                    aria-invalid={errors.phone ? true : undefined}
-                    aria-describedby={errors.phone ? 'addr-edit-phone-error' : undefined}
-                    placeholder={t('checkout.phone')}
-                    {...register('phone', { required: t('checkoutPage.validation.phoneRequired') })}
-                    defaultValue={addr.phone}
-                  />
-                  {errors.phone && (
-                    <p id='addr-edit-phone-error' role='alert' className='text-sm text-rose-600'>{errors.phone.message}</p>
-                  )}
-                  <Input
-                    id='addr-edit-address'
-                    aria-label={t('checkoutPage.form.streetAddress')}
-                    aria-invalid={errors.address ? true : undefined}
-                    aria-describedby={errors.address ? 'addr-edit-address-error' : undefined}
-                    placeholder={t('checkoutPage.form.streetAddress')}
-                    {...register('address', { required: t('checkoutPage.validation.addressRequired') })}
-                    defaultValue={addr.address}
-                  />
-                  {errors.address && (
-                    <p id='addr-edit-address-error' role='alert' className='text-sm text-rose-600'>{errors.address.message}</p>
-                  )}
-                  <div className='grid gap-2 sm:grid-cols-2'>
-                    <Input
-                      id='addr-edit-city'
-                      aria-label={t('checkout.city')}
-                      aria-invalid={errors.city ? true : undefined}
-                      aria-describedby={errors.city ? 'addr-edit-city-error' : undefined}
-                      placeholder={t('checkout.city')}
-                      {...register('city', { required: t('checkoutPage.validation.cityRequired') })}
-                      defaultValue={addr.city}
-                    />
-                    <Input
-                      id='addr-edit-zip'
-                      aria-label={t('checkoutPage.form.zipLabel')}
-                      aria-invalid={errors.zip ? true : undefined}
-                      aria-describedby={errors.zip ? 'addr-edit-zip-error' : undefined}
-                      placeholder={t('checkoutPage.form.zipPlaceholder')}
-                      {...register('zip', { required: t('checkoutPage.validation.zipRequired') })}
-                      defaultValue={addr.zip}
-                    />
-                  </div>
-                  {errors.city && <p id='addr-edit-city-error' role='alert' className='text-sm text-rose-600'>{errors.city.message}</p>}
-                  {errors.zip && <p id='addr-edit-zip-error' role='alert' className='text-sm text-rose-600'>{errors.zip.message}</p>}
-
-                  <div className='flex gap-2'>
-                    <Button type='submit' className='flex-1'>
-                      {t('addresses.save')}
-                    </Button>
-                    <Button type='button' variant='outline' onClick={cancelEdit}>
-                      {t('confirmDialog.cancel')}
-                    </Button>
-                  </div>
-                </form>
-              ) : (
-                <>
-                  <dl className='space-y-2 text-sm'>
-                    <div className='flex items-center gap-2 text-indigo-950/80'>
-                      <MapPin className='h-4 w-4' />
-                      <span className='font-bold'>{addr.label || t('checkoutPage.savedAddresses.home')}</span>
-                    </div>
-                    <div>
-                      <dt className='text-indigo-950/50'>{t('addresses.name')}</dt>
-                      <dd className='font-medium text-indigo-950'>{addr.name}</dd>
-                    </div>
-                    <div>
-                      <dt className='text-indigo-950/50'>{t('checkout.phone')}</dt>
-                      <dd className='font-medium text-indigo-950'>{addr.phone}</dd>
-                    </div>
-                    <div>
-                      <dt className='text-indigo-950/50'>{t('checkout.address')}</dt>
-                      <dd className='font-medium text-indigo-950'>{addr.address}</dd>
-                    </div>
-                    <div>
-                      <dt className='text-indigo-950/50'>{t('addresses.cityZipCountry')}</dt>
-                      <dd className='font-medium text-indigo-950'>
+                    <address className='mt-4 space-y-1 text-sm not-italic leading-relaxed text-ink-muted'>
+                      <p className='font-medium text-ink'>{addr.name}</p>
+                      <p>{addr.address}</p>
+                      <p>
                         {addr.city}, {addr.zip} {addr.country}
-                      </dd>
-                    </div>
-                  </dl>
+                      </p>
+                      <p dir='ltr' className='text-start'>
+                        {addr.phone}
+                      </p>
+                    </address>
 
-                  <div className='mt-4 flex flex-wrap gap-2'>
-                    {!addr.isDefault && (
-                      <Button
-                        variant='outline'
-                        size='sm'
-                        className='flex-1 sm:flex-none'
-                        onClick={() => handleSetDefault(addr._id)}
-                        disabled={setDefaultAddress.isPending}
+                    <div className='mt-auto flex flex-wrap gap-2 pt-5'>
+                      {!addr.isDefault && (
+                        <button
+                          type='button'
+                          className={ACTION}
+                          onClick={() => handleSetDefault(addr._id)}
+                          disabled={setDefaultAddress.isPending}
+                        >
+                          <Check className='h-3.5 w-3.5' aria-hidden />
+                          {t('addresses.setDefault')}
+                        </button>
+                      )}
+                      <button
+                        type='button'
+                        className={ACTION}
+                        onClick={() => openEdit(addr)}
+                        disabled={saving}
                       >
-                        <Check className='me-1.5 h-3.5 w-3.5' />
-                        {t('addresses.setDefault')}
-                      </Button>
-                    )}
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      className='flex-1 sm:flex-none'
-                      onClick={() => startEdit(addr)}
-                      disabled={updateAddress.isPending}
-                    >
-                      <Edit className='me-1.5 h-3.5 w-3.5' />
-                      {t('addresses.edit')}
-                    </Button>
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      className='flex-1 sm:flex-none text-rose-600 border-rose-300 hover:bg-rose-50 dark:border-rose-700 dark:hover:bg-rose-950/20'
-                      onClick={() => handleDelete(addr._id)}
-                      disabled={deleteAddress.isPending}
-                    >
-                      <Trash2 className='me-1.5 h-3.5 w-3.5' />
-                      {t('addresses.delete')}
-                    </Button>
-                  </div>
-                </>
-              )}
-            </motion.div>
-          ))}
+                        <Pencil className='h-3.5 w-3.5' aria-hidden />
+                        {t('addresses.edit')}
+                      </button>
+                      <button
+                        type='button'
+                        className={ACTION_DANGER}
+                        onClick={() => void handleDelete(addr)}
+                        disabled={deleteAddress.isPending}
+                      >
+                        <Trash2 className='h-3.5 w-3.5' aria-hidden />
+                        {t('addresses.delete')}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </motion.div>
+            );
+          })}
         </div>
-      )}
-
-      {(showCreateForm || editingId) && !addressesQuery.isLoading && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className='rounded-3xl border border-white/30 bg-white/35 p-5 shadow-sm backdrop-blur-xl'
-        >
-          <form onSubmit={handleSubmit(onSubmitCreate)} className='space-y-3'>
-            <h3 className='text-lg font-bold text-indigo-950'>
-              {editingId ? t('addresses.editAddress') : t('addresses.addNewAddress')}
-            </h3>
-
-            <div className='grid gap-2 sm:grid-cols-2'>
-              <Input
-                id='addr-new-label'
-                aria-label={t('addresses.labelPlaceholder')}
-                placeholder={t('addresses.labelPlaceholderExample')}
-                {...register('label')}
-              />
-              <Input
-                id='addr-new-country'
-                aria-invalid={errors.country ? true : undefined}
-                aria-describedby={errors.country ? 'addr-new-country-error' : undefined}
-                aria-label={t('addresses.countryPlaceholder')}
-                placeholder={t('addresses.countryPlaceholderExample')}
-                {...register('country', {
-                  maxLength: { value: 2, message: t('addresses.validation.countryCode') },
-                  minLength: { value: 2, message: t('addresses.validation.countryCode') },
-                })}
-              />
-            </div>
-            {errors.country && (
-              <p id='addr-new-country-error' role='alert' className='text-sm text-rose-600'>{errors.country.message}</p>
-            )}
-            <Input
-              id='addr-new-name'
-              aria-label={t('checkoutPage.form.fullName')}
-              aria-invalid={errors.name ? true : undefined}
-              aria-describedby={errors.name ? 'addr-new-name-error' : undefined}
-              placeholder={t('checkoutPage.form.fullName')}
-              {...register('name', { required: t('checkoutPage.validation.nameRequired'), minLength: { value: 2, message: t('addresses.validation.minChars', { count: 2 }) } })}
-            />
-            {errors.name && <p id='addr-new-name-error' role='alert' className='text-sm text-rose-600'>{errors.name.message}</p>}
-
-            <Input
-              id='addr-new-phone'
-              aria-label={t('checkout.phone')}
-              aria-invalid={errors.phone ? true : undefined}
-              aria-describedby={errors.phone ? 'addr-new-phone-error' : undefined}
-              placeholder={t('checkout.phone')}
-              {...register('phone', { required: t('checkoutPage.validation.phoneRequired'), minLength: { value: 6, message: t('addresses.validation.minChars', { count: 6 }) } })}
-            />
-            {errors.phone && <p id='addr-new-phone-error' role='alert' className='text-sm text-rose-600'>{errors.phone.message}</p>}
-
-            <Input
-              id='addr-new-address'
-              aria-label={t('checkoutPage.form.streetAddress')}
-              aria-invalid={errors.address ? true : undefined}
-              aria-describedby={errors.address ? 'addr-new-address-error' : undefined}
-              placeholder={t('checkoutPage.form.streetPlaceholder')}
-              {...register('address', { required: t('checkoutPage.validation.addressRequired'), minLength: { value: 5, message: t('addresses.validation.minChars', { count: 5 }) } })}
-            />
-            {errors.address && <p id='addr-new-address-error' role='alert' className='text-sm text-rose-600'>{errors.address.message}</p>}
-
-            <div className='grid gap-2 sm:grid-cols-2'>
-              <Input
-                id='addr-new-city'
-                aria-label={t('checkout.city')}
-                aria-invalid={errors.city ? true : undefined}
-                aria-describedby={errors.city ? 'addr-new-city-error' : undefined}
-                placeholder={t('checkout.city')}
-                {...register('city', { required: t('checkoutPage.validation.cityRequired'), minLength: { value: 2, message: t('addresses.validation.minChars', { count: 2 }) } })}
-              />
-              <Input
-                id='addr-new-zip'
-                aria-label={t('checkoutPage.form.zipLabel')}
-                aria-invalid={errors.zip ? true : undefined}
-                aria-describedby={errors.zip ? 'addr-new-zip-error' : undefined}
-                placeholder={t('addresses.zipPostalPlaceholder')}
-                {...register('zip', { required: t('checkoutPage.validation.zipRequired'), minLength: { value: 2, message: t('addresses.validation.minChars', { count: 2 }) } })}
-              />
-            </div>
-            {errors.city && <p id='addr-new-city-error' role='alert' className='text-sm text-rose-600'>{errors.city.message}</p>}
-            {errors.zip && <p id='addr-new-zip-error' role='alert' className='text-sm text-rose-600'>{errors.zip.message}</p>}
-
-            <div className='flex gap-2'>
-              <Button type='submit' disabled={createAddress.isPending} className='flex-1'>
-                {editingId ? t('addresses.update') : t('addresses.save')}
-              </Button>
-              <Button type='button' variant='outline' onClick={cancelEdit} className='flex-1'>
-                {t('confirmDialog.cancel')}
-              </Button>
-            </div>
-          </form>
-        </motion.div>
       )}
     </div>
   );

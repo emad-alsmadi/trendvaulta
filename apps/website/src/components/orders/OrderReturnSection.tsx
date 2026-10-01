@@ -89,16 +89,16 @@ function ReturnStatusCard({ order }: { order: Order }) {
   return (
     <section
       aria-labelledby='return-status-title'
-      className='rounded-2xl border border-white/30 bg-white/35 p-5 shadow-sm backdrop-blur-xl'
+      className=''
     >
       <h2
         id='return-status-title'
-        className='mb-1 flex items-center gap-2 text-lg font-bold text-indigo-950'
+        className='mb-1 flex items-center gap-2 text-heading text-ink'
       >
         <RotateCcw className='h-5 w-5' aria-hidden />
         {t(copy.title)}
       </h2>
-      <p className='text-sm text-indigo-950/70'>
+      <p className='text-sm text-ink-muted'>
         {status === 'refunded' && rr.refundAmount
           ? t('returns.steps.refunded.bodyWithAmount', { amount: formatPrice(rr.refundAmount) })
           : t(copy.body)}
@@ -110,13 +110,13 @@ function ReturnStatusCard({ order }: { order: Order }) {
             <li key={step} className='text-center'>
               <span
                 className={`mx-auto mb-1 block h-1.5 rounded-full ${
-                  i <= reached ? 'bg-indigo-600' : 'bg-indigo-950/10'
+                  i <= reached ? 'bg-ink' : 'bg-surface-muted'
                 }`}
                 aria-hidden
               />
               <span
                 className={`text-[11px] font-medium ${
-                  i <= reached ? 'text-indigo-950' : 'text-indigo-950/40'
+                  i <= reached ? 'text-ink' : 'text-ink-subtle'
                 }`}
                 aria-current={i === reached ? 'step' : undefined}
               >
@@ -128,9 +128,9 @@ function ReturnStatusCard({ order }: { order: Order }) {
       )}
 
       {rr.instructions && status === 'approved' && (
-        <div className='mt-4 rounded-xl border border-indigo-200 bg-indigo-50/70 p-4'>
-          <p className='text-sm font-semibold text-indigo-950'>{t('returns.howToSendBack')}</p>
-          <p className='mt-1 whitespace-pre-line text-sm text-indigo-950/80'>
+        <div className='mt-4'>
+          <p className='text-sm font-semibold text-ink'>{t('returns.howToSendBack')}</p>
+          <p className='mt-1 whitespace-pre-line text-sm text-ink-muted'>
             {rr.instructions}
           </p>
         </div>
@@ -138,12 +138,12 @@ function ReturnStatusCard({ order }: { order: Order }) {
 
       {rr.notes && (
         <div className='mt-4'>
-          <p className='text-sm font-semibold text-indigo-950'>{t('returns.teamMessage')}</p>
-          <p className='mt-1 whitespace-pre-line text-sm text-indigo-950/80'>{rr.notes}</p>
+          <p className='text-sm font-semibold text-ink'>{t('returns.teamMessage')}</p>
+          <p className='mt-1 whitespace-pre-line text-sm text-ink-muted'>{rr.notes}</p>
         </div>
       )}
 
-      <div className='mt-4 text-xs text-indigo-950/60'>
+      <div className='mt-4 text-xs text-ink-muted'>
         {rr.requestedAt
           ? t('returns.itemsSummaryRequested', {
               items: returnedItems,
@@ -207,15 +207,15 @@ function ReturnRequestForm({ order }: { order: Order }) {
   return (
     <section
       aria-labelledby='return-form-title'
-      className='rounded-2xl border border-white/30 bg-white/35 p-5 shadow-sm backdrop-blur-xl'
+      className=''
     >
       <div className='flex flex-wrap items-center justify-between gap-3'>
         <div>
-          <h2 id='return-form-title' className='text-lg font-bold text-indigo-950'>
+          <h2 id='return-form-title' className='text-heading text-ink'>
             {t('returns.formTitle')}
           </h2>
           {order.returnWindowEndsAt && (
-            <p className='text-sm text-indigo-950/70'>
+            <p className='text-sm text-ink-muted'>
               {t('returns.windowOpenUntil', {
                 date: formatDay(order.returnWindowEndsAt, intlLocale(locale)),
               })}
@@ -223,7 +223,7 @@ function ReturnRequestForm({ order }: { order: Order }) {
           )}
         </div>
         {!open && (
-          <Button type='button' variant='outline' size='sm' onClick={() => setOpen(true)}>
+          <Button type='button' variant='line' size='sm' onClick={() => setOpen(true)}>
             {t('returns.requestReturn')}
           </Button>
         )}
@@ -232,7 +232,7 @@ function ReturnRequestForm({ order }: { order: Order }) {
       {open && (
         <form onSubmit={submit} className='mt-4 space-y-4'>
           <fieldset>
-            <legend className='mb-2 text-sm font-semibold text-indigo-950'>
+            <legend className='mb-2 text-sm font-semibold text-ink'>
               {t('returns.whichItems')}
             </legend>
             <ul className='space-y-2'>
@@ -241,9 +241,9 @@ function ReturnRequestForm({ order }: { order: Order }) {
                 return (
                   <li
                     key={p.productId}
-                    className='flex items-center justify-between gap-3 rounded-xl bg-white/50 px-3 py-2'
+                    className='flex items-center justify-between gap-3 py-1.5'
                   >
-                    <label className='flex min-w-0 flex-1 items-center gap-2 text-sm text-indigo-950'>
+                    <label className='flex min-w-0 flex-1 items-center gap-2 text-sm text-ink'>
                       <Checkbox
                         checked={value > 0}
                         onCheckedChange={(checked) =>
@@ -281,7 +281,7 @@ function ReturnRequestForm({ order }: { order: Order }) {
           </fieldset>
 
           <label className='block text-sm'>
-            <span className='mb-1 block font-semibold text-indigo-950'>{t('returns.reasonLabel')}</span>
+            <span className='mb-1 block font-semibold text-ink'>{t('returns.reasonLabel')}</span>
             <Textarea
               required
               rows={3}
@@ -292,7 +292,7 @@ function ReturnRequestForm({ order }: { order: Order }) {
             />
           </label>
 
-          <p className='text-xs text-indigo-950/60'>
+          <p className='text-xs text-ink-muted'>
             {t('returns.reviewNote')}
           </p>
 

@@ -13,8 +13,6 @@ import type { Locale } from '@/lib/locale';
 
 export const FALLBACK_HOME_MODULE_KEYS = [
   'hero',
-  'trust',
-  'categories',
   'deals',
   'featured_products',
   'featured_brands',
@@ -25,6 +23,9 @@ export const FALLBACK_HOME_MODULE_KEYS = [
   'why_choose_us',
   'testimonials',
   'cta',
+  // Category shortcuts and the trust strip close the page.
+  'categories',
+  'trust',
 ] as const;
 
 export type HomeModuleKey = (typeof FALLBACK_HOME_MODULE_KEYS)[number];

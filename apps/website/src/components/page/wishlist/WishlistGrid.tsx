@@ -11,7 +11,7 @@ export function WishlistGrid({ items }: WishlistGridProps) {
   }
 
   return (
-    <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
+    <div className='grid grid-cols-2 gap-x-5 gap-y-9 lg:grid-cols-3'>
       {items.map((item) => (
         <WishlistCard
           key={item._id}

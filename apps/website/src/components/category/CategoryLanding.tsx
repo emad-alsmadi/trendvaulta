@@ -1,6 +1,5 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { ChevronRight } from 'lucide-react';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { CategoryProductGrid } from '@/components/category/CategoryProductGrid';
@@ -72,65 +71,74 @@ export async function CategoryLanding({
     <div className='-mx-4 -my-6 bg-surface px-4 py-6 sm:-mx-6 sm:px-6 lg:-mx-20 lg:px-20 lg:py-10'>
       <JsonLd data={breadcrumbJsonLd} />
 
-      <div className='mx-auto max-w-[1400px]'>
-        <nav aria-label={t('nav.breadcrumb')}>
-          <ol className='flex flex-wrap items-center gap-1.5 text-xs text-ink-muted'>
-            {crumbs.map((crumb, index) => {
-              const isLast = index === crumbs.length - 1;
-              return (
-                <li key={crumb.href} className='flex items-center gap-1.5'>
-                  {index > 0 ? (
-                    <ChevronRight className='h-3 w-3 rtl:-scale-x-100' aria-hidden />
-                  ) : null}
-                  {isLast ? (
-                    <span aria-current='page' className='text-ink'>
-                      {crumb.name}
-                    </span>
-                  ) : (
-                    <Link
-                      href={crumb.href}
-                      className='transition-colors hover:text-ink'
-                    >
-                      {crumb.name}
-                    </Link>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
-        </nav>
+      {/* Typographic header, edge to edge: the negative margins cancel the
+          page gutters (and the top padding, so it sits flush under the
+          navbar); the copy inside lines up with the content below. No photo
+          on purpose: the category images are small generic stock shots that
+          fall apart when stretched, so type, a soft accent glow and a ring
+          motif carry it. */}
+      <header className='relative -mx-4 -mt-6 overflow-hidden bg-surface-sunken sm:-mx-6 lg:-mx-20 lg:-mt-10'>
+        <div
+          aria-hidden
+          className='absolute inset-0 bg-[radial-gradient(55%_130%_at_0%_0%,var(--color-accent-soft),transparent_70%)] rtl:bg-[radial-gradient(55%_130%_at_100%_0%,var(--color-accent-soft),transparent_70%)]'
+        />
+        {/* Concentric rings off the far corner: decoration that reads the
+            same in Arabic and English and never sits behind the copy. */}
+        <div
+          aria-hidden
+          className='pointer-events-none absolute -bottom-44 -end-28 hidden h-[30rem] w-[30rem] sm:block'
+        >
+          <span className='absolute inset-0 rounded-full border border-ink/[0.06]' />
+          <span className='absolute inset-12 rounded-full border border-ink/[0.07]' />
+          <span className='absolute inset-24 rounded-full border border-accent/25' />
+          <span className='absolute inset-36 rounded-full border border-ink/[0.08]' />
+          <span className='absolute inset-48 rounded-full bg-accent-soft' />
+        </div>
 
-        {/* Editorial banner: the category image carries the section, copy sits
-            on a dark wash so it stays readable over any photo. */}
-        <header className='relative mt-5 overflow-hidden rounded-panel bg-ink'>
-          {def.image ? (
-            <>
-              <Image
-                src={def.image}
-                alt=''
-                fill
-                className='object-cover'
-                priority
-                sizes='(max-width: 1400px) 100vw, 1400px'
-              />
-              <div
-                aria-hidden
-                className='absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/45 to-ink/10'
-              />
-            </>
-          ) : null}
-          <div className='relative flex min-h-[240px] flex-col justify-end p-6 sm:min-h-[340px] sm:p-10 lg:p-14'>
-            <p className='text-eyebrow uppercase text-white/80 rtl:tracking-normal'>
+        <div className='relative px-4 pb-10 pt-6 sm:px-6 sm:pb-14 lg:px-20 lg:pb-16 lg:pt-8'>
+          <div className='mx-auto max-w-[1400px]'>
+            <nav aria-label={t('nav.breadcrumb')}>
+              <ol className='flex flex-wrap items-center gap-1.5 text-xs text-ink-muted'>
+                {crumbs.map((crumb, index) => {
+                  const isLast = index === crumbs.length - 1;
+                  return (
+                    <li key={crumb.href} className='flex items-center gap-1.5'>
+                      {index > 0 ? (
+                        <ChevronRight className='h-3 w-3 rtl:-scale-x-100' aria-hidden />
+                      ) : null}
+                      {isLast ? (
+                        <span aria-current='page' className='text-ink'>
+                          {crumb.name}
+                        </span>
+                      ) : (
+                        <Link
+                          href={crumb.href}
+                          className='transition-colors hover:text-ink'
+                        >
+                          {crumb.name}
+                        </Link>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+            </nav>
+
+            <p className='mt-8 inline-flex items-center gap-2.5 text-eyebrow uppercase text-ink-muted sm:mt-12 rtl:tracking-normal'>
+              <span aria-hidden className='h-px w-8 bg-accent' />
               {subLabel ? label : t('catalog.category.eyebrow')}
             </p>
-            <h1 className='mt-3 text-4xl font-semibold tracking-tight text-white sm:text-display'>
+            <h1 className='mt-4 text-4xl font-semibold tracking-tight text-ink sm:text-display'>
               {subLabel ?? label}
             </h1>
-            <p className='mt-3 max-w-xl text-sm leading-relaxed text-white/85 sm:text-base'>
+            <p className='mt-4 max-w-xl text-sm leading-relaxed text-ink-muted sm:text-base'>
               {categoryDescription(def, t)}
             </p>
           </div>
-        </header>
+        </div>
+      </header>
+
+      <div className='mx-auto max-w-[1400px]'>
 
         {chips.length > 0 ? (
           <nav

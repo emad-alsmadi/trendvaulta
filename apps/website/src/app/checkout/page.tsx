@@ -244,6 +244,24 @@ export default function CheckoutPage() {
     shippingApi,
   ]);
 
+  // Destination for the quote, so shipping is priced from the address's zone
+  // exactly as checkout charges it. Only sent with delivery on, and only the
+  // fields the API accepts as valid (a half-typed value would be a 400).
+  const countryValue = (watch('country') || '').trim().toUpperCase();
+  const zipValue = (watch('zip') || '').trim();
+  const cityValue = (watch('city') || '').trim();
+  const quoteAddress =
+    deliverySelected && countryValue.length === 2
+      ? {
+          country: countryValue,
+          ...(zipValue.length >= 2 && zipValue.length <= 20
+            ? { zip: zipValue }
+            : {}),
+          ...(cityValue.length >= 2 && cityValue.length <= 100
+            ? { city: cityValue }
+            : {}),
+        }
+      : undefined;
   // Server-side quote (same intent fields as the checkout payload). Falls
   // back to client-side totals while loading or if the endpoint is missing.
   const { query: quoteQuery, quote, notices } = useCartQuoteSync({
@@ -251,6 +269,7 @@ export default function CheckoutPage() {
     couponCode: appliedCoupon?.code,
     delivery: deliverySelected,
     shippingMethod,
+    shippingAddress: quoteAddress,
   });
   const itemsPrice = quote?.itemsPrice ?? subtotal;
   const discountAmount =

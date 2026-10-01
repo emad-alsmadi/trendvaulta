@@ -2,9 +2,8 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Package, Truck, CheckCircle, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle, ArrowRight, Package, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { useToast } from '@/components/ui/Toast';
 import { useMyOrders } from '@/hooks/orders/ordersQuery';
 import type { Order } from '@/types';
 import { useTranslation } from '@/contexts/TranslationContext';
@@ -16,6 +15,7 @@ import {
   STATUS_LABELS,
   statusBadgeClass,
 } from '@/lib/orderStatus';
+import { PANEL, PILL, UserEmptyState, UserPageHeader } from '../UserPage';
 
 function formatDate(dateString: string | undefined, locale: string) {
   if (!dateString) return '—';
@@ -27,189 +27,154 @@ function formatDate(dateString: string | undefined, locale: string) {
 }
 
 export default function OrdersPage() {
-  const { toast } = useToast();
   const ordersQuery = useMyOrders();
   const { t, formatPrice, locale } = useTranslation();
+  const orders = ordersQuery.data ?? [];
+  const ready = !ordersQuery.isLoading && !ordersQuery.isError;
 
   return (
     <div className='space-y-6'>
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
-        className='rounded-3xl border border-white/40 bg-white/55 p-6 shadow-sm backdrop-blur-xl'
-      >
-        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
-          <div>
-            <div className='inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/40 px-3 py-1 text-xs font-extrabold text-indigo-950'>
-              <Package className='h-4 w-4 text-fuchsia-700' />
-              {t('orders.badge')}
-            </div>
-            <h1 className='mt-4 text-3xl font-extrabold tracking-tight text-indigo-950 sm:text-4xl'>
-              {t('common.orders')}
-            </h1>
-            <p className='mt-2 text-sm font-semibold text-indigo-950/80'>
-              {t('orders.subtitle')}
-            </p>
-          </div>
-          <Button
-            variant='outline'
-            size='sm'
+      <UserPageHeader
+        title={t('common.orders')}
+        subtitle={t('orders.subtitle')}
+        action={
+          <button
+            type='button'
             onClick={() => ordersQuery.refetch()}
             disabled={ordersQuery.isFetching}
+            className='inline-flex items-center gap-2 rounded-full bg-stone-200/60 px-4 py-2.5 text-sm font-semibold text-ink transition-colors duration-(--dur-fast) hover:bg-ink hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30 disabled:pointer-events-none disabled:opacity-60'
           >
-            <RefreshCw className={`me-2 h-4 w-4 ${ordersQuery.isFetching ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`h-4 w-4 ${ordersQuery.isFetching ? 'animate-spin' : ''}`}
+              aria-hidden
+            />
             {t('orders.refresh')}
-          </Button>
-        </div>
-      </motion.div>
+          </button>
+        }
+      />
 
-      {ordersQuery.isLoading && (
-        <ListSkeleton rows={3} />
-      )}
+      {ordersQuery.isLoading && <ListSkeleton rows={3} />}
 
       {ordersQuery.isError && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className='rounded-3xl border border-rose-200 bg-rose-50 p-6 dark:border-rose-900 dark:bg-rose-950/30'
-        >
-          <div className='flex items-center gap-3'>
-            <AlertCircle className='h-6 w-6 text-rose-600 dark:text-rose-400' />
+        <div className={`${PANEL} flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between`}>
+          <div className='flex items-start gap-3'>
+            <span className='flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-50 text-rose-600'>
+              <AlertCircle className='h-5 w-5' aria-hidden />
+            </span>
             <div>
-              <p className='font-bold text-rose-800 dark:text-rose-200'>{t('orders.loadError')}</p>
-              <p className='text-sm text-rose-700 dark:text-rose-300'>
+              <p className='font-semibold text-ink'>{t('orders.loadError')}</p>
+              <p className='mt-0.5 text-sm text-ink-muted'>
                 {t('orders.loadErrorHint')}
               </p>
             </div>
           </div>
           <Button
-            className='mt-4'
-            variant='outline'
+            variant='solid'
+            size='sm'
+            className='rounded-full'
             onClick={() => ordersQuery.refetch()}
           >
-            <RefreshCw className='me-2 h-4 w-4' />
+            <RefreshCw className='h-4 w-4' aria-hidden />
             {t('orders.retry')}
           </Button>
-        </motion.div>
+        </div>
       )}
 
-      {!ordersQuery.isLoading && !ordersQuery.isError && ordersQuery.data?.length === 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className='rounded-3xl border border-white/30 bg-white/35 p-12 text-center shadow-sm backdrop-blur-xl'
-        >
-          <Package className='mx-auto h-12 w-12 text-indigo-950/30' />
-          <h2 className='mt-4 text-xl font-bold text-indigo-950'>{t('orders.emptyTitle')}</h2>
-          <p className='mt-2 text-sm text-indigo-950/70'>
-            {t('orders.emptyDescription')}
-          </p>
-          <Link href='/products' className='mt-6 inline-block'>
-            <Button size='lg'>
-              <Package className='me-2 h-4 w-4' />
+      {ready && orders.length === 0 && (
+        <UserEmptyState
+          icon={<Package className='h-6 w-6' strokeWidth={1.5} aria-hidden />}
+          title={t('orders.emptyTitle')}
+          description={t('orders.emptyDescription')}
+          action={
+            <Link
+              href='/products'
+              className='inline-flex h-12 items-center justify-center rounded-full bg-ink px-7 text-sm font-bold text-white shadow-soft transition-colors hover:bg-stone-800'
+            >
               {t('orders.startShopping')}
-            </Button>
-          </Link>
-        </motion.div>
+            </Link>
+          }
+        />
       )}
 
-      {!ordersQuery.isLoading && !ordersQuery.isError && ordersQuery.data && ordersQuery.data.length > 0 && (
-        <motion.div
+      {ready && orders.length > 0 && (
+        <motion.ul
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className='rounded-3xl border border-white/30 bg-white/35 shadow-sm backdrop-blur-xl overflow-hidden'
+          className='space-y-1'
         >
-          <div className='overflow-x-auto'>
-            <table className='w-full'>
-              <thead className='bg-indigo-950/5'>
-                <tr className='border-b border-white/30'>
-                  <th className='px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-indigo-950/70'>
-                    {t('orders.table.order')}
-                  </th>
-                  <th className='px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-indigo-950/70'>
-                    {t('orders.table.date')}
-                  </th>
-                  <th className='px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-indigo-950/70'>
-                    {t('orders.table.status')}
-                  </th>
-                  <th className='px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-indigo-950/70'>
-                    {t('orders.table.payment')}
-                  </th>
-                  <th className='px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-indigo-950/70'>
-                    {t('checkout.total')}
-                  </th>
-                  <th className='px-4 py-3 text-end text-xs font-medium uppercase tracking-wider text-indigo-950/70'>
-                    {t('orders.table.action')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className='divide-y divide-white/30'>
-                {ordersQuery.data.map((order: Order) => (
-                  <tr key={order._id} className='hover:bg-indigo-950/5 transition-colors'>
-                    <td className='px-4 py-4'>
-                      <Link
-                        href={`/user/orders/${order._id}`}
-                        className='font-mono text-sm font-semibold text-indigo-950 hover:underline'
-                      >
-                        #{order._id.slice(-8).toUpperCase()}
-                      </Link>
-                      <p className='mt-1 text-xs text-indigo-950/50'>
+          {orders.map((order: Order) => {
+            const paymentLabel = order.paymentStatus
+              ? PAYMENT_STATUS_LABELS[order.paymentStatus]
+                ? t(PAYMENT_STATUS_LABELS[order.paymentStatus])
+                : order.paymentStatus
+              : null;
+            return (
+              <li key={order._id}>
+                <Link
+                  href={`/user/orders/${order._id}`}
+                  aria-label={`${t('orders.view')} #${order._id.slice(-8).toUpperCase()}`}
+                  className='group -mx-3 flex flex-col gap-4 rounded-panel px-3 py-4 transition-colors duration-(--dur-fast) hover:bg-stone-200/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30 sm:flex-row sm:items-center sm:justify-between'
+                >
+                  <div className='flex min-w-0 items-center gap-4'>
+                    <span className='hidden h-12 w-12 shrink-0 items-center justify-center rounded-full bg-stone-200/60 text-ink sm:flex'>
+                      <Package className='h-5 w-5' strokeWidth={1.5} aria-hidden />
+                    </span>
+                    <div className='min-w-0'>
+                      <div className='flex flex-wrap items-center gap-2'>
+                        <span
+                          className='font-mono text-sm font-semibold text-ink'
+                          dir='ltr'
+                        >
+                          #{order._id.slice(-8).toUpperCase()}
+                        </span>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClass(order.status)}`}
+                        >
+                          {STATUS_LABELS[order.status]
+                            ? t(STATUS_LABELS[order.status])
+                            : order.status}
+                        </span>
+                        {order.attentionReason && (
+                          <span className='inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800'>
+                            {ATTENTION_REASON_LABELS[order.attentionReason]
+                              ? t(ATTENTION_REASON_LABELS[order.attentionReason])
+                              : order.attentionReason.replace(/_/g, ' ')}
+                          </span>
+                        )}
+                        {paymentLabel && <span className={PILL}>{paymentLabel}</span>}
+                      </div>
+                      <p className='mt-2 text-sm text-ink-muted'>
+                        {formatDate(order.createdAt, intlLocale(locale))}
+                        <span aria-hidden className='mx-2 text-ink-subtle'>
+                          ·
+                        </span>
                         {t('orders.itemCount', { count: order.items.length })}
                       </p>
-                    </td>
-                    <td className='px-4 py-4 text-sm text-indigo-950/70'>
-                      {formatDate(order.createdAt, intlLocale(locale))}
-                    </td>
-                    <td className='px-4 py-4'>
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusBadgeClass(order.status)}`}>
-                        {STATUS_LABELS[order.status]
-                          ? t(STATUS_LABELS[order.status])
-                          : order.status}
-                      </span>
-                      {order.attentionReason && (
-                        <span className='ms-2 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200'>
-                          {ATTENTION_REASON_LABELS[order.attentionReason]
-                            ? t(ATTENTION_REASON_LABELS[order.attentionReason])
-                            : order.attentionReason.replace(/_/g, ' ')}
-                        </span>
-                      )}
-                    </td>
-                    <td className='px-4 py-4'>
-                      <span className='inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-200'>
-                        {order.paymentStatus
-                          ? PAYMENT_STATUS_LABELS[order.paymentStatus]
-                            ? t(PAYMENT_STATUS_LABELS[order.paymentStatus])
-                            : order.paymentStatus
-                          : '—'}
-                      </span>
-                      {order.paymentStatus === 'refunded' && (order.refundAmount ?? 0) > 0 && (
-                        <span className='ms-1 block text-xs text-rose-600 dark:text-rose-400'>
-                          {t('orders.refundedAmount', {
-                            amount: formatPrice(order.refundAmount ?? 0),
-                          })}
-                        </span>
-                      )}
-                    </td>
-                    <td className='px-4 py-4 font-semibold text-indigo-950'>
+                      {order.paymentStatus === 'refunded' &&
+                        (order.refundAmount ?? 0) > 0 && (
+                          <p className='mt-1 text-xs font-medium text-rose-600'>
+                            {t('orders.refundedAmount', {
+                              amount: formatPrice(order.refundAmount ?? 0),
+                            })}
+                          </p>
+                        )}
+                    </div>
+                  </div>
+
+                  <div className='flex items-center justify-between gap-5 sm:justify-end'>
+                    <span className='text-lg font-semibold tabular-nums text-ink'>
                       {formatPrice(order.totalPrice)}
-                    </td>
-                    <td className='px-4 py-4 text-end'>
-                      <Link
-                        href={`/user/orders/${order._id}`}
-                        className='inline-flex items-center gap-1 text-sm font-semibold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300'
-                      >
-                        {t('orders.view')}
-                        <RefreshCw className='h-3.5 w-3.5' />
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </motion.div>
+                    </span>
+                    <span className='inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-stone-200/60 text-ink transition-colors duration-(--dur-fast) group-hover:bg-ink group-hover:text-white'>
+                      <ArrowRight className='h-4 w-4 rtl:-scale-x-100' aria-hidden />
+                    </span>
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
+        </motion.ul>
       )}
     </div>
   );

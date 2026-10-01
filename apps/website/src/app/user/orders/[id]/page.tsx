@@ -143,11 +143,11 @@ export default function OrderDetailPage() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35 }}
-        className='rounded-3xl border border-white/40 bg-white/55 p-6 shadow-sm backdrop-blur-xl'
+        className='space-y-1'
       >
         <Link
           href='/user/orders'
-          className='mb-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400'
+          className='mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-ink-muted transition-colors hover:text-ink'
         >
           <ArrowLeft className='h-4 w-4 rtl:-scale-x-100' />
           {t('orders.detail.back')}
@@ -161,7 +161,7 @@ export default function OrderDetailPage() {
         )}
 
         {orderQuery.isError && (
-          <div className='rounded-lg border border-rose-200 bg-rose-50 px-4 py-6 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200'>
+          <div className='py-6 text-sm font-medium text-rose-800'>
             {t('orders.detail.loadError')}
           </div>
         )}
@@ -171,7 +171,7 @@ export default function OrderDetailPage() {
             <div className='flex flex-wrap items-start justify-between gap-4'>
               <div>
                 <div className='flex items-center gap-2'>
-                  <h1 className='text-2xl font-bold text-indigo-950'>
+                  <h1 className='text-2xl font-semibold tracking-tight text-ink'>
                     {t('orders.detail.title', {
                       id: order._id.slice(-8).toUpperCase(),
                     })}
@@ -180,13 +180,13 @@ export default function OrderDetailPage() {
                     type='button'
                     onClick={() => void copyId(order._id)}
                     aria-label={t('orders.detail.copyId')}
-                    className='rounded p-1 text-indigo-950/40 hover:text-indigo-950/70 dark:text-indigo-200/50 dark:hover:text-indigo-200/70'
+                    className='rounded-full p-1.5 text-ink-subtle transition-colors hover:bg-surface-muted hover:text-ink'
                   >
                     <Copy className='h-4 w-4' />
                   </button>
                 </div>
                 {order.createdAt && (
-                  <p className='mt-1 text-sm font-semibold text-indigo-950/70'>
+                  <p className='mt-1 text-sm text-ink-muted'>
                     {t('orders.detail.placed', {
                       date: formatDate(order.createdAt, intlLocale(locale)),
                     })}
@@ -196,7 +196,7 @@ export default function OrderDetailPage() {
                   <div className='mt-3 flex flex-wrap items-center gap-3'>
                     <Button
                       type='button'
-                      variant='outline'
+                      variant='line'
                       size='sm'
                       onClick={() => void openInvoice()}
                       aria-describedby='invoice-hint'
@@ -205,7 +205,7 @@ export default function OrderDetailPage() {
                       {t('orders.detail.invoice')}
                     </Button>
                     {order.invoiceNumber && (
-                      <span className='text-xs font-semibold text-indigo-950/60'>
+                      <span className='text-xs text-ink-muted'>
                         {t('orders.detail.invoiceNumber', { number: order.invoiceNumber })}
                       </span>
                     )}
@@ -223,7 +223,7 @@ export default function OrderDetailPage() {
                     ? t(STATUS_LABELS[order.status])
                     : order.status}
                 </span>
-                <span className='inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-200'>
+                <span className='inline-flex items-center rounded-full bg-surface-muted px-3 py-1 text-xs font-semibold text-ink-muted'>
                   {t('orders.detail.paymentBadge', {
                     status: order.paymentStatus
                       ? PAYMENT_STATUS_LABELS[order.paymentStatus]
@@ -233,7 +233,7 @@ export default function OrderDetailPage() {
                   })}
                 </span>
                 {order.attentionReason && (
-                  <span className='inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'>
+                  <span className='inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800'>
                     {ATTENTION_REASON_LABELS[order.attentionReason]
                       ? t(ATTENTION_REASON_LABELS[order.attentionReason])
                       : order.attentionReason}
@@ -243,14 +243,14 @@ export default function OrderDetailPage() {
             </div>
 
             {order.canCancel && (
-              <div className='rounded-2xl border border-rose-200/70 bg-rose-50/60 p-4'>
+              <div className=''>
                 <div className='flex flex-wrap items-center justify-between gap-3'>
-                  <p className='text-sm text-indigo-950/80'>
+                  <p className='text-sm text-ink-muted'>
                     {t('orders.cancel.prompt')}
                   </p>
                   <Button
                     type='button'
-                    variant='outline'
+                    variant='line'
                     size='sm'
                     loading={cancelMutation.isPending}
                     onClick={() =>
@@ -277,13 +277,13 @@ export default function OrderDetailPage() {
 
             <OrderReturnSection order={order} />
 
-            <div className='grid gap-6 lg:grid-cols-3'>
-              <div className='lg:col-span-2 space-y-6'>
-                <section className='rounded-2xl border border-white/30 bg-white/35 p-5 shadow-sm backdrop-blur-xl'>
-                  <h2 className='mb-4 text-sm font-bold uppercase tracking-wide text-indigo-950/70'>
+            <div className='grid gap-10 lg:grid-cols-3'>
+              <div className='space-y-10 lg:col-span-2'>
+                <section className=''>
+                  <h2 className='mb-4 text-heading text-ink'>
                     {t('orders.detail.items')}
                   </h2>
-                  <ul className='divide-y divide-white/30'>
+                  <ul className='space-y-1'>
                     {order.items.map((item, i) => (
                       <li
                         key={`${item.productId}-${i}`}
@@ -295,28 +295,28 @@ export default function OrderDetailPage() {
                             alt={item.title}
                             width={56}
                             height={56}
-                            className='h-14 w-14 shrink-0 rounded-lg bg-white/30 object-cover'
+                            className='h-14 w-14 shrink-0 rounded-control bg-surface-muted object-cover'
                           />
                         ) : (
-                          <div className='h-14 w-14 shrink-0 rounded-lg bg-white/30' />
+                          <div className='h-14 w-14 shrink-0 rounded-control bg-surface-muted' />
                         )}
                         <div className='min-w-0 flex-1'>
-                          <p className='truncate text-sm font-bold text-indigo-950'>
+                          <p className='truncate text-sm font-semibold text-ink'>
                             {item.title}
                           </p>
                           {variantLabel(item.variant, t) && (
-                            <p className='text-xs font-semibold text-indigo-950/60'>
+                            <p className='text-xs text-ink-muted'>
                               {variantLabel(item.variant, t)}
                             </p>
                           )}
-                          <p className='text-xs font-semibold text-indigo-950/60'>
+                          <p className='text-xs text-ink-muted'>
                             {t('checkoutPage.summary.qtyPrice', {
                               qty: item.qty,
                               price: formatPrice(item.price),
                             })}
                           </p>
                         </div>
-                        <p className='shrink-0 text-sm font-extrabold text-indigo-950'>
+                        <p className='shrink-0 text-sm font-semibold tabular-nums text-ink'>
                           {formatPrice(item.price * item.qty)}
                         </p>
                       </li>
@@ -324,41 +324,41 @@ export default function OrderDetailPage() {
                   </ul>
                 </section>
 
-                <section className='rounded-2xl border border-white/30 bg-white/35 p-5 shadow-sm backdrop-blur-xl'>
-                  <h2 className='mb-4 text-sm font-bold uppercase tracking-wide text-indigo-950/70'>
+                <section className=''>
+                  <h2 className='mb-4 text-heading text-ink'>
                     {t('checkout.shippingAddress')}
                   </h2>
                   <dl className='grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2'>
                     <div>
-                      <dt className='text-indigo-950/50'>{t('orders.detail.name')}</dt>
-                      <dd className='font-medium text-indigo-950'>
+                      <dt className='text-ink-muted'>{t('orders.detail.name')}</dt>
+                      <dd className='font-medium text-ink'>
                         {order.shippingAddress?.name || '—'}
                       </dd>
                     </div>
                     <div>
-                      <dt className='text-indigo-950/50'>{t('checkout.phone')}</dt>
-                      <dd className='font-medium text-indigo-950'>
+                      <dt className='text-ink-muted'>{t('checkout.phone')}</dt>
+                      <dd className='font-medium text-ink'>
                         {order.shippingAddress?.phone || '—'}
                       </dd>
                     </div>
                     <div className='sm:col-span-2'>
-                      <dt className='text-indigo-950/50'>{t('checkout.address')}</dt>
-                      <dd className='font-medium text-indigo-950'>
+                      <dt className='text-ink-muted'>{t('checkout.address')}</dt>
+                      <dd className='font-medium text-ink'>
                         {order.shippingAddress?.address || '—'},{' '}
                         {order.shippingAddress?.city || '—'}{' '}
                         {order.shippingAddress?.zip || ''}
                       </dd>
                     </div>
                     <div>
-                      <dt className='text-indigo-950/50'>{t('checkout.country')}</dt>
-                      <dd className='font-medium text-indigo-950'>
+                      <dt className='text-ink-muted'>{t('checkout.country')}</dt>
+                      <dd className='font-medium text-ink'>
                         {order.shippingAddress?.country || '—'}
                       </dd>
                     </div>
                     {order.shippingAddress?.notes && (
                       <div className='sm:col-span-2'>
-                        <dt className='text-indigo-950/50'>{t('checkoutPage.form.notesLabel')}</dt>
-                        <dd className='font-medium text-indigo-950'>
+                        <dt className='text-ink-muted'>{t('checkoutPage.form.notesLabel')}</dt>
+                        <dd className='font-medium text-ink'>
                           {order.shippingAddress.notes}
                         </dd>
                       </div>
@@ -368,23 +368,23 @@ export default function OrderDetailPage() {
               </div>
 
               <div className='space-y-6'>
-                <section className='rounded-2xl border border-white/30 bg-white/35 p-5 shadow-sm backdrop-blur-xl'>
-                  <h2 className='mb-4 text-sm font-bold uppercase tracking-wide text-indigo-950/70'>
+                <section className=''>
+                  <h2 className='mb-4 text-heading text-ink'>
                     {t('orders.detail.summaryTitle')}
                   </h2>
                   <dl className='space-y-3 text-sm'>
                     <div className='flex justify-between'>
-                      <dt className='text-indigo-950/70'>
+                      <dt className='text-ink-muted'>
                         {t('orders.detail.subtotalItems', {
                           count: order.items.length,
                         })}
                       </dt>
-                      <dd className='font-medium text-indigo-950'>
+                      <dd className='font-medium text-ink'>
                         {formatPrice(order.itemsPrice)}
                       </dd>
                     </div>
                     {(order.discountAmount ?? 0) > 0 && (
-                      <div className='flex justify-between text-green-700 bg-green-50 rounded-lg px-3 py-2'>
+                      <div className='flex justify-between text-emerald-700'>
                         <dt className='flex items-center gap-2'>
                           <CheckCircle className='h-4 w-4' />
                           {order.couponCode
@@ -399,29 +399,29 @@ export default function OrderDetailPage() {
                       </div>
                     )}
                     <div className='flex justify-between'>
-                      <dt className='text-indigo-950/70 flex items-center gap-2'>
+                      <dt className='text-ink-muted flex items-center gap-2'>
                         <Truck className='h-4 w-4' />
                         {t('checkout.shipping')}
                       </dt>
-                      <dd className='font-medium text-indigo-950'>
+                      <dd className='font-medium text-ink'>
                         {formatPrice(order.shippingPrice)}
                       </dd>
                     </div>
                     <div className='flex justify-between'>
-                      <dt className='text-indigo-950/70 flex items-center gap-2'>
+                      <dt className='text-ink-muted flex items-center gap-2'>
                         <CreditCard className='h-4 w-4' />
                         {t('checkout.tax')}
                       </dt>
-                      <dd className='font-medium text-indigo-950'>
+                      <dd className='font-medium text-ink'>
                         {formatPrice(order.taxPrice)}
                       </dd>
                     </div>
-                    <div className='flex justify-between border-t border-white/30 pt-3 font-bold text-indigo-950'>
+                    <div className='flex justify-between pt-3 text-base font-semibold text-ink'>
                       <dt>{t('checkout.total')}</dt>
                       <dd>{formatPrice(order.totalPrice)}</dd>
                     </div>
                     {(order.refundAmount ?? 0) > 0 && (
-                      <div className='flex justify-between text-rose-600 dark:text-rose-400'>
+                      <div className='flex justify-between text-rose-600'>
                         <dt>{t('orders.detail.refunded')}</dt>
                         <dd>-{formatPrice(order.refundAmount ?? 0)}</dd>
                       </div>
@@ -432,33 +432,33 @@ export default function OrderDetailPage() {
                 {(order.stripeSessionId ||
                   order.paymentIntentId ||
                   order.refundId) && (
-                  <section className='rounded-2xl border border-white/30 bg-white/35 p-5 shadow-sm backdrop-blur-xl'>
-                    <h2 className='mb-4 text-sm font-bold uppercase tracking-wide text-indigo-950/70'>
+                  <section className=''>
+                    <h2 className='mb-4 text-heading text-ink'>
                       {t('orders.detail.paymentReferences')}
                     </h2>
                     <dl className='space-y-2 text-xs font-mono'>
                       {order.stripeSessionId && (
                         <div>
-                          <dt className='text-indigo-950/50'>
+                          <dt className='text-ink-muted'>
                             {t('orders.detail.checkoutSession')}
                           </dt>
-                          <dd className='break-all text-indigo-950/70'>
+                          <dd className='break-all text-ink-muted'>
                             {order.stripeSessionId}
                           </dd>
                         </div>
                       )}
                       {order.paymentIntentId && (
                         <div>
-                          <dt className='text-indigo-950/50'>{t('orders.detail.paymentIntent')}</dt>
-                          <dd className='break-all text-indigo-950/70'>
+                          <dt className='text-ink-muted'>{t('orders.detail.paymentIntent')}</dt>
+                          <dd className='break-all text-ink-muted'>
                             {order.paymentIntentId}
                           </dd>
                         </div>
                       )}
                       {order.refundId && (
                         <div>
-                          <dt className='text-indigo-950/50'>{t('orders.detail.refundId')}</dt>
-                          <dd className='break-all text-rose-600 dark:text-rose-400'>
+                          <dt className='text-ink-muted'>{t('orders.detail.refundId')}</dt>
+                          <dd className='break-all text-rose-600'>
                             {order.refundId}
                           </dd>
                         </div>
@@ -468,22 +468,22 @@ export default function OrderDetailPage() {
                 )}
 
                 {order.trackingNumber && (
-                  <section className='rounded-2xl border border-white/30 bg-white/35 p-5 shadow-sm backdrop-blur-xl'>
-                    <h2 className='mb-4 text-sm font-bold uppercase tracking-wide text-indigo-950/70 flex items-center gap-2'>
+                  <section className=''>
+                    <h2 className='mb-4 text-heading text-ink flex items-center gap-2'>
                       <Truck className='h-4 w-4' />
                       {t('orders.detail.tracking')}
                     </h2>
                     <dl className='space-y-2 text-sm'>
                       <div className='flex justify-between'>
-                        <dt className='text-indigo-950/70'>{t('orders.detail.trackingNumber')}</dt>
-                        <dd className='font-mono font-medium text-indigo-950'>
+                        <dt className='text-ink-muted'>{t('orders.detail.trackingNumber')}</dt>
+                        <dd className='font-mono font-medium text-ink'>
                           {order.trackingNumber}
                         </dd>
                       </div>
                       {order.trackingCarrier && (
                         <div className='flex justify-between'>
-                          <dt className='text-indigo-950/70'>{t('orders.detail.carrier')}</dt>
-                          <dd className='font-medium text-indigo-950'>
+                          <dt className='text-ink-muted'>{t('orders.detail.carrier')}</dt>
+                          <dd className='font-medium text-ink'>
                             {order.trackingCarrier}
                           </dd>
                         </div>
@@ -494,7 +494,7 @@ export default function OrderDetailPage() {
                             href={order.trackingUrl}
                             target='_blank'
                             rel='noopener noreferrer'
-                            className='inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300'
+                            className='inline-flex items-center gap-1 font-semibold text-ink underline underline-offset-4 hover:text-accent'
                           >
                             {t('orders.detail.trackShipment')}
                             <ArrowLeft className='h-3.5 w-3.5 rotate-180 rtl:-scale-x-100' />

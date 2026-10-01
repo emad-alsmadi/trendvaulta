@@ -148,6 +148,26 @@ body {
     sans-serif;
 }
 
+/* Arabic pages lead with the Arabic face. In the default stack "Geist
+   Fallback" (a metric-adjusted local Arial) sits before it and has Arabic
+   glyphs of its own, so Arabic text rendered in Arial and IBM Plex Sans
+   Arabic never loaded. The face is named directly rather than through
+   --font-arabic: that variable also carries its own Arial-based fallback,
+   which would catch any glyph the face lacks before Geist could. Latin on
+   Arabic pages renders in Plex's own Latin, which is drawn to match. */
+[dir='rtl'] body {
+  font-family:
+    'IBM Plex Sans Arabic',
+    var(--font-geist-sans),
+    var(--font-arabic),
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    'Helvetica Neue',
+    sans-serif;
+}
+
 /* Custom Scrollbar - Webkit (Chrome, Safari, Edge) */
 ::-webkit-scrollbar {
   width: 8px;

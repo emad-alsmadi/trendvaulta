@@ -16,6 +16,13 @@ import {
   logErrorForDev,
 } from '@/lib/userFacingError';
 import { PageHeaderSkeleton, Skeleton, SkeletonGroup } from '@/components/ui/Skeleton';
+import {
+  FIELD,
+  FIELD_ERROR,
+  FIELD_LABEL,
+  PANEL,
+  UserPageHeader,
+} from '../UserPage';
 
 /** Edit profile — PUT /api/auth/profile (username, email) */
 type ProfileUser = NonNullable<MeResponse['user']>;
@@ -132,26 +139,18 @@ function EditProfileForm({ user }: { user: ProfileUser }) {
   const backHref = '/user';
 
   return (
-    <>
-      <h1 className='mb-6 text-2xl font-extrabold tracking-tight text-indigo-950'>
-        {t('userArea.edit.title')}
-      </h1>
+    <div className='space-y-6'>
+      <UserPageHeader title={t('userArea.edit.title')} />
 
-      <form
-        onSubmit={onSubmit}
-        className='rounded-3xl border border-white/40 bg-white/55 p-6 shadow-sm backdrop-blur-xl'
-        noValidate
-      >
-        <div className='grid gap-6 md:grid-cols-2'>
+      <form onSubmit={onSubmit} className={`${PANEL} max-w-3xl`} noValidate>
+        <div className='grid gap-5 md:grid-cols-2'>
           <div>
-            <label
-              htmlFor='profile-username'
-              className='mb-1 block text-xs font-bold uppercase tracking-wider text-gray-500'
-            >
+            <label htmlFor='profile-username' className={FIELD_LABEL}>
               {t('auth.username')}
             </label>
             <Input
               id='profile-username'
+              className={FIELD}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               autoComplete='username'
@@ -159,46 +158,37 @@ function EditProfileForm({ user }: { user: ProfileUser }) {
               disabled={updateProfile.isPending}
             />
             {usernameError && (
-              <p className='mt-2 text-sm font-semibold text-rose-700'>
-                {t(usernameError)}
-              </p>
+              <p className={FIELD_ERROR}>{t(usernameError)}</p>
             )}
           </div>
 
           <div>
-            <label
-              htmlFor='profile-email'
-              className='mb-1 block text-xs font-bold uppercase tracking-wider text-gray-500'
-            >
+            <label htmlFor='profile-email' className={FIELD_LABEL}>
               {t('auth.email')}
             </label>
             <Input
               id='profile-email'
               type='email'
+              dir='ltr'
+              className={FIELD}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete='email'
               maxLength={100}
               disabled={updateProfile.isPending}
             />
-            {emailError && (
-              <p className='mt-2 text-sm font-semibold text-rose-700'>
-                {t(emailError)}
-              </p>
-            )}
+            {emailError && <p className={FIELD_ERROR}>{t(emailError)}</p>}
           </div>
 
           {emailChanged && (
-            <div>
-              <label
-                htmlFor='profile-current-password'
-                className='mb-1 block text-xs font-bold uppercase tracking-wider text-gray-500'
-              >
+            <div className='md:col-span-2'>
+              <label htmlFor='profile-current-password' className={FIELD_LABEL}>
                 {t('userArea.edit.currentPasswordLabel')}
               </label>
               <Input
                 id='profile-current-password'
                 type='password'
+                className={`${FIELD} md:max-w-sm`}
                 value={currentPassword}
                 onChange={(e) => {
                   setCurrentPassword(e.target.value);
@@ -218,14 +208,14 @@ function EditProfileForm({ user }: { user: ProfileUser }) {
                 <p
                   id='profile-current-password-error'
                   role='alert'
-                  className='mt-2 text-sm font-semibold text-rose-700'
+                  className={FIELD_ERROR}
                 >
                   {t(passwordError)}
                 </p>
               ) : (
                 <p
                   id='profile-current-password-hint'
-                  className='mt-2 text-xs text-gray-500'
+                  className='mt-1.5 text-xs text-ink-muted'
                 >
                   {t('userArea.edit.currentPasswordHint')}
                 </p>
@@ -234,8 +224,13 @@ function EditProfileForm({ user }: { user: ProfileUser }) {
           )}
         </div>
 
-        <div className='mt-6 flex flex-wrap items-center gap-3'>
-          <Button type='submit' disabled={!canSave} className='gap-2'>
+        <div className='mt-7 flex flex-wrap items-center gap-3'>
+          <Button
+            type='submit'
+            variant='solid'
+            disabled={!canSave}
+            className='rounded-full px-7'
+          >
             {updateProfile.isPending ? (
               <Loader2 className='h-4 w-4 animate-spin' aria-hidden />
             ) : (
@@ -245,12 +240,12 @@ function EditProfileForm({ user }: { user: ProfileUser }) {
           </Button>
           <Link
             href={backHref}
-            className='text-sm font-semibold text-gray-600 hover:text-gray-900'
+            className='inline-flex h-12 items-center rounded-full bg-stone-200/60 px-6 text-sm font-semibold text-ink transition-colors hover:bg-stone-200'
           >
             {t('confirmDialog.cancel')}
           </Link>
         </div>
       </form>
-    </>
+    </div>
   );
 }

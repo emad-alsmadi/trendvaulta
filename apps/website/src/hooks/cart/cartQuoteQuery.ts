@@ -17,6 +17,11 @@ export type CartQuoteOptions = {
   couponCode?: string;
   delivery?: boolean;
   shippingMethod?: string;
+  /**
+   * Destination, when known. Without it the server quotes the flat rate,
+   * which can differ from the zone rate charged at checkout.
+   */
+  shippingAddress?: { country?: string; zip?: string; city?: string };
 };
 
 export function cartQuoteKey(opts: CartQuoteOptions) {
@@ -30,6 +35,7 @@ export function cartQuoteKey(opts: CartQuoteOptions) {
     })),
     opts.couponCode ?? '',
     opts.shippingMethod ?? (opts.delivery ? 'standard' : 'none'),
+    opts.shippingAddress ?? null,
   ];
 }
 
@@ -53,6 +59,7 @@ export function useCartQuote(opts: CartQuoteOptions) {
           delivery: opts.delivery,
           shippingMethod:
             opts.shippingMethod ?? (opts.delivery ? 'standard' : 'none'),
+          shippingAddress: opts.shippingAddress,
         });
       } catch (err) {
         if (axios.isAxiosError(err) && err.response?.status === 404) {

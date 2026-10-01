@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { Button } from '../../ui/Button';
 import { Heart } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
 
@@ -7,26 +6,26 @@ export function WishlistEmptyState() {
   const { t } = useTranslation();
 
   return (
-    <div className='flex flex-col items-center justify-center py-16 px-4'>
-      <div className='mb-6 rounded-full bg-gradient-to-br from-fuchsia-500/20 via-indigo-500/20 to-cyan-500/20 p-8'>
-        <Heart
-          className='h-16 w-16 text-indigo-400'
-          fill='none'
-          strokeWidth={1.5}
-        />
+    <div className='flex flex-col items-center justify-center px-5 py-14 text-center sm:py-16'>
+      <div className='flex h-14 w-14 items-center justify-center rounded-full bg-stone-200/60 text-ink'>
+        <Heart className='h-6 w-6' fill='none' strokeWidth={1.5} aria-hidden />
       </div>
-      <h2 className='mb-2 text-2xl font-extrabold text-indigo-950'>
-        {t('wishlist.emptyTitle')}
-      </h2>
-      <p className='mb-8 text-center text-sm font-semibold text-indigo-900/70 max-w-md'>
+      <h2 className='mt-5 text-heading text-ink'>{t('wishlist.emptyTitle')}</h2>
+      <p className='mt-2 max-w-md text-sm text-ink-muted'>
         {t('wishlist.emptyDescription')}
       </p>
-      <div className='flex flex-col items-center gap-3 sm:flex-row'>
-        <Link href='/products'>
-          <Button>{t('wishlist.browseCatalog')}</Button>
+      <div className='mt-7 flex flex-col items-center gap-3 sm:flex-row'>
+        <Link
+          href='/products'
+          className='inline-flex h-12 items-center justify-center rounded-full bg-ink px-7 text-sm font-bold text-white shadow-soft transition-colors hover:bg-stone-800'
+        >
+          {t('wishlist.browseCatalog')}
         </Link>
-        <Link href='/offers'>
-          <Button variant='outline'>{t('wishlist.seeTodaysOffers')}</Button>
+        <Link
+          href='/offers'
+          className='inline-flex h-12 items-center justify-center rounded-full bg-stone-200/60 px-7 text-sm font-bold text-ink transition-colors hover:bg-stone-200'
+        >
+          {t('wishlist.seeTodaysOffers')}
         </Link>
       </div>
     </div>

@@ -13,6 +13,13 @@ import { useLogout } from '@/hooks/auth/authQuery';
 import { getUserFacingErrorMessage } from '@/lib/userFacingError';
 import { useProfile } from '@/hooks/profile/useProfile';
 import { useTranslation } from '@/contexts/TranslationContext';
+import {
+  FIELD,
+  FIELD_ERROR,
+  FIELD_LABEL,
+  PANEL,
+  UserPageHeader,
+} from '../UserPage';
 
 type PasswordFormValues = {
   currentPassword: string;
@@ -73,51 +80,44 @@ export default function SecurityPage() {
     }
   };
 
+  const toggleClass =
+    'absolute end-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-ink-subtle transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30';
+  const tips = [
+    t('security.tipUnique'),
+    t('security.tipMix'),
+    t('security.tipPersonal'),
+    t('security.tipManager'),
+  ];
+
   return (
     <div className='space-y-6'>
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
-        className='rounded-3xl border border-white/40 bg-white/55 p-6 shadow-sm backdrop-blur-xl'
-      >
-        <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
-          <div>
-            <div className='inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/40 px-3 py-1 text-xs font-extrabold text-indigo-950'>
-              <Shield className='h-4 w-4 text-fuchsia-700' />
-              {t('common.security')}
-            </div>
-            <h1 className='mt-4 text-3xl font-extrabold tracking-tight text-indigo-950 sm:text-4xl'>
-              {t('security.title')}
-            </h1>
-            <p className='mt-2 text-sm font-semibold text-indigo-950/80'>
-              {t('security.subtitle')}
-            </p>
-          </div>
-        </div>
-      </motion.div>
+      <UserPageHeader
+        title={t('security.title')}
+        subtitle={t('security.subtitle')}
+      />
 
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className='rounded-3xl border border-white/30 bg-white/35 p-6 shadow-sm backdrop-blur-xl'
-      >
-        <form onSubmit={handleSubmit(onSubmit)} className='space-y-6 max-w-md'>
-          <div>
-            <h2 className='mb-4 text-lg font-bold text-indigo-950 flex items-center gap-2'>
-              <Lock className='h-5 w-5' />
+      <div className='grid gap-10 xl:grid-cols-[minmax(0,1fr)_20rem] xl:gap-14'>
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className={PANEL}
+        >
+          <form onSubmit={handleSubmit(onSubmit)} className='max-w-md'>
+            <h2 className='flex items-center gap-2.5 text-heading text-ink'>
+              <Lock className='h-5 w-5' strokeWidth={1.5} aria-hidden />
               {t('security.changePassword')}
             </h2>
 
-            <div className='space-y-4'>
+            <div className='mt-5 space-y-4'>
               <div>
-                <label htmlFor='security-currentPassword' className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+                <label htmlFor='security-currentPassword' className={FIELD_LABEL}>
                   {t('security.currentPassword')}
                 </label>
                 <div className='relative'>
                   <Input
                     id='security-currentPassword'
+                    className={`${FIELD} pe-11`}
                     aria-invalid={errors.currentPassword ? true : undefined}
                     aria-describedby={errors.currentPassword ? 'security-currentPassword-error' : undefined}
                     type={showCurrent ? 'text' : 'password'}
@@ -131,24 +131,27 @@ export default function SecurityPage() {
                     type='button'
                     onClick={() => setShowCurrent(!showCurrent)}
                     aria-pressed={showCurrent}
-                    className='absolute end-3 top-1/2 -translate-y-1/2 text-indigo-950/50 hover:text-indigo-950'
+                    className={toggleClass}
                     aria-label={showCurrent ? t('security.hidePassword') : t('security.showPassword')}
                   >
-                    {showCurrent ? <EyeOff className='h-5 w-5' /> : <Eye className='h-5 w-5' />}
+                    {showCurrent ? <EyeOff className='h-4 w-4' /> : <Eye className='h-4 w-4' />}
                   </button>
                 </div>
                 {errors.currentPassword && (
-                  <p id='security-currentPassword-error' role='alert' className='mt-1 text-sm font-semibold text-rose-600'>{errors.currentPassword.message}</p>
+                  <p id='security-currentPassword-error' role='alert' className={FIELD_ERROR}>
+                    {errors.currentPassword.message}
+                  </p>
                 )}
               </div>
 
               <div>
-                <label htmlFor='security-newPassword' className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+                <label htmlFor='security-newPassword' className={FIELD_LABEL}>
                   {t('security.newPassword')}
                 </label>
                 <div className='relative'>
                   <Input
                     id='security-newPassword'
+                    className={`${FIELD} pe-11`}
                     aria-invalid={errors.newPassword ? true : undefined}
                     aria-describedby={errors.newPassword ? 'security-newPassword-error' : undefined}
                     type={showNew ? 'text' : 'password'}
@@ -166,19 +169,21 @@ export default function SecurityPage() {
                     type='button'
                     onClick={() => setShowNew(!showNew)}
                     aria-pressed={showNew}
-                    className='absolute end-3 top-1/2 -translate-y-1/2 text-indigo-950/50 hover:text-indigo-950'
+                    className={toggleClass}
                     aria-label={showNew ? t('security.hidePassword') : t('security.showPassword')}
                   >
-                    {showNew ? <EyeOff className='h-5 w-5' /> : <Eye className='h-5 w-5' />}
+                    {showNew ? <EyeOff className='h-4 w-4' /> : <Eye className='h-4 w-4' />}
                   </button>
                 </div>
                 {errors.newPassword && (
-                  <p id='security-newPassword-error' role='alert' className='mt-1 text-sm font-semibold text-rose-600'>{errors.newPassword.message}</p>
+                  <p id='security-newPassword-error' role='alert' className={FIELD_ERROR}>
+                    {errors.newPassword.message}
+                  </p>
                 )}
 
                 {newPassword && (
-                  <div className='mt-2 space-y-1'>
-                    <div className='h-1.5 w-full rounded-full bg-indigo-950/10 overflow-hidden'>
+                  <div className='mt-2.5 space-y-1.5'>
+                    <div className='h-1 w-full overflow-hidden rounded-full bg-stone-200/70'>
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{
@@ -187,33 +192,34 @@ export default function SecurityPage() {
                               ? `${(newPassword.length / 8) * 100}%`
                               : '100%',
                         }}
-                        className={`h-full transition-colors ${
+                        className={`h-full rounded-full transition-colors ${
                           newPassword.length < 8
                             ? 'bg-amber-500'
                             : passwordsMatch
-                            ? 'bg-emerald-500'
-                            : 'bg-rose-500'
+                              ? 'bg-emerald-500'
+                              : 'bg-rose-500'
                         }`}
                       />
                     </div>
-                    <p className='text-xs font-semibold text-indigo-950/60'>
+                    <p className='text-xs text-ink-muted'>
                       {newPassword.length < 8
                         ? t('security.charsNeeded', { count: 8 - newPassword.length })
                         : passwordsMatch
-                        ? t('security.passwordsMatch')
-                        : t('security.validation.mismatch')}
+                          ? t('security.passwordsMatch')
+                          : t('security.validation.mismatch')}
                     </p>
                   </div>
                 )}
               </div>
 
               <div>
-                <label htmlFor='security-confirmPassword' className='mb-2 block text-sm font-extrabold text-indigo-950/80'>
+                <label htmlFor='security-confirmPassword' className={FIELD_LABEL}>
                   {t('security.confirmPassword')}
                 </label>
                 <div className='relative'>
                   <Input
                     id='security-confirmPassword'
+                    className={`${FIELD} pe-11`}
                     aria-invalid={errors.confirmPassword ? true : undefined}
                     aria-describedby={errors.confirmPassword ? 'security-confirmPassword-error' : undefined}
                     type={showConfirm ? 'text' : 'password'}
@@ -229,97 +235,96 @@ export default function SecurityPage() {
                     type='button'
                     onClick={() => setShowConfirm(!showConfirm)}
                     aria-pressed={showConfirm}
-                    className='absolute end-3 top-1/2 -translate-y-1/2 text-indigo-950/50 hover:text-indigo-950'
+                    className={toggleClass}
                     aria-label={showConfirm ? t('security.hidePassword') : t('security.showPassword')}
                   >
-                    {showConfirm ? <EyeOff className='h-5 w-5' /> : <Eye className='h-5 w-5' />}
+                    {showConfirm ? <EyeOff className='h-4 w-4' /> : <Eye className='h-4 w-4' />}
                   </button>
                 </div>
                 {errors.confirmPassword && (
-                  <p id='security-confirmPassword-error' role='alert' className='mt-1 text-sm font-semibold text-rose-600'>{errors.confirmPassword.message}</p>
+                  <p id='security-confirmPassword-error' role='alert' className={FIELD_ERROR}>
+                    {errors.confirmPassword.message}
+                  </p>
                 )}
               </div>
             </div>
 
             <Button
               type='submit'
-              size='lg'
-              className='w-full rounded-full bg-gradient-to-r from-indigo-600 via-fuchsia-600 to-cyan-500 text-white shadow-md transition hover:brightness-110 active:brightness-95'
+              variant='solid'
+              className='mt-6 w-full rounded-full'
               disabled={changePassword.isPending || !passwordsMatch}
             >
               {changePassword.isPending ? (
-                <span className='inline-flex items-center gap-2'>
-                  <Loader2 className='h-4 w-4 animate-spin' />
-                  {t('security.updating')}
-                </span>
-              ) : (
                 <>
-                  <CheckCircle className='me-2 h-4 w-4' />
-                  {t('security.updatePassword')}
+                  <Loader2 className='h-4 w-4 animate-spin' aria-hidden />
+                  {t('security.updating')}
                 </>
+              ) : (
+                t('security.updatePassword')
               )}
             </Button>
 
-            <p className='text-center text-xs text-indigo-950/50'>
+            <p className='mt-3 text-center text-xs text-ink-subtle'>
               {t('security.minLengthHint')}
             </p>
-          </div>
-        </form>
+          </form>
+        </motion.div>
 
-        <div className='mt-8 pt-6 border-t border-white/30'>
-          <h3 className='mb-4 text-lg font-bold text-indigo-950 flex items-center gap-2'>
-            <Shield className='h-5 w-5' />
-            {t('security.tipsTitle')}
-          </h3>
-          <ul className='space-y-2 text-sm font-semibold text-indigo-950/70'>
-            <li className='flex items-center gap-2'>
-              <CheckCircle className='h-4 w-4 text-emerald-600' />
-              {t('security.tipUnique')}
-            </li>
-            <li className='flex items-center gap-2'>
-              <CheckCircle className='h-4 w-4 text-emerald-600' />
-              {t('security.tipMix')}
-            </li>
-            <li className='flex items-center gap-2'>
-              <CheckCircle className='h-4 w-4 text-emerald-600' />
-              {t('security.tipPersonal')}
-            </li>
-            <li className='flex items-center gap-2'>
-              <CheckCircle className='h-4 w-4 text-emerald-600' />
-              {t('security.tipManager')}
-            </li>
-          </ul>
-        </div>
-      </motion.div>
+        <div className='space-y-10'>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.05 }}
+            className={PANEL}
+          >
+            <h2 className='flex items-center gap-2.5 text-heading text-ink'>
+              <Shield className='h-5 w-5' strokeWidth={1.5} aria-hidden />
+              {t('security.tipsTitle')}
+            </h2>
+            <ul className='mt-4 space-y-3 text-sm text-ink-muted'>
+              {tips.map((tip) => (
+                <li key={tip} className='flex items-start gap-2.5'>
+                  <CheckCircle
+                    className='mt-0.5 h-4 w-4 shrink-0 text-ink'
+                    strokeWidth={1.5}
+                    aria-hidden
+                  />
+                  {tip}
+                </li>
+              ))}
+            </ul>
+          </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.1 }}
-        className='rounded-3xl border border-white/30 bg-white/35 p-6 shadow-sm backdrop-blur-xl'
-      >
-        <h3 className='mb-4 text-lg font-bold text-indigo-950 flex items-center gap-2'>
-          <Shield className='h-5 w-5' />
-          {t('security.sessionsTitle')}
-        </h3>
-        <p className='text-sm font-semibold text-indigo-950/70'>
-          {t('security.sessionsBody')}
-        </p>
-        <div className='mt-4 flex items-center justify-between'>
-          <div className='flex items-center gap-3'>
-            <div className='h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center'>
-              <Shield className='h-5 w-5 text-indigo-600' />
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            className={PANEL}
+          >
+            <h2 className='text-heading text-ink'>
+              {t('security.sessionsTitle')}
+            </h2>
+            <p className='mt-2 text-sm leading-relaxed text-ink-muted'>
+              {t('security.sessionsBody')}
+            </p>
+            <div className='mt-5 flex items-center justify-between gap-3'>
+              <div className='min-w-0'>
+                <p className='truncate text-sm font-semibold text-ink'>
+                  {t('security.currentSession')}
+                </p>
+                <p className='truncate text-xs text-ink-muted'>
+                  {t('security.thisDeviceActiveNow')}
+                </p>
+              </div>
+              <span className='inline-flex shrink-0 items-center gap-1.5 rounded-full bg-ink px-2.5 py-1 text-xs font-semibold text-white'>
+                <span aria-hidden className='h-1.5 w-1.5 rounded-full bg-emerald-400' />
+                {t('security.active')}
+              </span>
             </div>
-            <div>
-              <p className='font-medium text-indigo-950'>{t('security.currentSession')}</p>
-              <p className='text-sm text-indigo-950/60'>{t('security.thisDeviceActiveNow')}</p>
-            </div>
-          </div>
-          <span className='inline-flex items-center rounded-full bg-emerald-100 px-2 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'>
-            {t('security.active')}
-          </span>
+          </motion.div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

@@ -21,6 +21,7 @@ import { STATUS_LABELS, statusBadgeClass } from '@/lib/orderStatus';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { UserPageHeader } from './UserPage';
 
 /** `title` and `description` are message keys. */
 const SECTIONS = [
@@ -73,11 +74,11 @@ export default function UserOverviewPage() {
   )[0];
 
   return (
-    <div className='space-y-12'>
-      <div>
-        <h1 className='text-title text-ink'>{t('userArea.nav.overview')}</h1>
-        <p className='mt-2 text-ink-muted'>{t('account.subtitle')}</p>
-      </div>
+    <div className='space-y-8'>
+      <UserPageHeader
+        title={t('userArea.nav.overview')}
+        subtitle={t('account.subtitle')}
+      />
 
       {/* At a glance — numbers carry the hierarchy, no boxes. */}
       <ul className='grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4'>
@@ -87,7 +88,7 @@ export default function UserOverviewPage() {
           { href: '/user/addresses', label: t('common.addresses'), q: addresses },
           { href: '/user/reviews', label: t('userArea.reviews.title'), q: reviews },
         ].map(({ href, label, q }) => (
-          <li key={href} className='border-t border-line pt-4'>
+          <li key={href}>
             <Stat href={href} label={label} value={q.data?.length} loading={q.isLoading} />
           </li>
         ))}
@@ -95,10 +96,10 @@ export default function UserOverviewPage() {
 
       {/* Latest order */}
       <section aria-labelledby='latest-order-heading'>
-        <h2 id='latest-order-heading' className='text-eyebrow uppercase text-ink-subtle'>
+        <h2 id='latest-order-heading' className='text-eyebrow uppercase text-ink-subtle rtl:tracking-normal'>
           {t('userArea.overview.latestOrder')}
         </h2>
-        <Card variant='elevated' className='mt-4'>
+        <Card variant='plain' className='mt-4'>
           {orders.isLoading ? (
             <div aria-hidden className='flex items-center justify-between gap-4'>
               <div className='space-y-2'>
@@ -137,7 +138,7 @@ export default function UserOverviewPage() {
               </div>
               <Link
                 href={`/user/orders/${latest._id}`}
-                className='group inline-flex shrink-0 items-center gap-2 self-start rounded-control bg-ink px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-(--dur-fast) hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 sm:self-auto'
+                className='group inline-flex shrink-0 items-center gap-2 self-start rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white transition-colors duration-(--dur-fast) hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 sm:self-auto'
               >
                 {t('userArea.overview.viewOrder')}
                 <ArrowRight
@@ -154,7 +155,7 @@ export default function UserOverviewPage() {
               </div>
               <Link
                 href='/products'
-                className='inline-flex shrink-0 items-center self-start rounded-control border border-line px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-surface-muted sm:self-auto'
+                className='inline-flex shrink-0 items-center self-start rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-stone-800 sm:self-auto'
               >
                 {t('orders.startShopping')}
               </Link>
@@ -163,24 +164,26 @@ export default function UserOverviewPage() {
         </Card>
       </section>
 
-      {/* Every section — an editorial list with hairlines instead of tiles. */}
+      {/* Every section — a plain list: no tiles, no rules. */}
       <nav aria-label={t('account.sectionsLabel')}>
-        <ul className='grid gap-x-10 sm:grid-cols-2'>
+        <ul className='grid gap-x-10 gap-y-2 sm:grid-cols-2'>
           {SECTIONS.map((section) => {
             const Icon = section.icon;
             return (
-              <li key={section.href} className='border-t border-line'>
+              <li key={section.href}>
                 <Link
                   href={section.href}
-                  className='group flex items-start gap-4 py-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50'
+                  className='group flex h-full items-center gap-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30'
                 >
-                  <Icon className='mt-0.5 h-5 w-5 shrink-0 text-ink-subtle transition-colors group-hover:text-accent' aria-hidden />
+                  <span className='flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-stone-200/60 text-ink transition-colors duration-(--dur-fast) group-hover:bg-ink group-hover:text-white'>
+                    <Icon className='h-5 w-5' strokeWidth={1.5} aria-hidden />
+                  </span>
                   <span className='min-w-0 flex-1'>
                     <span className='block font-semibold text-ink'>{t(section.title)}</span>
                     <span className='mt-1 block text-sm text-ink-muted'>{t(section.description)}</span>
                   </span>
                   <ChevronRight
-                    className='mt-0.5 h-4 w-4 shrink-0 text-ink-subtle transition-transform duration-(--dur-base) ease-brand group-hover:text-ink rtl:-scale-x-100 ltr:group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5'
+                    className='h-4 w-4 shrink-0 text-ink-subtle transition-transform duration-(--dur-base) ease-brand group-hover:text-ink rtl:-scale-x-100 ltr:group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5'
                     aria-hidden
                   />
                 </Link>

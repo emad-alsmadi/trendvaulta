@@ -2,7 +2,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { normalizeRemoteImageSrc, remoteCoverLoader } from '@/lib/utils';
 import { WishlistItem } from '@/types';
-import { Button } from '@/components/ui/Button';
 import { WishlistButton } from '@/components/page/wishlist/WishlistButton';
 import { motion } from 'framer-motion';
 import { useTranslation } from '@/contexts/TranslationContext';
@@ -23,55 +22,54 @@ export function WishlistCard({ item }: WishlistCardProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className='group relative rounded-3xl bg-gradient-to-br from-amber-500/25 via-fuchsia-500/20 to-cyan-500/25 p-[1px]'
+      className='group flex h-full flex-col'
     >
-      <div className='relative h-full rounded-3xl border border-white/40 bg-white/45 p-4 shadow-sm backdrop-blur-xl'>
-        <div className='relative mb-3 aspect-[3/4] w-full overflow-hidden rounded-2xl bg-white/30'>
-          <Link href={`/products/${product._id}`}>
-            <Image
-              loader={remoteCoverLoader}
-              src={normalizeRemoteImageSrc(product.cover)}
-              alt={product.title}
-              fill
-              className='object-cover transition-transform duration-500 group-hover:scale-110'
-              sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
-            />
-          </Link>
-          <div className='absolute top-3 end-3'>
-            <WishlistButton
-              productId={product._id}
-              variant='icon'
-              className='bg-white/90 text-indigo-950 hover:bg-white'
-            />
-          </div>
-        </div>
+      {/* The wishlist button is a sibling of the link, not a child. */}
+      <div className='relative'>
+        <Link
+          href={`/products/${product._id}`}
+          className='relative block aspect-square overflow-hidden rounded-card bg-surface-muted'
+        >
+          <Image
+            loader={remoteCoverLoader}
+            src={normalizeRemoteImageSrc(product.cover)}
+            alt={product.title}
+            fill
+            className='object-cover transition-transform duration-(--dur-slow) ease-brand group-hover:scale-[1.04]'
+            sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
+          />
+        </Link>
+        <WishlistButton
+          productId={product._id}
+          variant='icon'
+          tone='onLight'
+          className='absolute end-2.5 top-2.5 inline-flex h-9 w-9 items-center justify-center bg-surface/90 !p-0 shadow-soft [&>svg]:h-4 [&>svg]:w-4'
+        />
+      </div>
 
-        <div className='space-y-2'>
-          <Link href={`/products/${product._id}`}>
-            <h3 className='line-clamp-2 text-base font-extrabold tracking-tight text-indigo-950 hover:text-indigo-700 transition-colors'>
-              {product.title}
-            </h3>
+      <div className='flex flex-1 flex-col pt-3'>
+        {brandName && (
+          <p className='mb-1 truncate text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-ink-muted rtl:tracking-normal'>
+            {brandName}
+          </p>
+        )}
+        <Link href={`/products/${product._id}`}>
+          <h3 className='line-clamp-2 text-sm font-medium leading-snug text-ink transition-colors hover:text-accent'>
+            {product.title}
+          </h3>
+        </Link>
+        <p className='mt-2 text-base font-semibold tabular-nums text-ink'>
+          {formatPrice(product.price)}
+        </p>
+        <div className='mt-auto pt-3'>
+          <Link
+            href={`/products/${product._id}`}
+            className='inline-flex h-10 w-full items-center justify-center rounded-full bg-ink px-4 text-sm font-semibold text-white transition-colors duration-(--dur-fast) hover:bg-stone-800'
+          >
+            {t('wishlist.viewDetails')}
           </Link>
-          {brandName && (
-            <p className='text-xs font-extrabold text-indigo-900/80'>
-              {t('wishlist.byBrand', { brand: brandName })}
-            </p>
-          )}
-          <div className='flex items-center justify-between'>
-            <p className='text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-700 via-indigo-700 to-cyan-700'>
-              {formatPrice(product.price)}
-            </p>
-          </div>
-          <div className='flex gap-2'>
-            <Link
-              href={`/products/${product._id}`}
-              className='flex-1'
-            >
-              <Button className='w-full'>{t('wishlist.viewDetails')}</Button>
-            </Link>
-          </div>
         </div>
       </div>
     </motion.div>

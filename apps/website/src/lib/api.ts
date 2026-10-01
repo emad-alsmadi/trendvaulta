@@ -520,6 +520,8 @@ export type CartQuoteRequest = {
   couponCode?: string;
   delivery?: boolean;
   shippingMethod?: string;
+  /** Lets the server price shipping from the address's zone, as checkout does. */
+  shippingAddress?: { country?: string; zip?: string; city?: string };
 };
 
 export type CartQuoteWarningCode =

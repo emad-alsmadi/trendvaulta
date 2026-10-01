@@ -34,29 +34,35 @@ export function VerifyEmailBanner({ email }: { email: string }) {
   return (
     <section
       aria-labelledby='verify-banner-title'
-      className='flex flex-col gap-3 rounded-3xl border border-amber-200 bg-amber-50/80 p-4 sm:flex-row sm:items-center sm:justify-between'
+      // A square, ruled band the full width of its parent; UserShell places
+      // it edge to edge under the account header.
+      className='border-b border-amber-200 bg-amber-50 px-4 sm:px-6 lg:px-20'
     >
+      <div className='mx-auto flex max-w-[1400px] flex-col gap-4 py-4 sm:flex-row sm:items-center sm:justify-between'>
       <div className='flex items-start gap-3'>
-        <MailWarning className='mt-0.5 h-5 w-5 shrink-0 text-amber-700' aria-hidden />
+        <span className='flex h-10 w-10 shrink-0 items-center justify-center border border-amber-300 bg-amber-100 text-amber-800'>
+          <MailWarning className='h-5 w-5' strokeWidth={1.5} aria-hidden />
+        </span>
         <div>
-          <h2 id='verify-banner-title' className='text-sm font-extrabold text-amber-900'>
+          <h2 id='verify-banner-title' className='text-sm font-semibold text-amber-950'>
             {t('account.verifyBanner.title')}
           </h2>
-          <p className='text-sm font-semibold text-amber-900/80'>
+          <p className='mt-0.5 text-sm text-amber-900/80'>
             {t('account.verifyBanner.body', { email })}
           </p>
         </div>
       </div>
       <Button
         type='button'
-        variant='outline'
+        variant='solid'
         size='sm'
         disabled={sending}
         onClick={() => void resend()}
-        className='self-start sm:self-auto'
+        className='shrink-0 self-start rounded-none px-5 sm:self-auto'
       >
         {sending ? t('account.verifyBanner.sending') : t('account.verifyBanner.resend')}
       </Button>
+      </div>
     </section>
   );
 }
