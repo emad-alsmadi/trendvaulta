@@ -19,6 +19,7 @@ import {
 import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 import Image from 'next/image';
+import { BrandLogo } from '@/components/ui/BrandLogo';
 import { useCart, formatVariantLabel } from '@/lib/cartStore';
 import { useToast } from '@/components/ui/Toast';
 import { FrequentlyBoughtTogether } from '@/components/products/FrequentlyBoughtTogether';
@@ -330,15 +331,13 @@ export function ProductDetailClient({ id }: { id: string }) {
                 href={`/brands/${product.brand._id}`}
                 className='inline-flex items-center gap-2 text-fuchsia-600 hover:text-fuchsia-700 font-medium'
               >
-                {product.brand.logo && (
-                  <Image
-                    src={product.brand.logo}
-                    alt={product.brand.name}
-                    width={24}
-                    height={24}
-                    className='object-contain'
-                  />
-                )}
+                <BrandLogo
+                  src={product.brand.logo}
+                  alt=''
+                  width={24}
+                  height={24}
+                  className='object-contain'
+                />
                 {product.brand.name}
               </Link>
             )}

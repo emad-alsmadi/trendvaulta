@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import Image from 'next/image';
+import { BrandLogo } from '@/components/ui/BrandLogo';
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
 import { SearchField } from '@/components/ui/SearchField';
@@ -33,20 +33,19 @@ function BrandTile({ brand, index }: { brand: Brand; index: number }) {
         className='group block rounded-card text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-4'
       >
         <span className='relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-card bg-surface shadow-soft transition-[box-shadow,transform] duration-(--dur-base) ease-brand group-hover:-translate-y-0.5 group-hover:shadow-raised'>
-          {brand.logo ? (
-            <Image
-              src={brand.logo}
-              alt=''
-              width={160}
-              height={96}
-              className='max-h-[45%] w-auto max-w-[60%] object-contain opacity-80 grayscale transition-[filter,opacity] duration-(--dur-slow) ease-brand group-hover:opacity-100 group-hover:grayscale-0'
-            />
-          ) : (
-            // No logo: a typographic wordmark instead of an icon bubble.
-            <span dir='auto' className='px-4 text-center text-2xl font-bold tracking-tight text-ink-subtle transition-colors duration-(--dur-base) group-hover:text-ink'>
-              {brand.name}
-            </span>
-          )}
+          <BrandLogo
+            src={brand.logo}
+            alt=''
+            width={160}
+            height={96}
+            className='max-h-[45%] w-auto max-w-[60%] object-contain opacity-80 grayscale transition-[filter,opacity] duration-(--dur-slow) ease-brand group-hover:opacity-100 group-hover:grayscale-0'
+            // No usable logo: a typographic wordmark instead of an icon bubble.
+            fallback={
+              <span dir='auto' className='px-4 text-center text-2xl font-bold tracking-tight text-ink-subtle transition-colors duration-(--dur-base) group-hover:text-ink'>
+                {brand.name}
+              </span>
+            }
+          />
         </span>
         <span dir='auto' className='mt-3 block truncate text-sm font-semibold text-ink transition-colors duration-(--dur-fast) group-hover:text-accent'>
           {brand.name}

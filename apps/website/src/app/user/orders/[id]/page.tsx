@@ -16,9 +16,9 @@ import {
   FileText,
 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
+import { useConfirm } from '@/components/confirm/ConfirmProvider';
 import {
   useCancelOrderMutation,
   useOrderById,
@@ -72,14 +72,13 @@ export default function OrderDetailPage() {
   const orderQuery = useOrderById(orderId);
   const order = orderQuery.data;
   const cancelMutation = useCancelOrderMutation();
-  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const confirm = useConfirm();
   const { t, formatPrice, locale } = useTranslation();
 
   const handleCancel = async () => {
     if (!order) return;
     try {
       const result = await cancelMutation.mutateAsync(order._id);
-      setConfirmingCancel(false);
       // Chosen from the outcome flags rather than the API's English message.
       toast(
         t(
@@ -245,56 +244,34 @@ export default function OrderDetailPage() {
 
             {order.canCancel && (
               <div className='rounded-2xl border border-rose-200/70 bg-rose-50/60 p-4'>
-                {!confirmingCancel ? (
-                  <div className='flex flex-wrap items-center justify-between gap-3'>
-                    <p className='text-sm text-indigo-950/80'>
-                      {t('orders.cancel.prompt')}
-                    </p>
-                    <Button
-                      type='button'
-                      variant='outline'
-                      size='sm'
-                      onClick={() => setConfirmingCancel(true)}
-                    >
-                      {t('orders.cancel.button')}
-                    </Button>
-                  </div>
-                ) : (
-                  <div role='alertdialog' aria-labelledby='cancel-title' className='space-y-3'>
-                    <p id='cancel-title' className='font-semibold text-indigo-950'>
-                      {t('orders.cancel.title')}
-                    </p>
-                    <p className='text-sm text-indigo-950/80'>
-                      {order.paymentStatus === 'paid'
-                        ? t('orders.cancel.refundNotice', {
-                            amount: formatPrice(order.totalPrice),
-                          })
-                        : t('orders.cancel.noChargeNotice')}
-                    </p>
-                    <div className='flex flex-wrap gap-2'>
-                      <Button
-                        type='button'
-                        variant='destructive'
-                        size='sm'
-                        disabled={cancelMutation.isPending}
-                        onClick={() => void handleCancel()}
-                      >
-                        {cancelMutation.isPending
-                          ? t('orders.cancel.canceling')
-                          : t('orders.cancel.confirm')}
-                      </Button>
-                      <Button
-                        type='button'
-                        variant='ghost'
-                        size='sm'
-                        disabled={cancelMutation.isPending}
-                        onClick={() => setConfirmingCancel(false)}
-                      >
-                        {t('orders.cancel.keep')}
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                <div className='flex flex-wrap items-center justify-between gap-3'>
+                  <p className='text-sm text-indigo-950/80'>
+                    {t('orders.cancel.prompt')}
+                  </p>
+                  <Button
+                    type='button'
+                    variant='outline'
+                    size='sm'
+                    loading={cancelMutation.isPending}
+                    onClick={() =>
+                      void confirm({
+                        variant: 'danger',
+                        title: t('orders.cancel.title'),
+                        description:
+                          order.paymentStatus === 'paid'
+                            ? t('orders.cancel.refundNotice', {
+                                amount: formatPrice(order.totalPrice),
+                              })
+                            : t('orders.cancel.noChargeNotice'),
+                        confirmLabel: t('orders.cancel.confirm'),
+                        cancelLabel: t('orders.cancel.keep'),
+                        onConfirm: handleCancel,
+                      })
+                    }
+                  >
+                    {t('orders.cancel.button')}
+                  </Button>
+                </div>
               </div>
             )}
 

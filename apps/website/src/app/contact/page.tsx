@@ -306,7 +306,7 @@ export default function ContactPage() {
                     <Select
                       name='subject'
                       required
-                      value={formData.subject || undefined}
+                      value={formData.subject}
                       onValueChange={(subject) => {
                         setFormData((prev) => ({ ...prev, subject }));
                         setFieldErrors((prev) =>

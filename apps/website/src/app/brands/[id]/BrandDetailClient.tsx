@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import { BrandLogo } from '@/components/ui/BrandLogo';
 import { useBrandById } from '@/hooks/brands/brandsQuery';
 import { useProducts } from '@/hooks/products/productsQuery';
 import { motion } from 'framer-motion';
@@ -67,17 +67,14 @@ export function BrandDetailClient({ id }: { id: string }) {
       >
         <div className='container mx-auto px-4 py-16'>
           <div className='flex flex-col md:flex-row items-center gap-8'>
-            {brand.logo && (
-              <div className='w-32 h-32 bg-white rounded-2xl p-4 shadow-xl'>
-                <Image
-                  src={brand.logo}
-                  alt={brand.name}
-                  width={128}
-                  height={128}
-                  className='object-contain'
-                />
-              </div>
-            )}
+            <BrandLogo
+              src={brand.logo}
+              alt={brand.name}
+              width={128}
+              height={128}
+              className='h-full w-full object-contain'
+              frameClassName='w-32 h-32 bg-white rounded-2xl p-4 shadow-xl'
+            />
             <div className='flex-1 text-center md:text-start'>
               <h1 className='text-4xl md:text-5xl font-bold mb-4'>
                 {brand.name}

@@ -65,7 +65,7 @@ export default async function RootLayout({
   const locale = resolveLocale((await cookies()).get(LOCALE_COOKIE)?.value);
 
   return (
-    <html lang={locale} dir={dirFor(locale)}>
+    <html lang={locale} dir={dirFor(locale)} data-scroll-behavior='smooth'>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${plexArabic.variable} antialiased`}
         suppressHydrationWarning
