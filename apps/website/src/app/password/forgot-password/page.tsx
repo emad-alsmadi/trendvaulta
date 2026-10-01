@@ -4,7 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { Loader2, ArrowLeft, Mail, Sparkles } from 'lucide-react';
+import { AuthSplitLayout } from '@/components/auth/AuthSplitLayout';
+import { AlertCircle, ArrowLeft, Loader2, Mail } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -59,95 +60,83 @@ export default function ForgotPasswordPage() {
     }
   });
 
+  const pending = forgotMutation.isPending || isSubmitting;
+
   return (
-    <div className='min-h-screen bg-gray-50'>
-      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
-        {/* Breadcrumb */}
-        <nav className='flex items-center gap-2 text-sm text-gray-600 mb-8'>
-          <Link
-            href='/'
-            className='hover:text-fuchsia-600'
+    <AuthSplitLayout>
+      <h1 className='text-2xl font-bold tracking-tight text-gray-900'>
+        {t('password.forgotTitle')}
+      </h1>
+      <p className='mt-2 text-sm text-gray-500'>{t('password.forgotIntro')}</p>
+
+      <form onSubmit={onSubmit} className='mt-8 space-y-5'>
+        {error && (
+          <div
+            role='alert'
+            className='flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-800'
           >
-            {t('common.home')}
-          </Link>
-          <span>/</span>
-          <span className='text-gray-900'>{t('password.forgotTitle')}</span>
-        </nav>
-
-        <div className='max-w-md mx-auto'>
-          <div className='bg-white rounded-lg border border-gray-200 p-8'>
-            <div className='flex items-center gap-2 mb-6'>
-              <Sparkles className='w-5 h-5 text-fuchsia-600' />
-              <h1 className='text-2xl font-bold text-gray-900'>
-                {t('password.forgotTitle')}
-              </h1>
-            </div>
-
-            <p className='text-gray-600 mb-6'>
-              {t('password.forgotIntro')}
-            </p>
-
-            <form
-              onSubmit={onSubmit}
-              className='space-y-4'
-            >
-              <div>
-                <label htmlFor='forgot-email' className='block text-sm font-bold text-gray-900 mb-2'>
-                  {t('password.emailAddress')}
-                </label>
-                <div className='relative'>
-                  <Mail className='pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' />
-                  <Input
-                    id='forgot-email'
-                    aria-invalid={errors.email ? true : undefined}
-                    aria-describedby={errors.email ? 'forgot-email-error' : undefined}
-                    className='ps-10'
-                    type='email'
-                    placeholder='you@example.com'
-                    {...register('email')}
-                  />
-                </div>
-                {errors.email?.message && (
-                  <div id='forgot-email-error' role='alert' className='mt-2 text-sm font-semibold text-rose-700'>
-                    {t(errors.email.message)}
-                  </div>
-                )}
-              </div>
-
-              {error && (
-                <div className='rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-900'>
-                  {error}
-                </div>
-              )}
-
-              <Button
-                type='submit'
-                className='w-full bg-fuchsia-600 text-white hover:bg-fuchsia-700'
-                disabled={forgotMutation.isPending || isSubmitting}
-              >
-                {forgotMutation.isPending || isSubmitting ? (
-                  <span className='inline-flex items-center gap-2'>
-                    <Loader2 className='h-4 w-4 animate-spin' />
-                    {t('password.sending')}
-                  </span>
-                ) : (
-                  t('password.sendResetLink')
-                )}
-              </Button>
-            </form>
-
-            <div className='mt-6 pt-6 border-t border-gray-200 text-center'>
-              <Link
-                href='/auth/login'
-                className='inline-flex items-center gap-2 text-sm font-semibold text-fuchsia-600 hover:text-fuchsia-700 transition'
-              >
-                <ArrowLeft className='w-4 h-4 rtl:-scale-x-100' />
-                {t('password.backToLogin')}
-              </Link>
-            </div>
+            <AlertCircle className='mt-0.5 h-4 w-4 shrink-0' aria-hidden />
+            {error}
           </div>
+        )}
+
+        <div>
+          <label
+            htmlFor='forgot-email'
+            className='mb-1.5 block text-sm font-medium text-gray-700'
+          >
+            {t('password.emailAddress')}
+          </label>
+          <div className='relative'>
+            <Mail
+              className='pointer-events-none absolute start-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400'
+              aria-hidden
+            />
+            <Input
+              id='forgot-email'
+              aria-invalid={errors.email ? true : undefined}
+              aria-describedby={errors.email ? 'forgot-email-error' : undefined}
+              className='ps-10'
+              type='email'
+              autoComplete='email'
+              placeholder='you@example.com'
+              dir='ltr'
+              disabled={pending}
+              {...register('email')}
+            />
+          </div>
+          {errors.email?.message && (
+            <div
+              id='forgot-email-error'
+              role='alert'
+              className='mt-1.5 text-xs font-medium text-red-600'
+            >
+              {t(errors.email.message)}
+            </div>
+          )}
         </div>
-      </div>
-    </div>
+
+        <Button type='submit' className='w-full' disabled={pending}>
+          {pending ? (
+            <span className='inline-flex items-center gap-2'>
+              <Loader2 className='h-4 w-4 animate-spin' />
+              {t('password.sending')}
+            </span>
+          ) : (
+            t('password.sendResetLink')
+          )}
+        </Button>
+
+        <div className='text-center'>
+          <Link
+            href='/auth/login'
+            className='inline-flex items-center gap-2 text-sm font-semibold text-indigo-700 hover:underline'
+          >
+            <ArrowLeft className='h-4 w-4 rtl:-scale-x-100' aria-hidden />
+            {t('password.backToLogin')}
+          </Link>
+        </div>
+      </form>
+    </AuthSplitLayout>
   );
 }

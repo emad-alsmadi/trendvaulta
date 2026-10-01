@@ -8,6 +8,7 @@ import { CheckCircle2, Loader2, MailWarning } from 'lucide-react';
 import { authApi } from '@/lib/api';
 import { AUTH_ME_QUERY_KEY } from '@/hooks/auth/authQuery';
 import { PROFILE_KEY } from '@/hooks/profile/useProfile';
+import { AuthSplitLayout } from '@/components/auth/AuthSplitLayout';
 import { useTranslation } from '@/contexts/TranslationContext';
 
 type State = 'verifying' | 'success' | 'failed' | 'missing';
@@ -64,34 +65,34 @@ function VerifyEmailContent() {
           : t('auth.verifyEmail.failed');
 
   return (
-    <div className='mx-auto max-w-xl py-10'>
-      <section className='rounded-3xl border border-white/30 bg-white/35 p-6 shadow-sm backdrop-blur-xl sm:p-8'>
-        <div className='inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/60'>
-          {icon}
+    <AuthSplitLayout>
+      <div className='inline-flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100'>
+        {icon}
+      </div>
+      {/* Announced when the result replaces the "confirming" text */}
+      <div role='status' aria-live='polite'>
+        <h1 className='mt-4 text-2xl font-bold tracking-tight text-gray-900'>
+          {title}
+        </h1>
+        <p className='mt-2 text-sm leading-relaxed text-gray-500'>{body}</p>
+      </div>
+      {state !== 'verifying' && (
+        <div className='mt-8 flex flex-wrap gap-3'>
+          <Link
+            href='/user'
+            className='inline-flex items-center rounded-full bg-fuchsia-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-fuchsia-700'
+          >
+            {t('auth.verifyEmail.toAccount')}
+          </Link>
+          <Link
+            href='/products'
+            className='inline-flex items-center rounded-full border border-gray-200 px-5 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50'
+          >
+            {t('auth.verifyEmail.toShop')}
+          </Link>
         </div>
-        {/* Announced when the result replaces the "confirming" text */}
-        <div role='status' aria-live='polite'>
-          <h1 className='mt-4 text-3xl font-extrabold tracking-tight text-indigo-950'>{title}</h1>
-          <p className='mt-2 text-sm font-semibold leading-7 text-indigo-950/80'>{body}</p>
-        </div>
-        {state !== 'verifying' && (
-          <div className='mt-6 flex flex-wrap gap-3'>
-            <Link
-              href='/user'
-              className='inline-flex items-center rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-indigo-700'
-            >
-              {t('auth.verifyEmail.toAccount')}
-            </Link>
-            <Link
-              href='/products'
-              className='inline-flex items-center rounded-full border border-indigo-200 px-5 py-2.5 text-sm font-bold text-indigo-700 hover:bg-white/60'
-            >
-              {t('auth.verifyEmail.toShop')}
-            </Link>
-          </div>
-        )}
-      </section>
-    </div>
+      )}
+    </AuthSplitLayout>
   );
 }
 

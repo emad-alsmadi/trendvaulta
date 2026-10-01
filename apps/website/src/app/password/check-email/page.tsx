@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Mail, Sparkles } from 'lucide-react';
+import { ArrowLeft, Mail } from 'lucide-react';
+import { AuthSplitLayout } from '@/components/auth/AuthSplitLayout';
 import { useTranslation } from '@/contexts/TranslationContext';
 
 function CheckYourEmailContent() {
@@ -17,102 +17,70 @@ function CheckYourEmailContent() {
   );
 
   return (
-    <div className='relative mx-auto max-w-6xl overflow-hidden rounded-3xl border border-white/25 bg-white/20 p-4 backdrop-blur-xl sm:p-6'>
-      <motion.div
-        aria-hidden
-        className='pointer-events-none absolute -inset-24 opacity-70'
-        animate={{ rotate: [0, 8, 0], scale: [1, 1.03, 1] }}
-        transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
-        style={{
-          background:
-            'radial-gradient(closest-side, rgba(236,72,153,0.22), transparent 70%), radial-gradient(closest-side, rgba(99,102,241,0.22), transparent 70%), radial-gradient(closest-side, rgba(34,211,238,0.18), transparent 70%)',
-        }}
-      />
+    <AuthSplitLayout>
+      <Link
+        href='/password/forgot-password'
+        className='inline-flex items-center gap-2 text-sm font-semibold text-indigo-700 hover:underline'
+      >
+        <ArrowLeft className='h-4 w-4 rtl:-scale-x-100' aria-hidden />
+        {t('password.back')}
+      </Link>
 
-      <div className='relative mx-auto max-w-3xl space-y-4'>
+      <h1 className='mt-6 text-2xl font-bold tracking-tight text-gray-900'>
+        {t('password.linkSent')}
+      </h1>
+      <p className='mt-2 text-sm leading-relaxed text-gray-500'>
+        {t('password.linkSentBody')}
+      </p>
+
+      <div className='mt-8 flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4'>
+        <span className='mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-fuchsia-600/10'>
+          <Mail className='h-5 w-5 text-fuchsia-700' aria-hidden />
+        </span>
+        <div className='min-w-0'>
+          <div className='text-sm font-semibold text-gray-900'>
+            {t('password.nextSteps')}
+          </div>
+          <div className='mt-1 text-sm text-gray-600'>
+            {email ? (
+              <>
+                {inboxBefore}
+                <span className='break-all font-semibold text-gray-900'>
+                  {email}
+                </span>
+                {inboxAfter}
+              </>
+            ) : (
+              t('password.openInbox')
+            )}
+          </div>
+          <div className='mt-2 text-xs text-gray-500'>
+            {t('password.spamHint')}
+          </div>
+        </div>
+      </div>
+
+      <div className='mt-8 flex flex-wrap items-center gap-3'>
+        <Link
+          href='/auth/login'
+          className='inline-flex items-center rounded-full bg-fuchsia-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-fuchsia-700'
+        >
+          {t('password.backToLogin')}
+        </Link>
         <Link
           href='/password/forgot-password'
-          className='inline-flex items-center gap-2 text-sm font-extrabold text-indigo-700'
+          className='inline-flex items-center rounded-full border border-gray-200 px-5 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50'
         >
-          <ArrowLeft className='h-4 w-4 rtl:-scale-x-100' />
-          {t('password.back')}
+          {t('password.resendLink')}
         </Link>
-
-        <motion.section
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.65, ease: 'easeOut' }}
-          className='rounded-3xl border border-white/30 bg-white/35 p-6 shadow-sm backdrop-blur-xl sm:p-8'
-        >
-          <div className='inline-flex items-center gap-2 rounded-full border border-white/35 bg-white/40 px-3 py-1 text-xs font-extrabold text-indigo-950'>
-            <Sparkles className='h-4 w-4 text-fuchsia-700' />
-            {t('password.checkEmail')}
-          </div>
-
-          <h1 className='mt-4 text-4xl font-extrabold tracking-tight text-indigo-950'>
-            {t('password.linkSent')}
-          </h1>
-
-          <div className='mt-2 text-sm font-semibold leading-7 text-indigo-950/80'>
-            {t('password.linkSentBody')}
-          </div>
-
-          <div className='mt-6 rounded-2xl border border-white/35 bg-white/45 p-4'>
-            <div className='flex items-start gap-3'>
-              <div className='mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-fuchsia-600/10'>
-                <Mail className='h-5 w-5 text-fuchsia-700' />
-              </div>
-              <div className='min-w-0'>
-                <div className='text-sm font-extrabold text-indigo-950'>
-                  {t('password.nextSteps')}
-                </div>
-                <div className='mt-1 text-sm font-semibold text-indigo-950/80'>
-                  {email ? (
-                    <>
-                      {inboxBefore}
-                      <span className='break-all font-extrabold text-indigo-950'>
-                        {email}
-                      </span>
-                      {inboxAfter}
-                    </>
-                  ) : (
-                    t('password.openInbox')
-                  )}
-                </div>
-                <div className='mt-2 text-xs font-semibold text-indigo-950/70'>
-                  {t('password.spamHint')}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className='mt-8 flex flex-wrap items-center gap-3'>
-            <Link
-              href='/auth/login'
-              className='rounded-full bg-fuchsia-600 px-6 py-2.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-fuchsia-700'
-            >
-              {t('password.backToLogin')}
-            </Link>
-            <Link
-              href='/password/forgot-password'
-              className='rounded-full border border-white/40 bg-white/55 px-6 py-2.5 text-sm font-extrabold text-indigo-950 shadow-sm transition hover:bg-white/70'
-            >
-              {t('password.resendLink')}
-            </Link>
-          </div>
-        </motion.section>
       </div>
-    </div>
+    </AuthSplitLayout>
   );
 }
 
 export default function CheckYourEmailPage() {
   return (
-    <Suspense
-      fallback={
-        <div className='relative mx-auto max-w-6xl overflow-hidden rounded-3xl border border-white/25 bg-white/20 p-4 backdrop-blur-xl sm:p-6' />
-      }
-    >
+    <Suspense fallback={null}>
       <CheckYourEmailContent />
     </Suspense>
   );

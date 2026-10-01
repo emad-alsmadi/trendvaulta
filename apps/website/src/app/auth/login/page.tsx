@@ -4,17 +4,7 @@ import Link from 'next/link';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { AuthSplitLayout } from '@/components/auth/AuthSplitLayout';
-import {
-  AlertCircle,
-  Eye,
-  EyeOff,
-  Heart,
-  Loader2,
-  Lock,
-  Mail,
-  ShieldCheck,
-  ShoppingBag,
-} from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { REDIRECT_PARAM, getSafeRedirectPath } from '@/lib/safeRedirect';
@@ -29,12 +19,6 @@ import {
 } from '@/lib/userFacingError';
 import { useState } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
-
-const HIGHLIGHTS = [
-  { icon: Heart, text: 'auth.perkFavorites' },
-  { icon: ShoppingBag, text: 'auth.perkCatalog' },
-  { icon: ShieldCheck, text: 'auth.perkCheckout' },
-] as const;
 
 export default function LoginPage() {
   const router = useRouter();
@@ -80,12 +64,7 @@ export default function LoginPage() {
   const pending = loginMutation.isPending || isSubmitting;
 
   return (
-    <AuthSplitLayout
-      badge='auth.welcomeBack'
-      heading='auth.loginHeading'
-      intro='auth.loginIntro'
-      highlights={HIGHLIGHTS}
-    >
+    <AuthSplitLayout>
       <div className='flex items-start justify-between gap-3'>
         <h1 className='text-2xl font-bold tracking-tight text-gray-900'>
           {t('auth.login')}

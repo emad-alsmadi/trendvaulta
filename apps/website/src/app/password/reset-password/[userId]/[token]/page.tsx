@@ -5,7 +5,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { ArrowLeft, Lock, Sparkles, Loader2 } from 'lucide-react';
+import { AuthSplitLayout } from '@/components/auth/AuthSplitLayout';
+import { ArrowLeft, Lock, Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,6 +20,11 @@ import {
   logErrorForDev,
 } from '@/lib/userFacingError';
 import { useTranslation } from '@/contexts/TranslationContext';
+
+const fieldIconClass =
+  'pointer-events-none absolute start-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400';
+const labelClass = 'mb-1.5 block text-sm font-medium text-gray-700';
+const fieldErrorClass = 'mt-1.5 text-xs font-medium text-red-600';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -72,130 +78,125 @@ export default function ResetPasswordPage() {
     }
   });
 
+  const pending = resetMutation.isPending || isSubmitting;
+
   return (
-    <div className='min-h-screen bg-gray-50'>
-      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
-        {/* Breadcrumb */}
-        <nav className='flex items-center gap-2 text-sm text-gray-600 mb-8'>
-          <Link
-            href='/'
-            className='hover:text-fuchsia-600'
-          >
-            {t('common.home')}
-          </Link>
-          <span>/</span>
-          <span className='text-gray-900'>{t('password.resetTitle')}</span>
-        </nav>
+    <AuthSplitLayout>
+      <h1 className='text-2xl font-bold tracking-tight text-gray-900'>
+        {t('password.resetTitle')}
+      </h1>
+      <p className='mt-2 text-sm text-gray-500'>
+        {t('password.resetIntro', { count: 8 })}
+      </p>
 
-        <div className='max-w-md mx-auto'>
-          <div className='bg-white rounded-lg border border-gray-200 p-8'>
-            <div className='flex items-center gap-2 mb-6'>
-              <Sparkles className='w-5 h-5 text-fuchsia-600' />
-              <h1 className='text-2xl font-bold text-gray-900'>
-                {t('password.resetTitle')}
-              </h1>
-            </div>
-
-            <p className='text-gray-600 mb-6'>
-              {t('password.resetIntro', { count: 8 })}
-            </p>
-
-            <form
-              onSubmit={onSubmit}
-              className='space-y-4'
+      <form onSubmit={onSubmit} className='mt-8 space-y-5'>
+        <div>
+          <label htmlFor='reset-password' className={labelClass}>
+            {t('security.newPassword')}
+          </label>
+          <div className='relative'>
+            <Lock className={fieldIconClass} aria-hidden />
+            <Input
+              id='reset-password'
+              aria-invalid={errors.password ? true : undefined}
+              aria-describedby={
+                errors.password ? 'reset-password-error' : undefined
+              }
+              className='ps-10'
+              type='password'
+              autoComplete='new-password'
+              disabled={pending}
+              {...register('password')}
+            />
+          </div>
+          {errors.password?.message && (
+            <div
+              id='reset-password-error'
+              role='alert'
+              className={fieldErrorClass}
             >
-              <div>
-                <label htmlFor='reset-password' className='block text-sm font-bold text-gray-900 mb-2'>
-                  {t('security.newPassword')}
-                </label>
-                <div className='relative'>
-                  <Lock className='pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' />
-                  <Input
-                    id='reset-password'
-                    aria-invalid={errors.password ? true : undefined}
-                    aria-describedby={errors.password ? 'reset-password-error' : undefined}
-                    className='ps-10'
-                    type='password'
-                    {...register('password')}
-                  />
-                </div>
-                {errors.password?.message && (
-                  <div id='reset-password-error' role='alert' className='mt-2 text-sm font-semibold text-rose-700'>
-                    {t(errors.password.message)}
-                  </div>
-                )}
-              </div>
+              {t(errors.password.message)}
+            </div>
+          )}
+        </div>
 
-              <div>
-                <label htmlFor='reset-confirmPassword' className='block text-sm font-bold text-gray-900 mb-2'>
-                  {t('password.confirmPassword')}
-                </label>
-                <Input
-                  id='reset-confirmPassword'
-                  aria-invalid={errors.confirmPassword ? true : undefined}
-                  aria-describedby={errors.confirmPassword ? 'reset-confirmPassword-error' : undefined}
-                  type='password'
-                  {...register('confirmPassword')}
-                />
-                {errors.confirmPassword?.message && (
-                  <div id='reset-confirmPassword-error' role='alert' className='mt-2 text-sm font-semibold text-rose-700'>
-                    {t(errors.confirmPassword.message)}
-                  </div>
-                )}
-              </div>
+        <div>
+          <label htmlFor='reset-confirmPassword' className={labelClass}>
+            {t('password.confirmPassword')}
+          </label>
+          <div className='relative'>
+            <Lock className={fieldIconClass} aria-hidden />
+            <Input
+              id='reset-confirmPassword'
+              aria-invalid={errors.confirmPassword ? true : undefined}
+              aria-describedby={
+                errors.confirmPassword
+                  ? 'reset-confirmPassword-error'
+                  : undefined
+              }
+              className='ps-10'
+              type='password'
+              autoComplete='new-password'
+              disabled={pending}
+              {...register('confirmPassword')}
+            />
+          </div>
+          {errors.confirmPassword?.message && (
+            <div
+              id='reset-confirmPassword-error'
+              role='alert'
+              className={fieldErrorClass}
+            >
+              {t(errors.confirmPassword.message)}
+            </div>
+          )}
+        </div>
 
-              {success && (
-                <div className='rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900'>
-                  <div className='font-bold'>{success}</div>
-                  <div className='mt-3 flex flex-col gap-2 sm:flex-row'>
-                    <Button
-                      type='button'
-                      size='sm'
-                      className='w-full sm:w-auto'
-                      onClick={() => router.push('/auth/login')}
-                    >
-                      {t('password.goToLogin')}
-                    </Button>
-                    <Button
-                      type='button'
-                      size='sm'
-                      className='w-full bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 sm:w-auto'
-                      onClick={() => router.push('/')}
-                    >
-                      {t('cartPage.browseCatalog')}
-                    </Button>
-                  </div>
-                </div>
-              )}
-
+        {success && (
+          <div className='rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900'>
+            <div className='font-semibold'>{success}</div>
+            <div className='mt-3 flex flex-col gap-2 sm:flex-row'>
               <Button
-                type='submit'
-                className='w-full bg-fuchsia-600 text-white hover:bg-fuchsia-700'
-                disabled={resetMutation.isPending || isSubmitting}
+                type='button'
+                size='sm'
+                className='w-full sm:w-auto'
+                onClick={() => router.push('/auth/login')}
               >
-                {resetMutation.isPending || isSubmitting ? (
-                  <span className='inline-flex items-center gap-2'>
-                    <Loader2 className='h-4 w-4 animate-spin' />
-                    {t('password.saving')}
-                  </span>
-                ) : (
-                  t('password.saveNewPassword')
-                )}
+                {t('password.goToLogin')}
               </Button>
-            </form>
-
-            <div className='mt-6 pt-6 border-t border-gray-200 text-center'>
-              <Link
-                href='/auth/login'
-                className='inline-flex items-center gap-2 text-sm font-semibold text-fuchsia-600 hover:text-fuchsia-700 transition'
+              <Button
+                type='button'
+                size='sm'
+                className='w-full bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 sm:w-auto'
+                onClick={() => router.push('/')}
               >
-                <ArrowLeft className='w-4 h-4 rtl:-scale-x-100' />
-                {t('password.backToLogin')}
-              </Link>
+                {t('cartPage.browseCatalog')}
+              </Button>
             </div>
           </div>
+        )}
+
+        <Button type='submit' className='w-full' disabled={pending}>
+          {pending ? (
+            <span className='inline-flex items-center gap-2'>
+              <Loader2 className='h-4 w-4 animate-spin' />
+              {t('password.saving')}
+            </span>
+          ) : (
+            t('password.saveNewPassword')
+          )}
+        </Button>
+
+        <div className='text-center'>
+          <Link
+            href='/auth/login'
+            className='inline-flex items-center gap-2 text-sm font-semibold text-indigo-700 hover:underline'
+          >
+            <ArrowLeft className='h-4 w-4 rtl:-scale-x-100' aria-hidden />
+            {t('password.backToLogin')}
+          </Link>
         </div>
-      </div>
-    </div>
+      </form>
+    </AuthSplitLayout>
   );
 }

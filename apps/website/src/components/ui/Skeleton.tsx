@@ -72,21 +72,14 @@ export function SkeletonGroup({
 /** Mirrors components/products/ProductCard. */
 export function ProductCardSkeleton({ className }: { className?: string }) {
   return (
-    <div
-      aria-hidden
-      className={cn('w-full overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm', className)}
-    >
-      <Skeleton className='aspect-square w-full rounded-none' />
-      <div className='p-4'>
+    <div aria-hidden className={cn('w-full', className)}>
+      <Skeleton className='aspect-square w-full rounded-card' />
+      <div className='pt-3'>
         <Skeleton className='h-3 w-1/3' />
-        <Skeleton className='mt-2.5 h-4 w-full' />
-        <Skeleton className='mt-1.5 h-4 w-3/4' />
-        <Skeleton className='mt-3 h-3 w-24' />
-        <Skeleton className='mt-4 h-6 w-20' />
-        <div className='mt-4 flex gap-2'>
-          <Skeleton className='h-9 flex-1' />
-          <Skeleton className='h-9 w-9 shrink-0' />
-        </div>
+        <Skeleton className='mt-2 h-4 w-full' />
+        <Skeleton className='mt-2 h-3 w-20' />
+        <Skeleton className='mt-2.5 h-5 w-16' />
+        <Skeleton className='mt-3 h-10 w-full' />
       </div>
     </div>
   );

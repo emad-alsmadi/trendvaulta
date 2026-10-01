@@ -1,25 +1,40 @@
 'use client';
 
 import Link from 'next/link';
-import { Globe, Sparkles, type LucideIcon } from 'lucide-react';
+import {
+  Globe,
+  Heart,
+  ShieldCheck,
+  ShoppingBag,
+  Sparkles,
+  type LucideIcon,
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTranslation } from '@/contexts/TranslationContext';
 
+type Highlight = { icon: LucideIcon; text: string };
+
 type AuthSplitLayoutProps = {
-  /** Translation keys for the brand panel. */
-  badge: string;
-  heading: string;
-  intro: string;
-  highlights: readonly { icon: LucideIcon; text: string }[];
+  /** Translation keys for the brand panel; default to the sign-in copy. */
+  badge?: string;
+  heading?: string;
+  intro?: string;
+  highlights?: readonly Highlight[];
   children: React.ReactNode;
 };
 
+const DEFAULT_HIGHLIGHTS: readonly Highlight[] = [
+  { icon: Heart, text: 'auth.perkFavorites' },
+  { icon: ShoppingBag, text: 'auth.perkCatalog' },
+  { icon: ShieldCheck, text: 'auth.perkCheckout' },
+];
+
 /** Full-viewport auth screen: dark brand panel beside the form. */
 export function AuthSplitLayout({
-  badge,
-  heading,
-  intro,
-  highlights,
+  badge = 'auth.welcomeBack',
+  heading = 'auth.loginHeading',
+  intro = 'auth.loginIntro',
+  highlights = DEFAULT_HIGHLIGHTS,
   children,
 }: AuthSplitLayoutProps) {
   const { t, locale, setLocale } = useTranslation();
@@ -30,14 +45,14 @@ export function AuthSplitLayout({
       <aside className='relative hidden overflow-hidden bg-gray-950 p-12 text-white lg:flex lg:flex-col lg:justify-between'>
         <div
           aria-hidden
-          className='pointer-events-none absolute -end-32 -top-32 h-96 w-96 rounded-full bg-fuchsia-600/30 blur-3xl'
+          className='pointer-events-none absolute -inset-e-32 -top-32 h-96 w-96 rounded-full bg-fuchsia-600/30 blur-3xl'
         />
         <div
           aria-hidden
-          className='pointer-events-none absolute -bottom-40 -start-24 h-[28rem] w-[28rem] rounded-full bg-indigo-600/25 blur-3xl'
+          className='pointer-events-none absolute -bottom-40 -inset-s-24 h-112 w-md rounded-full bg-indigo-600/25 blur-3xl'
         />
         <Link href='/' className='relative flex items-center gap-2.5'>
-          <span className='inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-fuchsia-600 via-purple-600 to-cyan-500'>
+          <span className='inline-flex h-9 w-9 items-center justify-center rounded-lg bg-linear-to-br from-fuchsia-600 via-purple-600 to-cyan-500'>
             <Sparkles className='h-5 w-5' aria-hidden />
           </span>
           <span className='text-lg font-bold tracking-tight'>TrendVaulta</span>
@@ -98,7 +113,7 @@ export function AuthSplitLayout({
           className='w-full max-w-sm'
         >
           <Link href='/' className='mb-8 flex items-center gap-2.5 lg:hidden'>
-            <span className='inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-fuchsia-600 via-purple-600 to-cyan-500 text-white'>
+            <span className='inline-flex h-9 w-9 items-center justify-center rounded-lg bg-linear-to-br from-fuchsia-600 via-purple-600 to-cyan-500 text-white'>
               <Sparkles className='h-5 w-5' aria-hidden />
             </span>
             <span className='text-lg font-bold tracking-tight text-gray-900'>
