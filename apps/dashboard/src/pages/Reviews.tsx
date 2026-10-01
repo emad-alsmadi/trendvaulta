@@ -165,7 +165,7 @@ export default function Reviews() {
             }),
             value: r,
           }))}
-          onChange={(e) => {
+          onChange={(e: any) => {
             setRatingFilter(e.value);
             resetPage();
           }}
@@ -245,7 +245,10 @@ export default function Reviews() {
               header={t('reviews.columns.comment')}
               body={(review: any) => (
                 <div>
-                  <p className='truncate' dir='auto'>
+                  <p
+                    className='truncate'
+                    dir='auto'
+                  >
                     {review.comment || '—'}
                   </p>
                   {review.reply?.text && (
@@ -310,20 +313,17 @@ export default function Reviews() {
                 </div>
               )}
             />
-          </DataTable>
+          </DataTableWrapper>
         </div>
       )}
 
-      <DialogWrapper
-        visible={!!replying}
-        onHide={() => setReplying(null)}
-        header={t('reviews.replyTitle')}
-        modal
-        className='w-full max-w-lg'
-      >
-          title={replying.reply ? t('reviews.editReply') : t('reviews.replyTo')}
-          busy={replyBusy}
-          maxWidthClass='max-w-lg'
+      {!!replying && (
+        <DialogWrapper
+          visible={!!replying}
+          onHide={() => setReplying(null)}
+          header={t('reviews.replyTitle')}
+          modal
+          className='w-full max-w-lg'
         >
           <blockquote className='mb-4 rounded-lg bg-gray-50 p-3 text-sm dark:bg-gray-900'>
             <p className='mb-1 text-xs text-gray-500'>
@@ -398,8 +398,8 @@ export default function Reviews() {
                 />
               </div>
             </div>
-            </form>
-          </DialogWrapper>
+          </form>
+        </DialogWrapper>
       )}
     </motion.div>
   );

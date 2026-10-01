@@ -449,6 +449,13 @@ export const en = {
     deactivateFailed: 'Could not deactivate product',
     editTitle: 'Edit product',
     createTitle: 'Create product',
+    columns: {
+      image: 'Image',
+      title: 'Title',
+      price: 'Price',
+      stock: 'Stock',
+      actions: 'Actions',
+    },
     form: {
       title: 'Title',
       brand: 'Brand',
@@ -1016,6 +1023,7 @@ export const en = {
   reviews: {
     title: 'Reviews',
     subtitle: 'Moderate customer product reviews (admin delete).',
+    replyTitle: 'Reply to review',
     searchLabel: 'Search review comments',
     searchPlaceholder: 'Search review comments…',
     filterRating: 'Filter by rating',
@@ -1237,6 +1245,20 @@ export const en = {
       'Deactivate brand “{name}”? It is hidden from the storefront brand pages; its products keep the brand, and you can reactivate it later.',
     deactivate: 'Deactivate',
     deactivateFailed: 'Could not deactivate brand',
+    active: 'Active',
+    inactive: 'Inactive',
+    edit: 'Edit',
+    delete: 'Delete',
+    columns: {
+      logo: 'Logo',
+      name: 'Name',
+      slug: 'Slug',
+      country: 'Country',
+      website: 'Website',
+      status: 'Status',
+      featured: 'Featured',
+      actions: 'Actions',
+    },
     form: {
       editTitle: 'Edit brand',
       createTitle: 'Create brand',

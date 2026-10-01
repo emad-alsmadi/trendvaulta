@@ -175,7 +175,12 @@ export default function Brands() {
             <Button
               onClick={openCreate}
               label={t('brands.add')}
-              icon={<Plus className='icon-sm' aria-hidden />}
+              icon={
+                <Plus
+                  className='icon-sm'
+                  aria-hidden
+                />
+              }
             />
           )
         }
@@ -196,7 +201,7 @@ export default function Brands() {
             { label: t('brands.sortNewest'), value: 'createdAt:desc' },
             { label: t('brands.sortOldest'), value: 'createdAt:asc' },
           ]}
-          onChange={(e) => {
+          onChange={(e: any) => {
             const [field, order] = e.value.split(':');
             table.setSort(field, order as SortOrder);
           }}
@@ -391,7 +396,9 @@ export default function Brands() {
             field='isActive'
             header={t('brands.columns.status')}
             body={(brand: any) => (
-              <span className={brand.isActive ? 'text-green-600' : 'text-gray-500'}>
+              <span
+                className={brand.isActive ? 'text-green-600' : 'text-gray-500'}
+              >
                 {brand.isActive ? t('brands.active') : t('brands.inactive')}
               </span>
             )}
@@ -400,7 +407,9 @@ export default function Brands() {
             field='featured'
             header={t('brands.columns.featured')}
             body={(brand: any) => (
-              <span className={brand.featured ? 'text-yellow-600' : 'text-gray-500'}>
+              <span
+                className={brand.featured ? 'text-yellow-600' : 'text-gray-500'}
+              >
                 {brand.featured ? '★' : '—'}
               </span>
             )}
@@ -432,15 +441,16 @@ export default function Brands() {
         </DataTableWrapper>
       )}
 
-      <DialogWrapper
-        visible={open}
-        onHide={() => setOpen(false)}
-        header={
-          editing ? t('brands.form.editTitle') : t('brands.form.createTitle')
-        }
-        modal
-        className='w-full max-w-lg'
-      >
+      {open && (
+        <DialogWrapper
+          visible={open}
+          onHide={() => setOpen(false)}
+          header={
+            editing ? t('brands.form.editTitle') : t('brands.form.createTitle')
+          }
+          modal
+          className='w-full max-w-lg'
+        >
           <form
             onSubmit={handleSubmit}
             className='space-y-3'
@@ -568,8 +578,8 @@ export default function Brands() {
                 }
               />
             </div>
-            </form>
-          </DialogWrapper>
+          </form>
+        </DialogWrapper>
       )}
     </motion.div>
   );

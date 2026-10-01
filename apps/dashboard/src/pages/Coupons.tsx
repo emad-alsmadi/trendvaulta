@@ -173,7 +173,12 @@ export default function Coupons() {
           can('coupons:write') && (
             <Button
               onClick={openCreate}
-              icon={<Plus className='icon-sm' aria-hidden />}
+              icon={
+                <Plus
+                  className='icon-sm'
+                  aria-hidden
+                />
+              }
               label={t('coupons.add')}
             />
           )
@@ -183,7 +188,9 @@ export default function Coupons() {
       <div className='mb-6 flex flex-col gap-3 sm:flex-row sm:items-end'>
         <InputTextWrapper
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            setSearch(e.target.value)
+          }
           placeholder={t('coupons.searchPlaceholder')}
           className='w-full sm:w-64'
         />
@@ -342,17 +349,18 @@ export default function Coupons() {
         </div>
       )}
 
-      <DialogWrapper
-        visible={open}
-        onHide={() => setOpen(false)}
-        header={
-          editing
-            ? t('coupons.form.editTitle')
-            : t('coupons.form.createTitle')
-        }
-        modal
-        className='w-full max-w-lg'
-      >
+      {open && (
+        <DialogWrapper
+          visible={open}
+          onHide={() => setOpen(false)}
+          header={
+            editing
+              ? t('coupons.form.editTitle')
+              : t('coupons.form.createTitle')
+          }
+          modal
+          className='w-full max-w-lg'
+        >
           <form
             onSubmit={handleSubmit}
             className='space-y-3'
@@ -540,8 +548,8 @@ export default function Coupons() {
                 }
               />
             </div>
-            </form>
-          </DialogWrapper>
+          </form>
+        </DialogWrapper>
       )}
     </motion.div>
   );

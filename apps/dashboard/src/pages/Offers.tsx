@@ -159,7 +159,12 @@ export default function Offers() {
           can('offers:write') && (
             <Button
               onClick={openCreate}
-              icon={<Plus className='icon-sm' aria-hidden />}
+              icon={
+                <Plus
+                  className='icon-sm'
+                  aria-hidden
+                />
+              }
               label={t('offers.add')}
             />
           )
@@ -207,11 +212,17 @@ export default function Offers() {
               header={t('offers.columns.title')}
               body={(offer: any) => (
                 <div>
-                  <div className='text-sm font-semibold text-foreground' dir='auto'>
+                  <div
+                    className='text-sm font-semibold text-foreground'
+                    dir='auto'
+                  >
                     {offer.title}
                   </div>
                   {offer.subtitle ? (
-                    <div className='text-xs text-muted-foreground' dir='auto'>
+                    <div
+                      className='text-xs text-muted-foreground'
+                      dir='auto'
+                    >
                       {offer.subtitle}
                     </div>
                   ) : null}
@@ -221,7 +232,10 @@ export default function Offers() {
             <ColumnWrapper
               header={t('offers.columns.badge')}
               body={(offer: any) => (
-                <span className='text-sm text-foreground' dir='auto'>
+                <span
+                  className='text-sm text-foreground'
+                  dir='auto'
+                >
                   {offer.badge || '—'}
                 </span>
               )}
@@ -274,7 +288,10 @@ export default function Offers() {
                       className='rounded p-1.5 hover:bg-accent transition-colors duration-200'
                       aria-label={t('common.editItem', { name: offer.title })}
                     >
-                      <Pencil className='icon-sm text-muted-foreground' aria-hidden />
+                      <Pencil
+                        className='icon-sm text-muted-foreground'
+                        aria-hidden
+                      />
                     </button>
                   )}
                   {can('offers:delete') && (
@@ -306,15 +323,16 @@ export default function Offers() {
         </div>
       )}
 
-      <DialogWrapper
-        visible={open}
-        onHide={() => setOpen(false)}
-        header={
-          editing ? t('offers.form.editTitle') : t('offers.form.createTitle')
-        }
-        modal
-        className='w-full max-w-lg'
-      >
+      {open && (
+        <DialogWrapper
+          visible={open}
+          onHide={() => setOpen(false)}
+          header={
+            editing ? t('offers.form.editTitle') : t('offers.form.createTitle')
+          }
+          modal
+          className='w-full max-w-lg'
+        >
           <form
             onSubmit={handleSubmit}
             className='space-y-3'
@@ -448,8 +466,8 @@ export default function Offers() {
                 }
               />
             </div>
-            </form>
-          </DialogWrapper>
+          </form>
+        </DialogWrapper>
       )}
     </motion.div>
   );

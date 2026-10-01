@@ -48,6 +48,7 @@ import {
 } from '../components/ui/styles';
 import { useT } from '../i18n/I18nProvider';
 import { ViewToggle, type ViewMode } from '../components/ui/ViewToggle';
+import { Pagination } from '../components/ui/Pagination';
 import { motion } from 'framer-motion';
 
 // @ts-ignore - PrimeReact types are bundled
@@ -331,7 +332,12 @@ export default function Products() {
               onClick={openCreate}
               disabled={!brands.length}
               title={!brands.length ? t('products.needBrand') : undefined}
-              icon={<Plus className='icon-sm' aria-hidden />}
+              icon={
+                <Plus
+                  className='icon-sm'
+                  aria-hidden
+                />
+              }
               label={t('products.add')}
             />
           )
@@ -572,7 +578,9 @@ export default function Products() {
                 <ColumnWrapper
                   field='price'
                   header={t('products.columns.price')}
-                  body={(product: any) => formatCurrency(Number(product.price || 0))}
+                  body={(product: any) =>
+                    formatCurrency(Number(product.price || 0))
+                  }
                 />
                 <ColumnWrapper
                   field='stock'
@@ -643,13 +651,14 @@ export default function Products() {
         </div>
       )}
 
-      <DialogWrapper
-        visible={open}
-        onHide={() => setOpen(false)}
-        header={editing ? t('products.editTitle') : t('products.createTitle')}
-        modal
-        className='w-full max-w-3xl'
-      >
+      {open && (
+        <DialogWrapper
+          visible={open}
+          onHide={() => setOpen(false)}
+          header={editing ? t('products.editTitle') : t('products.createTitle')}
+          modal
+          className='w-full max-w-3xl'
+        >
           <form
             onSubmit={handleSubmit}
             className='space-y-3'
@@ -1088,8 +1097,8 @@ export default function Products() {
                 }
               />
             </div>
-            </form>
-          </DialogWrapper>
+          </form>
+        </DialogWrapper>
       )}
     </div>
   );

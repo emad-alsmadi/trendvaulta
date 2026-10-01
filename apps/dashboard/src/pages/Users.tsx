@@ -267,7 +267,7 @@ export default function Users() {
             onSort={table.toggleSort}
             className='p-datatable-sm'
           >
-            <ColumnWrapperWrapper
+            <ColumnWrapper
               field='username'
               header={t('users.columns.username')}
               sortable
@@ -295,7 +295,7 @@ export default function Users() {
                 </div>
               )}
             />
-            <ColumnWrapperWrapper
+            <ColumnWrapper
               field='email'
               header={t('users.columns.email')}
               sortable
@@ -318,7 +318,7 @@ export default function Users() {
                   {(user.roles?.length
                     ? user.roles
                     : [primaryRole(user.roles)]
-                  ).map((role) => (
+                  ).map((role: string) => (
                     <StatusBadge
                       status={role}
                       key={role}
@@ -333,7 +333,7 @@ export default function Users() {
               field='createdAt'
               header={t('users.columns.joined')}
               sortable
-              body={(user) =>
+              body={(user: any) =>
                 user.createdAt ? formatDate(user.createdAt) : '—'
               }
             />
@@ -438,7 +438,7 @@ export default function Users() {
             <InputTextWrapper
               required
               value={form.username}
-              onChange={(e) =>
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setForm((f) => ({ ...f, username: e.target.value }))
               }
               className='w-full'
@@ -453,7 +453,7 @@ export default function Users() {
               dir='ltr'
               required
               value={form.email}
-              onChange={(e) =>
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setForm((f) => ({ ...f, email: e.target.value }))
               }
               className='w-full'
@@ -499,7 +499,7 @@ export default function Users() {
               autoComplete='new-password'
               minLength={8}
               value={form.password}
-              onChange={(e) =>
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setForm((f) => ({ ...f, password: e.target.value }))
               }
               placeholder={t('users.form.passwordPlaceholder')}

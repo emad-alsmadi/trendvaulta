@@ -416,6 +416,13 @@ export const ar: Messages = {
     deactivateFailed: 'تعذّر إلغاء تفعيل المنتج',
     editTitle: 'تعديل المنتج',
     createTitle: 'إنشاء منتج',
+    columns: {
+      image: 'الصورة',
+      title: 'العنوان',
+      price: 'السعر',
+      stock: 'المخزون',
+      actions: 'الإجراءات',
+    },
     form: {
       title: 'العنوان',
       brand: 'العلامة التجارية',
@@ -979,6 +986,7 @@ export const ar: Messages = {
   reviews: {
     title: 'التقييمات',
     subtitle: 'إدارة تقييمات العملاء للمنتجات (الحذف للمسؤول).',
+    replyTitle: 'الرد على التقييم',
     searchLabel: 'ابحث في تعليقات التقييمات',
     searchPlaceholder: 'ابحث في تعليقات التقييمات…',
     filterRating: 'التصفية حسب التقييم',
@@ -1200,6 +1208,20 @@ export const ar: Messages = {
       'إلغاء تفعيل العلامة التجارية «{name}»؟ ستُخفى من صفحات العلامات في المتجر؛ تحتفظ منتجاتها بها، ويمكنك إعادة تفعيلها لاحقًا.',
     deactivate: 'إلغاء التفعيل',
     deactivateFailed: 'تعذّر إلغاء تفعيل العلامة التجارية',
+    active: 'نشط',
+    inactive: 'غير نشط',
+    edit: 'تعديل',
+    delete: 'حذف',
+    columns: {
+      logo: 'الشعار',
+      name: 'الاسم',
+      slug: 'المعرّف (slug)',
+      country: 'البلد',
+      website: 'الموقع الإلكتروني',
+      status: 'الحالة',
+      featured: 'مميزة',
+      actions: 'الإجراءات',
+    },
     form: {
       editTitle: 'تعديل العلامة التجارية',
       createTitle: 'إنشاء علامة تجارية',
