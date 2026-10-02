@@ -9,6 +9,7 @@ type Props = { children: ReactNode };
 type State = { error: Error | null };
 
 /** Function component so the fallback can use the translation hook. */
+// eslint-disable-next-line react-refresh/only-export-components -- private fallback for the class boundary below
 function ErrorFallback({ onRetry }: { onRetry: () => void }) {
   const { t } = useT();
   return (

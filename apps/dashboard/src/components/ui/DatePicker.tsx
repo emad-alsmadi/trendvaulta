@@ -43,10 +43,6 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
   ) {
     const [focused, setFocused] = useState(false);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      onChange?.(e as any);
-    };
-
     return (
       <div className={cn('space-y-1.5', wrapperClassName)}>
         {label && (
@@ -66,7 +62,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
             ref={ref}
             type='date'
             value={value || ''}
-            onChange={handleChange}
+            onChange={onChange}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             className={cn(
