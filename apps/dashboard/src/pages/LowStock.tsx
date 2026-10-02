@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { RefreshCw } from 'lucide-react';
+import { AlertTriangle, PackageCheck, PackageX, RefreshCw } from 'lucide-react';
 import { useAdminLowStock } from '../hooks/useAdminStats';
 import { useUpdateProductMutation } from '../hooks/useAdminCatalog';
 import { usePermissions } from '../hooks/usePermissions';
@@ -10,10 +9,23 @@ import { errorMessage, type LowStockProduct } from '../lib/api';
 import { cleanVariant, variantLabel } from '../lib/variants';
 import { useT } from '../i18n/I18nProvider';
 import { PageHeader } from '../components/ui/PageHeader';
+import { Alert } from '../components/ui/Alert';
 import { Button } from '../components/ui/Button';
 import { StatCard } from '../components/ui/Card';
-import { Table, TableCard, THead, Th, Td } from '../components/ui/Table';
+import {
+  Table,
+  TableCard,
+  THead,
+  Th,
+  Td,
+  Thumbnail,
+} from '../components/ui/Table';
+import { Input } from '../components/ui/Field';
+import { Skeleton } from '../components/ui/Skeleton';
+import { EmptyState } from '../components/ui/EmptyState';
 import { StatusBadge } from '../components/ui/StatusBadge';
+import { buttonVariants, focusRing } from '../components/ui/styles';
+import { cn } from '../lib/cn';
 
 const THRESHOLDS = [5, 10, 25];
 
@@ -21,9 +33,7 @@ function StockBadge({ stock }: { stock: number }) {
   const { t, formatNumber } = useT();
   if (stock <= 0) {
     return (
-      <StatusBadge status='out_of_stock'>
-        {t('lowStock.outOfStock')}
-      </StatusBadge>
+      <StatusBadge status='out_of_stock'>{t('lowStock.outOfStock')}</StatusBadge>
     );
   }
   return (
@@ -108,7 +118,9 @@ function RestockRow({
       className='flex items-center justify-end gap-2'
     >
       {text && (
-        <span className='truncate text-xs text-muted-foreground'>{text}</span>
+        <span className='max-w-[8rem] truncate text-xs text-muted-foreground'>
+          {text}
+        </span>
       )}
       <label
         className='sr-only'
@@ -116,7 +128,7 @@ function RestockRow({
       >
         {label}
       </label>
-      <input
+      <Input
         id={`stock-${product._id}-${key}`}
         type='number'
         min={0}
@@ -124,24 +136,16 @@ function RestockRow({
         onChange={(e) =>
           setValues((prev) => ({ ...prev, [key]: e.target.value }))
         }
-        className='w-20 rounded-control border border-border bg-background px-2 py-1.5 text-end text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+        className='h-control-sm w-20 text-end tabular-nums'
       />
     </div>
   );
 
   return (
-    <tr className='align-middle'>
+    <tr className='border-b border-border transition-colors duration-fast last:border-0 hover:bg-muted/50'>
       <Td>
         <div className='flex items-center gap-3'>
-          <div className='h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-muted'>
-            {product.cover && (
-              <img
-                src={product.cover}
-                alt=''
-                className='h-full w-full object-cover'
-              />
-            )}
-          </div>
+          <Thumbnail src={product.cover} />
           <div className='min-w-0'>
             <p className='truncate font-medium text-foreground'>
               {product.title}
@@ -153,7 +157,7 @@ function RestockRow({
           </div>
         </div>
       </Td>
-      <Td>
+      <Td className='text-muted-foreground'>
         {product.category ? tv('productCategory', product.category) : '—'}
       </Td>
       <Td>
@@ -192,14 +196,16 @@ function RestockRow({
                     '',
                   )}
             </div>
-            <button
-              type='button'
+            {/* The row's only button: the tests (and keyboard users) reach it first. */}
+            <Button
+              size='sm'
+              variant='primary'
               onClick={() => void save()}
-              disabled={!dirty || updateMut.isPending}
-              className='rounded-control bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 transition-colors duration-200'
+              disabled={!dirty}
+              loading={updateMut.isPending}
             >
-              {updateMut.isPending ? t('common.saving') : t('common.save')}
-            </button>
+              {t('common.save')}
+            </Button>
           </div>
         ) : (
           <p className='text-end text-xs text-muted-foreground'>
@@ -221,35 +227,32 @@ export default function LowStock() {
   const outOfStock = products.filter((p) => p.stock <= 0).length;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
+    <>
       <PageHeader
         title={t('lowStock.title')}
         description={t('lowStock.subtitle')}
         actions={
-          <div className='flex flex-wrap items-center gap-2'>
-            <div className='inline-flex rounded-control border border-border p-0.5'>
+          <>
+            <div className='inline-flex h-control items-center gap-0.5 rounded-control border border-border bg-muted p-0.5'>
               {THRESHOLDS.map((n) => (
                 <button
                   key={n}
                   type='button'
                   onClick={() => setThreshold(n)}
                   aria-pressed={threshold === n}
-                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                  className={cn(
+                    'inline-flex h-full items-center rounded px-3 text-body-sm font-medium tabular-nums transition-colors duration-fast',
+                    focusRing,
                     threshold === n
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-                  }`}
+                      ? 'border border-border bg-background text-foreground shadow-card'
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
                 >
                   ≤ {n}
                 </button>
               ))}
             </div>
             <Button
-              variant='secondary'
               onClick={() => void q.refetch()}
               icon={
                 <RefreshCw
@@ -260,14 +263,17 @@ export default function LowStock() {
             >
               {t('lowStock.refresh')}
             </Button>
-          </div>
+          </>
         }
       />
 
       {q.isError && (
-        <div className='mb-6 rounded-card border border-destructive bg-destructive/10 px-4 py-3 text-sm text-foreground'>
+        <Alert
+          tone='error'
+          className='mb-6'
+        >
           {errorMessage(q.error, t('lowStock.loadFailed'))}
-        </div>
+        </Alert>
       )}
 
       {!q.isError && (
@@ -275,33 +281,54 @@ export default function LowStock() {
           <StatCard
             label={t('lowStock.needsRestock')}
             value={q.isLoading ? '—' : formatNumber(products.length)}
-            className='bg-gradient-to-br from-metric-orange/5 to-metric-red/5 border-metric-orange/20'
+            icon={<AlertTriangle />}
           />
           <StatCard
             label={t('lowStock.outOfStock')}
             value={q.isLoading ? '—' : formatNumber(outOfStock)}
-            className='bg-gradient-to-br from-metric-red/5 to-destructive/10 border-metric-red/20'
+            icon={<PackageX />}
           />
         </div>
       )}
 
-      <TableCard className='bg-gradient-to-br from-brand-cyan/5 to-brand-indigo/5 border-brand-cyan/10'>
+      <TableCard>
         {q.isLoading ? (
-          <p className='py-10 text-center text-sm text-muted-foreground'>
-            {t('lowStock.loading')}
-          </p>
+          <div
+            className='divide-y divide-border'
+            aria-label={t('lowStock.loading')}
+          >
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div
+                key={i}
+                className='flex items-center gap-4 px-4 py-3'
+              >
+                <Skeleton variant='thumbnail' />
+                <div className='flex-1 space-y-2'>
+                  <Skeleton className='w-1/3' />
+                  <Skeleton className='w-1/5' />
+                </div>
+                <Skeleton
+                  variant='custom'
+                  className='h-8 w-28 rounded-control'
+                />
+              </div>
+            ))}
+          </div>
         ) : products.length === 0 ? (
-          <p className='py-10 text-center text-sm text-muted-foreground'>
-            {t('lowStock.nothing', { threshold })}{' '}
-            <Link
-              to='/products'
-              className='text-primary hover:underline'
-            >
-              {t('lowStock.browse')}
-            </Link>
-          </p>
+          <EmptyState
+            icon={<PackageCheck aria-hidden />}
+            title={t('lowStock.nothing', { threshold })}
+            action={
+              <Link
+                to='/products'
+                className={buttonVariants({ size: 'sm' })}
+              >
+                {t('lowStock.browse')}
+              </Link>
+            }
+          />
         ) : (
-          <Table>
+          <Table className='min-w-[760px]'>
             <THead>
               <tr>
                 <Th>{t('lowStock.columns.product')}</Th>
@@ -325,6 +352,6 @@ export default function LowStock() {
           </Table>
         )}
       </TableCard>
-    </motion.div>
+    </>
   );
 }

@@ -1,5 +1,15 @@
 import { useMemo, useState } from 'react';
-import { RefreshCw, Table2, LineChart as LineChartIcon } from 'lucide-react';
+import {
+  Award,
+  DollarSign,
+  LineChart as LineChartIcon,
+  Receipt,
+  RefreshCw,
+  ShoppingCart,
+  Table2,
+  Tag,
+  TrendingUp,
+} from 'lucide-react';
 import {
   Area,
   AreaChart,
@@ -29,6 +39,9 @@ import { Card, CardHeader, StatCard } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Alert } from '../components/ui/Alert';
 import { SkeletonCard } from '../components/ui/Skeleton';
+import { EmptyState } from '../components/ui/EmptyState';
+import { Table, THead, Th, Tr, Td } from '../components/ui/Table';
+import { focusRing } from '../components/ui/styles';
 import { cn } from '../lib/cn';
 
 const RANGES = [
@@ -81,9 +94,10 @@ function LeaderChart({
 
   if (rows.length === 0) {
     return (
-      <p className='py-12 text-center text-sm text-muted-foreground'>
-        {emptyLabel}
-      </p>
+      <EmptyState
+        icon={<Award aria-hidden />}
+        title={emptyLabel}
+      />
     );
   }
 
@@ -202,17 +216,22 @@ export default function Analytics() {
     reversed: rtl,
   };
   const valueAxisSide = rtl ? ('right' as const) : ('left' as const);
+  const rangeNote = (
+    <p className='text-body-sm text-muted-foreground'>
+      {i18n.t('analytics.lastDays', { days })}
+    </p>
+  );
 
   return (
-    <div className='space-y-8 page-transition'>
-      {/* Page Header */}
+    <div className='space-y-6'>
       <PageHeader
         title={i18n.t('analytics.title')}
         description={i18n.t('analytics.subtitle')}
+        className='mb-2'
         actions={
           <div className='flex flex-wrap items-center gap-2'>
             {/* Date Range Selector */}
-            <div className='inline-flex rounded-control border border-border p-0.5'>
+            <div className='inline-flex h-control items-center gap-0.5 rounded-control border border-border bg-muted p-0.5'>
               {RANGES.map((r) => (
                 <button
                   key={r.days}
@@ -220,11 +239,11 @@ export default function Analytics() {
                   onClick={() => setDays(r.days)}
                   aria-pressed={days === r.days}
                   className={cn(
-                    'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                    'inline-flex h-full items-center rounded px-3 text-body-sm font-medium transition-colors duration-fast',
+                    focusRing,
                     days === r.days
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                      ? 'border border-border bg-background text-foreground shadow-card'
+                      : 'text-muted-foreground hover:text-foreground',
                   )}
                 >
                   {i18n.t(r.label)}
@@ -280,29 +299,20 @@ export default function Analytics() {
             <StatCard
               label={i18n.t('analytics.revenueTotal')}
               value={fmtMoney(totals.revenue)}
-              delta={{
-                value: 0,
-                label: i18n.t('analytics.lastDays', { days }),
-              }}
-              className='bg-gradient-to-br from-brand-purple/5 to-brand-indigo/5 border-brand-purple/20'
+              icon={<DollarSign />}
+              footer={rangeNote}
             />
             <StatCard
               label={i18n.t('analytics.ordersTotal')}
               value={i18n.formatNumber(totals.orders)}
-              delta={{
-                value: 0,
-                label: i18n.t('analytics.lastDays', { days }),
-              }}
-              className='bg-gradient-to-br from-brand-cyan/5 to-brand-indigo/5 border-brand-cyan/20'
+              icon={<ShoppingCart />}
+              footer={rangeNote}
             />
             <StatCard
               label={i18n.t('analytics.averageOrder')}
               value={fmtMoney(avgOrder)}
-              delta={{
-                value: 0,
-                label: i18n.t('analytics.lastDays', { days }),
-              }}
-              className='bg-gradient-to-br from-metric-green/5 to-metric-teal/5 border-metric-green/20'
+              icon={<Receipt />}
+              footer={rangeNote}
             />
           </>
         )}
@@ -310,59 +320,50 @@ export default function Analytics() {
 
       {/* Daily Totals (Table or Charts) */}
       {asTable ? (
-        <Card className='bg-gradient-to-br from-brand-purple/5 to-brand-fuchsia/5 border-brand-purple/10'>
-          <CardHeader title={i18n.t('analytics.dailyTotals')} />
-          <div className='overflow-x-auto'>
-            <table className='w-full min-w-[420px] text-sm'>
-              <thead>
-                <tr className='border-b border-border text-start text-muted-foreground'>
-                  <th
-                    scope='col'
-                    className='py-2 font-medium'
-                  >
-                    {i18n.t('analytics.date')}
-                  </th>
-                  <th
-                    scope='col'
-                    className='py-2 text-end font-medium'
-                  >
-                    {i18n.t('analytics.revenue')}
-                  </th>
-                  <th
-                    scope='col'
-                    className='py-2 text-end font-medium'
-                  >
-                    {i18n.t('analytics.orders')}
-                  </th>
+        <Card padded={false}>
+          <div className='p-5 pb-0 sm:p-6 sm:pb-0'>
+            <CardHeader
+              icon={<Table2 />}
+              title={i18n.t('analytics.dailyTotals')}
+            />
+          </div>
+          <div className='max-h-[32rem] overflow-auto border-t border-border'>
+            <Table className='min-w-[420px]'>
+              <THead>
+                <tr>
+                  <Th>{i18n.t('analytics.date')}</Th>
+                  <Th numeric>{i18n.t('analytics.revenue')}</Th>
+                  <Th numeric>{i18n.t('analytics.orders')}</Th>
                 </tr>
-              </thead>
-              <tbody className='divide-y divide-border'>
+              </THead>
+              <tbody>
                 {series.map((p) => (
-                  <tr key={p.date}>
-                    <td
-                      className='py-2 text-foreground'
+                  <Tr key={p.date}>
+                    <Td
+                      className='text-foreground'
                       dir='ltr'
                     >
                       {p.date}
-                    </td>
-                    <td className='py-2 text-end tabular-nums text-foreground'>
+                    </Td>
+                    <Td
+                      numeric
+                      className='font-medium'
+                    >
                       {fmtMoney(p.revenue)}
-                    </td>
-                    <td className='py-2 text-end tabular-nums text-foreground'>
-                      {i18n.formatNumber(p.orders)}
-                    </td>
-                  </tr>
+                    </Td>
+                    <Td numeric>{i18n.formatNumber(p.orders)}</Td>
+                  </Tr>
                 ))}
               </tbody>
-            </table>
+            </Table>
           </div>
         </Card>
       ) : (
         // Revenue and orders are different scales, so they get a chart each
         // rather than a second y-axis.
         <div className='grid grid-cols-1 gap-6 lg:grid-cols-2'>
-          <Card className='bg-gradient-to-br from-brand-purple/5 to-brand-indigo/5 border-brand-purple/10'>
-            <CardHeader title={i18n.t('analytics.revenue')} />
+          <Card>
+            <CardHeader icon={<TrendingUp />} title={i18n.t('analytics.revenue')} />
             <ResponsiveContainer
               width='100%'
               height={240}
@@ -434,8 +435,8 @@ export default function Analytics() {
             </ResponsiveContainer>
           </Card>
 
-          <Card className='bg-gradient-to-br from-brand-cyan/5 to-brand-indigo/5 border-brand-cyan/10'>
-            <CardHeader title={i18n.t('analytics.orders')} />
+          <Card>
+            <CardHeader icon={<LineChartIcon />} title={i18n.t('analytics.orders')} />
             <ResponsiveContainer
               width='100%'
               height={240}
@@ -490,16 +491,16 @@ export default function Analytics() {
 
       {/* Top Products and Brands */}
       <div className='grid grid-cols-1 gap-6 lg:grid-cols-2'>
-        <Card className='bg-gradient-to-br from-metric-blue/5 to-metric-teal/5 border-metric-blue/10'>
-          <CardHeader title={i18n.t('analytics.topProducts')} />
+        <Card>
+          <CardHeader icon={<Award />} title={i18n.t('analytics.topProducts')} />
           <LeaderChart
             rows={q.data?.topProducts ?? []}
             color={t.bar}
             emptyLabel={i18n.t('analytics.empty')}
           />
         </Card>
-        <Card className='bg-gradient-to-br from-metric-green/5 to-metric-teal/5 border-metric-green/10'>
-          <CardHeader title={i18n.t('analytics.topBrands')} />
+        <Card>
+          <CardHeader icon={<Tag />} title={i18n.t('analytics.topBrands')} />
           <LeaderChart
             rows={q.data?.topBrands ?? []}
             color={t.barAlt}

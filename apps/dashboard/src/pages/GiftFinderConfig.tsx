@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Gift, Plus, Pencil, Trash2, X } from 'lucide-react';
 import {
   useAdminGiftFinderConfigs,
   useCreateGiftFinderConfigMutation,
@@ -16,8 +15,22 @@ import {
 import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
-import { FormDialog } from '../components/ui/FormDialog';
+import { FormActions, FormDialog } from '../components/ui/FormDialog';
 import { useT } from '../i18n/I18nProvider';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Alert } from '../components/ui/Alert';
+import { Button } from '../components/ui/Button';
+import { IconButton } from '../components/ui/IconButton';
+import {
+  DataTable,
+  RowActions,
+  type DataTableColumn,
+} from '../components/ui/DataTable';
+import { Input, Switch } from '../components/ui/Field';
+import { StatusBadge } from '../components/ui/StatusBadge';
+import { text } from '../components/ui/styles';
+
+type Section = 'occasions' | 'recipients' | 'budgets';
 
 const emptyOption: GiftOption = { id: '', label: '' };
 
@@ -34,7 +47,7 @@ export default function GiftFinderConfig() {
   const confirm = useConfirm();
   const { t, formatNumber } = useT();
   // Row names like "Occasion 2", for field labels and remove buttons.
-  const optionName = (section: 'occasions' | 'recipients' | 'budgets', index: number) =>
+  const optionName = (section: Section, index: number) =>
     t(
       section === 'occasions'
         ? 'giftFinder.form.occasion'
@@ -44,10 +57,14 @@ export default function GiftFinderConfig() {
       { n: index + 1 },
     );
   const fieldLabel = (
-    section: 'occasions' | 'recipients' | 'budgets',
+    section: Section,
     index: number,
     field: 'id' | 'label' | 'query' | 'minPrice' | 'maxPrice',
-  ) => t('giftFinder.form.fieldLabel', { option: optionName(section, index), field: t(`giftFinder.form.${field}`) });
+  ) =>
+    t('giftFinder.form.fieldLabel', {
+      option: optionName(section, index),
+      field: t(`giftFinder.form.${field}`),
+    });
   const configsQ = useAdminGiftFinderConfigs();
   const createMut = useCreateGiftFinderConfigMutation();
   const updateMut = useUpdateGiftFinderConfigMutation();
@@ -77,7 +94,7 @@ export default function GiftFinderConfig() {
   }
 
   function updateOption(
-    section: 'occasions' | 'recipients' | 'budgets',
+    section: Section,
     index: number,
     field: keyof GiftOption,
     value: string | number,
@@ -87,14 +104,11 @@ export default function GiftFinderConfig() {
     setForm((f) => ({ ...f, [section]: newSection }));
   }
 
-  function addOption(section: 'occasions' | 'recipients' | 'budgets') {
+  function addOption(section: Section) {
     setForm((f) => ({ ...f, [section]: [...f[section], { ...emptyOption }] }));
   }
 
-  function removeOption(
-    section: 'occasions' | 'recipients' | 'budgets',
-    index: number,
-  ) {
+  function removeOption(section: Section, index: number) {
     if (form[section].length <= 1) return;
     const newSection = form[section].filter((_, i) => i !== index);
     setForm((f) => ({ ...f, [section]: newSection }));
@@ -118,34 +132,20 @@ export default function GiftFinderConfig() {
       return;
     }
 
+    const clean = (o: GiftOption): GiftOption => ({
+      ...o,
+      id: o.id.trim(),
+      label: o.label.trim(),
+      q: o.q?.trim(),
+      category: o.category?.trim(),
+      minPrice: o.minPrice !== undefined ? Number(o.minPrice) : undefined,
+      maxPrice: o.maxPrice !== undefined ? Number(o.maxPrice) : undefined,
+    });
+
     const payload: GiftFinderConfigPayload = {
-      occasions: form.occasions.map((o) => ({
-        ...o,
-        id: o.id.trim(),
-        label: o.label.trim(),
-        q: o.q?.trim(),
-        category: o.category?.trim(),
-        minPrice: o.minPrice !== undefined ? Number(o.minPrice) : undefined,
-        maxPrice: o.maxPrice !== undefined ? Number(o.maxPrice) : undefined,
-      })),
-      recipients: form.recipients.map((r) => ({
-        ...r,
-        id: r.id.trim(),
-        label: r.label.trim(),
-        q: r.q?.trim(),
-        category: r.category?.trim(),
-        minPrice: r.minPrice !== undefined ? Number(r.minPrice) : undefined,
-        maxPrice: r.maxPrice !== undefined ? Number(r.maxPrice) : undefined,
-      })),
-      budgets: form.budgets.map((b) => ({
-        ...b,
-        id: b.id.trim(),
-        label: b.label.trim(),
-        q: b.q?.trim(),
-        category: b.category?.trim(),
-        minPrice: b.minPrice !== undefined ? Number(b.minPrice) : undefined,
-        maxPrice: b.maxPrice !== undefined ? Number(b.maxPrice) : undefined,
-      })),
+      occasions: form.occasions.map(clean),
+      recipients: form.recipients.map(clean),
+      budgets: form.budgets.map(clean),
       active: !!form.active,
     };
 
@@ -163,7 +163,11 @@ export default function GiftFinderConfig() {
   }
 
   async function handleDelete(config: AdminGiftFinderConfig) {
-    const ok = await confirm({ message: t('giftFinder.confirmDelete'), danger: true, confirmLabel: t('common.delete') });
+    const ok = await confirm({
+      message: t('giftFinder.confirmDelete'),
+      danger: true,
+      confirmLabel: t('common.delete'),
+    });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(config._id);
@@ -172,397 +176,255 @@ export default function GiftFinderConfig() {
     }
   }
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
+  const optionPreview = (options: GiftOption[]) => (
+    <div className='min-w-0'>
+      <p className='font-medium tabular-nums text-foreground'>
+        {t('giftFinder.optionCount', { count: formatNumber(options.length) })}
+      </p>
+      <p
+        className='max-w-[14rem] truncate text-xs text-muted-foreground'
+        dir='auto'
+      >
+        {options.map((o) => o.label).join(' · ')}
+      </p>
+    </div>
+  );
+
+  const columns: DataTableColumn<AdminGiftFinderConfig>[] = [
+    {
+      key: 'occasions',
+      header: t('giftFinder.columns.occasions'),
+      cell: (config) => optionPreview(config.occasions),
+    },
+    {
+      key: 'recipients',
+      header: t('giftFinder.columns.recipients'),
+      cell: (config) => optionPreview(config.recipients),
+    },
+    {
+      key: 'budgets',
+      header: t('giftFinder.columns.budgets'),
+      cell: (config) => optionPreview(config.budgets),
+    },
+    {
+      key: 'active',
+      header: t('common.status'),
+      cell: (config) => (
+        <StatusBadge status={config.active ? 'active' : 'inactive'}>
+          {config.active ? t('common.active') : t('common.inactive')}
+        </StatusBadge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: t('common.actions'),
+      actions: true,
+      cell: (config) => (
+        <RowActions>
+          {can('content:write') && (
+            <IconButton
+              icon={<Pencil aria-hidden />}
+              label={t('giftFinder.editConfig')}
+              onClick={() => openEdit(config)}
+            />
+          )}
+          {can('content:delete') && (
+            <IconButton
+              icon={<Trash2 aria-hidden />}
+              label={t('giftFinder.deleteConfig')}
+              onClick={() => void handleDelete(config)}
+              disabled={deleteMut.isPending}
+            />
+          )}
+        </RowActions>
+      ),
+    },
+  ];
+
+  /** One editable list of options (occasions, recipients or budgets). */
+  const renderSection = (
+    section: Section,
+    title: string,
+    addLabel: string,
+  ) => (
+    <section
+      aria-labelledby={`gf-${section}`}
+      className='space-y-2 border-t border-border pt-5 first:border-0 first:pt-0'
     >
-      <div className='mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
-        <div>
-          <h1 className='text-3xl font-bold text-gray-900 dark:text-white'>
-            {t('giftFinder.title')}
-          </h1>
-          <p className='mt-1 text-sm text-gray-600 dark:text-gray-400'>
-            {t('giftFinder.subtitle')}
-          </p>
-        </div>
-        {can('content:write') && (
-          <button
-            type='button'
-            onClick={openCreate}
-            className='inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600'
+      <h3
+        id={`gf-${section}`}
+        className={text.cardTitle}
+      >
+        {title}
+      </h3>
+      <ol className='space-y-2'>
+        {form[section].map((option, index) => (
+          <li
+            key={index}
+            className='flex flex-wrap items-center gap-2 sm:flex-nowrap'
           >
-            <Plus className='me-2 h-5 w-5' aria-hidden />
-            {t('giftFinder.add')}
-          </button>
-        )}
-      </div>
+            <Input
+              required
+              value={option.id}
+              onChange={(e) =>
+                updateOption(section, index, 'id', e.target.value)
+              }
+              placeholder={t('giftFinder.form.id')}
+              aria-label={fieldLabel(section, index, 'id')}
+              dir='ltr'
+              className='font-mono sm:w-36'
+            />
+            <Input
+              required
+              value={option.label}
+              onChange={(e) =>
+                updateOption(section, index, 'label', e.target.value)
+              }
+              placeholder={t('giftFinder.form.label')}
+              aria-label={fieldLabel(section, index, 'label')}
+              dir='auto'
+              className='min-w-0 flex-1'
+            />
+            {section === 'budgets' ? (
+              <>
+                <Input
+                  type='number'
+                  value={option.minPrice || ''}
+                  onChange={(e) =>
+                    updateOption(section, index, 'minPrice', e.target.value)
+                  }
+                  placeholder={t('giftFinder.form.minPrice')}
+                  aria-label={fieldLabel(section, index, 'minPrice')}
+                  className='w-28'
+                />
+                <Input
+                  type='number'
+                  value={option.maxPrice || ''}
+                  onChange={(e) =>
+                    updateOption(section, index, 'maxPrice', e.target.value)
+                  }
+                  placeholder={t('giftFinder.form.maxPrice')}
+                  aria-label={fieldLabel(section, index, 'maxPrice')}
+                  className='w-28'
+                />
+              </>
+            ) : (
+              <Input
+                value={option.q || ''}
+                onChange={(e) =>
+                  updateOption(section, index, 'q', e.target.value)
+                }
+                placeholder={t('giftFinder.form.query')}
+                aria-label={fieldLabel(section, index, 'query')}
+                dir='auto'
+                className='min-w-0 flex-1'
+              />
+            )}
+            <IconButton
+              icon={<X aria-hidden />}
+              label={t('giftFinder.form.removeOption', {
+                option: optionName(section, index),
+              })}
+              size='md'
+              onClick={() => removeOption(section, index)}
+              disabled={form[section].length <= 1}
+            />
+          </li>
+        ))}
+      </ol>
+      <Button
+        size='sm'
+        className='border-dashed shadow-none'
+        onClick={() => addOption(section)}
+        icon={<Plus aria-hidden />}
+      >
+        {addLabel.replace(/^\+\s*/, '')}
+      </Button>
+    </section>
+  );
 
-      {configsQ.isLoading && (
-        <p className='py-10 text-center text-sm text-gray-500'>
-          {t('giftFinder.loading')}
-        </p>
-      )}
+  return (
+    <>
+      <PageHeader
+        title={t('giftFinder.title')}
+        description={t('giftFinder.subtitle')}
+        actions={
+          can('content:write') && (
+            <Button
+              variant='primary'
+              onClick={openCreate}
+              icon={<Plus aria-hidden />}
+            >
+              {t('giftFinder.add')}
+            </Button>
+          )
+        }
+      />
 
-      {configsQ.isError && (
-        <div className='rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200'>
+      {configsQ.isError ? (
+        <Alert tone='error'>
           {errorMessage(configsQ.error, t('giftFinder.loadFailed'))}
-        </div>
-      )}
-
-      {!configsQ.isLoading && !configsQ.isError && (
-        <div className='overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800'>
-          <div className='overflow-x-auto'>
-            <table className='w-full min-w-[800px]'>
-              <thead className='bg-gray-50 dark:bg-gray-700'>
-                <tr>
-                  {[
-                    t('giftFinder.columns.occasions'),
-                    t('giftFinder.columns.recipients'),
-                    t('giftFinder.columns.budgets'),
-                    t('common.status'),
-                    t('common.actions'),
-                  ].map((h) => (
-                    <th
-                      key={h}
-                      className='px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300'
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className='divide-y divide-gray-200 dark:divide-gray-700'>
-                {configsQ.data?.data?.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={5}
-                      className='px-4 py-10 text-center text-sm text-gray-500'
-                    >
-                      {t('giftFinder.empty')}
-                    </td>
-                  </tr>
-                ) : (
-                  configsQ.data?.data?.map((config) => (
-                    <tr
-                      key={config._id}
-                      className='hover:bg-gray-50 dark:hover:bg-gray-700/60'
-                    >
-                      <td className='px-4 py-3 text-sm text-gray-600 dark:text-gray-400'>
-                        {t('giftFinder.optionCount', { count: formatNumber(config.occasions.length) })}
-                      </td>
-                      <td className='px-4 py-3 text-sm text-gray-600 dark:text-gray-400'>
-                        {t('giftFinder.optionCount', { count: formatNumber(config.recipients.length) })}
-                      </td>
-                      <td className='px-4 py-3 text-sm text-gray-600 dark:text-gray-400'>
-                        {t('giftFinder.optionCount', { count: formatNumber(config.budgets.length) })}
-                      </td>
-                      <td className='px-4 py-3'>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                            config.active
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                              : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-                          }`}
-                        >
-                          {config.active ? t('common.active') : t('common.inactive')}
-                        </span>
-                      </td>
-                      <td className='px-4 py-3'>
-                        <div className='flex gap-1'>
-                          {can('content:write') && (
-                            <button
-                              type='button'
-                              onClick={() => openEdit(config)}
-                              className='rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600'
-                              aria-label={t('giftFinder.editConfig')}
-                            >
-                              <Pencil className='h-4 w-4 text-gray-500' aria-hidden />
-                            </button>
-                          )}
-                          {can('content:delete') && (
-                            <button
-                              type='button'
-                              onClick={() => void handleDelete(config)}
-                              disabled={deleteMut.isPending}
-                              className='rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40'
-                              aria-label={t('giftFinder.deleteConfig')}
-                            >
-                              <Trash2 className='h-4 w-4 text-red-500' aria-hidden />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        </Alert>
+      ) : (
+        <DataTable
+          caption={t('giftFinder.title')}
+          data={configsQ.data?.data || []}
+          columns={columns}
+          getKey={(config) => config._id}
+          loading={configsQ.isLoading}
+          fetching={configsQ.isFetching}
+          emptyIcon={<Gift aria-hidden />}
+          emptyTitle={t('giftFinder.empty')}
+        />
       )}
 
       {open && (
         <FormDialog
           onClose={() => setOpen(false)}
-          title={editing
-            ? t('giftFinder.form.editTitle')
-            : t('giftFinder.form.createTitle')}
+          title={
+            editing
+              ? t('giftFinder.form.editTitle')
+              : t('giftFinder.form.createTitle')
+          }
           busy={saving}
-          maxWidthClass='max-w-3xl'
+          size='editor'
         >
           <form
             onSubmit={handleSubmit}
-            className='space-y-4'
+            className='space-y-5'
           >
-            <div>
-              <span className='mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300'>
-                {t('giftFinder.form.occasions')}
-              </span>
-              {form.occasions.map((option, index) => (
-                <div
-                  key={index}
-                  className='mb-2 flex gap-2'
-                >
-                  <input
-                    required
-                    value={option.id}
-                    onChange={(e) =>
-                      updateOption('occasions', index, 'id', e.target.value)
-                    }
-                    placeholder={t('giftFinder.form.id')}
-                    aria-label={fieldLabel('occasions', index, 'id')}
-                    dir='ltr'
-                    className='flex-1 rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                  />
-                  <input
-                    required
-                    value={option.label}
-                    onChange={(e) =>
-                      updateOption(
-                        'occasions',
-                        index,
-                        'label',
-                        e.target.value,
-                      )
-                    }
-                    placeholder={t('giftFinder.form.label')}
-                    aria-label={fieldLabel('occasions', index, 'label')}
-                    dir='auto'
-                    className='flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                  />
-                  <input
-                    value={option.q || ''}
-                    onChange={(e) =>
-                      updateOption('occasions', index, 'q', e.target.value)
-                    }
-                    placeholder={t('giftFinder.form.query')}
-                    aria-label={fieldLabel('occasions', index, 'query')}
-                    dir='auto'
-                    className='flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                  />
-                  {form.occasions.length > 1 && (
-                    <button
-                      type='button'
-                      onClick={() => removeOption('occasions', index)}
-                      aria-label={t('giftFinder.form.removeOption', { option: optionName('occasions', index) })}
-                      className='rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-600 hover:bg-red-100 dark:border-red-700 dark:bg-red-950/40 dark:text-red-400'
-                    >
-                      {t('giftFinder.form.remove')}
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button
-                type='button'
-                onClick={() => addOption('occasions')}
-                className='mt-2 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300'
-              >
-                {t('giftFinder.form.addOccasion')}
-              </button>
-            </div>
-
-            <div>
-              <span className='mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300'>
-                {t('giftFinder.form.recipients')}
-              </span>
-              {form.recipients.map((option, index) => (
-                <div
-                  key={index}
-                  className='mb-2 flex gap-2'
-                >
-                  <input
-                    required
-                    value={option.id}
-                    onChange={(e) =>
-                      updateOption('recipients', index, 'id', e.target.value)
-                    }
-                    placeholder={t('giftFinder.form.id')}
-                    aria-label={fieldLabel('recipients', index, 'id')}
-                    dir='ltr'
-                    className='flex-1 rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                  />
-                  <input
-                    required
-                    value={option.label}
-                    onChange={(e) =>
-                      updateOption(
-                        'recipients',
-                        index,
-                        'label',
-                        e.target.value,
-                      )
-                    }
-                    placeholder={t('giftFinder.form.label')}
-                    aria-label={fieldLabel('recipients', index, 'label')}
-                    dir='auto'
-                    className='flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                  />
-                  <input
-                    value={option.q || ''}
-                    onChange={(e) =>
-                      updateOption('recipients', index, 'q', e.target.value)
-                    }
-                    placeholder={t('giftFinder.form.query')}
-                    aria-label={fieldLabel('recipients', index, 'query')}
-                    dir='auto'
-                    className='flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                  />
-                  {form.recipients.length > 1 && (
-                    <button
-                      type='button'
-                      onClick={() => removeOption('recipients', index)}
-                      aria-label={t('giftFinder.form.removeOption', { option: optionName('recipients', index) })}
-                      className='rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-600 hover:bg-red-100 dark:border-red-700 dark:bg-red-950/40 dark:text-red-400'
-                    >
-                      {t('giftFinder.form.remove')}
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button
-                type='button'
-                onClick={() => addOption('recipients')}
-                className='mt-2 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300'
-              >
-                {t('giftFinder.form.addRecipient')}
-              </button>
-            </div>
-
-            <div>
-              <span className='mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300'>
-                {t('giftFinder.form.budgets')}
-              </span>
-              {form.budgets.map((option, index) => (
-                <div
-                  key={index}
-                  className='mb-2 flex gap-2'
-                >
-                  <input
-                    required
-                    value={option.id}
-                    onChange={(e) =>
-                      updateOption('budgets', index, 'id', e.target.value)
-                    }
-                    placeholder={t('giftFinder.form.id')}
-                    aria-label={fieldLabel('budgets', index, 'id')}
-                    dir='ltr'
-                    className='flex-1 rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                  />
-                  <input
-                    required
-                    value={option.label}
-                    onChange={(e) =>
-                      updateOption('budgets', index, 'label', e.target.value)
-                    }
-                    placeholder={t('giftFinder.form.label')}
-                    aria-label={fieldLabel('budgets', index, 'label')}
-                    dir='auto'
-                    className='flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                  />
-                  <input
-                    type='number'
-                    value={option.minPrice || ''}
-                    onChange={(e) =>
-                      updateOption(
-                        'budgets',
-                        index,
-                        'minPrice',
-                        e.target.value,
-                      )
-                    }
-                    placeholder={t('giftFinder.form.minPrice')}
-                    aria-label={fieldLabel('budgets', index, 'minPrice')}
-                    className='w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                  />
-                  <input
-                    type='number'
-                    value={option.maxPrice || ''}
-                    onChange={(e) =>
-                      updateOption(
-                        'budgets',
-                        index,
-                        'maxPrice',
-                        e.target.value,
-                      )
-                    }
-                    placeholder={t('giftFinder.form.maxPrice')}
-                    aria-label={fieldLabel('budgets', index, 'maxPrice')}
-                    className='w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                  />
-                  {form.budgets.length > 1 && (
-                    <button
-                      type='button'
-                      onClick={() => removeOption('budgets', index)}
-                      aria-label={t('giftFinder.form.removeOption', { option: optionName('budgets', index) })}
-                      className='rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-600 hover:bg-red-100 dark:border-red-700 dark:bg-red-950/40 dark:text-red-400'
-                    >
-                      {t('giftFinder.form.remove')}
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button
-                type='button'
-                onClick={() => addOption('budgets')}
-                className='mt-2 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300'
-              >
-                {t('giftFinder.form.addBudget')}
-              </button>
-            </div>
-
-            <label className='flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300'>
-              <input
-                type='checkbox'
+            {renderSection(
+              'occasions',
+              t('giftFinder.form.occasions'),
+              t('giftFinder.form.addOccasion'),
+            )}
+            {renderSection(
+              'recipients',
+              t('giftFinder.form.recipients'),
+              t('giftFinder.form.addRecipient'),
+            )}
+            {renderSection(
+              'budgets',
+              t('giftFinder.form.budgets'),
+              t('giftFinder.form.addBudget'),
+            )}
+            <div className='border-t border-border pt-5'>
+              <Switch
                 checked={!!form.active}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, active: e.target.checked }))
+                onCheckedChange={(active) =>
+                  setForm((f) => ({ ...f, active }))
                 }
+                label={t('giftFinder.form.activeOnly')}
               />
-              {t('giftFinder.form.activeOnly')}
-            </label>
-
-            <div className='flex justify-end gap-2 pt-2'>
-              <button
-                type='button'
-                disabled={saving}
-                onClick={() => setOpen(false)}
-                className='rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                type='submit'
-                disabled={saving}
-                className='rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60'
-              >
-                {saving ? t('common.saving') : editing ? t('common.save') : t('common.create')}
-              </button>
             </div>
+            <FormActions
+              onCancel={() => setOpen(false)}
+              saving={saving}
+              submitLabel={editing ? t('common.save') : t('common.create')}
+            />
           </form>
         </FormDialog>
       )}
-    </motion.div>
+    </>
   );
 }

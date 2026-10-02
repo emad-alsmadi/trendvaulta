@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RotateCcw } from 'lucide-react';
+import { Ban, CheckCircle2, PackageCheck, RotateCcw, Undo2 } from 'lucide-react';
 import { useUpdateReturnMutation } from '../../hooks/useAdminOrders';
 import {
   errorMessage,
@@ -10,14 +10,11 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { useToast } from '../ui/Toast';
 import { useConfirm } from '../ui/ConfirmDialog';
 import { useT } from '../../i18n/I18nProvider';
-
-const STATUS_CLASS: Record<string, string> = {
-  requested: 'bg-violet-100 text-violet-800 dark:bg-violet-900/50 dark:text-violet-200',
-  approved: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200',
-  received: 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200',
-  refunded: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200',
-  rejected: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200',
-};
+import { Button } from '../ui/Button';
+import { Card, CardHeader } from '../ui/Card';
+import { Field, Input, Textarea } from '../ui/Field';
+import { StatusBadge } from '../ui/StatusBadge';
+import { text } from '../ui/styles';
 
 /** Must be replaced before approving — see approve(). */
 const ADDRESS_PLACEHOLDER = '[RETURN ADDRESS]';
@@ -84,7 +81,10 @@ export function ReturnPanel({ order }: { order: AdminOrderDetail }) {
 
   const busy = updateReturn.isPending;
   const canAct = can('orders:write');
-  const open = rr.status === 'requested' || rr.status === 'approved' || rr.status === 'received';
+  const open =
+    rr.status === 'requested' ||
+    rr.status === 'approved' ||
+    rr.status === 'received';
 
   async function send(payload: ReturnUpdatePayload, success: string) {
     try {
@@ -97,12 +97,17 @@ export function ReturnPanel({ order }: { order: AdminOrderDetail }) {
   }
 
   async function approve() {
-    const text = instructions.trim();
-    if (!text || text.includes(ADDRESS_PLACEHOLDER)) {
-      toast.error(t('returns.replaceAddress', { placeholder: ADDRESS_PLACEHOLDER }));
+    const value = instructions.trim();
+    if (!value || value.includes(ADDRESS_PLACEHOLDER)) {
+      toast.error(
+        t('returns.replaceAddress', { placeholder: ADDRESS_PLACEHOLDER }),
+      );
       return;
     }
-    await send({ status: 'approved', instructions: text, notes: notes.trim() }, t('returns.approved'));
+    await send(
+      { status: 'approved', instructions: value, notes: notes.trim() },
+      t('returns.approved'),
+    );
   }
 
   async function reject() {
@@ -116,13 +121,18 @@ export function ReturnPanel({ order }: { order: AdminOrderDetail }) {
       confirmLabel: t('returns.reject'),
     });
     if (!ok) return;
-    await send({ status: 'rejected', notes: notes.trim() }, t('returns.rejected'));
+    await send(
+      { status: 'rejected', notes: notes.trim() },
+      t('returns.rejected'),
+    );
   }
 
   async function refund() {
     const value = Math.round(Number(amount) * 100) / 100;
     if (!(value > 0) || value > refundable) {
-      toast.error(t('returns.amountRange', { min: money(0.01), max: money(refundable) }));
+      toast.error(
+        t('returns.amountRange', { min: money(0.01), max: money(refundable) }),
+      );
       return;
     }
     const ok = await confirm({
@@ -131,166 +141,208 @@ export function ReturnPanel({ order }: { order: AdminOrderDetail }) {
       confirmLabel: t('returns.refundButton', { amount: money(value) }),
     });
     if (!ok) return;
-    await send({ status: 'refunded', refundAmount: value, notes: notes.trim() }, t('returns.refundIssued'));
+    await send(
+      { status: 'refunded', refundAmount: value, notes: notes.trim() },
+      t('returns.refundIssued'),
+    );
   }
 
-  const field =
-    'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white';
-
   return (
-    <section className='rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800'>
-      <div className='mb-4 flex flex-wrap items-center justify-between gap-2'>
-        <h2 className='flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400'>
-          <RotateCcw className='h-4 w-4' aria-hidden />
-          {t('returns.title')}
-        </h2>
-        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_CLASS[rr.status] || ''}`}>
-          {tv('returnStage', rr.status)}
-        </span>
-      </div>
+    <Card>
+      <CardHeader
+        icon={<RotateCcw />}
+        title={t('returns.title')}
+        description={
+          rr.requestedAt
+            ? t('returns.requestedAt', { date: formatDateTime(rr.requestedAt) })
+            : undefined
+        }
+        actions={
+          <StatusBadge status={rr.status}>
+            {tv('returnStage', rr.status)}
+          </StatusBadge>
+        }
+      />
 
-      <dl className='space-y-3 text-sm'>
-        <div>
-          <dt className='text-gray-500 dark:text-gray-400'>{t('returns.customerReason')}</dt>
-          <dd dir='auto' className='whitespace-pre-line text-gray-900 dark:text-white'>{rr.reason || '—'}</dd>
+      <dl className='space-y-4 text-sm'>
+        <div className='space-y-1'>
+          <dt className={text.caption}>{t('returns.customerReason')}</dt>
+          <dd
+            dir='auto'
+            className='whitespace-pre-line text-foreground'
+          >
+            {rr.reason || '—'}
+          </dd>
         </div>
-        <div>
-          <dt className='text-gray-500 dark:text-gray-400'>{t('returns.items')}</dt>
+        <div className='space-y-1'>
+          <dt className={text.caption}>{t('returns.items')}</dt>
           <dd>
-            <ul className='mt-1 space-y-1'>
+            <ul className='divide-y divide-border rounded-badge border border-border'>
               {rr.items.map((item) => (
-                <li key={item.productId} className='text-gray-900 dark:text-white'>
-                  {item.title} × {item.qty}
-                  {item.reason && (
-                    <span className='block text-xs text-gray-500'>{item.reason}</span>
-                  )}
+                <li
+                  key={item.productId}
+                  className='flex items-start justify-between gap-3 px-3 py-2'
+                >
+                  <span className='min-w-0'>
+                    <span className='block text-foreground'>{item.title}</span>
+                    {item.reason && (
+                      <span
+                        className='block text-xs text-muted-foreground'
+                        dir='auto'
+                      >
+                        {item.reason}
+                      </span>
+                    )}
+                  </span>
+                  <span className='shrink-0 tabular-nums text-muted-foreground'>
+                    × {item.qty}
+                  </span>
                 </li>
               ))}
             </ul>
           </dd>
         </div>
-        {rr.requestedAt && (
-          <div className='text-xs text-gray-500'>
-            {t('returns.requestedAt', { date: formatDateTime(rr.requestedAt) })}
-          </div>
-        )}
         {rr.status === 'refunded' && (
-          <div className='font-medium text-green-700 dark:text-green-300'>
-            {rr.refundedAt
-              ? t('returns.refundedOn', {
-                  amount: money(rr.refundAmount || 0),
-                  date: formatDate(rr.refundedAt),
-                })
-              : t('returns.refundedAmount', { amount: money(rr.refundAmount || 0) })}
-            {rr.refundId ? ` · ${rr.refundId}` : ''}
+          <div className='flex items-center gap-2 rounded-badge border border-foreground px-3 py-2 font-medium text-foreground'>
+            <CheckCircle2
+              className='size-4 shrink-0'
+              aria-hidden
+            />
+            <span>
+              {rr.refundedAt
+                ? t('returns.refundedOn', {
+                    amount: money(rr.refundAmount || 0),
+                    date: formatDate(rr.refundedAt),
+                  })
+                : t('returns.refundedAmount', {
+                    amount: money(rr.refundAmount || 0),
+                  })}
+              {rr.refundId ? ` · ${rr.refundId}` : ''}
+            </span>
           </div>
         )}
         {!open && rr.notes && (
-          <div>
-            <dt className='text-gray-500 dark:text-gray-400'>{t('returns.noteToCustomer')}</dt>
-            <dd dir='auto' className='whitespace-pre-line text-gray-900 dark:text-white'>{rr.notes}</dd>
+          <div className='space-y-1'>
+            <dt className={text.caption}>{t('returns.noteToCustomer')}</dt>
+            <dd
+              dir='auto'
+              className='whitespace-pre-line text-foreground'
+            >
+              {rr.notes}
+            </dd>
           </div>
         )}
         {rr.status !== 'requested' && rr.instructions && (
-          <div>
-            <dt className='text-gray-500 dark:text-gray-400'>{t('returns.instructionsSent')}</dt>
-            <dd dir='auto' className='whitespace-pre-line text-gray-700 dark:text-gray-300'>{rr.instructions}</dd>
+          <div className='space-y-1'>
+            <dt className={text.caption}>{t('returns.instructionsSent')}</dt>
+            <dd
+              dir='auto'
+              className='whitespace-pre-line rounded-badge bg-muted/60 p-3 text-foreground/80'
+            >
+              {rr.instructions}
+            </dd>
           </div>
         )}
       </dl>
 
       {open && canAct && (
-        <div className='mt-5 space-y-3 border-t border-gray-100 pt-4 dark:border-gray-700'>
+        <div className='mt-5 space-y-4 border-t border-border pt-5'>
           {rr.status === 'requested' && (
-            <label className='block text-sm'>
-              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                {t('returns.instructionsLabel')}
-              </span>
-              <textarea
+            <Field label={t('returns.instructionsLabel')}>
+              <Textarea
                 rows={5}
                 maxLength={2000}
                 value={instructions}
                 dir='auto'
                 onChange={(e) => setInstructions(e.target.value)}
-                className={field}
               />
-            </label>
+            </Field>
           )}
           {rr.status === 'received' && (
-            <label className='block text-sm'>
-              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                {t('returns.refundAmount')}
-              </span>
-              <input
+            <Field
+              label={t('returns.refundAmount')}
+              hint={t('returns.refundHint', { max: money(refundable) })}
+            >
+              <Input
                 type='number'
                 min={0.01}
                 max={refundable}
                 step='0.01'
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className={field}
+                className='tabular-nums'
               />
-              <span className='mt-1 block text-xs text-gray-500 dark:text-gray-400'>
-                {t('returns.refundHint', { max: money(refundable) })}
-              </span>
-            </label>
+            </Field>
           )}
-          <label className='block text-sm'>
-            <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-              {t('returns.noteToCustomer')}{' '}
-              {rr.status === 'requested' ? t('returns.noteRequired') : t('returns.noteOptional')}
-            </span>
-            <textarea
+          <Field
+            label={
+              <>
+                {t('returns.noteToCustomer')}{' '}
+                <span className='font-normal text-muted-foreground'>
+                  {rr.status === 'requested'
+                    ? t('returns.noteRequired')
+                    : t('returns.noteOptional')}
+                </span>
+              </>
+            }
+          >
+            <Textarea
               rows={2}
               maxLength={500}
               value={notes}
               dir='auto'
               onChange={(e) => setNotes(e.target.value)}
-              className={field}
+              className='min-h-16'
             />
-          </label>
+          </Field>
           <div className='flex flex-wrap justify-end gap-2'>
-            <button
-              type='button'
+            <Button
+              variant='destructive'
               disabled={busy}
               onClick={() => void reject()}
-              className='rounded-lg px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-60 dark:text-red-400 dark:hover:bg-red-950/40'
+              icon={<Ban aria-hidden />}
             >
               {t('returns.reject')}
-            </button>
+            </Button>
             {rr.status === 'requested' && (
-              <button
-                type='button'
-                disabled={busy}
+              <Button
+                variant='primary'
+                loading={busy}
                 onClick={() => void approve()}
-                className='rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60'
+                icon={<CheckCircle2 aria-hidden />}
               >
-                {busy ? t('returns.saving') : t('returns.approve')}
-              </button>
+                {t('returns.approve')}
+              </Button>
             )}
             {rr.status === 'approved' && (
-              <button
-                type='button'
-                disabled={busy}
-                onClick={() => void send({ status: 'received', notes: notes.trim() }, t('returns.received'))}
-                className='rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60'
+              <Button
+                variant='primary'
+                loading={busy}
+                onClick={() =>
+                  void send(
+                    { status: 'received', notes: notes.trim() },
+                    t('returns.received'),
+                  )
+                }
+                icon={<PackageCheck aria-hidden />}
               >
-                {busy ? t('returns.saving') : t('returns.markReceived')}
-              </button>
+                {t('returns.markReceived')}
+              </Button>
             )}
             {rr.status === 'received' && (
-              <button
-                type='button'
-                disabled={busy || refundable <= 0}
+              <Button
+                variant='primary'
+                loading={busy}
+                disabled={refundable <= 0}
                 onClick={() => void refund()}
-                className='rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60'
+                icon={<Undo2 aria-hidden />}
               >
-                {busy ? t('returns.refunding') : t('returns.refundViaStripe')}
-              </button>
+                {t('returns.refundViaStripe')}
+              </Button>
             )}
           </div>
         </div>
       )}
-    </section>
+    </Card>
   );
 }

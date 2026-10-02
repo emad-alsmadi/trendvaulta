@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Plus, Pencil, Trash2, Search } from 'lucide-react';
+import { MessageSquare, Plus, Pencil, Trash2 } from 'lucide-react';
 import {
   useAdminTestimonials,
   useCreateTestimonialMutation,
@@ -15,8 +14,22 @@ import {
 import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
-import { FormDialog } from '../components/ui/FormDialog';
+import { FormActions, FormDialog } from '../components/ui/FormDialog';
 import { useT } from '../i18n/I18nProvider';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Alert } from '../components/ui/Alert';
+import { Button } from '../components/ui/Button';
+import { IconButton } from '../components/ui/IconButton';
+import {
+  DataTable,
+  RowActions,
+  TableCount,
+  type DataTableColumn,
+} from '../components/ui/DataTable';
+import { FilterBar } from '../components/ui/FilterBar';
+import { Field, Input, Switch, Textarea } from '../components/ui/Field';
+import { StatusBadge } from '../components/ui/StatusBadge';
+import { Rating } from '../components/ui/Rating';
 
 const emptyForm: TestimonialPayload = {
   id: '',
@@ -109,7 +122,11 @@ export default function Testimonials() {
   }
 
   async function handleDelete(testimonial: AdminTestimonial) {
-    const ok = await confirm({ message: t('testimonials.confirmDelete', { name: testimonial.name }), danger: true, confirmLabel: t('common.delete') });
+    const ok = await confirm({
+      message: t('testimonials.confirmDelete', { name: testimonial.name }),
+      danger: true,
+      confirmLabel: t('common.delete'),
+    });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(testimonial._id);
@@ -118,242 +135,200 @@ export default function Testimonials() {
     }
   }
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
-      <div className='mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
-        <div>
-          <h1 className='text-3xl font-bold text-gray-900 dark:text-white'>
-            {t('testimonials.title')}
-          </h1>
-          <p className='mt-1 text-sm text-gray-600 dark:text-gray-400'>
-            {t('testimonials.subtitle')}
+  const columns: DataTableColumn<AdminTestimonial>[] = [
+    {
+      key: 'name',
+      header: t('testimonials.columns.name'),
+      cell: (item) => (
+        <div className='min-w-0'>
+          <p
+            className='font-medium text-foreground'
+            dir='auto'
+          >
+            {item.name}
+          </p>
+          <p
+            className='font-mono text-xs text-muted-foreground'
+            dir='ltr'
+          >
+            {item.id}
           </p>
         </div>
-        {can('content:write') && (
-          <button
-            type='button'
-            onClick={openCreate}
-            className='inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600'
-          >
-            <Plus className='me-2 h-5 w-5' aria-hidden />
-            {t('testimonials.add')}
-          </button>
-        )}
-      </div>
-
-      <div className='relative mb-6'>
-        <Search className='absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400' aria-hidden />
-        <input
-          type='search'
-          aria-label={t('testimonials.searchLabel')}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={t('testimonials.searchPlaceholder')}
-          className='w-full rounded-lg border border-gray-300 bg-white py-2 ps-10 pe-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white'
+      ),
+    },
+    {
+      key: 'role',
+      header: t('testimonials.columns.role'),
+      className: 'text-muted-foreground',
+      cell: (item) => <span dir='auto'>{item.role || '—'}</span>,
+    },
+    {
+      key: 'rating',
+      header: t('testimonials.columns.rating'),
+      cell: (item) => (
+        <Rating
+          value={item.rating}
+          label={t('testimonials.ratedOf', { n: item.rating })}
         />
-      </div>
-
-      {testimonialsQ.isLoading && (
-        <p className='py-10 text-center text-sm text-gray-500'>
-          {t('testimonials.loading')}
-        </p>
-      )}
-
-      {testimonialsQ.isError && (
-        <div className='rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200'>
-          {errorMessage(testimonialsQ.error, t('testimonials.loadFailed'))}
-        </div>
-      )}
-
-      {!testimonialsQ.isLoading && !testimonialsQ.isError && (
-        <div className='overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800'>
-          <div className='overflow-x-auto'>
-            <table className='w-full min-w-[800px]'>
-              <thead className='bg-gray-50 dark:bg-gray-700'>
-                <tr>
-                  {[
-                    t('testimonials.columns.id'),
-                    t('testimonials.columns.name'),
-                    t('testimonials.columns.role'),
-                    t('testimonials.columns.rating'),
-                    t('testimonials.columns.order'),
-                    t('common.status'),
-                    t('common.actions'),
-                  ].map((h) => (
-                    <th
-                      key={h}
-                      className='px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300'
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className='divide-y divide-gray-200 dark:divide-gray-700'>
-                {filtered.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      className='px-4 py-10 text-center text-sm text-gray-500'
-                    >
-                      {t('testimonials.empty')}
-                    </td>
-                  </tr>
-                ) : (
-                  filtered.map((testimonial) => (
-                    <tr
-                      key={testimonial._id}
-                      className='hover:bg-gray-50 dark:hover:bg-gray-700/60'
-                    >
-                      <td className='px-4 py-3 font-mono text-sm text-gray-600 dark:text-gray-400' dir='ltr'>
-                        {testimonial.id}
-                      </td>
-                      <td className='px-4 py-3 text-sm text-gray-900 dark:text-white' dir='auto'>
-                        {testimonial.name}
-                      </td>
-                      <td className='px-4 py-3 text-sm text-gray-600 dark:text-gray-400' dir='auto'>
-                        {testimonial.role || '—'}
-                      </td>
-                      <td className='px-4 py-3'>
-                        <div
-                          className='flex items-center gap-1'
-                          role='img'
-                          aria-label={t('testimonials.ratedOf', { n: testimonial.rating })}
-                        >
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <span
-                              key={i}
-                              aria-hidden
-                              className={`h-4 w-4 ${
-                                i < testimonial.rating
-                                  ? 'text-yellow-400'
-                                  : 'text-gray-300'
-                              }`}
-                            >
-                              ★
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className='px-4 py-3 text-sm text-gray-600 dark:text-gray-400'>
-                        {formatNumber(testimonial.sortOrder)}
-                      </td>
-                      <td className='px-4 py-3'>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                            testimonial.active
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                              : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-                          }`}
-                        >
-                          {testimonial.active ? t('common.active') : t('common.inactive')}
-                        </span>
-                      </td>
-                      <td className='px-4 py-3'>
-                        <div className='flex gap-1'>
-                          {can('content:write') && (
-                            <button
-                              type='button'
-                              onClick={() => openEdit(testimonial)}
-                              className='rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600'
-                              aria-label={t('common.editItem', { name: testimonial.name })}
-                            >
-                              <Pencil className='h-4 w-4 text-gray-500' aria-hidden />
-                            </button>
-                          )}
-                          {can('content:delete') && (
-                            <button
-                              type='button'
-                              onClick={() => void handleDelete(testimonial)}
-                              disabled={deleteMut.isPending}
-                              className='rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40'
-                              aria-label={t('common.deleteItem', { name: testimonial.name })}
-                            >
-                              <Trash2 className='h-4 w-4 text-red-500' aria-hidden />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-          {testimonialsQ.data?.meta && (
-            <p className='border-t border-gray-200 px-4 py-3 text-xs text-gray-500 dark:border-gray-700'>
-              {t('testimonials.showing', {
-                shown: formatNumber(filtered.length),
-                total: formatNumber(testimonialsQ.data.meta.total),
-              })}
-            </p>
+      ),
+    },
+    {
+      key: 'sortOrder',
+      header: t('testimonials.columns.order'),
+      numeric: true,
+      cell: (item) => formatNumber(item.sortOrder),
+    },
+    {
+      key: 'active',
+      header: t('common.status'),
+      cell: (item) => (
+        <StatusBadge status={item.active ? 'active' : 'inactive'}>
+          {item.active ? t('common.active') : t('common.inactive')}
+        </StatusBadge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: t('common.actions'),
+      actions: true,
+      cell: (item) => (
+        <RowActions>
+          {can('content:write') && (
+            <IconButton
+              icon={<Pencil aria-hidden />}
+              label={t('common.editItem', { name: item.name })}
+              onClick={() => openEdit(item)}
+            />
           )}
-        </div>
+          {can('content:delete') && (
+            <IconButton
+              icon={<Trash2 aria-hidden />}
+              label={t('common.deleteItem', { name: item.name })}
+              onClick={() => void handleDelete(item)}
+              disabled={deleteMut.isPending}
+            />
+          )}
+        </RowActions>
+      ),
+    },
+  ];
+
+  return (
+    <>
+      <PageHeader
+        title={t('testimonials.title')}
+        description={t('testimonials.subtitle')}
+        actions={
+          can('content:write') && (
+            <Button
+              variant='primary'
+              onClick={openCreate}
+              icon={<Plus aria-hidden />}
+            >
+              {t('testimonials.add')}
+            </Button>
+          )
+        }
+      />
+
+      {testimonialsQ.isError ? (
+        <Alert tone='error'>
+          {errorMessage(testimonialsQ.error, t('testimonials.loadFailed'))}
+        </Alert>
+      ) : (
+        <DataTable
+          caption={t('testimonials.title')}
+          data={filtered}
+          columns={columns}
+          getKey={(item) => item._id}
+          loading={testimonialsQ.isLoading}
+          fetching={testimonialsQ.isFetching}
+          emptyIcon={<MessageSquare aria-hidden />}
+          emptyTitle={t('testimonials.empty')}
+          toolbar={
+            <FilterBar
+              search={{
+                value: search,
+                onChange: setSearch,
+                placeholder: t('testimonials.searchPlaceholder'),
+                label: t('testimonials.searchLabel'),
+              }}
+              canClear={Boolean(search)}
+              onClear={() => setSearch('')}
+            />
+          }
+          footer={
+            testimonialsQ.data?.meta && (
+              <TableCount>
+                {t('testimonials.showing', {
+                  shown: formatNumber(filtered.length),
+                  total: formatNumber(testimonialsQ.data.meta.total),
+                })}
+              </TableCount>
+            )
+          }
+        />
       )}
 
       {open && (
         <FormDialog
           onClose={() => setOpen(false)}
-          title={editing ? t('testimonials.form.editTitle') : t('testimonials.form.createTitle')}
+          title={
+            editing
+              ? t('testimonials.form.editTitle')
+              : t('testimonials.form.createTitle')
+          }
           busy={saving}
-          maxWidthClass='max-w-2xl'
         >
           <form
             onSubmit={handleSubmit}
-            className='space-y-3'
+            className='space-y-4'
           >
-            <label className='block text-sm'>
-              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                {t('testimonials.form.id')}
-              </span>
-              <input
+            <div className='grid gap-4 sm:grid-cols-2'>
+              <Field
+                label={t('testimonials.form.id')}
                 required
-                value={form.id}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, id: e.target.value }))
-                }
-                placeholder='sara'
-                dir='ltr'
-                className='w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-              />
-            </label>
-            <label className='block text-sm'>
-              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                {t('testimonials.form.name')}
-              </span>
-              <input
+              >
+                <Input
+                  required
+                  value={form.id}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, id: e.target.value }))
+                  }
+                  placeholder='sara'
+                  dir='ltr'
+                  className='font-mono'
+                />
+              </Field>
+              <Field
+                label={t('testimonials.form.name')}
                 required
-                value={form.name}
-                dir='auto'
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, name: e.target.value }))
-                }
-                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-              />
-            </label>
-            <label className='block text-sm'>
-              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                {t('testimonials.form.role')}
-              </span>
-              <input
+              >
+                <Input
+                  required
+                  value={form.name}
+                  dir='auto'
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, name: e.target.value }))
+                  }
+                />
+              </Field>
+            </div>
+            <Field label={t('testimonials.form.role')}>
+              <Input
                 value={form.role || ''}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, role: e.target.value }))
                 }
                 placeholder={t('testimonials.form.rolePlaceholder')}
                 dir='auto'
-                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
               />
-            </label>
-            <label className='block text-sm'>
-              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                {t('testimonials.form.quote')}
-              </span>
-              <textarea
+            </Field>
+            <Field
+              label={t('testimonials.form.quote')}
+              required
+            >
+              <Textarea
                 required
                 value={form.quote}
                 dir='auto'
@@ -361,70 +336,46 @@ export default function Testimonials() {
                   setForm((f) => ({ ...f, quote: e.target.value }))
                 }
                 rows={3}
-                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
               />
-            </label>
-            <label className='block text-sm'>
-              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                {t('testimonials.form.rating')}
-              </span>
-              <input
-                type='number'
-                min={1}
-                max={5}
-                value={form.rating}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, rating: Number(e.target.value) }))
-                }
-                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-              />
-            </label>
-            <label className='block text-sm'>
-              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                {t('testimonials.form.sortOrder')}
-              </span>
-              <input
-                type='number'
-                value={form.sortOrder ?? 0}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    sortOrder: Number(e.target.value),
-                  }))
-                }
-                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-              />
-            </label>
-            <label className='flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300'>
-              <input
-                type='checkbox'
-                checked={!!form.active}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, active: e.target.checked }))
-                }
-              />
-              {t('common.active')}
-            </label>
-            <div className='flex justify-end gap-2 pt-2'>
-              <button
-                type='button'
-                disabled={saving}
-                onClick={() => setOpen(false)}
-                className='rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                type='submit'
-                disabled={saving}
-                className='rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60'
-              >
-                {saving ? t('common.saving') : editing ? t('common.save') : t('common.create')}
-              </button>
+            </Field>
+            <div className='grid gap-4 sm:grid-cols-2'>
+              <Field label={t('testimonials.form.rating')}>
+                <Input
+                  type='number'
+                  min={1}
+                  max={5}
+                  value={form.rating}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, rating: Number(e.target.value) }))
+                  }
+                />
+              </Field>
+              <Field label={t('testimonials.form.sortOrder')}>
+                <Input
+                  type='number'
+                  value={form.sortOrder ?? 0}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      sortOrder: Number(e.target.value),
+                    }))
+                  }
+                />
+              </Field>
             </div>
+            <Switch
+              checked={!!form.active}
+              onCheckedChange={(active) => setForm((f) => ({ ...f, active }))}
+              label={t('common.active')}
+            />
+            <FormActions
+              onCancel={() => setOpen(false)}
+              saving={saving}
+              submitLabel={editing ? t('common.save') : t('common.create')}
+            />
           </form>
         </FormDialog>
       )}
-    </motion.div>
+    </>
   );
 }

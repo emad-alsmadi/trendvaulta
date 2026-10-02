@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Plus, Pencil, Trash2, Search } from 'lucide-react';
+import { FileText, Plus, Pencil, Trash2 } from 'lucide-react';
 import {
   useAdminContent,
   useCreateContentMutation,
@@ -16,10 +15,29 @@ import {
 import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
-import { FormDialog } from '../components/ui/FormDialog';
+import { FormActions, FormDialog } from '../components/ui/FormDialog';
 import { useT } from '../i18n/I18nProvider';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Alert } from '../components/ui/Alert';
+import { Button } from '../components/ui/Button';
+import { IconButton } from '../components/ui/IconButton';
+import {
+  DataTable,
+  RowActions,
+  TableCount,
+  type DataTableColumn,
+} from '../components/ui/DataTable';
+import { FilterBar } from '../components/ui/FilterBar';
+import { Field, Input, Select, Switch, Textarea } from '../components/ui/Field';
+import { Badge, StatusBadge } from '../components/ui/StatusBadge';
 
-const CONTENT_TYPES: ContentType[] = ['SHIPPING', 'RETURNS', 'PRIVACY', 'TERMS', 'STOREFRONT_TRUST'];
+const CONTENT_TYPES: ContentType[] = [
+  'SHIPPING',
+  'RETURNS',
+  'PRIVACY',
+  'TERMS',
+  'STOREFRONT_TRUST',
+];
 
 const emptyForm: ContentPayload = {
   type: 'SHIPPING',
@@ -107,7 +125,14 @@ export default function Content() {
   }
 
   async function handleDelete(content: AdminContent) {
-    const ok = await confirm({ message: t('content.confirmDelete', { title: content.title, type: tv('contentType', content.type) }), danger: true, confirmLabel: t('common.delete') });
+    const ok = await confirm({
+      message: t('content.confirmDelete', {
+        title: content.title,
+        type: tv('contentType', content.type),
+      }),
+      danger: true,
+      confirmLabel: t('common.delete'),
+    });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(content._id);
@@ -116,244 +141,211 @@ export default function Content() {
     }
   }
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            {t('content.title')}
-          </h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            {t('content.subtitle')}
-          </p>
-        </div>
-        {can('content:write') && (
-          <button
-            type="button"
-            onClick={openCreate}
-            className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-          >
-            <Plus className="me-2 h-5 w-5" aria-hidden />
-            {t('content.add')}
-          </button>
-        )}
-      </div>
-
-      <div className="relative mb-6">
-        <Search className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" aria-hidden />
-        <input
-          type="search"
-          aria-label={t('content.searchLabel')}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={t('content.searchPlaceholder')}
-          className="w-full rounded-lg border border-gray-300 bg-white py-2 ps-10 pe-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-        />
-      </div>
-
-      {contentQ.isLoading && (
-        <p className="py-10 text-center text-sm text-gray-500">
-          {t('content.loading')}
-        </p>
-      )}
-
-      {contentQ.isError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-          {errorMessage(contentQ.error, t('content.loadFailed'))}
-        </div>
-      )}
-
-      {!contentQ.isLoading && !contentQ.isError && (
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px]">
-              <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  {[
-                    t('content.columns.type'),
-                    t('content.columns.title'),
-                    t('content.columns.preview'),
-                    t('common.status'),
-                    t('common.actions'),
-                  ].map((h) => (
-                    <th
-                      key={h}
-                      className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300"
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-10 text-center text-sm text-gray-500">
-                      {t('content.empty')}
-                    </td>
-                  </tr>
-                ) : (
-                  filtered.map((content) => (
-                    <tr
-                      key={content._id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700/60"
-                    >
-                      <td className="px-4 py-3">
-                        <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                          {tv('contentType', content.type)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-white" dir="auto">
-                          {content.title}
-                        </div>
-                      </td>
-                      <td className="max-w-[300px] truncate px-4 py-3 text-sm text-gray-600 dark:text-gray-400" dir="auto">
-                        {content.body}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                            content.active
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                              : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-                          }`}
-                        >
-                          {content.active ? t('common.active') : t('common.inactive')}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-1">
-                          {can('content:write') && (
-                            <button
-                              type="button"
-                              onClick={() => openEdit(content)}
-                              className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600"
-                              aria-label={t('common.editItem', { name: content.title })}
-                            >
-                              <Pencil className="h-4 w-4 text-gray-500" aria-hidden />
-                            </button>
-                          )}
-                          {can('content:delete') && (
-                            <button
-                              type="button"
-                              onClick={() => void handleDelete(content)}
-                              disabled={deleteMut.isPending}
-                              className="rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40"
-                              aria-label={t('common.deleteItem', { name: content.title })}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" aria-hidden />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-          {contentQ.data?.meta && (
-            <p className="border-t border-gray-200 px-4 py-3 text-xs text-gray-500 dark:border-gray-700">
-              {t('content.showing', {
-                shown: formatNumber(filtered.length),
-                total: formatNumber(contentQ.data.meta.total),
-              })}
-            </p>
+  const columns: DataTableColumn<AdminContent>[] = [
+    {
+      key: 'type',
+      header: t('content.columns.type'),
+      cell: (content) => (
+        <Badge plain>{tv('contentType', content.type)}</Badge>
+      ),
+    },
+    {
+      key: 'title',
+      header: t('content.columns.title'),
+      cell: (content) => (
+        <span
+          className='font-medium text-foreground'
+          dir='auto'
+        >
+          {content.title}
+        </span>
+      ),
+    },
+    {
+      key: 'body',
+      header: t('content.columns.preview'),
+      className: 'max-w-[22rem]',
+      cell: (content) => (
+        <span
+          className='block truncate text-muted-foreground'
+          dir='auto'
+        >
+          {content.body}
+        </span>
+      ),
+    },
+    {
+      key: 'active',
+      header: t('common.status'),
+      cell: (content) => (
+        <StatusBadge status={content.active ? 'published' : 'draft'}>
+          {content.active ? t('common.active') : t('common.inactive')}
+        </StatusBadge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: t('common.actions'),
+      actions: true,
+      cell: (content) => (
+        <RowActions>
+          {can('content:write') && (
+            <IconButton
+              icon={<Pencil aria-hidden />}
+              label={t('common.editItem', { name: content.title })}
+              onClick={() => openEdit(content)}
+            />
           )}
-        </div>
+          {can('content:delete') && (
+            <IconButton
+              icon={<Trash2 aria-hidden />}
+              label={t('common.deleteItem', { name: content.title })}
+              onClick={() => void handleDelete(content)}
+              disabled={deleteMut.isPending}
+            />
+          )}
+        </RowActions>
+      ),
+    },
+  ];
+
+  return (
+    <>
+      <PageHeader
+        title={t('content.title')}
+        description={t('content.subtitle')}
+        actions={
+          can('content:write') && (
+            <Button
+              variant='primary'
+              onClick={openCreate}
+              icon={<Plus aria-hidden />}
+            >
+              {t('content.add')}
+            </Button>
+          )
+        }
+      />
+
+      {contentQ.isError ? (
+        <Alert tone='error'>
+          {errorMessage(contentQ.error, t('content.loadFailed'))}
+        </Alert>
+      ) : (
+        <DataTable
+          caption={t('content.title')}
+          data={filtered}
+          columns={columns}
+          getKey={(content) => content._id}
+          loading={contentQ.isLoading}
+          fetching={contentQ.isFetching}
+          emptyIcon={<FileText aria-hidden />}
+          emptyTitle={t('content.empty')}
+          toolbar={
+            <FilterBar
+              search={{
+                value: search,
+                onChange: setSearch,
+                placeholder: t('content.searchPlaceholder'),
+                label: t('content.searchLabel'),
+              }}
+              canClear={Boolean(search)}
+              onClear={() => setSearch('')}
+            />
+          }
+          footer={
+            contentQ.data?.meta && (
+              <TableCount>
+                {t('content.showing', {
+                  shown: formatNumber(filtered.length),
+                  total: formatNumber(contentQ.data.meta.total),
+                })}
+              </TableCount>
+            )
+          }
+        />
       )}
 
       {open && (
         <FormDialog
           onClose={() => setOpen(false)}
-          title={editing ? t('content.form.editTitle') : t('content.form.createTitle')}
+          title={
+            editing ? t('content.form.editTitle') : t('content.form.createTitle')
+          }
           busy={saving}
-          maxWidthClass="max-w-2xl"
+          size='editor'
         >
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <label className="block text-sm">
-              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                {t('content.form.type')}
-              </span>
-              <select
+          <form
+            onSubmit={handleSubmit}
+            className='space-y-4'
+          >
+            <div className='grid gap-4 sm:grid-cols-[14rem_1fr]'>
+              <Field
+                label={t('content.form.type')}
                 required
-                value={form.type}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, type: e.target.value as ContentType }))
-                }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
               >
-                {CONTENT_TYPES.map((type) => (
-                  <option key={type} value={type}>
-                    {tv('contentType', type)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-sm">
-              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                {t('content.form.title')}
-              </span>
-              <input
+                <Select
+                  required
+                  value={form.type}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      type: e.target.value as ContentType,
+                    }))
+                  }
+                >
+                  {CONTENT_TYPES.map((type) => (
+                    <option
+                      key={type}
+                      value={type}
+                    >
+                      {tv('contentType', type)}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field
+                label={t('content.form.title')}
                 required
-                value={form.title}
-                dir="auto"
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, title: e.target.value }))
-                }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-              />
-            </label>
-            <label className="block text-sm">
-              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                {t('content.form.body')}
-              </span>
-              <textarea
+              >
+                <Input
+                  required
+                  value={form.title}
+                  dir='auto'
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, title: e.target.value }))
+                  }
+                />
+              </Field>
+            </div>
+            <Field
+              label={t('content.form.body')}
+              required
+            >
+              <Textarea
                 required
                 value={form.body}
-                dir="auto"
+                dir='auto'
                 onChange={(e) =>
                   setForm((f) => ({ ...f, body: e.target.value }))
                 }
-                rows={10}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                rows={12}
+                className='leading-relaxed'
               />
-            </label>
-            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-              <input
-                type="checkbox"
-                checked={!!form.active}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, active: e.target.checked }))
-                }
-              />
-              {t('common.active')}
-            </label>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => setOpen(false)}
-                className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
-              >
-                {saving ? t('common.saving') : editing ? t('common.save') : t('common.create')}
-              </button>
-            </div>
+            </Field>
+            <Switch
+              checked={!!form.active}
+              onCheckedChange={(active) => setForm((f) => ({ ...f, active }))}
+              label={t('common.active')}
+            />
+            <FormActions
+              onCancel={() => setOpen(false)}
+              saving={saving}
+              submitLabel={editing ? t('common.save') : t('common.create')}
+            />
           </form>
         </FormDialog>
       )}
-    </motion.div>
+    </>
   );
 }

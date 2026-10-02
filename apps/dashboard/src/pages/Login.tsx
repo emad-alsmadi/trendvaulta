@@ -1,17 +1,13 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import {
-  AlertCircle,
   BarChart3,
   Eye,
   EyeOff,
   Languages,
-  Loader2,
   Lock,
   Mail,
   Package,
   ShieldCheck,
-  Sparkles,
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { authApi, errorMessage } from '../lib/api';
@@ -19,6 +15,11 @@ import { pickPrimaryRole, setAuthSession } from '../lib/auth';
 import { isStaffRole } from '../lib/permissions';
 import { useT } from '../i18n/I18nProvider';
 import type { MessageKey } from '../i18n/en';
+import { Alert } from '../components/ui/Alert';
+import { Button } from '../components/ui/Button';
+import { Checkbox, FieldError } from '../components/ui/Field';
+import { focusRing, inputClass, labelClass } from '../components/ui/styles';
+import { cn } from '../lib/cn';
 
 /** Thrown by our own guards; the message is a translation key. */
 class LoginGuardError extends Error {
@@ -33,9 +34,8 @@ const HIGHLIGHTS = [
   { icon: ShieldCheck, text: 'login.highlightAccess' },
 ] as const;
 
-const inputClass =
-  'block w-full rounded-lg border bg-white py-2.5 ps-10 text-sm text-gray-900 shadow-sm transition-[border-color,box-shadow] placeholder:text-gray-400 ' +
-  'focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-gray-900 dark:text-white dark:placeholder:text-gray-500';
+/** Taller controls on the sign-in card: easier to hit, calmer to read. */
+const loginInput = cn(inputClass, 'h-control-lg ps-10');
 
 export default function Login() {
   const navigate = useNavigate();
@@ -89,41 +89,42 @@ export default function Login() {
   const trackCapsLock = (e: React.KeyboardEvent<HTMLInputElement>) =>
     setCapsLock(e.getModifierState?.('CapsLock') ?? false);
 
-  const fieldBorder = error
-    ? 'border-red-300 focus:border-red-500 focus:ring-red-500/15 dark:border-red-800'
-    : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500/15 dark:border-gray-700';
-
   return (
-    <div className='grid min-h-screen bg-white dark:bg-gray-950 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]'>
-      {/* Brand panel — desktop only. */}
-      <aside className='relative hidden overflow-hidden bg-gray-950 p-12 text-white lg:flex lg:flex-col lg:justify-between'>
+    <div className='grid min-h-screen bg-background lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]'>
+      {/* Brand panel — desktop only, in the sidebar's dark ink. */}
+      <aside className='relative hidden overflow-hidden bg-sidebar p-12 text-sidebar-foreground lg:flex lg:flex-col lg:justify-between'>
+        {/* Fine grid texture instead of colour. */}
         <div
           aria-hidden
-          className='pointer-events-none absolute -end-32 -top-32 h-96 w-96 rounded-full bg-fuchsia-600/30 blur-3xl'
-        />
-        <div
-          aria-hidden
-          className='pointer-events-none absolute -bottom-40 -start-24 h-[28rem] w-[28rem] rounded-full bg-indigo-600/25 blur-3xl'
+          className='pointer-events-none absolute inset-0 opacity-[0.07] [background-image:linear-gradient(hsl(var(--sidebar-foreground))_1px,transparent_1px),linear-gradient(90deg,hsl(var(--sidebar-foreground))_1px,transparent_1px)] [background-size:48px_48px] [mask-image:radial-gradient(ellipse_at_top_left,black_20%,transparent_70%)]'
         />
         <div className='relative flex items-center gap-2.5'>
-          <span className='inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-fuchsia-600 via-purple-600 to-cyan-500'>
-            <Sparkles className='h-5 w-5' aria-hidden />
+          <span className='flex size-9 items-center justify-center rounded-control bg-sidebar-foreground text-xs font-bold text-sidebar'>
+            TV
           </span>
-          <span className='text-lg font-bold tracking-tight'>TrendVaulta</span>
-          <span className='ms-1 rounded-full border border-white/15 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider text-white/60'>
+          <span className='text-lg font-semibold tracking-tight'>
+            TrendVaulta
+          </span>
+          <span className='ms-1 rounded-full border border-sidebar-border px-2 py-0.5 text-caption uppercase text-sidebar-muted'>
             {t('login.brandBadge')}
           </span>
         </div>
 
         <div className='relative max-w-md'>
-          <h2 className='text-4xl font-bold leading-tight tracking-tight'>
+          <h2 className='text-4xl font-semibold leading-tight tracking-tight'>
             {t('login.headline')}
           </h2>
-          <ul className='mt-10 space-y-5'>
+          <ul className='mt-10 space-y-4'>
             {HIGHLIGHTS.map(({ icon: Icon, text }) => (
-              <li key={text} className='flex items-center gap-4 text-white/80'>
-                <span className='inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/10 ring-1 ring-white/10'>
-                  <Icon className='h-5 w-5' aria-hidden />
+              <li
+                key={text}
+                className='flex items-center gap-4 text-sidebar-muted'
+              >
+                <span className='inline-flex size-10 shrink-0 items-center justify-center rounded-control border border-sidebar-border bg-sidebar-accent text-sidebar-foreground'>
+                  <Icon
+                    className='size-5'
+                    aria-hidden
+                  />
                 </span>
                 {t(text)}
               </li>
@@ -131,7 +132,9 @@ export default function Login() {
           </ul>
         </div>
 
-        <p className='relative text-xs text-white/40'>© {new Date().getFullYear()} TrendVaulta</p>
+        <p className='relative text-xs text-sidebar-muted/70'>
+          © {new Date().getFullYear()} TrendVaulta
+        </p>
       </aside>
 
       {/* Form */}
@@ -141,50 +144,53 @@ export default function Login() {
           onClick={() => setLocale(locale === 'en' ? 'ar' : 'en')}
           aria-label={t('common.switchLanguageLabel')}
           lang={locale === 'en' ? 'ar' : 'en'}
-          className='absolute end-4 top-4 inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800'
+          className={cn(
+            'absolute end-4 top-4 inline-flex h-control items-center gap-2 rounded-control px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+            focusRing,
+          )}
         >
-          <Languages className='h-4 w-4' aria-hidden />
+          <Languages
+            className='size-4'
+            aria-hidden
+          />
           {t('common.switchLanguage')}
         </button>
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className='w-full max-w-sm'
-        >
+
+        <div className='page-transition w-full max-w-sm'>
           <div className='mb-8 flex items-center gap-2.5 lg:hidden'>
-            <span className='inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-fuchsia-600 via-purple-600 to-cyan-500 text-white'>
-              <Sparkles className='h-5 w-5' aria-hidden />
+            <span className='flex size-9 items-center justify-center rounded-control bg-primary text-xs font-bold text-primary-foreground'>
+              TV
             </span>
-            <span className='text-lg font-bold tracking-tight text-gray-900 dark:text-white'>TrendVaulta Admin</span>
+            <span className='text-lg font-semibold tracking-tight text-foreground'>
+              TrendVaulta Admin
+            </span>
           </div>
 
-          <h1 className='text-2xl font-bold tracking-tight text-gray-900 dark:text-white'>
+          <h1 className='text-page-title text-foreground'>
             {t('login.title')}
           </h1>
-          <p className='mt-2 text-sm text-gray-500 dark:text-gray-400'>
+          <p className='mt-2 text-sm text-muted-foreground'>
             {t('login.subtitle')}
           </p>
 
-          <form onSubmit={handleLogin} className='mt-8 space-y-5'>
-            {errorText && (
-              <motion.div
-                role='alert'
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                className='flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200'
-              >
-                <AlertCircle className='mt-0.5 h-4 w-4 shrink-0' aria-hidden />
-                {errorText}
-              </motion.div>
-            )}
+          <form
+            onSubmit={handleLogin}
+            className='mt-8 space-y-5'
+          >
+            {errorText && <Alert tone='error'>{errorText}</Alert>}
 
-            <div>
-              <label htmlFor='admin-email' className='mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300'>
+            <div className='space-y-1.5'>
+              <label
+                htmlFor='admin-email'
+                className={labelClass}
+              >
                 {t('login.email')}
               </label>
               <div className='relative'>
-                <Mail className='pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' aria-hidden />
+                <Mail
+                  className='pointer-events-none absolute start-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground'
+                  aria-hidden
+                />
                 <input
                   id='admin-email'
                   type='email'
@@ -197,17 +203,23 @@ export default function Login() {
                   dir='ltr'
                   disabled={loading}
                   aria-invalid={Boolean(error) || undefined}
-                  className={`${inputClass} pe-3 ${fieldBorder}`}
+                  className={cn(loginInput, 'pe-3')}
                 />
               </div>
             </div>
 
-            <div>
-              <label htmlFor='admin-password' className='mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300'>
+            <div className='space-y-1.5'>
+              <label
+                htmlFor='admin-password'
+                className={labelClass}
+              >
                 {t('login.password')}
               </label>
               <div className='relative'>
-                <Lock className='pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' aria-hidden />
+                <Lock
+                  className='pointer-events-none absolute start-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground'
+                  aria-hidden
+                />
                 <input
                   id='admin-password'
                   type={showPassword ? 'text' : 'password'}
@@ -222,49 +234,57 @@ export default function Login() {
                   disabled={loading}
                   aria-invalid={Boolean(error) || undefined}
                   aria-describedby={capsLock ? 'caps-lock-hint' : undefined}
-                  className={`${inputClass} pe-11 ${fieldBorder}`}
+                  className={cn(loginInput, 'pe-11')}
                 />
                 <button
                   type='button'
                   onClick={() => setShowPassword((v) => !v)}
                   // Keep focus (and the caret) in the field while toggling.
                   onMouseDown={(e) => e.preventDefault()}
-                  aria-label={showPassword ? t('login.hidePassword') : t('login.showPassword')}
+                  aria-label={
+                    showPassword
+                      ? t('login.hidePassword')
+                      : t('login.showPassword')
+                  }
                   aria-pressed={showPassword}
                   aria-controls='admin-password'
-                  className='absolute inset-y-0 end-0 flex w-11 items-center justify-center rounded-e-lg text-gray-400 transition-colors hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 dark:hover:text-gray-200'
+                  className='absolute inset-y-0 end-0 flex w-11 items-center justify-center rounded-e-control text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring'
                 >
-                  {showPassword ? <EyeOff className='h-4 w-4' aria-hidden /> : <Eye className='h-4 w-4' aria-hidden />}
+                  {showPassword ? (
+                    <EyeOff
+                      className='size-4'
+                      aria-hidden
+                    />
+                  ) : (
+                    <Eye
+                      className='size-4'
+                      aria-hidden
+                    />
+                  )}
                 </button>
               </div>
               {capsLock && (
-                <p id='caps-lock-hint' className='mt-1.5 text-xs font-medium text-amber-600 dark:text-amber-400'>
-                  {t('login.capsLock')}
-                </p>
+                <FieldError id='caps-lock-hint'>{t('login.capsLock')}</FieldError>
               )}
             </div>
 
-            <label className='flex cursor-pointer select-none items-center gap-2.5 text-sm text-gray-600 dark:text-gray-400'>
-              <input
-                type='checkbox'
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-                className='h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600'
-              />
-              {t('login.remember')}
-            </label>
+            <Checkbox
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+              label={t('login.remember')}
+            />
 
-            <button
+            <Button
               type='submit'
-              disabled={loading}
-              aria-busy={loading || undefined}
-              className='inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-[background-color,transform] hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-gray-900/20 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100'
+              variant='primary'
+              size='lg'
+              loading={loading}
+              className='w-full'
             >
-              {loading && <Loader2 className='h-4 w-4 animate-spin' aria-hidden />}
-              {loading ? t('login.submitting') : t('login.submit')}
-            </button>
+              {t('login.submit')}
+            </Button>
           </form>
-        </motion.div>
+        </div>
       </main>
     </div>
   );

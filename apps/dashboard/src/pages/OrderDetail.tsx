@@ -1,6 +1,19 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Copy, FileText, Package, Plus } from 'lucide-react';
+import {
+  ArrowLeft,
+  Copy,
+  CreditCard,
+  FileText,
+  MapPin,
+  Package,
+  Pencil,
+  Receipt,
+  Store,
+  Truck,
+  User,
+  X,
+} from 'lucide-react';
 import {
   useAdminOrderById,
   useUpdateOrderStatusMutation,
@@ -16,12 +29,36 @@ import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { ReturnPanel } from '../components/orders/ReturnPanel';
 import { usePermissions } from '../hooks/usePermissions';
-import { useState } from 'react';
 import { useT } from '../i18n/I18nProvider';
 import { orderStatusOutcome } from '../lib/orderStatusOutcome';
+import { Alert } from '../components/ui/Alert';
+import { Button } from '../components/ui/Button';
+import { IconButton } from '../components/ui/IconButton';
+import { Card, CardHeader, KeyValue } from '../components/ui/Card';
+import { Field, Input, Select } from '../components/ui/Field';
+import { Skeleton } from '../components/ui/Skeleton';
+import { StatusBadge } from '../components/ui/StatusBadge';
+import { Thumbnail } from '../components/ui/Table';
+import { buttonVariants, text } from '../components/ui/styles';
+import { cn } from '../lib/cn';
 
 // Carrier scan statuses staff can add; labels come from tv('trackingEvent').
-const TRACKING_EVENTS = ['picked_up', 'in_transit', 'out_for_delivery', 'delivered', 'exception'];
+const TRACKING_EVENTS = [
+  'picked_up',
+  'in_transit',
+  'out_for_delivery',
+  'delivered',
+  'exception',
+];
+
+const emptyTracking = {
+  trackingNumber: '',
+  trackingCarrier: '',
+  trackingUrl: '',
+  eventStatus: '',
+  eventDescription: '',
+  eventLocation: '',
+};
 
 function customerLabel(user?: string | AdminOrderCustomer) {
   if (!user) return '—';
@@ -36,10 +73,63 @@ function variantLabel(
   if (!variant) return null;
   const parts = [
     variant.size ? t('orderDetail.variantSize', { value: variant.size }) : null,
-    variant.color ? t('orderDetail.variantColor', { value: variant.color }) : null,
+    variant.color
+      ? t('orderDetail.variantColor', { value: variant.color })
+      : null,
     variant.sku ? t('orderDetail.variantSku', { value: variant.sku }) : null,
   ].filter(Boolean);
   return parts.length ? parts.join(' · ') : null;
+}
+
+/** Placeholder in the page's own two-column shape. */
+function OrderDetailSkeleton() {
+  return (
+    <div className='space-y-6'>
+      <div className='space-y-2'>
+        <Skeleton
+          variant='custom'
+          className='h-8 w-56 rounded-control'
+        />
+        <Skeleton className='w-40' />
+      </div>
+      <div className='grid gap-6 lg:grid-cols-3'>
+        <div className='space-y-6 lg:col-span-2'>
+          {[0, 1].map((i) => (
+            <Card
+              key={i}
+              className='space-y-4'
+            >
+              <Skeleton className='w-24' />
+              {[0, 1, 2].map((r) => (
+                <div
+                  key={r}
+                  className='flex items-center gap-3'
+                >
+                  <Skeleton variant='thumbnail' />
+                  <div className='flex-1 space-y-2'>
+                    <Skeleton className='w-1/2' />
+                    <Skeleton className='w-1/4' />
+                  </div>
+                </div>
+              ))}
+            </Card>
+          ))}
+        </div>
+        <div className='space-y-6'>
+          {[0, 1].map((i) => (
+            <Card
+              key={i}
+              className='space-y-3'
+            >
+              <Skeleton className='w-20' />
+              <Skeleton />
+              <Skeleton className='w-2/3' />
+            </Card>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function OrderDetail() {
@@ -84,12 +174,17 @@ export default function OrderDetail() {
     });
     const ok = await confirm({
       message: refunds ? `${question} ${t('orders.refundNote')}` : question,
-      confirmLabel: refunds ? t('orderDetail.changeAndRefund') : t('orders.changeStatus'),
+      confirmLabel: refunds
+        ? t('orderDetail.changeAndRefund')
+        : t('orders.changeStatus'),
       danger: refunds,
     });
     if (!ok) return;
     try {
-      const result = await updateStatus.mutateAsync({ id: order._id, status: next });
+      const result = await updateStatus.mutateAsync({
+        id: order._id,
+        status: next,
+      });
       // Report what the server actually did — a refund may have needed
       // manual handling rather than being issued.
       const outcome = orderStatusOutcome(result, next, { t, tv });
@@ -99,14 +194,7 @@ export default function OrderDetail() {
     }
   }
   const [showTrackingForm, setShowTrackingForm] = useState(false);
-  const [trackingForm, setTrackingForm] = useState({
-    trackingNumber: '',
-    trackingCarrier: '',
-    trackingUrl: '',
-    eventStatus: '',
-    eventDescription: '',
-    eventLocation: '',
-  });
+  const [trackingForm, setTrackingForm] = useState(emptyTracking);
 
   const handleUpdateTracking = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,14 +219,7 @@ export default function OrderDetail() {
       await updateTracking.mutateAsync({ id, tracking });
       toast.success(t('orderDetail.trackingUpdated'));
       setShowTrackingForm(false);
-      setTrackingForm({
-        trackingNumber: '',
-        trackingCarrier: '',
-        trackingUrl: '',
-        eventStatus: '',
-        eventDescription: '',
-        eventLocation: '',
-      });
+      setTrackingForm(emptyTracking);
     } catch (err) {
       toast.error(errorMessage(err, t('orderDetail.trackingFailed')));
     }
@@ -180,194 +261,230 @@ export default function OrderDetail() {
     }
   }
 
+  const setTracking = (patch: Partial<typeof emptyTracking>) =>
+    setTrackingForm((f) => ({ ...f, ...patch }));
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
+    <>
       <Link
         to='/orders'
-        className='mb-4 inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:underline dark:text-blue-400'
+        className={cn(
+          buttonVariants({ variant: 'ghost', size: 'sm' }),
+          '-ms-3 mb-4 text-muted-foreground hover:text-foreground',
+        )}
       >
-        <ArrowLeft className='h-4 w-4 rtl:-scale-x-100' aria-hidden />
+        <ArrowLeft
+          className='rtl:-scale-x-100'
+          aria-hidden
+        />
         {t('orderDetail.back')}
       </Link>
 
-      {orderQ.isLoading && (
-        <p className='py-10 text-center text-sm text-gray-500'>
-          {t('orderDetail.loading')}
-        </p>
-      )}
+      {orderQ.isLoading && <OrderDetailSkeleton />}
 
       {orderQ.isError && (
-        <div className='rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200'>
+        <Alert tone='error'>
           {errorMessage(orderQ.error, t('orderDetail.loadFailed'))}
-        </div>
+        </Alert>
       )}
 
       {order && (
         <div className='space-y-6'>
-          <div className='flex flex-wrap items-start justify-between gap-4'>
-            <div>
-              <div className='flex items-center gap-2'>
-                <h1 className='text-2xl font-bold text-gray-900 dark:text-white'>
-                  {t('orderDetail.title', { ref: order._id.slice(-8).toUpperCase() })}
+          {/* Header: reference, when, where it stands, what to do next */}
+          <header className='flex flex-wrap items-start justify-between gap-4'>
+            <div className='min-w-0 space-y-2'>
+              <div className='flex items-center gap-1'>
+                <h1 className={text.pageTitle}>
+                  {t('orderDetail.title', {
+                    ref: order._id.slice(-8).toUpperCase(),
+                  })}
                 </h1>
-                <button
-                  type='button'
+                <IconButton
+                  icon={<Copy aria-hidden />}
+                  label={t('orderDetail.copyId')}
                   onClick={() => void copyId(order._id)}
-                  aria-label={t('orderDetail.copyId')}
-                  className='rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700'
-                >
-                  <Copy className='h-4 w-4' />
-                </button>
+                />
               </div>
-              {order.createdAt && (
-                <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>
-                  {t('orderDetail.placed', { date: formatDateTime(order.createdAt) })}
-                </p>
-              )}
-              {hasInvoice && (
-                <div className='mt-3 flex flex-wrap items-center gap-2'>
-                  <button
-                    type='button'
-                    onClick={() => void openInvoice('en')}
-                    className='inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700'
+              <div className='flex flex-wrap items-center gap-2'>
+                <StatusBadge status={order.status}>
+                  {tv('orderStatus', order.status)}
+                </StatusBadge>
+                <StatusBadge status={order.paymentStatus}>
+                  {t('orderDetail.paymentBadge', {
+                    status: tv('paymentStatus', order.paymentStatus),
+                  })}
+                </StatusBadge>
+                {order.attentionReason && (
+                  <StatusBadge
+                    status={order.attentionReason}
+                    tone='attention'
                   >
-                    <FileText className='h-4 w-4' aria-hidden='true' />
+                    {tv('attentionReason', order.attentionReason)}
+                  </StatusBadge>
+                )}
+                {order.createdAt && (
+                  <span className='text-body-sm text-muted-foreground'>
+                    {t('orderDetail.placed', {
+                      date: formatDateTime(order.createdAt),
+                    })}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className='flex flex-wrap items-center gap-2'>
+              {hasInvoice && (
+                <div className='flex items-center'>
+                  <Button
+                    onClick={() => void openInvoice('en')}
+                    icon={<FileText aria-hidden='true' />}
+                    className='rounded-e-none'
+                  >
                     {t('orderDetail.invoice')}
-                  </button>
-                  <button
-                    type='button'
+                  </Button>
+                  <Button
                     lang='ar'
                     onClick={() => void openInvoice('ar')}
                     aria-label={t('orderDetail.invoiceArabic')}
-                    className='rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700'
+                    className='-ms-px rounded-s-none'
                   >
                     عربي
-                  </button>
-                  {order.invoiceNumber && (
-                    <span className='text-xs text-gray-500 dark:text-gray-400'>
-                      {order.invoiceNumber}
-                    </span>
-                  )}
+                  </Button>
                 </div>
-              )}
-            </div>
-            <div className='flex flex-wrap gap-2'>
-              <span className='inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800 dark:bg-blue-900/40 dark:text-blue-200'>
-                {tv('orderStatus', order.status)}
-              </span>
-              <span className='inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-200'>
-                {t('orderDetail.paymentBadge', { status: tv('paymentStatus', order.paymentStatus) })}
-              </span>
-              {order.attentionReason && (
-                <span className='inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'>
-                  {tv('attentionReason', order.attentionReason)}
-                </span>
               )}
               {can('orders:write') &&
                 (order.allowedNextStatuses?.length ?? 0) > 0 && (
-                  <select
+                  <Select
                     value=''
                     disabled={updateStatus.isPending}
                     aria-label={t('orderDetail.changeStatusLabel')}
+                    placeholder={
+                      updateStatus.isPending
+                        ? t('orderDetail.updating')
+                        : t('orderDetail.changeStatusPlaceholder')
+                    }
                     onChange={(e) => void onChangeStatus(e.target.value)}
-                    className='rounded-md border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                  >
-                    <option value=''>
-                      {updateStatus.isPending ? t('orderDetail.updating') : t('orderDetail.changeStatusPlaceholder')}
-                    </option>
-                    {order.allowedNextStatuses?.map((s) => (
-                      <option key={s} value={s}>
-                        {tv('orderStatus', s)}
-                      </option>
-                    ))}
-                  </select>
+                    wrapperClassName='w-48'
+                    className='border-foreground font-medium data-[placeholder]:text-foreground'
+                    options={(order.allowedNextStatuses ?? []).map((s) => ({
+                      value: s,
+                      label: tv('orderStatus', s),
+                    }))}
+                  />
                 )}
             </div>
-          </div>
+          </header>
+          {order.invoiceNumber && hasInvoice && (
+            <p className='-mt-3 flex items-center gap-1.5 text-xs text-muted-foreground'>
+              <Receipt
+                className='size-3.5'
+                aria-hidden
+              />
+              <span className='font-mono'>{order.invoiceNumber}</span>
+            </p>
+          )}
 
-          <div className='grid gap-6 lg:grid-cols-3'>
-            <div className='lg:col-span-2 space-y-6'>
-              <ReturnPanel key={order.returnRequest?.status ?? 'none'} order={order} />
-              <section className='rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800'>
-                <h2 className='mb-4 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400'>
-                  {t('orderDetail.items')}
-                </h2>
-                <ul className='divide-y divide-gray-100 dark:divide-gray-700'>
+          <div className='grid items-start gap-6 lg:grid-cols-3'>
+            {/* Main column */}
+            <div className='space-y-6 lg:col-span-2'>
+              <ReturnPanel
+                key={order.returnRequest?.status ?? 'none'}
+                order={order}
+              />
+
+              <Card padded={false}>
+                <div className='p-5 pb-0 sm:p-6 sm:pb-0'>
+                  <CardHeader
+                    icon={<Package />}
+                    title={t('orderDetail.items')}
+                  />
+                </div>
+                <ul className='divide-y divide-border border-t border-border'>
                   {order.items.map((item, i) => (
                     <li
                       key={`${item.productId}-${i}`}
-                      className='flex items-center gap-3 py-3 first:pt-0 last:pb-0'
+                      className='flex items-center gap-4 px-5 py-3 sm:px-6'
                     >
-                      {item.cover ? (
-                        <img
-                          src={item.cover}
-                          alt={item.title}
-                          className='h-14 w-14 shrink-0 rounded-lg bg-gray-100 object-cover'
-                        />
-                      ) : (
-                        <div className='h-14 w-14 shrink-0 rounded-lg bg-gray-100 dark:bg-gray-700' />
-                      )}
+                      <Thumbnail
+                        src={item.cover}
+                        alt={item.title}
+                        className='size-14'
+                      />
                       <div className='min-w-0 flex-1'>
-                        <p className='truncate text-sm font-medium text-gray-900 dark:text-white'>
+                        <p className='truncate text-sm font-medium text-foreground'>
                           {item.title}
                         </p>
                         {variantLabel(item.variant, t) && (
-                          <p className='text-xs text-gray-500 dark:text-gray-400'>
+                          <p className='text-xs text-muted-foreground'>
                             {variantLabel(item.variant, t)}
                           </p>
                         )}
-                        <p className='text-xs text-gray-500 dark:text-gray-400'>
-                          {t('orderDetail.qtyTimesPrice', { qty: item.qty, price: money(item.price) })}
+                        <p className='text-xs tabular-nums text-muted-foreground'>
+                          {t('orderDetail.qtyTimesPrice', {
+                            qty: item.qty,
+                            price: money(item.price),
+                          })}
                         </p>
                       </div>
-                      <p className='shrink-0 text-sm font-semibold text-gray-900 dark:text-white'>
+                      <p className='shrink-0 text-sm font-semibold tabular-nums text-foreground'>
                         {money(item.price * item.qty)}
                       </p>
                     </li>
                   ))}
                 </ul>
-              </section>
+              </Card>
 
-              <section className='rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800'>
-                <h2 className='mb-4 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400'>
-                  {t('orderDetail.shippingAddress')}
-                </h2>
-                <dl className='grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2'>
-                  <div className='sm:col-span-2'>
-                    <dt className='text-gray-500 dark:text-gray-400'>
-                      {t('orderDetail.fulfilment')}
-                    </dt>
-                    <dd
-                      className={
-                        isPickup
-                          ? 'font-semibold text-amber-700 dark:text-amber-400'
-                          : 'font-medium text-gray-900 dark:text-white'
-                      }
-                    >
-                      {fulfilmentLabel}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className='text-gray-500 dark:text-gray-400'>{t('orderDetail.name')}</dt>
-                    <dd className='font-medium text-gray-900 dark:text-white'>
+              <Card>
+                <CardHeader
+                  icon={<MapPin />}
+                  title={t('orderDetail.shippingAddress')}
+                />
+                <div
+                  className={cn(
+                    'mb-4 flex items-center gap-2 rounded-badge border px-3 py-2 text-sm',
+                    isPickup
+                      ? 'border-2 border-foreground font-semibold text-foreground'
+                      : 'border-border bg-muted/60 text-foreground',
+                  )}
+                >
+                  {isPickup ? (
+                    <Store
+                      className='size-4 shrink-0'
+                      aria-hidden
+                    />
+                  ) : (
+                    <Truck
+                      className='size-4 shrink-0'
+                      aria-hidden
+                    />
+                  )}
+                  <span>
+                    <span className='sr-only'>
+                      {t('orderDetail.fulfilment')}:{' '}
+                    </span>
+                    {fulfilmentLabel}
+                  </span>
+                </div>
+                <dl className='grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2'>
+                  <div className='space-y-0.5'>
+                    <dt className={text.caption}>{t('orderDetail.name')}</dt>
+                    <dd className='font-medium text-foreground'>
                       {order.shippingAddress?.name || '—'}
                     </dd>
                   </div>
-                  <div>
-                    <dt className='text-gray-500 dark:text-gray-400'>{t('orderDetail.phone')}</dt>
-                    <dd className='font-medium text-gray-900 dark:text-white' dir='ltr'>
+                  <div className='space-y-0.5'>
+                    <dt className={text.caption}>{t('orderDetail.phone')}</dt>
+                    <dd
+                      className='font-medium text-foreground'
+                      dir='ltr'
+                    >
                       {order.shippingAddress?.phone || '—'}
                     </dd>
                   </div>
-                  <div className='sm:col-span-2'>
-                    <dt className='text-gray-500 dark:text-gray-400'>
+                  <div className='space-y-0.5 sm:col-span-2'>
+                    <dt className={text.caption}>
                       {t('orderDetail.address')}
                     </dt>
-                    <dd className='font-medium text-gray-900 dark:text-white'>
+                    <dd className='font-medium text-foreground'>
                       {order.shippingAddress?.address || '—'},{' '}
                       {order.shippingAddress?.city || '—'}{' '}
                       {order.shippingAddress?.zip || ''}
@@ -377,354 +494,341 @@ export default function OrderDetail() {
                     </dd>
                   </div>
                   {order.shippingAddress?.notes && (
-                    <div className='sm:col-span-2'>
-                      <dt className='text-gray-500 dark:text-gray-400'>
+                    <div className='space-y-0.5 sm:col-span-2'>
+                      <dt className={text.caption}>
                         {t('orderDetail.notes')}
                       </dt>
-                      <dd className='font-medium text-gray-900 dark:text-white'>
+                      <dd className='font-medium text-foreground'>
                         {order.shippingAddress.notes}
                       </dd>
                     </div>
                   )}
                 </dl>
-              </section>
+              </Card>
             </div>
 
-            <div className='space-y-6'>
-              <section className='rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800'>
-                <h2 className='mb-4 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400'>
-                  {t('orderDetail.customer')}
-                </h2>
-                <p className='text-sm font-medium text-gray-900 dark:text-white'>
-                  {!order.user && order.guestEmail
-                    ? t('orders.guestCustomer', { email: order.guestEmail })
-                    : customerLabel(order.user ?? undefined)}
-                </p>
-                {typeof order.user === 'object' && order.user?.email && (
-                  <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
-                    {order.user.email}
-                  </p>
-                )}
-              </section>
+            {/* Sidebar: who, how much, payment, tracking */}
+            <div className='space-y-6 lg:sticky lg:top-[5.5rem]'>
+              <Card>
+                <CardHeader
+                  icon={<User />}
+                  title={t('orderDetail.customer')}
+                />
+                <div className='flex items-center gap-3'>
+                  <span
+                    aria-hidden
+                    className='flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-sm font-semibold uppercase text-muted-foreground'
+                  >
+                    {(customerLabel(order.user ?? undefined) || '?').charAt(0)}
+                  </span>
+                  <div className='min-w-0'>
+                    <p className='truncate text-sm font-medium text-foreground'>
+                      {!order.user && order.guestEmail
+                        ? t('orders.guestCustomer', { email: order.guestEmail })
+                        : customerLabel(order.user ?? undefined)}
+                    </p>
+                    {typeof order.user === 'object' && order.user?.email && (
+                      <p
+                        className='truncate text-xs text-muted-foreground'
+                        dir='ltr'
+                      >
+                        {order.user.email}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </Card>
 
-              <section className='rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800'>
-                <h2 className='mb-4 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400'>
-                  {t('orderDetail.totals')}
-                </h2>
-                <dl className='space-y-2 text-sm'>
-                  <div className='flex justify-between'>
-                    <dt className='text-gray-500 dark:text-gray-400'>{t('orderDetail.itemsTotal')}</dt>
-                    <dd className='text-gray-900 dark:text-white'>
-                      {money(order.itemsPrice)}
-                    </dd>
-                  </div>
+              <Card>
+                <CardHeader
+                  icon={<Receipt />}
+                  title={t('orderDetail.totals')}
+                />
+                <dl className='divide-y divide-border'>
+                  <KeyValue label={t('orderDetail.itemsTotal')}>
+                    {money(order.itemsPrice)}
+                  </KeyValue>
                   {order.discountAmount > 0 && (
-                    <div className='flex justify-between'>
-                      <dt className='text-gray-500 dark:text-gray-400'>
-                        {t('orderDetail.discount')}{' '}
-                        {order.couponCode ? `(${order.couponCode})` : ''}
-                      </dt>
-                      <dd className='text-gray-900 dark:text-white'>
-                        -{money(order.discountAmount)}
-                      </dd>
-                    </div>
+                    <KeyValue
+                      label={
+                        <>
+                          {t('orderDetail.discount')}{' '}
+                          {order.couponCode ? (
+                            <span className='font-mono'>
+                              ({order.couponCode})
+                            </span>
+                          ) : null}
+                        </>
+                      }
+                    >
+                      −{money(order.discountAmount)}
+                    </KeyValue>
                   )}
-                  <div className='flex justify-between'>
-                    <dt className='text-gray-500 dark:text-gray-400'>
-                      {t('orderDetail.shipping')}
+                  <KeyValue label={t('orderDetail.shipping')}>
+                    {money(order.shippingPrice)}
+                  </KeyValue>
+                  <KeyValue label={t('orderDetail.tax')}>
+                    {money(order.taxPrice)}
+                  </KeyValue>
+                  <div className='flex items-baseline justify-between gap-4 pt-3'>
+                    <dt className='text-sm font-semibold text-foreground'>
+                      {t('orderDetail.total')}
                     </dt>
-                    <dd className='text-gray-900 dark:text-white'>
-                      {money(order.shippingPrice)}
-                    </dd>
-                  </div>
-                  <div className='flex justify-between'>
-                    <dt className='text-gray-500 dark:text-gray-400'>{t('orderDetail.tax')}</dt>
-                    <dd className='text-gray-900 dark:text-white'>
-                      {money(order.taxPrice)}
-                    </dd>
-                  </div>
-                  <div className='flex justify-between border-t border-gray-100 pt-2 font-semibold dark:border-gray-700'>
-                    <dt className='text-gray-900 dark:text-white'>{t('orderDetail.total')}</dt>
-                    <dd className='text-gray-900 dark:text-white'>
+                    <dd className='text-section tabular-nums text-foreground'>
                       {money(order.totalPrice)}
                     </dd>
                   </div>
                   {order.refundAmount ? (
-                    <div className='flex justify-between text-red-600 dark:text-red-400'>
-                      <dt>{t('orderDetail.refunded')}</dt>
-                      <dd>-{money(order.refundAmount)}</dd>
-                    </div>
+                    <KeyValue label={t('orderDetail.refunded')}>
+                      −{money(order.refundAmount)}
+                    </KeyValue>
                   ) : null}
                 </dl>
-              </section>
+              </Card>
 
               {(order.stripeSessionId ||
                 order.paymentIntentId ||
                 order.refundId) && (
-                <section className='rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800'>
-                  <h2 className='mb-4 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400'>
-                    {t('orderDetail.paymentRefs')}
-                  </h2>
-                  <dl className='space-y-2 text-xs'>
-                    {order.stripeSessionId && (
-                      <div>
-                        <dt className='text-gray-500 dark:text-gray-400'>
-                          {t('orderDetail.checkoutSession')}
-                        </dt>
-                        <dd className='break-all font-mono text-gray-700 dark:text-gray-300'>
-                          {order.stripeSessionId}
-                        </dd>
-                      </div>
-                    )}
-                    {order.paymentIntentId && (
-                      <div>
-                        <dt className='text-gray-500 dark:text-gray-400'>
-                          {t('orderDetail.paymentIntent')}
-                        </dt>
-                        <dd className='break-all font-mono text-gray-700 dark:text-gray-300'>
-                          {order.paymentIntentId}
-                        </dd>
-                      </div>
-                    )}
-                    {order.refundId && (
-                      <div>
-                        <dt className='text-gray-500 dark:text-gray-400'>
-                          {t('orderDetail.refundId')}
-                        </dt>
-                        <dd className='break-all font-mono text-gray-700 dark:text-gray-300'>
-                          {order.refundId}
-                        </dd>
-                      </div>
-                    )}
+                <Card>
+                  <CardHeader
+                    icon={<CreditCard />}
+                    title={t('orderDetail.paymentRefs')}
+                  />
+                  <dl className='space-y-3 text-xs'>
+                    {(
+                      [
+                        ['orderDetail.checkoutSession', order.stripeSessionId],
+                        ['orderDetail.paymentIntent', order.paymentIntentId],
+                        ['orderDetail.refundId', order.refundId],
+                      ] as const
+                    )
+                      .filter(([, value]) => Boolean(value))
+                      .map(([label, value]) => (
+                        <div
+                          key={label}
+                          className='space-y-1'
+                        >
+                          <dt className={text.caption}>{t(label)}</dt>
+                          <dd
+                            className='break-all rounded-control bg-muted px-2 py-1 font-mono text-foreground/80'
+                            dir='ltr'
+                          >
+                            {value}
+                          </dd>
+                        </div>
+                      ))}
                   </dl>
-                </section>
+                </Card>
               )}
 
               {/* Staff who can write orders always see the editor — tracking
                   has to be addable to an order that has none yet. */}
               {(hasTracking || can('orders:write')) && (
-                <section className='rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-800'>
-                  <h2 className='mb-4 text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400'>
-                    {t('orderDetail.tracking')}
-                  </h2>
-                  {!hasTracking && (
-                    <p className='text-sm text-gray-500 dark:text-gray-400'>
+                <Card>
+                  <CardHeader
+                    icon={<Truck />}
+                    title={t('orderDetail.tracking')}
+                    actions={
+                      can('orders:write') && (
+                        <Button
+                          size='sm'
+                          variant='ghost'
+                          onClick={() => setShowTrackingForm(!showTrackingForm)}
+                          icon={
+                            showTrackingForm ? (
+                              <X aria-hidden />
+                            ) : (
+                              <Pencil aria-hidden />
+                            )
+                          }
+                        >
+                          {showTrackingForm
+                            ? t('common.cancel')
+                            : hasTracking
+                              ? t('orderDetail.updateTracking')
+                              : t('orderDetail.addTracking')}
+                        </Button>
+                      )
+                    }
+                  />
+                  {!hasTracking && !showTrackingForm && (
+                    <p className={text.secondary}>
                       {t('orderDetail.noTracking')}
                     </p>
                   )}
-                  <dl className='space-y-2 text-sm'>
-                    {order.trackingNumber && (
-                      <div>
-                        <dt className='text-gray-500 dark:text-gray-400'>
-                          {t('orderDetail.trackingNumber')}
-                        </dt>
-                        <dd className='font-mono text-gray-900 dark:text-white'>
-                          {order.trackingNumber}
-                        </dd>
-                      </div>
-                    )}
-                    {order.trackingCarrier && (
-                      <div>
-                        <dt className='text-gray-500 dark:text-gray-400'>
-                          {t('orderDetail.carrier')}
-                        </dt>
-                        <dd className='font-medium text-gray-900 dark:text-white'>
+                  {hasTracking && (
+                    <dl className='divide-y divide-border'>
+                      {order.trackingNumber && (
+                        <KeyValue label={t('orderDetail.trackingNumber')}>
+                          <span
+                            className='font-mono'
+                            dir='ltr'
+                          >
+                            {order.trackingNumber}
+                          </span>
+                        </KeyValue>
+                      )}
+                      {order.trackingCarrier && (
+                        <KeyValue label={t('orderDetail.carrier')}>
                           {order.trackingCarrier}
-                        </dd>
-                      </div>
-                    )}
-                    {order.trackingUrl && (
-                      <div>
-                        <dt className='text-gray-500 dark:text-gray-400'>
-                          {t('orderDetail.trackingUrl')}
-                        </dt>
-                        <dd>
+                        </KeyValue>
+                      )}
+                      {order.trackingUrl && (
+                        <KeyValue label={t('orderDetail.trackingUrl')}>
                           <a
                             href={order.trackingUrl}
                             target='_blank'
                             rel='noopener noreferrer'
-                            className='font-medium text-blue-600 hover:underline dark:text-blue-400'
+                            className='font-medium text-foreground underline underline-offset-4'
                           >
                             {t('orderDetail.viewTracking')}
                           </a>
-                        </dd>
-                      </div>
-                    )}
-                  </dl>
+                        </KeyValue>
+                      )}
+                    </dl>
+                  )}
                   {order.trackingEvents && order.trackingEvents.length > 0 && (
                     <div className='mt-4'>
-                      <h3 className='mb-2 text-xs font-semibold text-gray-500 dark:text-gray-400'>
+                      <h3 className={cn(text.caption, 'mb-3')}>
                         {t('orderDetail.trackingEvents')}
                       </h3>
-                      <ul className='space-y-2 text-xs'>
+                      <ol className='relative space-y-4 border-s border-border ps-5'>
                         {order.trackingEvents.map((event, i) => (
                           <li
                             key={i}
-                            className='rounded bg-gray-50 p-2 dark:bg-gray-700'
+                            className='relative text-xs'
                           >
-                            <div className='flex items-center justify-between gap-2'>
-                              <span className='font-medium text-gray-900 dark:text-white'>
+                            <span
+                              aria-hidden
+                              className={cn(
+                                'absolute -start-[1.6rem] top-1 size-2.5 rounded-full border-2 border-card',
+                                i === (order.trackingEvents?.length ?? 0) - 1
+                                  ? 'bg-foreground'
+                                  : 'bg-border-strong',
+                              )}
+                            />
+                            <div className='flex flex-wrap items-baseline justify-between gap-x-2'>
+                              <span className='text-sm font-medium text-foreground'>
                                 {tv('trackingEvent', event.status)}
                               </span>
-                              <span className='text-gray-500 dark:text-gray-400'>
-                                {event.timestamp ? formatDateTime(event.timestamp) : '—'}
+                              <span className='tabular-nums text-muted-foreground'>
+                                {event.timestamp
+                                  ? formatDateTime(event.timestamp)
+                                  : '—'}
                               </span>
                             </div>
                             {event.description && (
-                              <p className='mt-1 text-gray-600 dark:text-gray-300'>
+                              <p className='mt-0.5 text-foreground/80'>
                                 {event.description}
                               </p>
                             )}
                             {event.location && (
-                              <p className='mt-1 text-gray-500 dark:text-gray-400'>
+                              <p className='mt-0.5 text-muted-foreground'>
                                 {event.location}
                               </p>
                             )}
                           </li>
                         ))}
-                      </ul>
+                      </ol>
                     </div>
-                  )}
-                  {can('orders:write') && (
-                    <button
-                      type='button'
-                      onClick={() => setShowTrackingForm(!showTrackingForm)}
-                      className='mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:underline dark:text-blue-400'
-                    >
-                      <Plus className='h-4 w-4' aria-hidden />
-                      {showTrackingForm
-                        ? t('common.cancel')
-                        : hasTracking
-                          ? t('orderDetail.updateTracking')
-                          : t('orderDetail.addTracking')}
-                    </button>
                   )}
                   {can('orders:write') && showTrackingForm && (
                     <form
                       onSubmit={handleUpdateTracking}
-                      className='mt-4 space-y-3'
+                      className='mt-4 space-y-4 border-t border-border pt-4'
                     >
-                      <div>
-                        <label htmlFor='order-tracking-number' className='mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300'>
-                          {t('orderDetail.trackingNumber')}
-                        </label>
-                        <input
+                      <Field label={t('orderDetail.trackingNumber')}>
+                        <Input
                           id='order-tracking-number'
-                          type='text'
                           value={trackingForm.trackingNumber}
                           onChange={(e) =>
-                            setTrackingForm({
-                              ...trackingForm,
-                              trackingNumber: e.target.value,
-                            })
+                            setTracking({ trackingNumber: e.target.value })
                           }
-                          className='w-full rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white'
-                          placeholder={t('orderDetail.trackingNumberPlaceholder')}
+                          placeholder={t(
+                            'orderDetail.trackingNumberPlaceholder',
+                          )}
                           dir='ltr'
+                          className='font-mono'
                         />
-                      </div>
-                      <div>
-                        <label htmlFor='order-carrier' className='mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300'>
-                          {t('orderDetail.carrier')}
-                        </label>
-                        <input
+                      </Field>
+                      <Field label={t('orderDetail.carrier')}>
+                        <Input
                           id='order-carrier'
-                          type='text'
                           value={trackingForm.trackingCarrier}
                           onChange={(e) =>
-                            setTrackingForm({
-                              ...trackingForm,
-                              trackingCarrier: e.target.value,
-                            })
+                            setTracking({ trackingCarrier: e.target.value })
                           }
-                          className='w-full rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white'
                           placeholder={t('orderDetail.carrierPlaceholder')}
                         />
-                      </div>
-                      <div>
-                        <label htmlFor='order-tracking-url' className='mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300'>
-                          {t('orderDetail.trackingUrl')}
-                        </label>
-                        <input
+                      </Field>
+                      <Field label={t('orderDetail.trackingUrl')}>
+                        <Input
                           id='order-tracking-url'
                           type='url'
                           value={trackingForm.trackingUrl}
                           onChange={(e) =>
-                            setTrackingForm({
-                              ...trackingForm,
-                              trackingUrl: e.target.value,
-                            })
+                            setTracking({ trackingUrl: e.target.value })
                           }
-                          className='w-full rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white'
                           placeholder='https://...'
                           dir='ltr'
                         />
-                      </div>
-                      <div className='border-t border-gray-200 pt-3 dark:border-gray-700'>
-                        <label htmlFor='order-add-tracking-event-optional' className='mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300'>
-                          {t('orderDetail.addEvent')}
-                        </label>
-                        <select
-                          id='order-add-tracking-event-optional'
-                          value={trackingForm.eventStatus}
-                          onChange={(e) =>
-                            setTrackingForm({
-                              ...trackingForm,
-                              eventStatus: e.target.value,
-                            })
-                          }
-                          className='mb-2 w-full rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white'
-                        >
-                          <option value=''>{t('orderDetail.selectEventStatus')}</option>
-                          {TRACKING_EVENTS.map((value) => (
-                            <option key={value} value={value}>
-                              {tv('trackingEvent', value)}
+                      </Field>
+                      <div className='space-y-2 border-t border-border pt-4'>
+                        <Field label={t('orderDetail.addEvent')}>
+                          <Select
+                            id='order-add-tracking-event-optional'
+                            value={trackingForm.eventStatus}
+                            onChange={(e) =>
+                              setTracking({ eventStatus: e.target.value })
+                            }
+                          >
+                            <option value=''>
+                              {t('orderDetail.selectEventStatus')}
                             </option>
-                          ))}
-                        </select>
-                        <input
-                          type='text'
+                            {TRACKING_EVENTS.map((value) => (
+                              <option
+                                key={value}
+                                value={value}
+                              >
+                                {tv('trackingEvent', value)}
+                              </option>
+                            ))}
+                          </Select>
+                        </Field>
+                        <Input
                           value={trackingForm.eventDescription}
                           onChange={(e) =>
-                            setTrackingForm({
-                              ...trackingForm,
-                              eventDescription: e.target.value,
-                            })
+                            setTracking({ eventDescription: e.target.value })
                           }
-                          className='mb-2 w-full rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white'
+                          aria-label={t('orderDetail.eventDescription')}
                           placeholder={t('orderDetail.eventDescription')}
                         />
-                        <input
-                          type='text'
+                        <Input
                           value={trackingForm.eventLocation}
                           onChange={(e) =>
-                            setTrackingForm({
-                              ...trackingForm,
-                              eventLocation: e.target.value,
-                            })
+                            setTracking({ eventLocation: e.target.value })
                           }
-                          className='w-full rounded border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white'
+                          aria-label={t('orderDetail.eventLocation')}
                           placeholder={t('orderDetail.eventLocation')}
                         />
                       </div>
-                      <button
+                      <Button
                         type='submit'
-                        disabled={updateTracking.isPending}
-                        className='inline-flex items-center gap-1.5 rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60'
+                        variant='primary'
+                        className='w-full'
+                        loading={updateTracking.isPending}
+                        icon={<Package aria-hidden />}
                       >
-                        <Package className='h-4 w-4' aria-hidden />
-                        {updateTracking.isPending
-                          ? t('orderDetail.updating')
-                          : t('orderDetail.updateTracking')}
-                      </button>
+                        {t('orderDetail.updateTracking')}
+                      </Button>
                     </form>
                   )}
-                </section>
+                </Card>
               )}
             </div>
           </div>
         </div>
       )}
-    </motion.div>
+    </>
   );
 }

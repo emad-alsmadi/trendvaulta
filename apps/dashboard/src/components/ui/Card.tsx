@@ -127,24 +127,23 @@ export function StatCard({
     <Card
       as='div'
       className={cn(
-        'flex h-full flex-col gap-3 transition-colors duration-normal hover:border-border-strong',
+        'relative flex h-full flex-col gap-3 transition-colors duration-normal hover:border-border-strong',
         className,
       )}
     >
-      <div className='flex items-center justify-between gap-3'>
-        <p className={text.caption}>{label}</p>
-        {icon && (
-          <span
-            className={cn(
-              'flex size-8 items-center justify-center rounded-control border border-border bg-muted text-muted-foreground [&_svg]:size-4',
-              iconClassName,
-            )}
-            aria-hidden
-          >
-            {icon}
-          </span>
-        )}
-      </div>
+      {/* Label and value share a parent, so the tile reads as one unit. */}
+      <p className={cn(text.caption, icon && 'pe-10')}>{label}</p>
+      {icon && (
+        <span
+          className={cn(
+            'absolute end-5 top-5 flex size-8 items-center justify-center rounded-control border border-border bg-muted text-muted-foreground sm:end-6 sm:top-6 [&_svg]:size-4',
+            iconClassName,
+          )}
+          aria-hidden
+        >
+          {icon}
+        </span>
+      )}
       <p className={text.kpi}>{value}</p>
       {delta && (
         <p className='flex items-center gap-1 text-body-sm text-muted-foreground'>

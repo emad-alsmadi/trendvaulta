@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
-import { EyeOff, Pencil, Plus, Trash2 } from 'lucide-react';
+import { EyeOff, FolderTree, ImageOff, Pencil, Plus, Trash2 } from 'lucide-react';
 import {
   useAdminCategories,
   useCreateCategoryMutation,
@@ -12,8 +11,18 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { ImageUploadField } from '../components/ui/ImageUploadField';
-import { FormDialog } from '../components/ui/FormDialog';
+import { FormActions, FormDialog } from '../components/ui/FormDialog';
 import { useT } from '../i18n/I18nProvider';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Alert } from '../components/ui/Alert';
+import { Button } from '../components/ui/Button';
+import { IconButton } from '../components/ui/IconButton';
+import { Card } from '../components/ui/Card';
+import { Skeleton } from '../components/ui/Skeleton';
+import { EmptyState } from '../components/ui/EmptyState';
+import { Field, Input, Switch, Textarea } from '../components/ui/Field';
+import { Badge } from '../components/ui/StatusBadge';
+import { cn } from '../lib/cn';
 
 /** Mirrors SLUG_PATTERN in apps/api/models/Category.js. */
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -78,7 +87,9 @@ export default function Categories() {
         top,
         children: all
           .filter((c) => c.parent === top.slug)
-          .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)),
+          .sort(
+            (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
+          ),
       }));
   }, [categoriesQ.data]);
 
@@ -98,7 +109,10 @@ export default function Categories() {
     setDialog({ mode: 'create', parent });
     setSlugTouched(false);
     // New subcategories go to the end of their list by default.
-    const nextOrder = siblings.reduce((max, c) => Math.max(max, c.sortOrder + 1), 0);
+    const nextOrder = siblings.reduce(
+      (max, c) => Math.max(max, c.sortOrder + 1),
+      0,
+    );
     setForm({ ...emptyForm, sortOrder: nextOrder });
   }
 
@@ -123,7 +137,10 @@ export default function Categories() {
     };
     try {
       if (dialog.mode === 'edit') {
-        await updateMut.mutateAsync({ id: dialog.category._id, payload: common });
+        await updateMut.mutateAsync({
+          id: dialog.category._id,
+          payload: common,
+        });
         toast.success(t('categories.updated'));
       } else {
         const slug = form.slug.trim();
@@ -131,7 +148,11 @@ export default function Categories() {
           toast.error(t('categories.slugInvalid'));
           return;
         }
-        await createMut.mutateAsync({ ...common, slug, parent: dialog.parent.slug });
+        await createMut.mutateAsync({
+          ...common,
+          slug,
+          parent: dialog.parent.slug,
+        });
         toast.success(t('categories.added'));
       }
       close();
@@ -159,136 +180,182 @@ export default function Categories() {
   const isTopLevelEdit = dialog?.mode === 'edit' && !dialog.category.parent;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          {t('categories.title')}
-        </h1>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          {t('categories.subtitle')}
-        </p>
-      </div>
+    <>
+      <PageHeader
+        title={t('categories.title')}
+        description={t('categories.subtitle')}
+      />
 
-      {categoriesQ.isLoading && (
-        <p className="py-10 text-center text-sm text-gray-500">
-          {t('categories.loading')}
-        </p>
-      )}
-
-      {categoriesQ.isError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+      {categoriesQ.isError ? (
+        <Alert tone='error'>
           {errorMessage(categoriesQ.error, t('categories.loadFailed'))}
+        </Alert>
+      ) : categoriesQ.isLoading ? (
+        <div className='grid gap-4 lg:grid-cols-2'>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}>
+              <div className='mb-4 flex items-center gap-3'>
+                <Skeleton
+                  variant='custom'
+                  className='size-14 rounded-control'
+                />
+                <div className='flex-1 space-y-2'>
+                  <Skeleton className='w-1/3' />
+                  <Skeleton className='w-1/4' />
+                </div>
+              </div>
+              <div className='space-y-3'>
+                <Skeleton />
+                <Skeleton className='w-5/6' />
+                <Skeleton className='w-2/3' />
+              </div>
+            </Card>
+          ))}
         </div>
-      )}
-
-      {!categoriesQ.isLoading && !categoriesQ.isError && (
-        <div className="grid gap-4 lg:grid-cols-2">
+      ) : tree.length === 0 ? (
+        <Card padded={false}>
+          <EmptyState
+            icon={<FolderTree aria-hidden />}
+            title={t('categories.noSubcategories')}
+          />
+        </Card>
+      ) : (
+        <div className='grid gap-4 lg:grid-cols-2'>
           {tree.map(({ top, children }) => (
-            <section
+            <Card
               key={top._id}
-              className={`rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 ${
-                top.isActive ? '' : 'opacity-70'
-              }`}
+              padded={false}
+              className='flex flex-col overflow-hidden'
             >
-              <header className="mb-3 flex items-start gap-3">
-                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700">
-                  {top.imageUrl && (
-                    <img src={top.imageUrl} alt="" className="h-full w-full object-cover" />
+              <header className='flex items-start gap-4 border-b border-border p-5'>
+                <div
+                  className={cn(
+                    'flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-control border border-border bg-muted text-muted-foreground',
+                    !top.isActive && 'opacity-60 grayscale',
+                  )}
+                >
+                  {top.imageUrl ? (
+                    <img
+                      src={top.imageUrl}
+                      alt=''
+                      className='size-full object-cover'
+                    />
+                  ) : (
+                    <ImageOff
+                      className='size-5'
+                      aria-hidden
+                    />
                   )}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
+                <div className='min-w-0 flex-1'>
+                  <h2 className='flex flex-wrap items-center gap-2 text-section text-foreground'>
                     {top.name}
                     {!top.isActive && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-                        <EyeOff className="h-3 w-3" aria-hidden />
+                      <Badge tone='ended'>
+                        <EyeOff
+                          className='me-1 inline size-3 align-[-1px]'
+                          aria-hidden
+                        />
                         {t('categories.hidden')}
-                      </span>
+                      </Badge>
                     )}
                   </h2>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    <code dir="ltr">{top.slug}</code> ·{' '}
-                    {t(top.productCount === 1 ? 'categories.productOne' : 'categories.productMany', {
-                      count: formatNumber(top.productCount),
-                    })}
+                  <p className='mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground'>
+                    <code dir='ltr'>{top.slug}</code>
+                    <span aria-hidden>·</span>
+                    <span className='tabular-nums'>
+                      {t(
+                        top.productCount === 1
+                          ? 'categories.productOne'
+                          : 'categories.productMany',
+                        { count: formatNumber(top.productCount) },
+                      )}
+                    </span>
                   </p>
                 </div>
                 {canWrite && (
-                  <button
-                    type="button"
+                  <IconButton
+                    icon={<Pencil aria-hidden />}
+                    label={t('common.editItem', { name: top.name })}
                     onClick={() => openEdit(top)}
-                    className="rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700"
-                    aria-label={t('common.editItem', { name: top.name })}
-                  >
-                    <Pencil className="h-4 w-4 text-gray-500" aria-hidden />
-                  </button>
+                  />
                 )}
               </header>
 
-              <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+              <ul className='flex-1 divide-y divide-border'>
                 {children.length === 0 && (
-                  <li className="py-2 text-sm text-gray-500">{t('categories.noSubcategories')}</li>
+                  <li className='px-5 py-6 text-center text-body-sm text-muted-foreground'>
+                    {t('categories.noSubcategories')}
+                  </li>
                 )}
                 {children.map((child) => (
-                  <li key={child._id} className="flex items-center gap-2 py-2 text-sm">
-                    <span
-                      className={`flex-1 truncate ${
-                        child.isActive
-                          ? 'text-gray-800 dark:text-gray-200'
-                          : 'text-gray-400 line-through'
-                      }`}
-                    >
-                      {child.name}{' '}
-                      <code className="text-xs text-gray-400" dir="ltr">{child.slug}</code>
+                  <li
+                    key={child._id}
+                    className='group flex items-center gap-3 px-5 py-2 transition-colors hover:bg-muted/50'
+                  >
+                    <div className='min-w-0 flex-1'>
+                      <p
+                        className={cn(
+                          'truncate text-sm',
+                          child.isActive
+                            ? 'text-foreground'
+                            : 'text-muted-foreground line-through',
+                        )}
+                      >
+                        {child.name}
+                      </p>
+                      <code
+                        className='text-xs text-muted-foreground'
+                        dir='ltr'
+                      >
+                        {child.slug}
+                      </code>
+                    </div>
+                    <span className='rounded-full bg-muted px-2 py-0.5 text-xs font-medium tabular-nums text-muted-foreground'>
+                      {formatNumber(child.productCount)}
                     </span>
-                    <span className="text-xs text-gray-500">{formatNumber(child.productCount)}</span>
-                    {canWrite && (
-                      <button
-                        type="button"
-                        onClick={() => openEdit(child)}
-                        className="rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        aria-label={t('common.editItem', { name: child.name })}
-                      >
-                        <Pencil className="h-3.5 w-3.5 text-gray-500" aria-hidden />
-                      </button>
-                    )}
-                    {can('products:delete') && (
-                      <button
-                        type="button"
-                        onClick={() => void handleDelete(child)}
-                        // In-use subcategories are refused by the API; saying
-                        // why up front beats an error after the confirm.
-                        disabled={deleteMut.isPending || child.productCount > 0}
-                        title={
-                          child.productCount > 0
-                            ? t('categories.inUse')
-                            : t('common.delete')
-                        }
-                        className="rounded p-1 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-red-950/40"
-                        aria-label={t('common.deleteItem', { name: child.name })}
-                      >
-                        <Trash2 className="h-3.5 w-3.5 text-red-500" aria-hidden />
-                      </button>
-                    )}
+                    <div className='flex items-center gap-0.5'>
+                      {canWrite && (
+                        <IconButton
+                          icon={<Pencil aria-hidden />}
+                          label={t('common.editItem', { name: child.name })}
+                          onClick={() => openEdit(child)}
+                        />
+                      )}
+                      {can('products:delete') && (
+                        <IconButton
+                          icon={<Trash2 aria-hidden />}
+                          // In-use subcategories are refused by the API; saying
+                          // why up front beats an error after the confirm.
+                          label={
+                            child.productCount > 0
+                              ? t('categories.inUse')
+                              : t('common.deleteItem', { name: child.name })
+                          }
+                          onClick={() => void handleDelete(child)}
+                          disabled={
+                            deleteMut.isPending || child.productCount > 0
+                          }
+                        />
+                      )}
+                    </div>
                   </li>
                 ))}
               </ul>
 
               {canWrite && (
-                <button
-                  type="button"
-                  onClick={() => openCreate(top, children)}
-                  className="mt-2 inline-flex items-center gap-1 rounded-lg border border-dashed border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
-                >
-                  <Plus className="h-3.5 w-3.5" aria-hidden />
-                  {t('categories.addSubcategory')}
-                </button>
+                <div className='border-t border-border px-5 py-3'>
+                  <Button
+                    size='sm'
+                    variant='ghost'
+                    onClick={() => openCreate(top, children)}
+                    icon={<Plus aria-hidden />}
+                  >
+                    {t('categories.addSubcategory')}
+                  </Button>
+                </div>
               )}
-            </section>
+            </Card>
           ))}
         </div>
       )}
@@ -296,128 +363,122 @@ export default function Categories() {
       {dialog && (
         <FormDialog
           onClose={close}
-          title={dialog.mode === 'edit'
-            ? t(dialog.category.parent ? 'categories.form.editSubcategory' : 'categories.form.editCategory')
-            : t('categories.form.newIn', { parent: dialog.parent.name })}
+          title={
+            dialog.mode === 'edit'
+              ? t(
+                  dialog.category.parent
+                    ? 'categories.form.editSubcategory'
+                    : 'categories.form.editCategory',
+                )
+              : t('categories.form.newIn', { parent: dialog.parent.name })
+          }
           busy={saving}
-          maxWidthClass="max-w-lg"
         >
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <label className="block text-sm">
-              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                {t('categories.form.name')}
-              </span>
-              <input
+          <form
+            onSubmit={handleSubmit}
+            className='space-y-4'
+          >
+            <div className='grid gap-4 sm:grid-cols-2'>
+              <Field
+                label={t('categories.form.name')}
                 required
-                maxLength={80}
-                value={form.name}
-                onChange={(e) => {
-                  const name = e.target.value;
-                  setForm((f) => ({
-                    ...f,
-                    name,
-                    ...(!isEdit && !slugTouched ? { slug: toSlug(name) } : {}),
-                  }));
-                }}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-              />
-            </label>
-            <label className="block text-sm">
-              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                {t('categories.form.slug')}
-              </span>
-              <input
+              >
+                <Input
+                  required
+                  maxLength={80}
+                  value={form.name}
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    setForm((f) => ({
+                      ...f,
+                      name,
+                      ...(!isEdit && !slugTouched ? { slug: toSlug(name) } : {}),
+                    }));
+                  }}
+                />
+              </Field>
+              <Field
+                label={t('categories.form.slug')}
                 required
-                maxLength={64}
-                value={form.slug}
-                readOnly={isEdit}
-                dir="ltr"
-                onChange={(e) => {
-                  setSlugTouched(true);
-                  setForm((f) => ({ ...f, slug: e.target.value.toLowerCase() }));
-                }}
-                aria-describedby="slug-help"
-                className={`w-full rounded-lg border px-3 py-2 font-mono text-sm ${
+                hint={
                   isEdit
-                    ? 'cursor-not-allowed border-gray-200 bg-gray-50 text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400'
-                    : 'border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                }`}
-              />
-              <span id="slug-help" className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
-                {isEdit
-                  ? t('categories.form.slugFixed')
-                  : t('categories.form.slugNew')}
-              </span>
-            </label>
-            <label className="block text-sm">
-              <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                {t('common.description')}
-              </span>
-              <textarea
+                    ? t('categories.form.slugFixed')
+                    : t('categories.form.slugNew')
+                }
+              >
+                <Input
+                  required
+                  maxLength={64}
+                  value={form.slug}
+                  readOnly={isEdit}
+                  dir='ltr'
+                  onChange={(e) => {
+                    setSlugTouched(true);
+                    setForm((f) => ({
+                      ...f,
+                      slug: e.target.value.toLowerCase(),
+                    }));
+                  }}
+                  className={cn(
+                    'font-mono',
+                    isEdit && 'cursor-not-allowed text-muted-foreground',
+                  )}
+                />
+              </Field>
+            </div>
+            <Field label={t('common.description')}>
+              <Textarea
                 rows={2}
                 maxLength={300}
                 value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, description: e.target.value }))
+                }
+                className='min-h-16'
               />
-            </label>
+            </Field>
             <ImageUploadField
               label={t('categories.form.image')}
               value={form.imageUrl}
               onChange={(url) => setForm((f) => ({ ...f, imageUrl: url }))}
             />
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block text-sm">
-                <span className="mb-1 block font-medium text-gray-700 dark:text-gray-300">
-                  {t('categories.form.order')}
-                </span>
-                <input
-                  type="number"
+            <div className='grid gap-4 sm:grid-cols-2'>
+              <Field label={t('categories.form.order')}>
+                <Input
+                  type='number'
                   step={1}
                   value={form.sortOrder}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, sortOrder: Number(e.target.value) }))
+                    setForm((f) => ({
+                      ...f,
+                      sortOrder: Number(e.target.value),
+                    }))
                   }
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                 />
-              </label>
-              <label className="flex items-end gap-2 pb-2 text-sm">
-                <input
-                  type="checkbox"
+              </Field>
+              <div className='flex items-end pb-1'>
+                <Switch
                   checked={form.isActive}
-                  onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.checked }))}
-                  className="h-4 w-4 rounded border-gray-300"
+                  onCheckedChange={(isActive) =>
+                    setForm((f) => ({ ...f, isActive }))
+                  }
+                  label={t('categories.form.visible')}
                 />
-                <span className="text-gray-700 dark:text-gray-300">
-                  {t('categories.form.visible')}
-                </span>
-              </label>
+              </div>
             </div>
             {isTopLevelEdit && !form.isActive && (
-              <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
-                {t('categories.form.hideWarning')}
-              </p>
+              <Alert tone='warning'>{t('categories.form.hideWarning')}</Alert>
             )}
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                disabled={saving}
-                onClick={close}
-                className="rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
-              >
-                {saving ? t('common.saving') : isEdit ? t('common.save') : t('categories.form.add')}
-              </button>
-            </div>
+            <FormActions
+              onCancel={close}
+              saving={saving}
+              submitLabel={
+                isEdit ? t('common.save') : t('categories.form.add')
+              }
+            />
           </form>
         </FormDialog>
       )}
-    </motion.div>
+    </>
   );
 }

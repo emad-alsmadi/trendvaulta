@@ -1,6 +1,13 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Trash2, MessageSquare, Search } from 'lucide-react';
+import {
+  Check,
+  MessageCircle,
+  MessageSquare,
+  ThumbsDown,
+  ThumbsUp,
+  Trash2,
+  Undo2,
+} from 'lucide-react';
 import {
   useAdminProductQA,
   useAnswerProductQAMutation,
@@ -16,8 +23,18 @@ import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useTableQuery, type SortOrder } from '../hooks/useTableQuery';
 import { TablePagination } from '../components/ui/TablePagination';
-import { FormDialog } from '../components/ui/FormDialog';
+import { FormDialog, FormDialogFooter } from '../components/ui/FormDialog';
 import { useT } from '../i18n/I18nProvider';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Alert } from '../components/ui/Alert';
+import { Button } from '../components/ui/Button';
+import { IconButton } from '../components/ui/IconButton';
+import { Card } from '../components/ui/Card';
+import { Skeleton } from '../components/ui/Skeleton';
+import { EmptyState } from '../components/ui/EmptyState';
+import { FilterBar, FilterBarItem } from '../components/ui/FilterBar';
+import { Field, Select, Switch, Textarea } from '../components/ui/Field';
+import { StatusBadge } from '../components/ui/StatusBadge';
 
 export default function ProductQA() {
   const { can } = usePermissions();
@@ -51,6 +68,10 @@ export default function ProductQA() {
 
   const items = qaQ.data?.data || [];
   const meta = qaQ.data?.meta;
+  const filtered =
+    Boolean(appliedQ || filterApproved) ||
+    table.sort !== 'createdAt' ||
+    table.order !== 'desc';
 
   function openEdit(qa: AdminProductQA) {
     setEditing(qa);
@@ -75,7 +96,8 @@ export default function ProductQA() {
     }
   }
 
-  async function handleSaveAnswer() {
+  async function handleSaveAnswer(e: React.FormEvent) {
+    e.preventDefault();
     if (!editing) return;
     const payload: ProductQAAnswerPayload = {
       answer: answer.trim(),
@@ -104,212 +126,238 @@ export default function ProductQA() {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
-      <div className='mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
-        <div>
-          <h1 className='text-3xl font-bold text-gray-900 dark:text-white'>
-            {t('productQa.title')}
-          </h1>
-          <p className='mt-1 text-sm text-gray-600 dark:text-gray-400'>
-            {t('productQa.subtitle')}
-          </p>
-        </div>
-      </div>
+    <>
+      <PageHeader
+        title={t('productQa.title')}
+        description={t('productQa.subtitle')}
+      />
 
-      <div className='mb-6 flex flex-col gap-4 sm:flex-row sm:items-center'>
-        <form
-          className='relative flex-1'
-          onSubmit={(e) => {
-            e.preventDefault();
-            setAppliedQ(search.trim());
-            resetPage();
+      <Card className='mb-4 p-3 sm:p-4'>
+        <FilterBar
+          search={{
+            value: search,
+            onChange: setSearch,
+            onSubmit: () => {
+              setAppliedQ(search.trim());
+              resetPage();
+            },
+            placeholder: t('productQa.searchPlaceholder'),
+            label: t('productQa.searchLabel'),
+            submitLabel: t('common.search'),
+          }}
+          canClear={filtered}
+          onClear={() => {
+            setSearch('');
+            setAppliedQ('');
+            setFilterApproved('');
+            table.setSort('createdAt', 'desc');
           }}
         >
-          <Search
-            className='absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400'
-            aria-hidden
-          />
-          <input
-            type='search'
-            aria-label={t('productQa.searchLabel')}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('productQa.searchPlaceholder')}
-            className='w-full rounded-lg border border-gray-300 bg-white py-2 ps-10 pe-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white'
-          />
-        </form>
-        <select
-          value={filterApproved}
-          onChange={(e) => {
-            setFilterApproved(e.target.value);
-            resetPage();
-          }}
-          aria-label={t('productQa.filterStatus')}
-          className='rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white'
-        >
-          <option value=''>{t('productQa.all')}</option>
-          <option value='pending'>{t('productQa.pending')}</option>
-          <option value='approved'>{t('productQa.approved')}</option>
-        </select>
-        <select
-          value={`${table.sort}:${table.order}`}
-          onChange={(e) => {
-            const [field, order] = e.target.value.split(':');
-            table.setSort(field, order as SortOrder);
-          }}
-          aria-label={t('productQa.sortLabel')}
-          className='rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white'
-        >
-          <option value='createdAt:desc'>{t('productQa.newest')}</option>
-          <option value='createdAt:asc'>{t('productQa.oldest')}</option>
-          <option value='helpful:desc'>{t('productQa.mostHelpful')}</option>
-        </select>
-      </div>
+          <FilterBarItem>
+            <Select
+              value={filterApproved}
+              onChange={(e) => {
+                setFilterApproved(e.target.value);
+                resetPage();
+              }}
+              aria-label={t('productQa.filterStatus')}
+            >
+              <option value=''>{t('productQa.all')}</option>
+              <option value='pending'>{t('productQa.pending')}</option>
+              <option value='approved'>{t('productQa.approved')}</option>
+            </Select>
+          </FilterBarItem>
+          <FilterBarItem>
+            <Select
+              value={`${table.sort}:${table.order}`}
+              onChange={(e) => {
+                const [field, order] = e.target.value.split(':');
+                table.setSort(field, order as SortOrder);
+              }}
+              aria-label={t('productQa.sortLabel')}
+            >
+              <option value='createdAt:desc'>{t('productQa.newest')}</option>
+              <option value='createdAt:asc'>{t('productQa.oldest')}</option>
+              <option value='helpful:desc'>{t('productQa.mostHelpful')}</option>
+            </Select>
+          </FilterBarItem>
+        </FilterBar>
+      </Card>
 
-      {qaQ.isLoading && (
-        <p className='py-10 text-center text-sm text-gray-500'>
-          {t('productQa.loading')}
-        </p>
-      )}
-
-      {qaQ.isError && (
-        <div className='rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200'>
+      {qaQ.isError ? (
+        <Alert tone='error'>
           {errorMessage(qaQ.error, t('productQa.loadFailed'))}
+        </Alert>
+      ) : qaQ.isLoading ? (
+        <div className='space-y-3'>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card
+              key={i}
+              className='space-y-3'
+            >
+              <Skeleton className='w-1/4' />
+              <Skeleton className='w-3/4' />
+              <Skeleton className='w-1/2' />
+            </Card>
+          ))}
         </div>
-      )}
-
-      {!qaQ.isLoading && !qaQ.isError && (
-        <div className='space-y-4'>
-          {items.length === 0 ? (
-            <p className='py-10 text-center text-sm text-gray-500'>
-              {t('productQa.empty')}
-            </p>
-          ) : (
-            items.map((qa) => (
-              <div
-                key={qa._id}
-                className='rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800'
-              >
-                <div className='mb-4 flex items-start justify-between gap-4'>
-                  <div className='flex-1'>
-                    <p
-                      className='text-sm text-gray-600 dark:text-gray-400'
+      ) : items.length === 0 ? (
+        <Card padded={false}>
+          <EmptyState
+            icon={<MessageCircle aria-hidden />}
+            title={t('productQa.empty')}
+          />
+        </Card>
+      ) : (
+        <div
+          className='space-y-3'
+          aria-busy={qaQ.isFetching || undefined}
+        >
+          {items.map((qa) => (
+            <Card
+              key={qa._id}
+              as='article'
+              className='p-5'
+            >
+              <div className='flex items-start gap-4'>
+                <div className='min-w-0 flex-1 space-y-3'>
+                  <div className='flex flex-wrap items-center gap-2'>
+                    <StatusBadge status={qa.approved ? 'approved' : 'pending'}>
+                      {qa.approved
+                        ? t('productQa.approved')
+                        : t('productQa.pending')}
+                    </StatusBadge>
+                    <span
+                      className='truncate text-body-sm text-muted-foreground'
                       dir='auto'
                     >
                       {/* Products are hard-deleted — product can be null. */}
                       {qa.product?.title || t('productQa.deletedProduct')}
-                    </p>
-                    <p className='mt-2 font-medium text-gray-900 dark:text-white'>
-                      {t('productQa.question', { text: '' })}
+                    </span>
+                  </div>
+
+                  <div className='flex gap-3'>
+                    <span
+                      aria-hidden
+                      className='flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground'
+                    >
+                      Q
+                    </span>
+                    <p className='pt-0.5 font-medium text-foreground'>
                       <bdi>{qa.question}</bdi>
                     </p>
-                    {qa.answer && (
-                      <p className='mt-2 text-gray-700 dark:text-gray-300'>
-                        {t('productQa.answer', { text: '' })}
+                  </div>
+                  {qa.answer && (
+                    <div className='flex gap-3'>
+                      <span
+                        aria-hidden
+                        className='flex size-6 shrink-0 items-center justify-center rounded-full border border-border-strong text-xs font-bold text-foreground'
+                      >
+                        A
+                      </span>
+                      <p className='pt-0.5 text-foreground/80'>
                         <bdi>{qa.answer}</bdi>
                       </p>
-                    )}
-                    <div className='mt-2 flex items-center gap-4 text-xs text-gray-500'>
-                      <span>
-                        {t('productQa.askedBy', {
-                          name:
-                            qa.askedBy?.username || t('productQa.anonymous'),
-                        })}
-                      </span>
-                      {qa.answeredBy && (
-                        <span>
-                          {t('productQa.answeredBy', {
-                            name:
-                              qa.answeredBy?.username ||
-                              t('productQa.anonymous'),
-                          })}
-                        </span>
-                      )}
-                      <span>
-                        {t('productQa.helpful', {
-                          count: formatNumber(qa.helpful),
-                        })}
-                      </span>
-                      <span>
-                        {t('productQa.notHelpful', {
-                          count: formatNumber(qa.notHelpful),
-                        })}
-                      </span>
                     </div>
+                  )}
+
+                  <div className='flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground'>
+                    <span>
+                      {t('productQa.askedBy', {
+                        name: qa.askedBy?.username || t('productQa.anonymous'),
+                      })}
+                    </span>
+                    {qa.answeredBy && (
+                      <span>
+                        {t('productQa.answeredBy', {
+                          name:
+                            qa.answeredBy?.username || t('productQa.anonymous'),
+                        })}
+                      </span>
+                    )}
+                    <span
+                      className='inline-flex items-center gap-1 tabular-nums'
+                      title={t('productQa.helpful', {
+                        count: formatNumber(qa.helpful),
+                      })}
+                    >
+                      <ThumbsUp
+                        className='size-3.5'
+                        aria-hidden
+                      />
+                      <span className='sr-only'>
+                        {t('productQa.helpful', { count: '' })}
+                      </span>
+                      {formatNumber(qa.helpful)}
+                    </span>
+                    <span
+                      className='inline-flex items-center gap-1 tabular-nums'
+                      title={t('productQa.notHelpful', {
+                        count: formatNumber(qa.notHelpful),
+                      })}
+                    >
+                      <ThumbsDown
+                        className='size-3.5'
+                        aria-hidden
+                      />
+                      <span className='sr-only'>
+                        {t('productQa.notHelpful', { count: '' })}
+                      </span>
+                      {formatNumber(qa.notHelpful)}
+                    </span>
                   </div>
-                  <div className='flex gap-2'>
-                    {can('content:write') && (
-                      <button
-                        type='button'
-                        onClick={() => openEdit(qa)}
-                        className='rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700'
-                        aria-label={t('productQa.editAnswer')}
+                </div>
+
+                <div className='flex shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center'>
+                  {can('content:write') &&
+                    (qa.approved ? (
+                      <Button
+                        size='sm'
+                        variant='ghost'
+                        onClick={() => void handleApprove(qa, false)}
+                        disabled={saving}
+                        icon={<Undo2 aria-hidden />}
                       >
-                        <MessageSquare
-                          className='h-4 w-4 text-gray-500'
-                          aria-hidden
-                        />
-                      </button>
+                        {t('productQa.unapprove')}
+                      </Button>
+                    ) : (
+                      <Button
+                        size='sm'
+                        variant='primary'
+                        onClick={() => void handleApprove(qa, true)}
+                        disabled={saving}
+                        icon={<Check aria-hidden />}
+                      >
+                        {t('productQa.approve')}
+                      </Button>
+                    ))}
+                  <div className='flex items-center gap-0.5'>
+                    {can('content:write') && (
+                      <IconButton
+                        icon={<MessageSquare aria-hidden />}
+                        label={t('productQa.editAnswer')}
+                        onClick={() => openEdit(qa)}
+                      />
                     )}
                     {can('content:delete') && (
-                      <button
-                        type='button'
+                      <IconButton
+                        icon={<Trash2 aria-hidden />}
+                        label={t('common.delete')}
                         onClick={() => void handleDelete(qa)}
                         disabled={deleteMut.isPending}
-                        className='rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40'
-                        aria-label={t('common.delete')}
-                      >
-                        <Trash2
-                          className='h-4 w-4 text-red-500'
-                          aria-hidden
-                        />
-                      </button>
+                      />
                     )}
                   </div>
                 </div>
-                <div className='flex items-center gap-2'>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      qa.approved
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                    }`}
-                  >
-                    {qa.approved
-                      ? t('productQa.approved')
-                      : t('productQa.pending')}
-                  </span>
-                  {!qa.approved && (
-                    <button
-                      type='button'
-                      onClick={() => void handleApprove(qa, true)}
-                      className='rounded-lg bg-green-500 px-3 py-1 text-xs font-medium text-white hover:bg-green-600'
-                    >
-                      {t('productQa.approve')}
-                    </button>
-                  )}
-                  {qa.approved && (
-                    <button
-                      type='button'
-                      onClick={() => void handleApprove(qa, false)}
-                      className='rounded-lg bg-gray-500 px-3 py-1 text-xs font-medium text-white hover:bg-gray-600'
-                    >
-                      {t('productQa.unapprove')}
-                    </button>
-                  )}
-                </div>
               </div>
-            ))
-          )}
+            </Card>
+          ))}
           <TablePagination
             meta={meta}
             busy={qaQ.isFetching}
             onPage={table.setPage}
             onLimit={table.setLimit}
+            className='pt-2'
           />
         </div>
       )}
@@ -318,78 +366,63 @@ export default function ProductQA() {
         <FormDialog
           onClose={closeEdit}
           title={t('productQa.form.title')}
+          description={editing.product?.title || t('productQa.deletedProduct')}
           busy={saving}
-          maxWidthClass='max-w-2xl'
         >
-          <div className='space-y-4'>
-            <div>
-              <p
-                className='text-sm text-gray-600 dark:text-gray-400'
-                dir='auto'
+          <form onSubmit={handleSaveAnswer}>
+            <div className='mb-5 flex gap-3 rounded-badge border border-border bg-muted/60 p-4'>
+              <span
+                aria-hidden
+                className='flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground'
               >
-                {editing.product?.title || t('productQa.deletedProduct')}
-              </p>
-              <p className='mt-2 font-medium text-gray-900 dark:text-white'>
-                {t('productQa.question', { text: '' })}
+                Q
+              </span>
+              <p className='pt-0.5 font-medium text-foreground'>
                 <bdi>{editing.question}</bdi>
               </p>
             </div>
-            <label className='block text-sm'>
-              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                {t('productQa.form.answer')}
-              </span>
-              <textarea
-                value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
-                rows={4}
-                placeholder={t('productQa.form.placeholder')}
-                dir='auto'
-                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-              />
-            </label>
-            <div className='flex items-center gap-2'>
-              <input
-                type='checkbox'
-                id='approve'
+            <div className='space-y-4'>
+              <Field label={t('productQa.form.answer')}>
+                <Textarea
+                  value={answer}
+                  onChange={(e) => setAnswer(e.target.value)}
+                  rows={4}
+                  placeholder={t('productQa.form.placeholder')}
+                  dir='auto'
+                />
+              </Field>
+              <Switch
                 checked={editing.approved}
-                onChange={(e) => {
-                  const approved = e.target.checked;
-                  // Keep local state in sync so the checkbox reflects the
+                onCheckedChange={(approved) => {
+                  // Keep local state in sync so the switch reflects the
                   // change and Save doesn't send a stale `approved`.
                   setEditing((prev) => (prev ? { ...prev, approved } : prev));
                   const payload: ProductQAAnswerPayload = { approved };
                   void answerMut.mutateAsync({ id: editing._id, payload });
                 }}
                 disabled={saving}
+                label={t('productQa.form.approve')}
               />
-              <label
-                htmlFor='approve'
-                className='text-sm text-gray-700 dark:text-gray-300'
-              >
-                {t('productQa.form.approve')}
-              </label>
             </div>
-            <div className='flex justify-end gap-2 pt-2'>
-              <button
-                type='button'
+            <FormDialogFooter>
+              <Button
+                variant='ghost'
                 disabled={saving}
                 onClick={closeEdit}
-                className='rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
               >
                 {t('common.cancel')}
-              </button>
-              <button
-                type='button'
-                disabled={saving}
-                onClick={handleSaveAnswer}
-                className='rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60'
+              </Button>
+              <Button
+                type='submit'
+                variant='primary'
+                loading={saving}
               >
-                {saving ? t('common.saving') : t('productQa.form.save')}
-              </button>
-            </div>
-          </div>
+                {t('productQa.form.save')}
+              </Button>
+            </FormDialogFooter>
+          </form>
         </FormDialog>
       )}
-    </motion.div>
+    </>
   );
 }

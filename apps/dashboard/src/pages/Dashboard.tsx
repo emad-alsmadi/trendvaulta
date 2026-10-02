@@ -1,44 +1,45 @@
 import { Link } from 'react-router-dom';
 import {
-  RefreshCw,
-  Users,
-  Package,
-  ShoppingCart,
+  ArrowUpRight,
+  BarChart3,
   DollarSign,
+  Package,
+  PieChart as PieChartIcon,
+  RefreshCw,
+  ShoppingCart,
   Tag,
   TrendingUp,
-  PieChart,
-  BarChart3,
+  Users,
 } from 'lucide-react';
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { useAdminOrders } from '../hooks/useAdminOrders';
 import { useAdminStats } from '../hooks/useAdminStats';
 import { errorMessage, type AdminOrder } from '../lib/api';
-import { money } from '../lib/chartTheme';
+import { chartTheme, money } from '../lib/chartTheme';
 import { intlLocale, useT } from '../i18n/I18nProvider';
+import { useTheme } from '../hooks/useTheme';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Card, CardHeader, StatCard, KeyValue } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { StatusBadge } from '../components/ui/StatusBadge';
-import { Skeleton, SkeletonCard } from '../components/ui/Skeleton';
+import { Skeleton, SkeletonCard, SkeletonRow } from '../components/ui/Skeleton';
+import { EmptyState } from '../components/ui/EmptyState';
 import { Alert } from '../components/ui/Alert';
+import { buttonVariants } from '../components/ui/styles';
 import { cn } from '../lib/cn';
-import { useTheme } from '../hooks/useTheme';
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  PieChart as RechartsPieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts';
-import { motion } from 'framer-motion';
 
 function shortId(id: string) {
   return id.length > 8 ? `${id.slice(0, 8)}…` : id;
@@ -68,13 +69,39 @@ const STATUS_ORDER = [
   'refunded',
 ] as const;
 
+/** Monday-first, matching the dashboard.* day labels. */
+const WEEKDAYS = [
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+  'sunday',
+] as const;
+
+/** Greys for the donut, darkest first; segments also carry a gap and a legend. */
+const DONUT_LIGHT = ['#0a0a0a', '#404040', '#737373', '#a3a3a3', '#c4c4c4', '#262626', '#8a8a8a'];
+const DONUT_DARK = ['#fafafa', '#d4d4d4', '#a3a3a3', '#737373', '#525252', '#e5e5e5', '#8a8a8a'];
+
+function ChartSkeleton() {
+  return (
+    <Skeleton
+      variant='custom'
+      className='h-64 w-full rounded-badge'
+    />
+  );
+}
+
 export default function Dashboard() {
   const statsQ = useAdminStats();
   const ordersQ = useAdminOrders({ limit: 50 });
-  const { t, tv, locale, formatCurrency, formatDateTime, formatNumber } =
+  const { t, tv, locale, formatCurrency, formatDate, formatDateTime, formatNumber } =
     useT();
   const { theme } = useTheme();
-  const formatMoney = (n: number) => money(n, intlLocale(locale));
+  const ink = chartTheme(theme);
+  const tag = intlLocale(locale);
+  const formatMoney = (n: number) => money(n, tag);
 
   const recentOrders = ordersQ.data?.data ?? [];
   const stats = statsQ.data;
@@ -97,78 +124,72 @@ export default function Dashboard() {
       stats?.statusCounts?.[status] ??
       recentOrders.filter((o) => o.status === status).length,
   }));
-  const maxStatus = Math.max(1, ...statusCounts.map((s) => s.count));
+  const statusTotal = statusCounts.reduce((sum, s) => sum + s.count, 0);
   const statusFromStats = Boolean(stats?.statusCounts);
 
   const loading = statsQ.isLoading || ordersQ.isLoading;
   const anyError = statsQ.isError || ordersQ.isError;
+  const fetching = statsQ.isFetching || ordersQ.isFetching;
 
   const refetchAll = () => {
     void statsQ.refetch();
     void ordersQ.refetch();
   };
 
-  // Prepare chart data
+  // Latest paid orders, oldest → newest so the line reads left to right.
   const revenueChartData = recentOrders
     .filter(isPaidLike)
-    .slice(0, 7)
+    .slice(0, 12)
+    .reverse()
     .map((order) => ({
-      date: order.createdAt
-        ? formatDateTime(order.createdAt).split(',')[0]
-        : 'Unknown',
+      date: order.createdAt ? formatDate(order.createdAt) : '—',
       revenue: Number(order.totalPrice || 0),
     }));
 
+  const donutColors = theme === 'dark' ? DONUT_DARK : DONUT_LIGHT;
   const orderStatusChartData = statusCounts
     .filter((s) => s.count > 0)
-    .map((s) => ({
-      name: tv('orderStatus', s.status),
-      value: s.count,
-    }));
+    .map((s) => ({ name: tv('orderStatus', s.status), value: s.count }));
 
-  const weeklyOrdersData = [
-    { day: t('dashboard.monday'), orders: Math.floor(ordersTotal * 0.15) },
-    { day: t('dashboard.tuesday'), orders: Math.floor(ordersTotal * 0.12) },
-    { day: t('dashboard.wednesday'), orders: Math.floor(ordersTotal * 0.18) },
-    { day: t('dashboard.thursday'), orders: Math.floor(ordersTotal * 0.22) },
-    { day: t('dashboard.friday'), orders: Math.floor(ordersTotal * 0.2) },
-    { day: t('dashboard.saturday'), orders: Math.floor(ordersTotal * 0.08) },
-    { day: t('dashboard.sunday'), orders: Math.floor(ordersTotal * 0.05) },
-  ];
+  // Real distribution of the latest orders over the week (getDay: 0 = Sunday).
+  const weekdayCounts = WEEKDAYS.map(() => 0);
+  for (const order of recentOrders) {
+    if (!order.createdAt) continue;
+    const day = new Date(order.createdAt).getDay();
+    weekdayCounts[(day + 6) % 7] += 1;
+  }
+  const weeklyOrdersData = WEEKDAYS.map((day, i) => ({
+    day: t(`dashboard.${day}`),
+    orders: weekdayCounts[i],
+  }));
+  const busiest = Math.max(...weekdayCounts);
 
-  const chartColors = [
-    '#9333ea', // brand purple
-    '#6366f1', // brand indigo
-    '#06b6d4', // brand cyan
-    '#10b981', // metric green
-    '#f59e0b', // metric orange
-    '#ec4899', // metric pink
-  ];
-  const darkChartColors = [
-    '#a855f7', // brand purple light
-    '#818cf8', // brand indigo light
-    '#22d3ee', // brand cyan light
-    '#34d399', // metric green light
-    '#fbbf24', // metric orange light
-    '#f472b6', // metric pink light
-  ];
-  const pieColors = theme === 'dark' ? darkChartColors : chartColors;
+  const tooltipStyle = {
+    contentStyle: {
+      backgroundColor: ink.surface,
+      border: `1px solid ${ink.border}`,
+      borderRadius: 8,
+      boxShadow: '0 8px 24px -6px rgb(0 0 0 / 0.15)',
+      fontSize: 12,
+    },
+    labelStyle: { color: ink.revenue, fontWeight: 600 },
+    itemStyle: { color: ink.revenue },
+    cursor: { stroke: ink.axis, strokeDasharray: '3 3' },
+  } as const;
 
   return (
-    <div className='space-y-8'>
-      {/* Page Header */}
+    <div className='space-y-6'>
       <PageHeader
         title={t('dashboard.title')}
         description={t('dashboard.subtitle')}
+        className='mb-2'
         actions={
           <Button
-            variant='secondary'
             onClick={refetchAll}
+            disabled={fetching}
             icon={
               <RefreshCw
-                className={cn(
-                  statsQ.isFetching || (ordersQ.isFetching && 'animate-spin'),
-                )}
+                className={cn(fetching && 'animate-spin')}
                 aria-hidden
               />
             }
@@ -178,19 +199,20 @@ export default function Dashboard() {
         }
       />
 
-      {/* Error Alert */}
       {anyError && (
-        <Alert tone='error'>
-          {t('dashboard.someFailed')}
+        <Alert
+          tone='error'
+          title={t('dashboard.someFailed')}
+        >
           {statsQ.isError && (
-            <p className='mt-1 text-xs'>
+            <p>
               {t('dashboard.statsError', {
                 message: errorMessage(statsQ.error, t('dashboard.error')),
               })}
             </p>
           )}
           {ordersQ.isError && (
-            <p className='mt-1 text-xs'>
+            <p>
               {t('dashboard.ordersError', {
                 message: errorMessage(ordersQ.error, t('dashboard.error')),
               })}
@@ -199,56 +221,12 @@ export default function Dashboard() {
         </Alert>
       )}
 
-      {/* KPI Grid */}
-      <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4'>
+      {/* Level 1 — KPIs */}
+      <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4'>
         {loading ? (
-          <>
-            <SkeletonCard />
-            <SkeletonCard />
-            <SkeletonCard />
-            <SkeletonCard />
-          </>
+          Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
         ) : (
           <>
-            <StatCard
-              label={t('dashboard.users')}
-              value={formatNumber(usersCount)}
-              icon={
-                <Users
-                  className='icon-sm'
-                  aria-hidden
-                />
-              }
-              delta={{ value: 0, label: t('dashboard.usersHint') }}
-              className='bg-gradient-to-br from-brand-purple/5 to-brand-purple/10 border-brand-purple/20'
-              iconClassName='text-brand-purple'
-            />
-            <StatCard
-              label={t('dashboard.products')}
-              value={formatNumber(productsTotal)}
-              icon={
-                <Package
-                  className='icon-sm'
-                  aria-hidden
-                />
-              }
-              delta={{ value: 0, label: t('dashboard.productsHint') }}
-              className='bg-gradient-to-br from-brand-indigo/5 to-brand-indigo/10 border-brand-indigo/20'
-              iconClassName='text-brand-indigo'
-            />
-            <StatCard
-              label={t('dashboard.orders')}
-              value={formatNumber(ordersTotal)}
-              icon={
-                <ShoppingCart
-                  className='icon-sm'
-                  aria-hidden
-                />
-              }
-              delta={{ value: 0, label: t('dashboard.ordersHint') }}
-              className='bg-gradient-to-br from-brand-cyan/5 to-brand-cyan/10 border-brand-cyan/20'
-              iconClassName='text-brand-cyan'
-            />
             <StatCard
               label={
                 revenueFromStats
@@ -256,278 +234,150 @@ export default function Dashboard() {
                   : t('dashboard.revenueSample')
               }
               value={formatMoney(paidRevenue)}
-              icon={
-                <DollarSign
-                  className='icon-sm'
-                  aria-hidden
-                />
+              icon={<DollarSign />}
+              footer={
+                <p className='text-body-sm text-muted-foreground'>
+                  {revenueFromStats
+                    ? t('dashboard.revenueHint')
+                    : t('dashboard.revenueSampleHint', {
+                        count: recentOrders.length,
+                      })}
+                </p>
               }
-              delta={{
-                value: 0,
-                label: revenueFromStats
-                  ? t('dashboard.revenueHint')
-                  : t('dashboard.revenueSampleHint', {
-                      count: recentOrders.length,
-                    }),
-              }}
-              className='bg-gradient-to-br from-metric-green/5 to-metric-green/10 border-metric-green/20'
-              iconClassName='text-metric-green'
+              className='bg-primary text-primary-foreground [&_p]:text-primary-foreground/70 [&_p.text-kpi]:text-primary-foreground [&>span]:border-primary-foreground/20 [&>span]:bg-primary-foreground/10 [&>span]:text-primary-foreground'
+            />
+            <StatCard
+              label={t('dashboard.orders')}
+              value={formatNumber(ordersTotal)}
+              icon={<ShoppingCart />}
+              footer={
+                <p className='text-body-sm text-muted-foreground'>
+                  {t('dashboard.ordersHint')}
+                </p>
+              }
+            />
+            <StatCard
+              label={t('dashboard.products')}
+              value={formatNumber(productsTotal)}
+              icon={<Package />}
+              footer={
+                <p className='text-body-sm text-muted-foreground'>
+                  {t('dashboard.productsHint')}
+                </p>
+              }
+            />
+            <StatCard
+              label={t('dashboard.users')}
+              value={formatNumber(usersCount)}
+              icon={<Users />}
+              footer={
+                <p className='text-body-sm text-muted-foreground'>
+                  {t('dashboard.usersHint')}
+                </p>
+              }
             />
           </>
         )}
       </div>
 
-      {/* Charts Grid */}
-      <div className='grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3'>
-        {/* Revenue Trend Chart */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className='lg:col-span-2'
-        >
-          <Card className='bg-gradient-to-br from-brand-purple/5 to-brand-indigo/5 border-brand-purple/10'>
-            <CardHeader
-              title={t('dashboard.revenueTrend')}
-              description={t('dashboard.revenueTrendDesc')}
-              icon={
-                <TrendingUp
-                  className='icon-sm text-brand-purple'
-                  aria-hidden
-                />
-              }
-            />
-            {loading ? (
-              <div className='h-64 flex items-center justify-center'>
-                <Skeleton
-                  variant='custom'
-                  className='h-48 w-full'
-                />
-              </div>
-            ) : revenueChartData.length === 0 ? (
-              <p className='py-10 text-center text-sm text-muted-foreground'>
-                {t('dashboard.noRevenueData')}
-              </p>
-            ) : (
-              <div className='h-64'>
-                <ResponsiveContainer
-                  width='100%'
-                  height='100%'
-                >
-                  <LineChart data={revenueChartData}>
-                    <CartesianGrid
-                      strokeDasharray='3 3'
-                      stroke={theme === 'dark' ? '#333333' : '#f0f0f0'}
-                    />
-                    <XAxis
-                      dataKey='date'
-                      stroke={theme === 'dark' ? '#a1a1a1' : '#6b6b6b'}
-                      fontSize={12}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      stroke={theme === 'dark' ? '#a1a1a1' : '#6b6b6b'}
-                      fontSize={12}
-                      tickLine={false}
-                      tickFormatter={(value) => `$${value}`}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor:
-                          theme === 'dark' ? '#121212' : '#ffffff',
-                        border: `1px solid ${theme === 'dark' ? '#333333' : '#d4d4d4'}`,
-                        borderRadius: '8px',
-                      }}
-                      labelStyle={{
-                        color: theme === 'dark' ? '#fafafa' : '#0a0a0a',
-                      }}
-                      itemStyle={{
-                        color: theme === 'dark' ? '#fafafa' : '#0a0a0a',
-                      }}
-                      formatter={(value: number) => [
-                        `$${value}`,
-                        t('dashboard.revenue'),
-                      ]}
-                    />
-                    <Line
-                      type='monotone'
-                      dataKey='revenue'
-                      stroke={theme === 'dark' ? '#a855f7' : '#9333ea'}
-                      strokeWidth={3}
-                      dot={{
-                        fill: theme === 'dark' ? '#a855f7' : '#9333ea',
-                        r: 4,
-                      }}
-                      activeDot={{
-                        r: 6,
-                        fill: theme === 'dark' ? '#a855f7' : '#9333ea',
-                      }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </Card>
-        </motion.div>
-
-        {/* Order Status Pie Chart */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
-          <Card className='bg-gradient-to-br from-brand-cyan/5 to-brand-indigo/5 border-brand-cyan/10'>
-            <CardHeader
-              title={t('dashboard.orderStatusDistribution')}
-              icon={
-                <PieChart
-                  className='icon-sm text-brand-cyan'
-                  aria-hidden
-                />
-              }
-            />
-            {loading ? (
-              <div className='h-64 flex items-center justify-center'>
-                <Skeleton
-                  variant='custom'
-                  className='h-48 w-full'
-                />
-              </div>
-            ) : orderStatusChartData.length === 0 ? (
-              <p className='py-10 text-center text-sm text-muted-foreground'>
-                {t('dashboard.noOrders')}
-              </p>
-            ) : (
-              <div className='h-64'>
-                <ResponsiveContainer
-                  width='100%'
-                  height='100%'
-                >
-                  <RechartsPieChart>
-                    <Pie
-                      data={orderStatusChartData}
-                      cx='50%'
-                      cy='50%'
-                      innerRadius={40}
-                      outerRadius={70}
-                      paddingAngle={2}
-                      dataKey='value'
-                    >
-                      {orderStatusChartData.map((_, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={pieColors[index % pieColors.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor:
-                          theme === 'dark' ? '#121212' : '#ffffff',
-                        border: `1px solid ${theme === 'dark' ? '#333333' : '#d4d4d4'}`,
-                        borderRadius: '8px',
-                      }}
-                      labelStyle={{
-                        color: theme === 'dark' ? '#fafafa' : '#0a0a0a',
-                      }}
-                      itemStyle={{
-                        color: theme === 'dark' ? '#fafafa' : '#0a0a0a',
-                      }}
-                    />
-                    <Legend
-                      verticalAlign='bottom'
-                      height={36}
-                      iconType='circle'
-                      wrapperStyle={{ fontSize: '12px' }}
-                    />
-                  </RechartsPieChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </Card>
-        </motion.div>
-      </div>
-
-      {/* Weekly Orders Bar Chart */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-      >
-        <Card className='bg-gradient-to-br from-metric-blue/5 to-metric-teal/5 border-metric-blue/10'>
+      {/* Level 2 — main trend + status mix */}
+      <div className='grid grid-cols-1 gap-6 lg:grid-cols-3'>
+        <Card className='lg:col-span-2'>
           <CardHeader
-            title={t('dashboard.weeklyOrders')}
-            description={t('dashboard.weeklyOrdersDesc')}
-            icon={
-              <BarChart3
-                className='icon-sm text-metric-blue'
-                aria-hidden
-              />
-            }
+            icon={<TrendingUp />}
+            title={t('dashboard.revenueTrend')}
+            description={t('dashboard.revenueTrendDesc')}
           />
           {loading ? (
-            <div className='h-64 flex items-center justify-center'>
-              <Skeleton
-                variant='custom'
-                className='h-48 w-full'
-              />
-            </div>
+            <ChartSkeleton />
+          ) : revenueChartData.length === 0 ? (
+            <EmptyState
+              icon={<TrendingUp aria-hidden />}
+              title={t('dashboard.noRevenueData')}
+              className='h-64'
+            />
           ) : (
-            <div className='h-64'>
+            <div
+              className='h-64'
+              role='img'
+              aria-label={t('dashboard.revenueTrend')}
+            >
               <ResponsiveContainer
                 width='100%'
                 height='100%'
               >
-                <BarChart data={weeklyOrdersData}>
+                <AreaChart
+                  data={revenueChartData}
+                  margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient
+                      id='revenueFill'
+                      x1='0'
+                      y1='0'
+                      x2='0'
+                      y2='1'
+                    >
+                      <stop
+                        offset='0%'
+                        stopColor={ink.revenue}
+                        stopOpacity={0.18}
+                      />
+                      <stop
+                        offset='100%'
+                        stopColor={ink.revenue}
+                        stopOpacity={0}
+                      />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid
                     strokeDasharray='3 3'
-                    stroke={theme === 'dark' ? '#333333' : '#f0f0f0'}
+                    stroke={ink.grid}
+                    vertical={false}
                   />
                   <XAxis
-                    dataKey='day'
-                    stroke={theme === 'dark' ? '#a1a1a1' : '#6b6b6b'}
+                    dataKey='date'
+                    stroke={ink.muted}
                     fontSize={12}
                     tickLine={false}
+                    axisLine={{ stroke: ink.axis }}
+                    reversed={locale === 'ar'}
+                    minTickGap={16}
                   />
                   <YAxis
-                    stroke={theme === 'dark' ? '#a1a1a1' : '#6b6b6b'}
+                    stroke={ink.muted}
                     fontSize={12}
                     tickLine={false}
+                    axisLine={false}
+                    width={56}
+                    orientation={locale === 'ar' ? 'right' : 'left'}
+                    tickFormatter={(value: number) => formatMoney(value)}
                   />
                   <Tooltip
-                    contentStyle={{
-                      backgroundColor: theme === 'dark' ? '#121212' : '#ffffff',
-                      border: `1px solid ${theme === 'dark' ? '#333333' : '#d4d4d4'}`,
-                      borderRadius: '8px',
-                    }}
-                    labelStyle={{
-                      color: theme === 'dark' ? '#fafafa' : '#0a0a0a',
-                    }}
-                    itemStyle={{
-                      color: theme === 'dark' ? '#fafafa' : '#0a0a0a',
-                    }}
+                    {...tooltipStyle}
                     formatter={(value: number) => [
-                      value,
-                      t('dashboard.orders'),
+                      formatMoney(value),
+                      t('dashboard.revenue'),
                     ]}
                   />
-                  <Bar
-                    dataKey='orders'
-                    fill={theme === 'dark' ? '#6366f1' : '#6366f1'}
-                    radius={[4, 4, 0, 0]}
+                  <Area
+                    type='monotone'
+                    dataKey='revenue'
+                    stroke={ink.revenue}
+                    strokeWidth={2}
+                    fill='url(#revenueFill)'
+                    dot={{ r: 3, fill: ink.surface, stroke: ink.revenue, strokeWidth: 2 }}
+                    activeDot={{ r: 5, fill: ink.revenue, stroke: ink.surface }}
                   />
-                </BarChart>
+                </AreaChart>
               </ResponsiveContainer>
             </div>
           )}
         </Card>
-      </motion.div>
 
-      {/* Main Grid */}
-      <div className='grid grid-cols-1 gap-6 lg:grid-cols-2'>
-        {/* Order Status Distribution */}
-        <Card className='bg-gradient-to-br from-metric-orange/5 to-metric-pink/5 border-metric-orange/10'>
+        <Card>
           <CardHeader
+            icon={<PieChartIcon />}
             title={
               statusFromStats
                 ? t('dashboard.statusAll')
@@ -537,302 +387,311 @@ export default function Dashboard() {
               <Link
                 to='/orders'
                 className={cn(
-                  'text-sm font-medium text-foreground underline-offset-4 hover:underline',
+                  buttonVariants({ variant: 'ghost', size: 'sm' }),
+                  '-me-2',
                 )}
               >
                 {t('dashboard.viewOrders')}
+                <ArrowUpRight
+                  className='rtl:-scale-x-100'
+                  aria-hidden
+                />
               </Link>
             }
           />
           {loading ? (
-            <div className='space-y-3'>
-              <Skeleton
-                variant='text'
-                className='w-1/3'
-                animation='pulse'
-              />
-              <Skeleton
-                variant='text'
-                className='w-full'
-                animation='shimmer'
-              />
-              <Skeleton
-                variant='text'
-                className='w-2/3'
-                animation='shimmer'
-              />
-              <Skeleton
-                variant='text'
-                className='w-1/2'
-                animation='pulse'
-              />
-            </div>
-          ) : statusCounts.every((s) => s.count === 0) &&
-            recentOrders.length === 0 &&
-            !stats ? (
-            <p className='py-10 text-center text-sm text-muted-foreground'>
-              {t('dashboard.noOrders')}
-            </p>
+            <ChartSkeleton />
+          ) : orderStatusChartData.length === 0 ? (
+            <EmptyState
+              icon={<ShoppingCart aria-hidden />}
+              title={t('dashboard.noOrders')}
+            />
           ) : (
-            <ul className='space-y-3'>
-              {statusCounts.map(({ status, count }) => {
-                const statusColors: Record<string, string> = {
-                  pending: theme === 'dark' ? '#f59e0b' : '#f59e0b',
-                  paid: theme === 'dark' ? '#10b981' : '#10b981',
-                  shipped: theme === 'dark' ? '#3b82f6' : '#3b82f6',
-                  delivered: theme === 'dark' ? '#10b981' : '#10b981',
-                  canceled: theme === 'dark' ? '#ef4444' : '#ef4444',
-                  needs_attention: theme === 'dark' ? '#f59e0b' : '#f59e0b',
-                  refunded: theme === 'dark' ? '#ef4444' : '#ef4444',
-                };
-                const barColor =
-                  statusColors[status] ||
-                  (theme === 'dark' ? '#a1a1a1' : '#6b6b6b');
-
-                return (
-                  <li key={status}>
-                    <div className='mb-1.5 flex items-center justify-between gap-2'>
-                      <span
-                        className={cn(
-                          'text-sm font-medium text-foreground',
-                          'flex items-center gap-2',
-                        )}
-                      >
-                        <StatusBadge
-                          status={status}
-                          children={tv('orderStatus', status)}
+            <>
+              <div className='relative h-44'>
+                <ResponsiveContainer
+                  width='100%'
+                  height='100%'
+                >
+                  <PieChart>
+                    <Pie
+                      data={orderStatusChartData}
+                      cx='50%'
+                      cy='50%'
+                      innerRadius={52}
+                      outerRadius={76}
+                      paddingAngle={2}
+                      stroke={ink.surface}
+                      strokeWidth={2}
+                      dataKey='value'
+                    >
+                      {orderStatusChartData.map((_, index) => (
+                        <Cell
+                          key={index}
+                          fill={donutColors[index % donutColors.length]}
                         />
-                      </span>
-                      <span className='text-sm text-muted-foreground tabular-nums'>
-                        {formatNumber(count)}
-                      </span>
-                    </div>
-                    <div className='h-2 overflow-hidden rounded-full bg-muted'>
-                      <div
-                        className='h-full rounded-full transition-all duration-normal'
+                      ))}
+                    </Pie>
+                    <Tooltip {...tooltipStyle} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className='pointer-events-none absolute inset-0 flex flex-col items-center justify-center'>
+                  <span className='text-section tabular-nums text-foreground'>
+                    {formatNumber(statusTotal)}
+                  </span>
+                  <span className='text-caption uppercase text-muted-foreground'>
+                    {t('dashboard.orders')}
+                  </span>
+                </div>
+              </div>
+              <ul className='mt-4 space-y-2'>
+                {statusCounts
+                  .filter((s) => s.count > 0)
+                  .map(({ status, count }, index) => (
+                    <li
+                      key={status}
+                      className='flex items-center gap-2 text-body-sm'
+                    >
+                      <span
+                        aria-hidden
+                        className='size-2.5 shrink-0 rounded-sm'
                         style={{
-                          width: `${(count / maxStatus) * 100}%`,
-                          backgroundColor: barColor,
+                          backgroundColor:
+                            donutColors[index % donutColors.length],
                         }}
                       />
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Card>
-
-        {/* Catalog Summary */}
-        <Card className='bg-gradient-to-br from-metric-teal/5 to-metric-green/5 border-metric-teal/10'>
-          <CardHeader
-            title={t('dashboard.catalog')}
-            actions={
-              <span className='inline-flex items-center gap-1.5 text-sm text-muted-foreground'>
-                <Tag
-                  className='icon-sm'
-                  aria-hidden
-                />
-                {statsQ.isLoading ? '—' : formatNumber(brandsTotal)}
-              </span>
-            }
-          />
-          {loading ? (
-            <div className='space-y-3'>
-              <KeyValue
-                label={
-                  <Skeleton
-                    variant='text'
-                    className='w-16'
-                    animation='pulse'
-                  />
-                }
-                children={
-                  <Skeleton
-                    variant='text'
-                    className='w-12'
-                    animation='shimmer'
-                  />
-                }
-              />
-              <KeyValue
-                label={
-                  <Skeleton
-                    variant='text'
-                    className='w-16'
-                    animation='pulse'
-                  />
-                }
-                children={
-                  <Skeleton
-                    variant='text'
-                    className='w-12'
-                    animation='shimmer'
-                  />
-                }
-              />
-              <KeyValue
-                label={
-                  <Skeleton
-                    variant='text'
-                    className='w-16'
-                    animation='pulse'
-                  />
-                }
-                children={
-                  <Skeleton
-                    variant='text'
-                    className='w-12'
-                    animation='shimmer'
-                  />
-                }
-              />
-            </div>
-          ) : (
-            <div className='space-y-1'>
-              <KeyValue
-                label={t('dashboard.products')}
-                children={
-                  <Link
-                    to='/products'
-                    className='font-medium text-foreground underline-offset-4 hover:underline'
-                  >
-                    {formatNumber(productsTotal)}
-                  </Link>
-                }
-              />
-              <KeyValue
-                label={t('dashboard.brands')}
-                children={
-                  <Link
-                    to='/brands'
-                    className='font-medium text-foreground underline-offset-4 hover:underline'
-                  >
-                    {formatNumber(brandsTotal)}
-                  </Link>
-                }
-              />
-              <KeyValue
-                label={t('dashboard.users')}
-                children={
-                  <Link
-                    to='/users'
-                    className='font-medium text-foreground underline-offset-4 hover:underline'
-                  >
-                    {formatNumber(usersCount)}
-                  </Link>
-                }
-              />
-              <p className='pt-2 text-xs text-muted-foreground'>
-                {revenueFromStats
-                  ? t('dashboard.statsNote')
-                  : t('dashboard.fallbackNote')}
-              </p>
-            </div>
+                      <span className='flex-1 truncate text-foreground'>
+                        {tv('orderStatus', status)}
+                      </span>
+                      <span className='tabular-nums text-muted-foreground'>
+                        {formatNumber(count)}
+                      </span>
+                      <span className='w-10 text-end tabular-nums text-muted-foreground'>
+                        {Math.round((count / Math.max(1, statusTotal)) * 100)}%
+                      </span>
+                    </li>
+                  ))}
+              </ul>
+            </>
           )}
         </Card>
       </div>
 
-      {/* Recent Orders */}
-      <Card className='bg-gradient-to-br from-brand-fuchsia/5 to-brand-purple/5 border-brand-fuchsia/10'>
-        <CardHeader
-          title={t('dashboard.recent')}
-          actions={
-            <Link
-              to='/orders'
-              className={cn(
-                'text-sm font-medium text-foreground underline-offset-4 hover:underline',
-              )}
+      {/* Level 3 — supporting analytics */}
+      <div className='grid grid-cols-1 gap-6 lg:grid-cols-3'>
+        <Card className='lg:col-span-2'>
+          <CardHeader
+            icon={<BarChart3 />}
+            title={t('dashboard.weeklyOrders')}
+            description={t('dashboard.weeklyOrdersDesc')}
+          />
+          {loading ? (
+            <ChartSkeleton />
+          ) : recentOrders.length === 0 ? (
+            <EmptyState
+              icon={<BarChart3 aria-hidden />}
+              title={t('dashboard.noOrders')}
+              className='h-64'
+            />
+          ) : (
+            <div
+              className='h-64'
+              role='img'
+              aria-label={t('dashboard.weeklyOrders')}
             >
-              {t('dashboard.manage')}
-            </Link>
-          }
-        />
+              <ResponsiveContainer
+                width='100%'
+                height='100%'
+              >
+                <BarChart
+                  data={weeklyOrdersData}
+                  margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray='3 3'
+                    stroke={ink.grid}
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey='day'
+                    stroke={ink.muted}
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={{ stroke: ink.axis }}
+                    reversed={locale === 'ar'}
+                  />
+                  <YAxis
+                    stroke={ink.muted}
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                    allowDecimals={false}
+                    width={32}
+                    orientation={locale === 'ar' ? 'right' : 'left'}
+                  />
+                  <Tooltip
+                    {...tooltipStyle}
+                    cursor={{ fill: ink.grid }}
+                    formatter={(value: number) => [
+                      formatNumber(value),
+                      t('dashboard.orders'),
+                    ]}
+                  />
+                  <Bar
+                    dataKey='orders'
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={44}
+                  >
+                    {weeklyOrdersData.map((d, i) => (
+                      <Cell
+                        key={i}
+                        // The busiest day is solid; the rest step back.
+                        fill={d.orders === busiest && busiest > 0 ? ink.bar : ink.barAlt}
+                        fillOpacity={d.orders === busiest ? 1 : 0.55}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </Card>
+
+        <Card>
+          <CardHeader
+            icon={<Tag />}
+            title={t('dashboard.catalog')}
+          />
+          {loading ? (
+            <div className='space-y-3'>
+              <Skeleton />
+              <Skeleton className='w-5/6' />
+              <Skeleton className='w-2/3' />
+            </div>
+          ) : (
+            <>
+              <dl className='divide-y divide-border'>
+                {(
+                  [
+                    ['dashboard.products', productsTotal, '/products'],
+                    ['dashboard.brands', brandsTotal, '/brands'],
+                    ['dashboard.users', usersCount, '/users'],
+                  ] as const
+                ).map(([label, count, to]) => (
+                  <KeyValue
+                    key={label}
+                    label={t(label)}
+                  >
+                    <Link
+                      to={to}
+                      className='inline-flex items-center gap-1 rounded font-semibold tabular-nums text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                    >
+                      {formatNumber(count)}
+                      <ArrowUpRight
+                        className='size-3.5 text-muted-foreground rtl:-scale-x-100'
+                        aria-hidden
+                      />
+                    </Link>
+                  </KeyValue>
+                ))}
+              </dl>
+              <p className='mt-4 rounded-badge bg-muted/60 p-3 text-xs text-muted-foreground'>
+                {revenueFromStats
+                  ? t('dashboard.statsNote')
+                  : t('dashboard.fallbackNote')}
+              </p>
+            </>
+          )}
+        </Card>
+      </div>
+
+      {/* Level 4 — operational */}
+      <Card padded={false}>
+        <div className='p-5 pb-0 sm:p-6 sm:pb-0'>
+          <CardHeader
+            icon={<ShoppingCart />}
+            title={t('dashboard.recent')}
+            actions={
+              <Link
+                to='/orders'
+                className={cn(
+                  buttonVariants({ variant: 'ghost', size: 'sm' }),
+                  '-me-2',
+                )}
+              >
+                {t('dashboard.manage')}
+                <ArrowUpRight
+                  className='rtl:-scale-x-100'
+                  aria-hidden
+                />
+              </Link>
+            }
+          />
+        </div>
         {ordersQ.isLoading ? (
-          <div className='space-y-3'>
-            <SkeletonRow />
-            <SkeletonRow />
-            <SkeletonRow />
-            <SkeletonRow />
+          <div className='divide-y divide-border border-t border-border px-5 sm:px-6'>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <SkeletonRow key={i} />
+            ))}
           </div>
         ) : recentOrders.length === 0 ? (
-          <p className='py-8 text-center text-sm text-muted-foreground'>
-            {t('dashboard.noRecent')}
-          </p>
+          <EmptyState
+            icon={<ShoppingCart aria-hidden />}
+            title={t('dashboard.noRecent')}
+          />
         ) : (
-          <ul className='divide-y divide-border'>
+          <ul className='divide-y divide-border border-t border-border'>
             {recentOrders.slice(0, 8).map((order) => (
-              <li
-                key={order._id}
-                className='flex flex-wrap items-center justify-between gap-3 py-3'
-              >
-                <div className='min-w-0 flex-1'>
-                  <p
-                    className={cn(
-                      'text-sm font-medium text-foreground tabular-nums',
-                      'font-mono',
-                    )}
-                    dir='ltr'
-                  >
-                    {shortId(order._id)}
-                  </p>
-                  <p className='text-sm text-muted-foreground'>
-                    {customerLabel(order, t('dashboard.customerFallback'))}
-                    {order.createdAt
-                      ? ` · ${formatDateTime(order.createdAt)}`
-                      : ''}
-                  </p>
-                </div>
-                <div className='flex shrink-0 items-center gap-3'>
-                  <StatusBadge
-                    status={order.status}
-                    children={tv('orderStatus', order.status)}
-                  />
-                  <div className='text-end'>
-                    <p
-                      className={cn(
-                        'text-sm font-medium text-foreground tabular-nums',
-                      )}
+              <li key={order._id}>
+                <Link
+                  to={`/orders/${order._id}`}
+                  className='flex flex-wrap items-center justify-between gap-3 px-5 py-3 transition-colors duration-fast hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none sm:px-6'
+                >
+                  <div className='flex min-w-0 flex-1 items-center gap-3'>
+                    <span
+                      aria-hidden
+                      className='flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-semibold uppercase text-muted-foreground'
                     >
-                      {formatCurrency(Number(order.totalPrice || 0))}
-                    </p>
-                    {order.paymentStatus && (
-                      <p className='text-xs text-muted-foreground'>
-                        {tv('paymentStatus', order.paymentStatus)}
+                      {customerLabel(order, '?').charAt(0)}
+                    </span>
+                    <div className='min-w-0'>
+                      <p className='truncate text-sm font-medium text-foreground'>
+                        {customerLabel(order, t('dashboard.customerFallback'))}
                       </p>
-                    )}
+                      <p className='truncate text-xs text-muted-foreground'>
+                        <span
+                          className='font-mono'
+                          dir='ltr'
+                        >
+                          #{shortId(order._id)}
+                        </span>
+                        {order.createdAt
+                          ? ` · ${formatDateTime(order.createdAt)}`
+                          : ''}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                  <div className='flex shrink-0 items-center gap-4'>
+                    <StatusBadge status={order.status}>
+                      {tv('orderStatus', order.status)}
+                    </StatusBadge>
+                    <div className='w-24 text-end'>
+                      <p className='text-sm font-semibold tabular-nums text-foreground'>
+                        {formatCurrency(Number(order.totalPrice || 0))}
+                      </p>
+                      {order.paymentStatus && (
+                        <p className='text-xs text-muted-foreground'>
+                          {tv('paymentStatus', order.paymentStatus)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </Link>
               </li>
             ))}
           </ul>
         )}
       </Card>
-    </div>
-  );
-}
-
-// Helper for skeleton rows
-function SkeletonRow() {
-  return (
-    <div className='flex items-center justify-between gap-3 py-3'>
-      <div className='flex-1 space-y-2'>
-        <Skeleton
-          variant='text'
-          className='w-20'
-        />
-        <Skeleton
-          variant='text'
-          className='w-32'
-        />
-      </div>
-      <div className='flex items-center gap-3'>
-        <Skeleton variant='badge' />
-        <Skeleton
-          variant='text'
-          className='w-16'
-        />
-      </div>
     </div>
   );
 }

@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Plus, Pencil, Trash2, Search } from 'lucide-react';
+import { PackageOpen, Plus, Pencil, Trash2, X } from 'lucide-react';
 import {
   useAdminBundles,
   useCreateBundleMutation,
@@ -12,10 +11,21 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useToast } from '../components/ui/Toast';
 import { useConfirm } from '../components/ui/ConfirmDialog';
 import { useTableQuery } from '../hooks/useTableQuery';
-import { SortableHeader } from '../components/ui/SortableHeader';
-import { TablePagination } from '../components/ui/TablePagination';
-import { FormDialog } from '../components/ui/FormDialog';
+import { FormActions, FormDialog } from '../components/ui/FormDialog';
 import { useT } from '../i18n/I18nProvider';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Alert } from '../components/ui/Alert';
+import { Button } from '../components/ui/Button';
+import { IconButton } from '../components/ui/IconButton';
+import {
+  DataTable,
+  RowActions,
+  type DataTableColumn,
+} from '../components/ui/DataTable';
+import { FilterBar } from '../components/ui/FilterBar';
+import { Field, Input, Switch } from '../components/ui/Field';
+import { StatusBadge } from '../components/ui/StatusBadge';
+import { hintClass, labelClass } from '../components/ui/styles';
 
 const emptyForm: BundlePayload = {
   primaryProduct: '',
@@ -38,7 +48,8 @@ export default function Bundles() {
   const toast = useToast();
   const confirm = useConfirm();
   const { t, formatCurrency, formatNumber } = useT();
-  const titleOf = (b: AdminBundle) => primaryTitle(b, t('bundles.deletedProduct'));
+  const titleOf = (b: AdminBundle) =>
+    primaryTitle(b, t('bundles.deletedProduct'));
   const table = useTableQuery({ limit: 25, sort: 'createdAt', order: 'desc' });
   const { resetPage } = table;
   const [search, setSearch] = useState('');
@@ -151,7 +162,11 @@ export default function Bundles() {
   }
 
   async function handleDelete(bundle: AdminBundle) {
-    const ok = await confirm({ message: t('bundles.confirmDelete', { title: titleOf(bundle) }), danger: true, confirmLabel: t('common.delete') });
+    const ok = await confirm({
+      message: t('bundles.confirmDelete', { title: titleOf(bundle) }),
+      danger: true,
+      confirmLabel: t('common.delete'),
+    });
     if (!ok) return;
     try {
       await deleteMut.mutateAsync(bundle._id);
@@ -160,187 +175,159 @@ export default function Bundles() {
     }
   }
 
+  const columns: DataTableColumn<AdminBundle>[] = [
+    {
+      key: 'primary',
+      header: t('bundles.columns.primary'),
+      cell: (bundle) => (
+        <span
+          className={
+            bundle.primaryProduct
+              ? 'font-medium text-foreground'
+              : 'italic text-muted-foreground'
+          }
+          dir='auto'
+        >
+          {titleOf(bundle)}
+        </span>
+      ),
+    },
+    {
+      key: 'items',
+      header: t('bundles.columns.items'),
+      className: 'text-muted-foreground',
+      cell: (bundle) =>
+        t('bundles.itemCount', { count: formatNumber(bundle.items.length) }),
+    },
+    {
+      key: 'bundlePrice',
+      header: t('bundles.columns.price'),
+      sortable: true,
+      numeric: true,
+      className: 'font-medium',
+      cell: (bundle) => formatCurrency(bundle.bundlePrice),
+    },
+    {
+      key: 'savings',
+      header: t('bundles.columns.savings'),
+      sortable: true,
+      numeric: true,
+      cell: (bundle) => `−${formatCurrency(bundle.savings)}`,
+    },
+    {
+      key: 'active',
+      header: t('common.status'),
+      cell: (bundle) => (
+        <StatusBadge status={bundle.active ? 'active' : 'inactive'}>
+          {bundle.active ? t('common.active') : t('common.inactive')}
+        </StatusBadge>
+      ),
+    },
+    {
+      key: 'actions',
+      header: t('common.actions'),
+      actions: true,
+      cell: (bundle) => (
+        <RowActions>
+          {can('content:write') && (
+            <IconButton
+              icon={<Pencil aria-hidden />}
+              label={t('common.editItem', { name: titleOf(bundle) })}
+              onClick={() => openEdit(bundle)}
+            />
+          )}
+          {can('content:delete') && (
+            <IconButton
+              icon={<Trash2 aria-hidden />}
+              label={t('common.deleteItem', { name: titleOf(bundle) })}
+              onClick={() => void handleDelete(bundle)}
+              disabled={deleteMut.isPending}
+            />
+          )}
+        </RowActions>
+      ),
+    },
+  ];
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
-      <div className='mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
-        <div>
-          <h1 className='text-3xl font-bold text-gray-900 dark:text-white'>
-            {t('bundles.title')}
-          </h1>
-          <p className='mt-1 text-sm text-gray-600 dark:text-gray-400'>
-            {t('bundles.subtitle')}
-          </p>
-        </div>
-        {can('content:write') && (
-          <button
-            type='button'
-            onClick={openCreate}
-            className='inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600'
-          >
-            <Plus className='me-2 h-5 w-5' aria-hidden />
-            {t('bundles.add')}
-          </button>
-        )}
-      </div>
+    <>
+      <PageHeader
+        title={t('bundles.title')}
+        description={t('bundles.subtitle')}
+        actions={
+          can('content:write') && (
+            <Button
+              variant='primary'
+              onClick={openCreate}
+              icon={<Plus aria-hidden />}
+            >
+              {t('bundles.add')}
+            </Button>
+          )
+        }
+      />
 
-      <form
-        className='relative mb-6'
-        onSubmit={(e) => {
-          e.preventDefault();
-          setAppliedQ(search.trim());
-          resetPage();
-        }}
-      >
-        <Search className='absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400' aria-hidden />
-        <input
-          type='search'
-          aria-label={t('bundles.searchLabel')}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={t('bundles.searchPlaceholder')}
-          className='w-full rounded-lg border border-gray-300 bg-white py-2 ps-10 pe-4 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white'
-        />
-      </form>
-
-      {bundlesQ.isLoading && (
-        <p className='py-10 text-center text-sm text-gray-500'>
-          {t('bundles.loading')}
-        </p>
-      )}
-
-      {bundlesQ.isError && (
-        <div className='rounded-lg border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200'>
+      {bundlesQ.isError ? (
+        <Alert tone='error'>
           {errorMessage(bundlesQ.error, t('bundles.loadFailed'))}
-        </div>
-      )}
-
-      {!bundlesQ.isLoading && !bundlesQ.isError && (
-        <div className='overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800'>
-          <div className='overflow-x-auto'>
-            <table className='w-full min-w-[800px]'>
-              <thead className='bg-gray-50 text-xs uppercase tracking-wider dark:bg-gray-700'>
-                <tr className='[&>th]:px-4 [&>th]:py-3 [&>th]:text-start [&>th]:font-medium [&>th]:text-gray-500 dark:[&>th]:text-gray-300'>
-                  <th scope='col'>{t('bundles.columns.primary')}</th>
-                  <th scope='col'>{t('bundles.columns.items')}</th>
-                  <SortableHeader
-                    field='bundlePrice'
-                    active={table.sort}
-                    order={table.order}
-                    onSort={table.toggleSort}
-                  >
-                    {t('bundles.columns.price')}
-                  </SortableHeader>
-                  <SortableHeader
-                    field='savings'
-                    active={table.sort}
-                    order={table.order}
-                    onSort={table.toggleSort}
-                  >
-                    {t('bundles.columns.savings')}
-                  </SortableHeader>
-                  <th scope='col'>{t('common.status')}</th>
-                  <th scope='col'>{t('common.actions')}</th>
-                </tr>
-              </thead>
-              <tbody className='divide-y divide-gray-200 dark:divide-gray-700'>
-                {bundles.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className='px-4 py-10 text-center text-sm text-gray-500'
-                    >
-                      {t('bundles.empty')}
-                    </td>
-                  </tr>
-                ) : (
-                  bundles.map((bundle) => (
-                    <tr
-                      key={bundle._id}
-                      className='hover:bg-gray-50 dark:hover:bg-gray-700/60'
-                    >
-                      <td className='px-4 py-3 text-sm text-gray-900 dark:text-white' dir='auto'>
-                        {titleOf(bundle)}
-                      </td>
-                      <td className='px-4 py-3 text-sm text-gray-600 dark:text-gray-400'>
-                        {t('bundles.itemCount', { count: formatNumber(bundle.items.length) })}
-                      </td>
-                      <td className='px-4 py-3 text-sm text-gray-900 dark:text-white'>
-                        {formatCurrency(bundle.bundlePrice)}
-                      </td>
-                      <td className='px-4 py-3 text-sm text-green-600 dark:text-green-400'>
-                        {formatCurrency(bundle.savings)}
-                      </td>
-                      <td className='px-4 py-3'>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                            bundle.active
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                              : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-                          }`}
-                        >
-                          {bundle.active ? t('common.active') : t('common.inactive')}
-                        </span>
-                      </td>
-                      <td className='px-4 py-3'>
-                        <div className='flex gap-1'>
-                          {can('content:write') && (
-                            <button
-                              type='button'
-                              onClick={() => openEdit(bundle)}
-                              className='rounded p-1.5 hover:bg-gray-100 dark:hover:bg-gray-600'
-                              aria-label={t('common.editItem', { name: titleOf(bundle) })}
-                            >
-                              <Pencil className='h-4 w-4 text-gray-500' aria-hidden />
-                            </button>
-                          )}
-                          {can('content:delete') && (
-                            <button
-                              type='button'
-                              onClick={() => void handleDelete(bundle)}
-                              disabled={deleteMut.isPending}
-                              className='rounded p-1.5 hover:bg-red-50 dark:hover:bg-red-950/40'
-                              aria-label={t('common.deleteItem', { name: titleOf(bundle) })}
-                            >
-                              <Trash2 className='h-4 w-4 text-red-500' aria-hidden />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-          <TablePagination
-            meta={meta}
-            busy={bundlesQ.isFetching}
-            onPage={table.setPage}
-            onLimit={table.setLimit}
-          />
-        </div>
+        </Alert>
+      ) : (
+        <DataTable
+          caption={t('bundles.title')}
+          data={bundles}
+          columns={columns}
+          getKey={(bundle) => bundle._id}
+          loading={bundlesQ.isLoading}
+          fetching={bundlesQ.isFetching}
+          sort={table.sort}
+          order={table.order}
+          onSort={table.toggleSort}
+          meta={meta}
+          onPage={table.setPage}
+          onLimit={table.setLimit}
+          emptyIcon={<PackageOpen aria-hidden />}
+          emptyTitle={t('bundles.empty')}
+          toolbar={
+            <FilterBar
+              search={{
+                value: search,
+                onChange: setSearch,
+                onSubmit: () => {
+                  setAppliedQ(search.trim());
+                  resetPage();
+                },
+                placeholder: t('bundles.searchPlaceholder'),
+                label: t('bundles.searchLabel'),
+                submitLabel: t('common.search'),
+              }}
+              canClear={Boolean(appliedQ)}
+              onClear={() => {
+                setSearch('');
+                setAppliedQ('');
+                resetPage();
+              }}
+            />
+          }
+        />
       )}
 
       {open && (
         <FormDialog
           onClose={() => setOpen(false)}
-          title={editing ? t('bundles.form.editTitle') : t('bundles.form.createTitle')}
+          title={
+            editing ? t('bundles.form.editTitle') : t('bundles.form.createTitle')
+          }
           busy={saving}
-          maxWidthClass='max-w-2xl'
         >
           <form
             onSubmit={handleSubmit}
-            className='space-y-3'
+            className='space-y-5'
           >
-            <label className='block text-sm'>
-              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                {t('bundles.form.primaryId')}
-              </span>
-              <input
+            <Field
+              label={t('bundles.form.primaryId')}
+              required
+            >
+              <Input
                 required
                 value={form.primaryProduct}
                 onChange={(e) =>
@@ -348,125 +335,124 @@ export default function Bundles() {
                 }
                 placeholder={t('bundles.form.productId')}
                 dir='ltr'
-                className='w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
+                className='font-mono'
               />
-            </label>
-            <div>
-              <span className='mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300'>
+            </Field>
+            <div
+              role='group'
+              aria-labelledby='bundle-items-label'
+              className='space-y-2'
+            >
+              <p
+                id='bundle-items-label'
+                className={labelClass}
+              >
                 {t('bundles.form.items')}
-              </span>
-              {form.items.map((item, index) => (
-                <div
-                  key={index}
-                  className='mb-2 flex gap-2'
-                >
-                  <input
-                    required
-                    value={item.product}
-                    onChange={(e) =>
-                      updateItem(index, 'product', e.target.value)
-                    }
-                    placeholder={t('bundles.form.productId')}
-                    aria-label={t('bundles.form.itemProduct', { n: index + 1 })}
-                    dir='ltr'
-                    className='flex-1 rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                  />
-                  <input
-                    type='number'
-                    min={1}
-                    value={item.quantity}
-                    onChange={(e) =>
-                      updateItem(index, 'quantity', e.target.value)
-                    }
-                    placeholder={t('bundles.form.qty')}
-                    aria-label={t('bundles.form.itemQty', { n: index + 1 })}
-                    className='w-20 rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-                  />
-                  {form.items.length > 2 && (
-                    <button
-                      type='button'
-                      onClick={() => removeItem(index)}
-                      aria-label={t('bundles.form.removeItem', { n: index + 1 })}
-                      className='rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-600 hover:bg-red-100 dark:border-red-700 dark:bg-red-950/40 dark:text-red-400'
+              </p>
+              <ol className='space-y-2'>
+                {form.items.map((item, index) => (
+                  <li
+                    key={index}
+                    className='flex items-center gap-2'
+                  >
+                    <span
+                      aria-hidden
+                      className='flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-semibold tabular-nums text-muted-foreground'
                     >
-                      {t('bundles.form.remove')}
-                    </button>
-                  )}
-                </div>
-              ))}
-              <button
-                type='button'
+                      {index + 1}
+                    </span>
+                    <Input
+                      required
+                      value={item.product}
+                      onChange={(e) =>
+                        updateItem(index, 'product', e.target.value)
+                      }
+                      placeholder={t('bundles.form.productId')}
+                      aria-label={t('bundles.form.itemProduct', {
+                        n: index + 1,
+                      })}
+                      dir='ltr'
+                      className='min-w-0 flex-1 font-mono'
+                    />
+                    <Input
+                      type='number'
+                      min={1}
+                      value={item.quantity}
+                      onChange={(e) =>
+                        updateItem(index, 'quantity', e.target.value)
+                      }
+                      placeholder={t('bundles.form.qty')}
+                      aria-label={t('bundles.form.itemQty', { n: index + 1 })}
+                      className='w-20 shrink-0'
+                    />
+                    <IconButton
+                      icon={<X aria-hidden />}
+                      label={t('bundles.form.removeItem', { n: index + 1 })}
+                      size='md'
+                      onClick={() => removeItem(index)}
+                      disabled={form.items.length <= 2}
+                    />
+                  </li>
+                ))}
+              </ol>
+              <Button
+                size='sm'
+                className='border-dashed shadow-none'
                 onClick={addItem}
-                className='mt-2 rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300'
+                icon={<Plus aria-hidden />}
               >
-                {t('bundles.form.addItem')}
-              </button>
+                {t('bundles.form.addItem').replace(/^\+\s*/, '')}
+              </Button>
+              <p className={hintClass}>{t('bundles.minItems')}</p>
             </div>
-            <label className='block text-sm'>
-              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                {t('bundles.form.price')}
-              </span>
-              <input
+            <div className='grid gap-4 sm:grid-cols-2'>
+              <Field
+                label={t('bundles.form.price')}
                 required
-                type='number'
-                step='0.01'
-                min={0}
-                value={form.bundlePrice}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    bundlePrice: Number(e.target.value),
-                  }))
-                }
-                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-              />
-            </label>
-            <label className='block text-sm'>
-              <span className='mb-1 block font-medium text-gray-700 dark:text-gray-300'>
-                {t('bundles.form.savings')}
-              </span>
-              <input
+              >
+                <Input
+                  required
+                  type='number'
+                  step='0.01'
+                  min={0}
+                  value={form.bundlePrice}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      bundlePrice: Number(e.target.value),
+                    }))
+                  }
+                />
+              </Field>
+              <Field
+                label={t('bundles.form.savings')}
                 required
-                type='number'
-                step='0.01'
-                min={0}
-                value={form.savings}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, savings: Number(e.target.value) }))
-                }
-                className='w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-900 dark:text-white'
-              />
-            </label>
-            <label className='flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300'>
-              <input
-                type='checkbox'
-                checked={!!form.active}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, active: e.target.checked }))
-                }
-              />
-              {t('common.active')}
-            </label>
-            <div className='flex justify-end gap-2 pt-2'>
-              <button
-                type='button'
-                disabled={saving}
-                onClick={() => setOpen(false)}
-                className='rounded-lg px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
               >
-                {t('common.cancel')}
-              </button>
-              <button
-                type='submit'
-                disabled={saving}
-                className='rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60'
-              >
-                {saving ? t('common.saving') : editing ? t('common.save') : t('common.create')}
-              </button>
+                <Input
+                  required
+                  type='number'
+                  step='0.01'
+                  min={0}
+                  value={form.savings}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, savings: Number(e.target.value) }))
+                  }
+                />
+              </Field>
             </div>
+            <Switch
+              checked={!!form.active}
+              onCheckedChange={(active) => setForm((f) => ({ ...f, active }))}
+              label={t('common.active')}
+            />
+            <FormActions
+              onCancel={() => setOpen(false)}
+              saving={saving}
+              submitLabel={editing ? t('common.save') : t('common.create')}
+            />
           </form>
         </FormDialog>
       )}
-    </motion.div>
+    </>
   );
 }

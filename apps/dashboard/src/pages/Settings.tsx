@@ -1,8 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
-import { Save, Shield, Palette, User, LogOut, Loader2, Store } from 'lucide-react';
+import {
+  CheckCircle2,
+  KeyRound,
+  LogOut,
+  Palette,
+  Save,
+  Store,
+  User,
+} from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { authApi, errorMessage } from '../lib/api';
 import { clearAuthSession, getAuthRole, getRefreshToken } from '../lib/auth';
@@ -14,8 +21,67 @@ import {
 } from '../hooks/useAdminSettings';
 import { useToast } from '../components/ui/Toast';
 import { useT } from '../i18n/I18nProvider';
+import { PageHeader } from '../components/ui/PageHeader';
+import { Alert } from '../components/ui/Alert';
+import { Button, Spinner } from '../components/ui/Button';
+import { Card, KeyValue } from '../components/ui/Card';
+import {
+  Field,
+  FieldError,
+  Input,
+  Switch,
+  Textarea,
+} from '../components/ui/Field';
+import { Badge } from '../components/ui/StatusBadge';
+import { text } from '../components/ui/styles';
 
 const PROFILE_KEY = ['auth', 'profile'] as const;
+
+/** Settings group: what it is on the start side, its form on the end side. */
+function SettingsSection({
+  icon,
+  title,
+  description,
+  children,
+}: {
+  icon: ReactNode;
+  title: ReactNode;
+  description?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className='grid gap-4 border-b border-border pb-8 last:border-0 last:pb-0 lg:grid-cols-[18rem_1fr] lg:gap-8'>
+      <div className='space-y-2'>
+        <span
+          aria-hidden
+          className='flex size-9 items-center justify-center rounded-control border border-border bg-card text-foreground shadow-card [&_svg]:size-4'
+        >
+          {icon}
+        </span>
+        <h2 className={text.section}>{title}</h2>
+        {description && (
+          <p className={text.secondary}>{description}</p>
+        )}
+      </div>
+      <Card>{children}</Card>
+    </section>
+  );
+}
+
+function SuccessNote({ children }: { children: ReactNode }) {
+  return (
+    <p
+      role='status'
+      className='flex items-center gap-1.5 text-sm font-medium text-foreground'
+    >
+      <CheckCircle2
+        className='size-4'
+        aria-hidden
+      />
+      {children}
+    </p>
+  );
+}
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -183,458 +249,400 @@ export default function Settings() {
   const apiBase = viteEnv.VITE_API_URL || t('settings.session.apiProxy');
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
-      <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-white">
-        {t('settings.title')}
-      </h1>
-      <p className="mb-8 text-sm text-gray-600 dark:text-gray-400">
-        {t('settings.subtitle')}
-      </p>
+    <>
+      <PageHeader
+        title={t('settings.title')}
+        description={t('settings.subtitle')}
+      />
 
       {profileQ.isLoading && (
-        <div className="mb-6 flex items-center gap-2 text-sm text-gray-500">
-          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-          {t('settings.loadingProfile')}
+        <div className='mb-6'>
+          <Spinner label={t('settings.loadingProfile')} />
         </div>
       )}
 
       {profileQ.isError && (
-        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+        <Alert
+          tone='error'
+          className='mb-6'
+        >
           {errorMessage(profileQ.error, t('settings.profileLoadFailed'))}
-        </div>
+        </Alert>
       )}
 
-      <div className="space-y-6">
+      <div className='space-y-8'>
         {/* Account */}
-        <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-          <div className="mb-4 flex items-center">
-            <User className="me-2 h-5 w-5 text-blue-500" aria-hidden />
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              {t('settings.account.title')}
-            </h2>
-          </div>
-          <form onSubmit={saveProfile} className="space-y-4">
-            <div>
-              <label htmlFor="settings-username" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('settings.account.username')}
-              </label>
-              <input
-                id="settings-username"
+        <SettingsSection
+          icon={<User />}
+          title={t('settings.account.title')}
+          description={user?.email}
+        >
+          <form
+            onSubmit={saveProfile}
+            className='space-y-4'
+          >
+            <div className='grid gap-4 sm:grid-cols-2'>
+              <Field
+                label={t('settings.account.username')}
                 required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-              />
-            </div>
-            <div>
-              <label htmlFor="settings-email" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('settings.account.email')}
-              </label>
-              <input
-                id="settings-email"
-                type="email"
-                dir="ltr"
+              >
+                <Input
+                  id='settings-username'
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+              </Field>
+              <Field
+                label={t('settings.account.email')}
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-              />
+              >
+                <Input
+                  id='settings-email'
+                  type='email'
+                  dir='ltr'
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </Field>
             </div>
             {emailChanged && (
-              <label className="block">
-                <span className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {t('settings.account.currentPassword')}
-                </span>
-                <input
-                  type="password"
-                  autoComplete="current-password"
+              <Field label={t('settings.account.currentPassword')}>
+                <Input
+                  type='password'
+                  autoComplete='current-password'
                   value={profilePassword}
                   onChange={(e) => setProfilePassword(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                 />
-              </label>
+              </Field>
             )}
-            {profileMsg && (
-              <p className="text-sm text-green-700 dark:text-green-400">
-                {profileMsg}
-              </p>
-            )}
-            {profileErr && (
-              <p className="text-sm text-red-600 dark:text-red-400">
-                {profileErr}
-              </p>
-            )}
-            <button
-              type="submit"
-              disabled={profileSaving || profileQ.isLoading}
-              className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
-            >
-              <Save className="me-2 h-4 w-4" aria-hidden />
-              {profileSaving ? t('common.saving') : t('settings.account.save')}
-            </button>
+            {profileMsg && <SuccessNote>{profileMsg}</SuccessNote>}
+            {profileErr && <FieldError>{profileErr}</FieldError>}
+            <div className='flex justify-end border-t border-border pt-4'>
+              <Button
+                type='submit'
+                variant='primary'
+                loading={profileSaving}
+                disabled={profileQ.isLoading}
+                icon={<Save aria-hidden />}
+              >
+                {t('settings.account.save')}
+              </Button>
+            </div>
           </form>
-        </section>
+        </SettingsSection>
 
         {/* Appearance */}
-        <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-          <div className="mb-4 flex items-center">
-            <Palette className="me-2 h-5 w-5 text-blue-500" aria-hidden />
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              {t('settings.appearance.title')}
-            </h2>
-          </div>
-          <div className="flex items-center justify-between gap-4">
+        <SettingsSection
+          icon={<Palette />}
+          title={t('settings.appearance.title')}
+        >
+          <div className='flex items-center justify-between gap-4'>
             <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
+              <p className={text.cardTitle}>
                 {t('settings.appearance.darkMode')}
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className={text.secondary}>
                 {t('settings.appearance.darkModeHint')}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={toggleTheme}
-              aria-pressed={theme === 'dark'}
+            <Switch
+              checked={theme === 'dark'}
+              onCheckedChange={toggleTheme}
               aria-label={t('settings.appearance.darkMode')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                theme === 'dark' ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
-              }`}
-            >
-              <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                  theme === 'dark' ? 'translate-x-5 rtl:-translate-x-5' : 'translate-x-0.5 rtl:-translate-x-0.5'
-                }`}
-              />
-            </button>
+            />
           </div>
-        </section>
+        </SettingsSection>
 
         {/* Store settings (shipping/tax) — settings:write (admin only) */}
         {canEditStoreSettings && (
-          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <div className="mb-4 flex items-center">
-              <Store className="me-2 h-5 w-5 text-blue-500" aria-hidden />
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                {t('settings.store.title')}
-              </h2>
-            </div>
-            <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
-              {t('settings.store.subtitle')}
-            </p>
-
+          <SettingsSection
+            icon={<Store />}
+            title={t('settings.store.title')}
+            description={t('settings.store.subtitle')}
+          >
             {storeSettingsQ.isLoading && (
-              <div className="mb-4 flex items-center gap-2 text-sm text-gray-500">
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                {t('settings.store.loading')}
+              <div className='mb-4'>
+                <Spinner label={t('settings.store.loading')} />
               </div>
             )}
 
             {storeSettingsQ.isError && (
-              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-                {errorMessage(storeSettingsQ.error, t('settings.store.loadFailed'))}
-              </div>
+              <Alert
+                tone='error'
+                className='mb-4'
+              >
+                {errorMessage(
+                  storeSettingsQ.error,
+                  t('settings.store.loadFailed'),
+                )}
+              </Alert>
             )}
 
-            <form onSubmit={saveStoreSettings} className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="settings-store-name" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t('settings.store.name')}
-                  </label>
-                  <input
-                    id="settings-store-name"
+            <form
+              onSubmit={saveStoreSettings}
+              className='space-y-6'
+            >
+              <div className='grid gap-4 sm:grid-cols-2'>
+                <Field label={t('settings.store.name')}>
+                  <Input
+                    id='settings-store-name'
                     value={storeName}
-                    dir="auto"
+                    dir='auto'
                     onChange={(e) => setStoreName(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                   />
-                </div>
-                <div>
-                  <label htmlFor="settings-contact-email" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t('settings.store.contactEmail')}
-                  </label>
-                  <input
-                    id="settings-contact-email"
-                    type="email"
-                    dir="ltr"
+                </Field>
+                <Field label={t('settings.store.contactEmail')}>
+                  <Input
+                    id='settings-contact-email'
+                    type='email'
+                    dir='ltr'
                     value={contactEmail}
                     onChange={(e) => setContactEmail(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                   />
-                </div>
-                <div>
-                  <label htmlFor="settings-standard-shipping" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t('settings.store.standardShipping')}
-                  </label>
-                  <input
-                    id="settings-standard-shipping"
-                    type="number"
+                </Field>
+                <Field label={t('settings.store.standardShipping')}>
+                  <Input
+                    id='settings-standard-shipping'
+                    type='number'
                     min={0}
-                    step="0.01"
+                    step='0.01'
                     value={standardRateUsd}
                     onChange={(e) => setStandardRateUsd(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                   />
-                </div>
-                <div>
-                  <label htmlFor="settings-express-shipping" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t('settings.store.expressShipping')}
-                  </label>
-                  <input
-                    id="settings-express-shipping"
-                    type="number"
+                </Field>
+                <Field label={t('settings.store.expressShipping')}>
+                  <Input
+                    id='settings-express-shipping'
+                    type='number'
                     min={0}
-                    step="0.01"
+                    step='0.01'
                     value={expressRateUsd}
                     onChange={(e) => setExpressRateUsd(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                   />
-                </div>
-                <div>
-                  <label htmlFor="settings-free-shipping-threshold-0-disabled" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t('settings.store.freeThreshold')}
-                  </label>
-                  <input
-                    id="settings-free-shipping-threshold-0-disabled"
-                    type="number"
+                </Field>
+                <Field label={t('settings.store.freeThreshold')}>
+                  <Input
+                    id='settings-free-shipping-threshold-0-disabled'
+                    type='number'
                     min={0}
-                    step="0.01"
+                    step='0.01'
                     value={freeShippingThresholdUsd}
-                    onChange={(e) => setFreeShippingThresholdUsd(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                    onChange={(e) =>
+                      setFreeShippingThresholdUsd(e.target.value)
+                    }
                   />
-                </div>
-                <div>
-                  <label htmlFor="settings-tax-rate" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t('settings.store.taxRate')}
-                  </label>
-                  <input
-                    id="settings-tax-rate"
-                    type="number"
+                </Field>
+                <Field label={t('settings.store.taxRate')}>
+                  <Input
+                    id='settings-tax-rate'
+                    type='number'
                     min={0}
                     max={100}
-                    step="0.01"
+                    step='0.01'
                     value={taxRatePercent}
                     onChange={(e) => setTaxRatePercent(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                   />
-                </div>
+                </Field>
               </div>
 
-              <fieldset className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-                <legend className="px-1 text-sm font-semibold text-gray-900 dark:text-white">
-                  {t('settings.store.invoices')}
-                </legend>
-                <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
-                  {t('settings.store.invoicesHint')}
-                </p>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label htmlFor="settings-invoice-legal-name" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {t('settings.store.legalName')}
-                    </label>
-                    <input
-                      id="settings-invoice-legal-name"
-                      dir="auto"
+              <div className='space-y-4 border-t border-border pt-5'>
+                <div>
+                  <h3 className={text.cardTitle}>
+                    {t('settings.store.invoices')}
+                  </h3>
+                  <p className={text.secondary}>
+                    {t('settings.store.invoicesHint')}
+                  </p>
+                </div>
+                <div className='grid gap-4 sm:grid-cols-2'>
+                  <Field label={t('settings.store.legalName')}>
+                    <Input
+                      id='settings-invoice-legal-name'
+                      dir='auto'
                       maxLength={200}
                       value={invoiceLegalName}
                       onChange={(e) => setInvoiceLegalName(e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                     />
-                  </div>
-                  <div>
-                    <label htmlFor="settings-invoice-tax-id" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {t('settings.store.taxId')}
-                    </label>
-                    <input
-                      id="settings-invoice-tax-id"
+                  </Field>
+                  <Field label={t('settings.store.taxId')}>
+                    <Input
+                      id='settings-invoice-tax-id'
                       maxLength={60}
                       value={invoiceTaxId}
-                      dir="ltr"
+                      dir='ltr'
                       onChange={(e) => setInvoiceTaxId(e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                     />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label htmlFor="settings-invoice-address" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {t('settings.store.address')}
-                    </label>
-                    <textarea
-                      id="settings-invoice-address"
-                      dir="auto"
+                  </Field>
+                  <Field
+                    label={t('settings.store.address')}
+                    className='sm:col-span-2'
+                  >
+                    <Textarea
+                      id='settings-invoice-address'
+                      dir='auto'
                       rows={3}
                       maxLength={500}
                       value={invoiceAddress}
                       onChange={(e) => setInvoiceAddress(e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
                     />
-                  </div>
-                  <div>
-                    <label htmlFor="settings-invoice-prefix" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {t('settings.store.prefix')}
-                    </label>
-                    <input
-                      id="settings-invoice-prefix"
+                  </Field>
+                  <Field
+                    label={t('settings.store.prefix')}
+                    hint={t('settings.store.prefixHint', {
+                      example: `${(invoicePrefix || 'TV').toUpperCase()}-${new Date().getFullYear()}-000123`,
+                    })}
+                  >
+                    <Input
+                      id='settings-invoice-prefix'
                       maxLength={10}
-                      pattern="[A-Za-z0-9]{1,10}"
+                      pattern='[A-Za-z0-9]{1,10}'
                       value={invoicePrefix}
-                      dir="ltr"
+                      dir='ltr'
                       onChange={(e) => setInvoicePrefix(e.target.value)}
-                      aria-describedby="settings-invoice-prefix-help"
-                      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 uppercase text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                      className='font-mono uppercase'
                     />
-                    <p id="settings-invoice-prefix-help" className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      {t('settings.store.prefixHint', {
-                        example: `${(invoicePrefix || 'TV').toUpperCase()}-${new Date().getFullYear()}-000123`,
-                      })}
-                    </p>
-                  </div>
+                  </Field>
                 </div>
-              </fieldset>
-              <button
-                type="submit"
-                disabled={updateStoreSettingsMut.isPending || storeSettingsQ.isLoading}
-                className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
-              >
-                <Save className="me-2 h-4 w-4" aria-hidden />
-                {updateStoreSettingsMut.isPending ? t('common.saving') : t('settings.store.save')}
-              </button>
+              </div>
+              <div className='flex justify-end border-t border-border pt-4'>
+                <Button
+                  type='submit'
+                  variant='primary'
+                  loading={updateStoreSettingsMut.isPending}
+                  disabled={storeSettingsQ.isLoading}
+                  icon={<Save aria-hidden />}
+                >
+                  {t('settings.store.save')}
+                </Button>
+              </div>
             </form>
-          </section>
+          </SettingsSection>
         )}
 
         {/* Password */}
-        <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-          <div className="mb-4 flex items-center">
-            <Shield className="me-2 h-5 w-5 text-blue-500" aria-hidden />
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              {t('settings.password.title')}
-            </h2>
-          </div>
-          <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
-            {t('settings.password.hint')}
-          </p>
-          <form onSubmit={savePassword} className="space-y-4">
-            <div>
-              <label htmlFor="settings-current-password" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('settings.password.current')}
-              </label>
-              <input
-                id="settings-current-password"
-                type="password"
-                autoComplete="current-password"
+        <SettingsSection
+          icon={<KeyRound />}
+          title={t('settings.password.title')}
+          description={t('settings.password.hint')}
+        >
+          <form
+            onSubmit={savePassword}
+            className='space-y-4'
+          >
+            <Field label={t('settings.password.current')}>
+              <Input
+                id='settings-current-password'
+                type='password'
+                autoComplete='current-password'
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
               />
+            </Field>
+            <div className='grid gap-4 sm:grid-cols-2'>
+              <Field label={t('settings.password.new')}>
+                <Input
+                  id='settings-new-password'
+                  type='password'
+                  autoComplete='new-password'
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder={t('settings.password.newPlaceholder')}
+                />
+              </Field>
+              <Field label={t('settings.password.confirm')}>
+                <Input
+                  id='settings-confirm-new-password'
+                  type='password'
+                  autoComplete='new-password'
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </Field>
             </div>
-            <div>
-              <label htmlFor="settings-new-password" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('settings.password.new')}
-              </label>
-              <input
-                id="settings-new-password"
-                type="password"
-                autoComplete="new-password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder={t('settings.password.newPlaceholder')}
-                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-              />
+            {passwordMsg && <SuccessNote>{passwordMsg}</SuccessNote>}
+            {passwordErr && <FieldError>{passwordErr}</FieldError>}
+            <div className='flex justify-end border-t border-border pt-4'>
+              <Button
+                type='submit'
+                variant='primary'
+                loading={passwordSaving}
+                disabled={!user}
+              >
+                {t('settings.password.update')}
+              </Button>
             </div>
-            <div>
-              <label htmlFor="settings-confirm-new-password" className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t('settings.password.confirm')}
-              </label>
-              <input
-                id="settings-confirm-new-password"
-                type="password"
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-              />
-            </div>
-            {passwordMsg && (
-              <p className="text-sm text-green-700 dark:text-green-400">
-                {passwordMsg}
-              </p>
-            )}
-            {passwordErr && (
-              <p className="text-sm text-red-600 dark:text-red-400">
-                {passwordErr}
-              </p>
-            )}
-            <button
-              type="submit"
-              disabled={passwordSaving || !user}
-              className="inline-flex items-center rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-60"
-            >
-              {passwordSaving ? t('settings.password.updating') : t('settings.password.update')}
-            </button>
           </form>
-        </section>
+        </SettingsSection>
 
         {/* Session / env */}
-        <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-          <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
-            {t('settings.session.title')}
-          </h2>
-          <dl className="mb-4 space-y-2 text-sm">
-            <div className="flex justify-between gap-4">
-              <dt className="text-gray-500">{t('settings.session.roleCookie')}</dt>
-              <dd className="font-medium text-gray-900 dark:text-white">
-                {getAuthRole() ? tv('role', getAuthRole()) : '—'}
-              </dd>
-            </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-gray-500">{t('settings.session.roles')}</dt>
-              <dd className="font-medium text-gray-900 dark:text-white">
-                {(user?.roles || []).map((r) => tv('role', r)).join(locale === 'ar' ? '، ' : ', ') || '—'}
-              </dd>
-            </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-gray-500">{t('settings.session.apiBase')}</dt>
-              <dd className="font-mono text-xs text-gray-900 dark:text-white" dir="ltr">
+        <SettingsSection
+          icon={<LogOut className='rtl:-scale-x-100' />}
+          title={t('settings.session.title')}
+        >
+          <dl className='divide-y divide-border'>
+            <KeyValue label={t('settings.session.roleCookie')}>
+              {getAuthRole() ? tv('role', getAuthRole()) : '—'}
+            </KeyValue>
+            <KeyValue label={t('settings.session.roles')}>
+              {(user?.roles || [])
+                .map((r) => tv('role', r))
+                .join(locale === 'ar' ? '، ' : ', ') || '—'}
+            </KeyValue>
+            <KeyValue label={t('settings.session.apiBase')}>
+              <span
+                className='font-mono text-xs'
+                dir='ltr'
+              >
                 {apiBase}
-              </dd>
-            </div>
+              </span>
+            </KeyValue>
             {permissions.length > 0 && (
-              <div>
-                <dt className="mb-1 text-gray-500">{t('settings.session.permissions')}</dt>
-                <dd className="flex flex-wrap gap-1" dir="ltr">
+              <div className='space-y-2 py-2.5'>
+                <dt className={text.secondary}>
+                  {t('settings.session.permissions')}
+                </dt>
+                <dd
+                  className='flex flex-wrap gap-1'
+                  dir='ltr'
+                >
                   {permissions.slice(0, 12).map((p) => (
-                    <span
+                    <Badge
                       key={p}
-                      className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[10px] text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+                      plain
+                      className='h-5 font-mono text-[0.6875rem]'
                     >
                       {p}
-                    </span>
+                    </Badge>
                   ))}
                   {permissions.length > 12 && (
-                    <span className="text-xs text-gray-500">
-                      {t('settings.session.more', { count: formatNumber(permissions.length - 12) })}
+                    <span className='text-xs text-muted-foreground'>
+                      {t('settings.session.more', {
+                        count: formatNumber(permissions.length - 12),
+                      })}
                     </span>
                   )}
                 </dd>
               </div>
             )}
           </dl>
-          <button
-            type="button"
-            onClick={() => void handleLogout()}
-            className="inline-flex items-center rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/40"
-          >
-            <LogOut className="me-2 h-4 w-4 rtl:-scale-x-100" aria-hidden />
-            {t('settings.session.logout')}
-          </button>
-        </section>
+          <div className='mt-4 flex justify-end border-t border-border pt-4'>
+            <Button
+              variant='destructive'
+              onClick={() => void handleLogout()}
+              icon={
+                <LogOut
+                  className='rtl:-scale-x-100'
+                  aria-hidden
+                />
+              }
+            >
+              {t('settings.session.logout')}
+            </Button>
+          </div>
+        </SettingsSection>
       </div>
-    </motion.div>
+    </>
   );
 }
