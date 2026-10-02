@@ -5,11 +5,12 @@ import {
   useLocation,
   useNavigate,
 } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { IconButton } from '../components/ui/IconButton';
 import { Tip } from '../components/ui/Tooltip';
+import { SkeletonPage } from '../components/ui/Skeleton';
 import {
   LayoutDashboard,
   ChartColumn,
@@ -596,7 +597,10 @@ export default function DashboardLayout() {
           className='page-transition mx-auto max-w-content p-4 sm:p-6 lg:p-8'
         >
           <ErrorBoundary>
-            <Outlet />
+            {/* Pages are lazy chunks: the layout stays, a page-shaped placeholder fills in. */}
+            <Suspense fallback={<SkeletonPage />}>
+              <Outlet />
+            </Suspense>
           </ErrorBoundary>
         </div>
       </main>

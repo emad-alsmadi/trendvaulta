@@ -90,6 +90,29 @@ export function SkeletonCard({
   );
 }
 
+/**
+ * Shown while a page's code chunk loads: the page header, then a table card —
+ * the shape most pages open with, so the swap to real content barely moves.
+ */
+export function SkeletonPage() {
+  return (
+    <div
+      role='status'
+      aria-busy
+      className='space-y-6'
+    >
+      <div className='space-y-2'>
+        <Skeleton
+          variant='custom'
+          className='h-7 w-48 rounded-control'
+        />
+        <Skeleton className='w-72 max-w-full' />
+      </div>
+      <SkeletonTable />
+    </div>
+  );
+}
+
 /** Whole-page placeholder for a list page: toolbar, then table rows. */
 export function SkeletonTable({ rows = 6 }: { rows?: number }) {
   return (
