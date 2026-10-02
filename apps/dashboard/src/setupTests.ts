@@ -1,4 +1,11 @@
 import '@testing-library/jest-dom'
+import { TextDecoder, TextEncoder } from 'util'
+
+// React Router 7 encodes URLs with TextEncoder at import time; jsdom has none.
+// Node's implementations are the same WHATWG API.
+if (!('TextEncoder' in globalThis)) {
+  Object.assign(globalThis, { TextEncoder, TextDecoder })
+}
 
 // jsdom ships no ResizeObserver, and recharts' ResponsiveContainer constructs one
 // on mount — without this every chart test throws before its first assertion.
