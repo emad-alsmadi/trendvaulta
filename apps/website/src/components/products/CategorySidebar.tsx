@@ -437,6 +437,7 @@ export function CategorySidebar({
                       key={preset.id}
                       type='button'
                       onClick={() => applyPricePreset(preset.min, preset.max)}
+                      aria-pressed={active}
                       className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold transition ${
                         active
                           ? 'border-fuchsia-300 bg-fuchsia-50 text-fuchsia-800'

@@ -23,9 +23,9 @@ export default function UnauthorizedPage() {
           {t('errors.unauthorized.badge')}
         </div>
 
-        <div className='mt-4 text-3xl font-extrabold tracking-tight text-indigo-950 sm:text-4xl'>
+        <h1 className='mt-4 text-3xl font-extrabold tracking-tight text-indigo-950 sm:text-4xl'>
           {t('errors.unauthorized.title')}
-        </div>
+        </h1>
         <div className='mt-2 max-w-2xl text-sm font-semibold leading-6 text-indigo-950/80'>
           {t('errors.unauthorized.description')}
         </div>

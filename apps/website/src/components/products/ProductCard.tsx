@@ -76,9 +76,11 @@ export function ProductCard({ product, badges = [] }: ProductCardProps) {
       : 0;
 
   const inStock = product.stock !== undefined ? product.stock > 0 : true;
-  const lowStock =
-    badges.includes('lowStock') ||
-    (product.stock !== undefined && product.stock > 0 && product.stock <= 5);
+  // The API now computes this from variant stock when the product has
+  // variants (resolveProductBadges, apps/api/models/Product.js), so a
+  // client-side fallback on the top-level `stock` field would reintroduce
+  // the exact bug this was meant to catch — trust `badges` only.
+  const lowStock = badges.includes('lowStock');
 
   const rating = Number(product.averageRating || 0);
   const pill =
@@ -162,7 +164,10 @@ export function ProductCard({ product, badges = [] }: ProductCardProps) {
         )}
 
         <Link href={`/products/${product._id}`}>
-          <h3 className='line-clamp-2 text-sm font-medium leading-snug text-ink transition-colors hover:text-accent'>
+          <h3
+            dir='auto'
+            className='line-clamp-2 text-sm font-medium leading-snug text-ink transition-colors hover:text-accent'
+          >
             {product.title}
           </h3>
         </Link>

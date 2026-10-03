@@ -76,6 +76,8 @@ function NewsletterForm() {
           placeholder='you@example.com'
           maxLength={100}
           disabled={subscribe.isPending}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? 'footer-newsletter-error' : undefined}
           className='w-auto min-w-0 flex-1 border-gray-700 bg-gray-800 text-white placeholder:text-gray-500 hover:border-gray-600 focus-visible:border-fuchsia-500 focus-visible:ring-fuchsia-500/40'
         />
         <button
@@ -92,7 +94,15 @@ function NewsletterForm() {
           {t('footer.subscribe')}
         </button>
       </div>
-      {error && <p className='mt-2 text-sm text-rose-400'>{error}</p>}
+      {error && (
+        <p
+          id='footer-newsletter-error'
+          role='alert'
+          className='mt-2 text-sm text-rose-400'
+        >
+          {error}
+        </p>
+      )}
     </form>
   );
 }
@@ -121,35 +131,42 @@ export function Footer() {
             <div className='mb-6'>
               <NewsletterForm />
             </div>
+            {/*
+              No social URLs are configured yet (no NEXT_PUBLIC_SOCIAL_* env
+              vars) — these were plain `href="#"` dead links, which jump to
+              the top of the page and read as broken to a screen reader.
+              Rendered as disabled placeholders instead of a real link until
+              the actual URLs exist.
+            */}
             <div className='flex gap-4'>
-              <a
-                href='#'
-                aria-label={t('footer.social.x')}
-                className='text-gray-400 hover:text-white transition-colors'
+              <span
+                aria-disabled='true'
+                aria-label={t('footer.social.comingSoon', { name: t('footer.social.x') })}
+                className='cursor-not-allowed text-gray-600'
               >
                 <Twitter className='h-5 w-5' aria-hidden />
-              </a>
-              <a
-                href='#'
-                aria-label={t('footer.social.facebook')}
-                className='text-gray-400 hover:text-white transition-colors'
+              </span>
+              <span
+                aria-disabled='true'
+                aria-label={t('footer.social.comingSoon', { name: t('footer.social.facebook') })}
+                className='cursor-not-allowed text-gray-600'
               >
                 <Facebook className='h-5 w-5' aria-hidden />
-              </a>
-              <a
-                href='#'
-                aria-label={t('footer.social.instagram')}
-                className='text-gray-400 hover:text-white transition-colors'
+              </span>
+              <span
+                aria-disabled='true'
+                aria-label={t('footer.social.comingSoon', { name: t('footer.social.instagram') })}
+                className='cursor-not-allowed text-gray-600'
               >
                 <Instagram className='h-5 w-5' aria-hidden />
-              </a>
-              <a
-                href='#'
-                aria-label={t('footer.social.linkedin')}
-                className='text-gray-400 hover:text-white transition-colors'
+              </span>
+              <span
+                aria-disabled='true'
+                aria-label={t('footer.social.comingSoon', { name: t('footer.social.linkedin') })}
+                className='cursor-not-allowed text-gray-600'
               >
                 <Linkedin className='h-5 w-5' aria-hidden />
-              </a>
+              </span>
             </div>
           </div>
 

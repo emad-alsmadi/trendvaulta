@@ -18,7 +18,7 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, isActiveNavPath } from '@/lib/utils';
 import { Drawer } from '@/components/ui/Drawer';
 import { SearchField } from '@/components/ui/SearchField';
 import { buttonVariants } from '@/components/ui/Button';
@@ -68,7 +68,7 @@ function NavRow({
   pathname: string;
   onNavigate: () => void;
 }) {
-  const active = pathname === href || pathname.startsWith(`${href}/`);
+  const active = isActiveNavPath(pathname, href);
   return (
     <Link
       href={href}

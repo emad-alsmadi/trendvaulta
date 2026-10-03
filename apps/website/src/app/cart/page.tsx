@@ -335,6 +335,7 @@ export default function CartPage() {
 
                         <button
                           type='button'
+                          aria-label={t('cartPage.removeItem', { title: item.title })}
                           className='inline-flex items-center gap-1.5 text-xs text-ink-muted transition-colors hover:text-rose-700'
                           onClick={() =>
                             void confirm({

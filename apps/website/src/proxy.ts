@@ -65,5 +65,10 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  // Also skip public static assets (robots.txt, manifest, images/fonts
+  // under /public) — none of them need the auth/role redirect logic above,
+  // and running it on every asset request was pure overhead.
+  matcher: [
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|css|js|txt|xml|json|woff2?|ttf)$).*)',
+  ],
 };

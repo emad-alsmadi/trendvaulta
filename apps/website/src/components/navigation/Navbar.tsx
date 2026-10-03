@@ -13,7 +13,7 @@ import {
   Truck,
   Globe,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, isActiveNavPath } from '@/lib/utils';
 import { useLogout, useMe } from '@/hooks/auth/authQuery';
 import { getUserRole } from '@/lib/authCookies';
 import { useCart } from '@/lib/cartStore';
@@ -266,6 +266,7 @@ export function Navbar() {
 
               <Link
                 href='/products'
+                aria-current={isActiveNavPath(pathname, '/products') ? 'page' : undefined}
                 className='relative font-medium text-gray-700 transition-colors hover:text-gray-900 group'
               >
                 {t('nav.shop')}
@@ -274,6 +275,7 @@ export function Navbar() {
 
               <Link
                 href='/brands'
+                aria-current={isActiveNavPath(pathname, '/brands') ? 'page' : undefined}
                 className='relative font-medium text-gray-700 transition-colors hover:text-gray-900 group'
               >
                 {t('common.brands')}
@@ -282,6 +284,7 @@ export function Navbar() {
 
               <Link
                 href='/offers'
+                aria-current={isActiveNavPath(pathname, '/offers') ? 'page' : undefined}
                 className='relative font-medium text-gray-700 transition-colors hover:text-gray-900 group'
               >
                 {t('nav.deals')}
@@ -364,6 +367,7 @@ export function Navbar() {
         <div className='mx-auto flex max-w-[1400px] items-center gap-1 overflow-x-auto px-4 py-2 text-sm sm:px-6 lg:px-8'>
           <Link
             href='/offers'
+            aria-current={pathname.startsWith('/offers') ? 'page' : undefined}
             className={cn(
               'shrink-0 rounded-full px-3 py-1 font-extrabold transition',
               pathname.startsWith('/offers')
@@ -382,6 +386,7 @@ export function Navbar() {
             <Link
               key={item.href}
               href={item.href}
+              aria-current={isActiveNavPath(pathname, item.href) ? 'page' : undefined}
               className='shrink-0 rounded-full px-3 py-1 font-semibold text-stone-700 transition hover:bg-stone-100 hover:text-stone-900'
             >
               {item.label}

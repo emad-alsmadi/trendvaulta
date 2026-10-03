@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   ArrowRight,
   ChevronDown,
@@ -14,7 +15,7 @@ import {
   Shield,
   User,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, isActiveNavPath } from '@/lib/utils';
 import {
   Dropdown,
   DropdownContent,
@@ -85,13 +86,14 @@ const MORE_LINKS = [
 
 export function MoreMenu() {
   const { t } = useTranslation();
+  const pathname = usePathname();
   return (
     <Dropdown>
       <NavTrigger label={t('nav.more')} />
       <DropdownContent align='start'>
         {MORE_LINKS.map(({ href, label, icon }) => (
           <DropdownItem key={href} asChild>
-            <Link href={href}>
+            <Link href={href} aria-current={isActiveNavPath(pathname, href) ? 'page' : undefined}>
               <DropdownItemContent icon={icon}>{t(label)}</DropdownItemContent>
             </Link>
           </DropdownItem>
@@ -119,6 +121,7 @@ type AccountMenuProps = {
 
 export function AccountMenu({ name, email, initials, avatarClassName, adminHref, onLogout }: AccountMenuProps) {
   const { t } = useTranslation();
+  const pathname = usePathname();
   const avatar = (
     <span
       aria-hidden
@@ -157,13 +160,19 @@ export function AccountMenu({ name, email, initials, avatarClassName, adminHref,
         </div>
         <DropdownSeparator />
 
-        {ACCOUNT_LINKS.map(({ href, label, icon }) => (
-          <DropdownItem key={href} asChild>
-            <Link href={href}>
-              <DropdownItemContent icon={icon}>{t(label)}</DropdownItemContent>
-            </Link>
-          </DropdownItem>
-        ))}
+        {ACCOUNT_LINKS.map(({ href, label, icon }) => {
+          // '/user' itself must match only exactly — isActiveNavPath's
+          // prefix rule would otherwise also mark "Account" current on
+          // every /user/* subpage that already has its own entry here.
+          const active = href === '/user' ? pathname === href : isActiveNavPath(pathname, href);
+          return (
+            <DropdownItem key={href} asChild>
+              <Link href={href} aria-current={active ? 'page' : undefined}>
+                <DropdownItemContent icon={icon}>{t(label)}</DropdownItemContent>
+              </Link>
+            </DropdownItem>
+          );
+        })}
 
         {adminHref && (
           <DropdownItem asChild>

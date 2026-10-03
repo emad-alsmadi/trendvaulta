@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { reviewsApi } from '@/lib/api';
 import type { Review, ReviewPayload, ReviewUpdatePayload } from '@/types';
 import { useHasAuthToken } from '@/hooks/auth/useHasAuthToken';
+import { productByIdKey } from '@/hooks/products/productsQuery';
 
 export const REVIEWS_PRODUCT_KEY = (productId: string) =>
   ['reviews', 'product', productId] as const;
@@ -50,6 +51,11 @@ export function useCreateReviewMutation() {
       });
       // Invalidate my reviews
       await qc.invalidateQueries({ queryKey: REVIEWS_MY_KEY });
+      // The product's averageRating/reviewCount are stale otherwise — a new
+      // review never showed up in the rating until some unrelated refetch.
+      await qc.invalidateQueries({
+        queryKey: productByIdKey(variables.product),
+      });
     },
   });
 }
@@ -78,6 +84,8 @@ export function useUpdateReviewMutation() {
       });
       // Invalidate my reviews
       await qc.invalidateQueries({ queryKey: REVIEWS_MY_KEY });
+      // A changed rating moves the product's averageRating.
+      await qc.invalidateQueries({ queryKey: productByIdKey(data.product) });
     },
   });
 }
@@ -106,6 +114,10 @@ export function useDeleteReviewMutation() {
       });
       // Invalidate my reviews
       await qc.invalidateQueries({ queryKey: REVIEWS_MY_KEY });
+      // A removed review also moves the product's averageRating.
+      await qc.invalidateQueries({
+        queryKey: productByIdKey(variables.productId),
+      });
     },
   });
 }

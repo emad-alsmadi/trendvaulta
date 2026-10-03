@@ -87,12 +87,12 @@ function forceLogoutRedirect() {
   if (typeof window === 'undefined') return;
   clearAuthCookies();
 
+  // No copy here: this module runs outside React (can't call
+  // useTranslation()), so it only signals *that* a sign-in is required —
+  // AuthErrorHandler (app/providers.tsx) has the translator and renders
+  // the actual EN/AR text for this code.
   const toastEvent = new CustomEvent('showAuthToast', {
-    detail: {
-      message: 'Please sign in to access this feature.',
-      title: 'Authentication Required',
-      variant: 'error',
-    },
+    detail: { code: 'authRequired', variant: 'error' },
   });
   window.dispatchEvent(toastEvent);
 

@@ -78,7 +78,8 @@
       "x": "TrendVaulta على X",
       "facebook": "TrendVaulta على Facebook",
       "instagram": "TrendVaulta على Instagram",
-      "linkedin": "TrendVaulta على LinkedIn"
+      "linkedin": "TrendVaulta على LinkedIn",
+      "comingSoon": "{name} (قريبًا)"
     }
   },
   "product": {
@@ -187,6 +188,7 @@
     "removeConfirmTitle": "هل تريد إزالة هذا المنتج؟",
     "removeConfirmDescription": "ستتم إزالة \"{title}\" من سلة التسوق.",
     "remove": "إزالة",
+    "removeItem": "إزالة {title} من السلة",
     "keepIt": "الإبقاء عليه",
     "decreaseQty": "تقليل الكمية",
     "increaseQty": "زيادة الكمية",
@@ -1199,6 +1201,8 @@
   "errors": {
     "loading": "جارٍ التحميل…",
     "sessionExpired": "انتهت صلاحية جلستك. يُرجى تسجيل الدخول مرة أخرى.",
+    "authRequiredTitle": "تسجيل الدخول مطلوب",
+    "authRequiredMessage": "يرجى تسجيل الدخول للوصول إلى هذه الميزة.",
     "forbidden": "ليس لديك صلاحية للقيام بذلك.",
     "notFoundGeneric": "تعذّر العثور على ما طلبته.",
     "serverError": "حدث خطأ من جانبنا. يُرجى المحاولة مرة أخرى لاحقًا.",

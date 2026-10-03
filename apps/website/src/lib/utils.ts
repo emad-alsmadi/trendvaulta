@@ -6,6 +6,15 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Whether a nav link's `href` is the current section, for `aria-current`.
+ * Exact match, or a sub-path of it (`/products` also matches `/products/x`)
+ * — matches MobileNavDrawer's existing active-link logic.
+ */
+export function isActiveNavPath(pathname: string, href: string): boolean {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 /** Hosts whose image URLs may include sizing query strings that break Next.js `/_next/image?url=…` parsing. */
 const NEXT_IMAGE_STRIP_SEARCH_HOSTS = new Set([
   'images.unsplash.com',

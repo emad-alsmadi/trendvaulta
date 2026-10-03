@@ -7,7 +7,7 @@ import axios from 'axios';
 import { MotionConfig } from 'framer-motion';
 import { useToast } from '@/components/ui/Toast';
 import { ConfirmProvider } from '@/components/confirm/ConfirmProvider';
-import { TranslationProvider } from '@/contexts/TranslationContext';
+import { TranslationProvider, useTranslation } from '@/contexts/TranslationContext';
 import type { Locale } from '@/lib/locale';
 
 /**
@@ -30,11 +30,19 @@ function createQueryClient() {
 
 function AuthErrorHandler() {
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   useEffect(() => {
     const handleAuthToast = (event: CustomEvent) => {
-      const { message, title, variant } = event.detail;
-      toast(message, { title, variant });
+      const { code, variant } = event.detail;
+      // lib/api.ts dispatches a code, not copy, since it runs outside React
+      // and has no translator — this is the one place that resolves it.
+      if (code === 'authRequired') {
+        toast(t('errors.authRequiredMessage'), {
+          title: t('errors.authRequiredTitle'),
+          variant,
+        });
+      }
     };
 
     window.addEventListener('showAuthToast', handleAuthToast as EventListener);
@@ -45,7 +53,7 @@ function AuthErrorHandler() {
         handleAuthToast as EventListener,
       );
     };
-  }, [toast]);
+  }, [toast, t]);
 
   return null;
 }

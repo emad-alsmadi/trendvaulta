@@ -78,7 +78,8 @@
       "x": "TrendVaulta on X",
       "facebook": "TrendVaulta on Facebook",
       "instagram": "TrendVaulta on Instagram",
-      "linkedin": "TrendVaulta on LinkedIn"
+      "linkedin": "TrendVaulta on LinkedIn",
+      "comingSoon": "{name} (coming soon)"
     }
   },
   "product": {
@@ -187,6 +188,7 @@
     "removeConfirmTitle": "Remove this product?",
     "removeConfirmDescription": "\"{title}\" will be removed from your cart.",
     "remove": "Remove",
+    "removeItem": "Remove {title} from cart",
     "keepIt": "Keep it",
     "decreaseQty": "Decrease quantity",
     "increaseQty": "Increase quantity",
@@ -1199,6 +1201,8 @@
   "errors": {
     "loading": "Loading…",
     "sessionExpired": "Your session has expired. Please log in again.",
+    "authRequiredTitle": "Authentication Required",
+    "authRequiredMessage": "Please sign in to access this feature.",
     "forbidden": "You do not have permission to do that.",
     "notFoundGeneric": "We could not find what you requested.",
     "serverError": "Something went wrong on our side. Please try again later.",

@@ -102,6 +102,10 @@ export function EditorialLookbookSection({ stories: storiesProp }: Props) {
                         fill
                         className='object-cover'
                         sizes='(max-width: 768px) 100vw, 50vw'
+                        // Admin-entered free-text URL (Lookbook model) — may
+                        // be on a host next.config.ts's remotePatterns
+                        // doesn't allowlist, which would otherwise throw.
+                        unoptimized
                       />
                     </div>
                     <div className='flex flex-col justify-center p-6 sm:p-8 lg:p-10'>
