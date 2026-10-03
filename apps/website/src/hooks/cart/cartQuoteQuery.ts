@@ -123,6 +123,20 @@ function noticeFor(
 }
 
 /**
+ * True when a notice must block checkout/payment outright, not just inform.
+ * `variant_required` and `unavailable` always block (there's nothing valid
+ * to charge for); `insufficient_stock` only blocks once the line has been
+ * reduced to zero (a partial cap is just a quantity adjustment).
+ */
+export function isBlockingNotice(notice: CartLineNotice): boolean {
+  return (
+    notice.code === 'variant_required' ||
+    notice.code === 'unavailable' ||
+    (notice.code === 'insufficient_stock' && (notice.available ?? 0) <= 0)
+  );
+}
+
+/**
  * The notice in the reader's language. The code (and stock count) travel on
  * the notice, so the text is chosen at render time rather than baked in here.
  */
@@ -290,11 +304,22 @@ export function useCartQuoteSync(opts: CartQuoteOptions) {
       return;
     }
     appliedAtRef.current = dataUpdatedAt;
-    seenRef.current = { ...seenRef.current, ...plan.notices };
+    // A notice outlives the quote that raised it (see the comment above),
+    // but not the line itself — once a line is removed or replaced (its key
+    // no longer exists in the cart), the notice that pointed at it is just
+    // stale noise and must drop out instead of accumulating forever.
+    const liveKeys = new Set(itemsRef.current.map(getCartLineKey));
+    const carried = Object.fromEntries(
+      Object.entries(seenRef.current).filter(([key]) => liveKeys.has(key)),
+    );
+    seenRef.current = { ...carried, ...plan.notices };
     for (const apply of plan.mutations) apply();
   }, [quote, dataUpdatedAt, plan]);
 
   const notices = { ...seenRef.current, ...plan.notices };
+  const blockingKeys = Object.entries(notices)
+    .filter(([, n]) => isBlockingNotice(n))
+    .map(([key]) => key);
 
-  return { query, quote, notices };
+  return { query, quote, notices, blockingKeys, hasBlocking: blockingKeys.length > 0 };
 }

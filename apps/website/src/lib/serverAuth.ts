@@ -1,4 +1,5 @@
-import type { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
+import { getSiteUrl } from './site';
 
 /**
  * Server-side helpers for the Next auth route handlers
@@ -115,4 +116,42 @@ export function splitRefreshToken(data: Record<string, unknown>) {
 
 export function isSuccessStatus(status: number) {
   return status >= 200 && status < 300;
+}
+
+/**
+ * Guards a same-origin-only BFF route (login/register) against being used
+ * as a fire-and-forget request amplifier from an arbitrary page: a
+ * cross-site `fetch()` can't read the JSON back (no CORS headers here),
+ * but without this check the request still executes server-side and burns
+ * the backend's IP-based rate-limit budget, or probes for valid emails.
+ *
+ * Mirrors the API's own corsAllowlist.js policy: a request with no Origin
+ * header (curl, server-to-server, same-origin navigations in some browsers)
+ * is allowed through — only a *present but mismatched* Origin is rejected.
+ */
+export function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return true;
+  const normalized = origin.replace(/\/+$/, '');
+  const site = getSiteUrl();
+  if (normalized === site) return true;
+  if (process.env.NODE_ENV !== 'production') {
+    return ['http://localhost:3001', 'http://127.0.0.1:3001'].includes(normalized);
+  }
+  return false;
+}
+
+/**
+ * Rejects a request to a same-origin-only BFF route when its Content-Type
+ * isn't JSON or its Origin doesn't match this site. Returns the response to
+ * send (and bail out with) or null when the request may proceed.
+ */
+export function rejectCrossOriginJson(request: NextRequest): NextResponse | null {
+  const contentType = request.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    return NextResponse.json({ message: 'Unsupported content type' }, { status: 415 });
+  }
+  if (!isAllowedOrigin(request.headers.get('origin'))) {
+    return NextResponse.json({ message: 'Origin not allowed' }, { status: 403 });
+  }
+  return null;
 }

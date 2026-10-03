@@ -24,6 +24,7 @@ import { useToast } from '@/components/ui/Toast';
 import { useCart, getCartLineKey, formatVariantLabel } from '@/lib/cartStore';
 import {
   cartNoticeMessage,
+  isBlockingNotice,
   useCartQuoteSync,
 } from '@/hooks/cart/cartQuoteQuery';
 import axios from 'axios';
@@ -120,6 +121,11 @@ export default function CheckoutPage() {
   const [selectedShippingMethod, setSelectedShippingMethod] =
     useState<string>('');
   const [fetchingShippingMethods, setFetchingShippingMethods] = useState(false);
+  // Checked once on mount so the shopper sees "payment unavailable" before
+  // filling the form, not only after they submit (runCheckout already
+  // re-checks this right before creating the Stripe session).
+  const [stripeSetupReady, setStripeSetupReady] = useState(true);
+  const [checkingStripeSetup, setCheckingStripeSetup] = useState(true);
 
   const items = cart.state.items;
   const subtotal = cart.subtotal;
@@ -179,6 +185,32 @@ export default function CheckoutPage() {
     // applySavedAddress only closes over the stable RHF setValue.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addressPickerReady, savedAddresses]);
+
+  // Pre-emptive: lets the shopper see "payment unavailable" before they
+  // fill the whole form, instead of only after "Continue to payment" fails.
+  useEffect(() => {
+    if (allowCheckoutWithoutStripe) {
+      setCheckingStripeSetup(false);
+      return;
+    }
+    let cancelled = false;
+    paymentsApi
+      .getSetupStatus()
+      .then((status) => {
+        if (!cancelled) setStripeSetupReady(Boolean(status?.ready));
+      })
+      .catch(() => {
+        // Unknown — don't block the shopper on a transient network error;
+        // runCheckout re-checks this right before creating the session.
+        if (!cancelled) setStripeSetupReady(true);
+      })
+      .finally(() => {
+        if (!cancelled) setCheckingStripeSetup(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSelectSavedAddress = (addr: Address) => {
     setSelectedAddressId(addr._id);
@@ -264,7 +296,7 @@ export default function CheckoutPage() {
       : undefined;
   // Server-side quote (same intent fields as the checkout payload). Falls
   // back to client-side totals while loading or if the endpoint is missing.
-  const { query: quoteQuery, quote, notices } = useCartQuoteSync({
+  const { query: quoteQuery, quote, notices, hasBlocking } = useCartQuoteSync({
     items,
     couponCode: appliedCoupon?.code,
     delivery: deliverySelected,
@@ -281,11 +313,6 @@ export default function CheckoutPage() {
     quote && appliedCoupon && quote.couponValid === false,
   );
   const presentKeys = new Set(items.map(getCartLineKey));
-  // Lines added without a size/colour quote at $0 and the server rejects
-  // them; hold the submit until the shopper picks one (the line says so).
-  const needsVariantChoice = Object.values(notices).some(
-    (n) => n.code === 'variant_required',
-  );
   const removedNotices = Object.entries(notices).filter(
     ([key]) => !presentKeys.has(key),
   );
@@ -334,6 +361,16 @@ export default function CheckoutPage() {
   };
 
   const runCheckout = async (values: CheckoutValues) => {
+    // Defense in depth: the submit button and the confirm dialog are both
+    // gated on hasBlocking already, but a stale closure or a future caller
+    // must not be able to reach Stripe with an unpriced line.
+    if (hasBlocking) {
+      toast(t('checkoutPage.toast.paymentPageUnavailable'), {
+        title: t('checkoutPage.toast.checkoutFailed'),
+        variant: 'error',
+      });
+      return;
+    }
     const payload = {
       items: items.map((i) => ({
         productId: i.productId,
@@ -514,6 +551,22 @@ export default function CheckoutPage() {
         variant: 'error',
       });
       router.push('/');
+      return;
+    }
+
+    if (hasBlocking) {
+      toast(t('checkoutPage.toast.paymentPageUnavailable'), {
+        title: t('checkoutPage.toast.checkoutFailed'),
+        variant: 'error',
+      });
+      return;
+    }
+
+    if (!stripeSetupReady && !allowCheckoutWithoutStripe) {
+      toast(t('checkoutPage.toast.paymentNotConfigured'), {
+        title: t('checkoutPage.toast.paymentUnavailableTitle'),
+        variant: 'error',
+      });
       return;
     }
 
@@ -978,11 +1031,26 @@ export default function CheckoutPage() {
                 {t('checkoutPage.intro')}
               </p>
 
+              {!checkingStripeSetup &&
+                !stripeSetupReady &&
+                !allowCheckoutWithoutStripe && (
+                  <div
+                    role='alert'
+                    className='mt-4 rounded-control border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-900'
+                  >
+                    {t('checkoutPage.toast.paymentNotConfigured')}
+                  </div>
+                )}
+
               <Button
                 type='submit'
                 variant='solid'
                 size='lg'
-                disabled={submitting || needsVariantChoice}
+                disabled={
+                  submitting ||
+                  hasBlocking ||
+                  (!stripeSetupReady && !allowCheckoutWithoutStripe)
+                }
                 className='mt-5 w-full'
               >
                 {submitting ? (
@@ -1056,6 +1124,7 @@ export default function CheckoutPage() {
               const lineKey = getCartLineKey(item);
               const variantLabel = formatVariantLabel(item.variant, t);
               const notice = notices[lineKey];
+              const isBlocking = notice ? isBlockingNotice(notice) : false;
               return (
                 <li key={lineKey} className='flex items-start gap-3 py-4'>
                   <div className='relative h-16 w-14 shrink-0'>
@@ -1090,15 +1159,23 @@ export default function CheckoutPage() {
                     </div>
                     {notice && (
                       <div
-                        role='status'
+                        role={isBlocking ? 'alert' : 'status'}
                         className='mt-1 text-xs font-medium text-amber-700'
                       >
                         {cartNoticeMessage(notice, t)}
                       </div>
                     )}
                   </div>
-                  <div className='shrink-0 text-sm font-semibold tabular-nums text-ink'>
-                    {formatPrice(item.price * item.qty)}
+                  <div
+                    className={
+                      isBlocking
+                        ? 'shrink-0 text-xs font-medium text-ink-muted line-through'
+                        : 'shrink-0 text-sm font-semibold tabular-nums text-ink'
+                    }
+                  >
+                    {isBlocking
+                      ? t('cartPage.notPriced')
+                      : formatPrice(item.price * item.qty)}
                   </div>
                 </li>
               );

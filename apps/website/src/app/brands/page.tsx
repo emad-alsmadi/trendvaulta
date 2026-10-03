@@ -13,6 +13,14 @@ import type { Brand } from '@/types';
 
 const EASE = [0.22, 1, 0.36, 1] as const; // --ease-brand
 
+/**
+ * Below this many brands the A–Z sections are mostly one tile each (ten
+ * brands, ten letters), which reads as an empty page — show one grid instead.
+ */
+const GROUP_BY_LETTER_FROM = 20;
+
+const GRID = 'grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5';
+
 /** First letter for the A–Z index; digits and symbols share '#'. */
 function indexLetter(name: string, locale: string) {
   const first = name.trim().charAt(0);
@@ -41,7 +49,7 @@ function BrandTile({ brand, index }: { brand: Brand; index: number }) {
             className='max-h-[45%] w-auto max-w-[60%] object-contain opacity-80 grayscale transition-[filter,opacity] duration-(--dur-slow) ease-brand group-hover:opacity-100 group-hover:grayscale-0'
             // No usable logo: a typographic wordmark instead of an icon bubble.
             fallback={
-              <span dir='auto' className='px-4 text-center text-2xl font-bold tracking-tight text-ink-subtle transition-colors duration-(--dur-base) group-hover:text-ink'>
+              <span dir='auto' className='px-4 text-center text-2xl font-bold tracking-tight text-ink/80 transition-colors duration-(--dur-base) group-hover:text-ink'>
                 {brand.name}
               </span>
             }
@@ -111,6 +119,7 @@ export default function BrandsPage() {
 
   const total = brands?.length ?? 0;
   const shown = groups.reduce((n, [, list]) => n + list.length, 0);
+  const byLetter = total >= GROUP_BY_LETTER_FROM;
 
   return (
     <div className='mx-auto max-w-[1400px] pb-16'>
@@ -160,6 +169,15 @@ export default function BrandsPage() {
             {t('brandsPage.clearSearch')}
           </button>
         </div>
+      ) : !byLetter ? (
+        // A short list: one grid in alphabetical order, no letter sections.
+        <ul className={`${GRID} pt-10`}>
+          {groups
+            .flatMap(([, list]) => list)
+            .map((brand, j) => (
+              <BrandTile key={brand._id} brand={brand} index={j} />
+            ))}
+        </ul>
       ) : (
         <>
           {/* A–Z index: only letters that have brands. */}
@@ -184,7 +202,7 @@ export default function BrandsPage() {
                   <span className='text-title text-ink'>{letter}</span>
                   <span className='text-xs text-ink-subtle'>{list.length}</span>
                 </h2>
-                <ul className='grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
+                <ul className={GRID}>
                   {list.map((brand, j) => (
                     <BrandTile key={brand._id} brand={brand} index={j} />
                   ))}

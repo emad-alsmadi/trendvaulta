@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Plus, Pencil, Trash2, MapPin, Check } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -50,6 +50,9 @@ export default function AddressesPage() {
   const confirm = useConfirm();
   // `null` = no form open, 'new' = adding, otherwise the id being edited.
   const [formFor, setFormFor] = useState<string | null>(null);
+  const formSectionRef = useRef<HTMLDivElement>(null);
+  const firstFieldRef = useRef<HTMLInputElement>(null);
+  const reduceMotion = useReducedMotion();
 
   const addressesQuery = useAddresses();
   const createAddress = useCreateAddress();
@@ -94,6 +97,18 @@ export default function AddressesPage() {
     setFormFor(null);
     reset(EMPTY_ADDRESS);
   };
+
+  // Bring the form into view and focus its first field as soon as it opens
+  // (add or edit) — previously it rendered off-screen with no scroll or
+  // focus, so the shopper had to notice and scroll to it manually.
+  useEffect(() => {
+    if (formFor === null) return;
+    formSectionRef.current?.scrollIntoView({
+      behavior: reduceMotion ? 'auto' : 'smooth',
+      block: 'start',
+    });
+    firstFieldRef.current?.focus();
+  }, [formFor, reduceMotion]);
 
   const onSubmit = async (data: AddressPayload) => {
     if (formFor === 'new') {
@@ -142,6 +157,10 @@ export default function AddressesPage() {
     }
   };
 
+  // Registered once so the ref-merge below (react-hook-form's ref + the
+  // scroll/focus ref) doesn't call register() twice per render.
+  const labelField = register('label');
+
   // One form for both adding and editing; `formFor` decides which on submit.
   const form = (
     <form onSubmit={handleSubmit(onSubmit)} noValidate>
@@ -160,7 +179,11 @@ export default function AddressesPage() {
             id='addr-label'
             className={FIELD}
             placeholder={t('addresses.labelPlaceholderExample')}
-            {...register('label')}
+            {...labelField}
+            ref={(el) => {
+              labelField.ref(el);
+              firstFieldRef.current = el;
+            }}
           />
         </div>
         <div>
@@ -369,6 +392,7 @@ export default function AddressesPage() {
 
       {formFor === 'new' && !addressesQuery.isLoading && (
         <motion.div
+          ref={formSectionRef}
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           className={PANEL}
@@ -404,6 +428,7 @@ export default function AddressesPage() {
             return (
               <motion.div
                 key={addr._id}
+                ref={editing ? formSectionRef : undefined}
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}

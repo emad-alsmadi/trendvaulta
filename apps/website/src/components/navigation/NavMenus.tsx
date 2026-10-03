@@ -136,7 +136,7 @@ export function AccountMenu({ name, email, initials, avatarClassName, adminHref,
       <DropdownTrigger asChild>
         <button
           type='button'
-          className='group flex items-center gap-2 rounded-control p-1.5 outline-none transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-accent data-[state=open]:bg-gray-100'
+          className='group flex items-center gap-1 rounded-control p-1 outline-none transition-colors hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-accent data-[state=open]:bg-gray-100 sm:gap-2 sm:p-1.5'
         >
           {avatar}
           <span className='hidden max-w-[10rem] truncate text-sm font-medium text-gray-700 sm:block'>{name}</span>

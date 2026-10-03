@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import {
   callBackendAuth,
   isSuccessStatus,
+  rejectCrossOriginJson,
   setRefreshCookie,
   splitRefreshToken,
 } from '@/lib/serverAuth';
@@ -12,6 +13,9 @@ import {
  * from the JSON the browser receives.
  */
 export async function POST(request: NextRequest) {
+  const blocked = rejectCrossOriginJson(request);
+  if (blocked) return blocked;
+
   const body: unknown = await request.json().catch(() => null);
   if (!body || typeof body !== 'object') {
     return NextResponse.json(

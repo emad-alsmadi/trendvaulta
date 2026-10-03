@@ -292,7 +292,7 @@ export function Navbar() {
             </nav>
 
             {/* Right side */}
-            <div className='flex gap-4 items-center'>
+            <div className='flex gap-1 items-center sm:gap-4'>
               {/* Cart */}
               <Link
                 href='/cart'
@@ -301,7 +301,7 @@ export function Navbar() {
                     ? t('nav.cartWithCount', { count: cart.count })
                     : t('common.cart')
                 }
-                className='relative p-2 text-gray-700 transition-colors hover:text-gray-900'
+                className='relative p-1.5 text-gray-700 transition-colors hover:text-gray-900 sm:p-2'
               >
                 <ShoppingCart className='w-5 h-5' />
                 {cart.count > 0 && (
@@ -347,7 +347,7 @@ export function Navbar() {
                 aria-expanded={mobileMenuOpen}
                 aria-haspopup='dialog'
                 aria-label={t('nav.openMenu')}
-                className='rounded-control p-2 text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900 lg:hidden'
+                className='rounded-control p-1.5 text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900 sm:p-2 lg:hidden'
               >
                 <Menu className='h-6 w-6' aria-hidden />
               </button>

@@ -199,7 +199,17 @@
     "trustEasyReturns": "Easy returns within policy",
     "checkoutNote": "Coupons apply at checkout. Payment is processed securely when Stripe is configured.",
     "shippingAtCheckout": "Calculated at checkout",
-    "itemCount": "{count} items"
+    "itemCount": "{count} items",
+    "pickVariant": {
+      "title": "Choose an option",
+      "choosePrompt": "Pick a size or colour to use this item.",
+      "confirm": "Use this option",
+      "loading": "Loading options…",
+      "loadFailed": "Could not load this product's options.",
+      "soldOut": "Out of stock"
+    },
+    "attentionNeeded": "{count} item(s) need attention before you can check out",
+    "notPriced": "Action needed"
   },
   "checkoutPage": {
     "title": "Checkout",
@@ -276,7 +286,7 @@
       "couponValidateFailed": "Failed to validate coupon",
       "couponRemoved": "Coupon removed",
       "paymentUnavailableTitle": "Payment unavailable",
-      "paymentNotConfigured": "Card payment is not configured on the server. Add STRIPE_SECRET_KEY to the backend environment, restart the API, then try again.",
+      "paymentNotConfigured": "Card payments are temporarily unavailable. Please try again later.",
       "checkoutFailed": "Checkout failed",
       "noCheckoutUrl": "No checkout URL returned. Please try again shortly.",
       "paymentPageUnavailable": "We could not open the secure payment page. Please try again shortly.",

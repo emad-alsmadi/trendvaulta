@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
-  useCheckWishlist,
+  useMyWishlist,
   useAddToWishlistMutation,
   useRemoveFromWishlistMutation,
 } from '@/hooks/wishlist/wishlistQuery';
@@ -29,14 +29,20 @@ export function WishlistButton({
   const router = useRouter();
   const { toast } = useToast();
   const isAuthenticated = useHasAuthToken();
-  const { data: checkData, isLoading: checkLoading } = useCheckWishlist(
-    isAuthenticated ? productId : undefined,
+  // One request per page (React Query dedupes the identical query key
+  // across every WishlistButton instance) instead of one `check/:id` call
+  // per card — and the heart is never disabled just because this is still
+  // loading, which previously made clicks silently do nothing.
+  const { data: wishlistItems } = useMyWishlist();
+  const wishlistedIds = useMemo(
+    () => new Set((wishlistItems ?? []).map((w) => w.product?._id)),
+    [wishlistItems],
   );
   const addToWishlist = useAddToWishlistMutation();
   const removeFromWishlist = useRemoveFromWishlistMutation();
   const [isPending, setIsPending] = useState(false);
 
-  const isWishlisted = checkData?.isWishlisted || false;
+  const isWishlisted = wishlistedIds.has(productId);
 
   const handleClick = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -50,7 +56,7 @@ export function WishlistButton({
       return;
     }
 
-    if (isPending || checkLoading) return;
+    if (isPending) return;
 
     setIsPending(true);
 
@@ -78,7 +84,7 @@ export function WishlistButton({
     return (
       <button
         onClick={handleClick}
-        disabled={isPending || checkLoading}
+        disabled={isPending}
         className={`p-2 rounded-full transition-all duration-200 ${
           tone === 'onLight' ? 'hover:bg-stone-100' : 'hover:bg-white/20'
         } ${className}`}
@@ -116,7 +122,7 @@ export function WishlistButton({
   return (
     <button
       onClick={handleClick}
-      disabled={isPending || checkLoading}
+      disabled={isPending}
       className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-200 ${
         isWishlisted
           ? 'bg-red-500 text-white hover:bg-red-600'

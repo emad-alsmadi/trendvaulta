@@ -177,7 +177,13 @@ function writeState(next: CartState) {
   if (typeof window === 'undefined') return;
   cachedClientState = next;
   cacheInitialized = true;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    // Storage may be unavailable (Safari private mode, quota exceeded) —
+    // the in-memory cache above still updates, so the cart keeps working
+    // for this page view; it just won't persist across a reload.
+  }
   emit();
 }
 
@@ -247,6 +253,61 @@ export function syncCartLine(
       next.qty = clampQty(next.qty, next.maxQty);
       return next;
     }),
+    coupon: state.coupon,
+  });
+}
+
+/**
+ * Replace a broken line (e.g. one needing a variant choice) with a
+ * fully-resolved one, in a single write so the UI never flashes empty
+ * between a remove and a re-add. The replacement's quantity is capped to
+ * its own stock snapshot; if a line with the new line key already exists
+ * (the shopper picked a variant that's already in the cart), the two merge
+ * instead of creating a duplicate row.
+ */
+export function replaceCartLine(
+  oldLineKey: string,
+  next: Omit<CartItem, 'qty'> & { qty?: number },
+) {
+  const state = readState();
+  const old = state.items.find((i) => lineMatches(i, oldLineKey));
+  const requestedQty = next.qty ?? old?.qty ?? 1;
+  const newLineKey = getCartLineKey(next);
+  const withoutOld = state.items.filter((i) => !lineMatches(i, oldLineKey));
+  const existing = withoutOld.find((i) => getCartLineKey(i) === newLineKey);
+
+  if (existing) {
+    writeState({
+      items: withoutOld.map((i) =>
+        getCartLineKey(i) === newLineKey
+          ? {
+              ...i,
+              price: next.price,
+              maxQty: next.maxQty ?? i.maxQty,
+              qty: clampQty(i.qty + requestedQty, next.maxQty ?? i.maxQty),
+            }
+          : i,
+      ),
+      coupon: state.coupon,
+    });
+    return;
+  }
+
+  writeState({
+    items: [
+      ...withoutOld,
+      {
+        productId: next.productId,
+        title: next.title,
+        price: next.price,
+        cover: next.cover,
+        qty: clampQty(requestedQty, next.maxQty),
+        variant: next.variant,
+        maxQty: next.maxQty,
+        weight: next.weight,
+        dimensions: next.dimensions,
+      },
+    ],
     coupon: state.coupon,
   });
 }
@@ -361,6 +422,7 @@ export function useCart() {
     removeFromCart,
     setCartQty,
     syncCartLine,
+    replaceCartLine,
     clearCart,
     setCartCoupon,
     removeCartCoupon,

@@ -15,14 +15,21 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { useCart, getCartLineKey, formatVariantLabel } from '@/lib/cartStore';
+import {
+  useCart,
+  getCartLineKey,
+  formatVariantLabel,
+  replaceCartLine,
+} from '@/lib/cartStore';
 import {
   cartNoticeMessage,
+  isBlockingNotice,
   useCartQuoteSync,
 } from '@/hooks/cart/cartQuoteQuery';
 import { normalizeRemoteImageSrc, remoteCoverLoader } from '@/lib/utils';
 import { useConfirm } from '@/components/confirm/ConfirmProvider';
 import { TrustServiceStrip } from '@/components/home/TrustServiceStrip';
+import { InlineVariantPicker } from '@/components/cart/InlineVariantPicker';
 import { useState } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 
@@ -36,7 +43,10 @@ export default function CartPage() {
 
   // Server revalidation: live stock/price + totals. Falls back to client
   // subtotal while loading or when the quote endpoint is unavailable.
-  const { quote, notices } = useCartQuoteSync({ items, shippingMethod: 'none' });
+  const { quote, notices, hasBlocking } = useCartQuoteSync({
+    items,
+    shippingMethod: 'none',
+  });
   const itemsPrice = quote?.itemsPrice ?? subtotal;
   const discountAmount = quote?.discountAmount ?? 0;
   const taxPrice = quote?.taxPrice ?? 0;
@@ -45,6 +55,9 @@ export default function CartPage() {
   const removedNotices = Object.entries(notices).filter(
     ([key]) => !presentKeys.has(key),
   );
+  const blockingCount = Object.entries(notices).filter(
+    ([key, n]) => presentKeys.has(key) && isBlockingNotice(n),
+  ).length;
 
   const handleImageError = (productId: string) => {
     setImageErrors((prev) => new Set(prev).add(productId));
@@ -111,6 +124,15 @@ export default function CartPage() {
         )}
       </header>
 
+      {blockingCount > 0 && (
+        <div
+          role='alert'
+          className='rounded-control border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-900'
+        >
+          {t('cartPage.attentionNeeded', { count: blockingCount })}
+        </div>
+      )}
+
       {removedNotices.length > 0 && (
         <div
           role='status'
@@ -171,6 +193,7 @@ export default function CartPage() {
                 const atMax =
                   typeof item.maxQty === 'number' && item.qty >= item.maxQty;
                 const notice = notices[lineKey];
+                const isBlocking = notice ? isBlockingNotice(notice) : false;
                 return (
                   <motion.li
                     key={lineKey}
@@ -225,7 +248,7 @@ export default function CartPage() {
                           </div>
                           {notice && (
                             <div
-                              role='status'
+                              role={isBlocking ? 'alert' : 'status'}
                               className='mt-1.5 text-xs font-medium text-amber-700'
                             >
                               {cartNoticeMessage(notice, t)}
@@ -242,9 +265,39 @@ export default function CartPage() {
                               )}
                             </div>
                           )}
+                          {notice?.code === 'variant_required' && (
+                            <InlineVariantPicker
+                              productId={item.productId}
+                              onConfirm={(variant) => {
+                                replaceCartLine(lineKey, {
+                                  productId: item.productId,
+                                  title: item.title,
+                                  price: variant.price ?? item.price,
+                                  cover: item.cover,
+                                  variant: {
+                                    size: variant.size,
+                                    color: variant.color,
+                                    colorCode: variant.colorCode,
+                                    sku: variant.sku,
+                                  },
+                                  maxQty: variant.stock,
+                                  weight: item.weight,
+                                  dimensions: item.dimensions,
+                                });
+                              }}
+                            />
+                          )}
                         </div>
-                        <div className='shrink-0 text-end text-base font-semibold tabular-nums text-ink'>
-                          {formatPrice(item.price * item.qty)}
+                        <div
+                          className={
+                            isBlocking
+                              ? 'shrink-0 text-end text-sm font-medium text-ink-muted line-through'
+                              : 'shrink-0 text-end text-base font-semibold tabular-nums text-ink'
+                          }
+                        >
+                          {isBlocking
+                            ? t('cartPage.notPriced')
+                            : formatPrice(item.price * item.qty)}
                         </div>
                       </div>
 
@@ -353,6 +406,7 @@ export default function CartPage() {
                 variant='solid'
                 size='lg'
                 className='w-full'
+                disabled={hasBlocking}
                 onClick={() => router.push('/checkout')}
               >
                 {t('common.checkout')}

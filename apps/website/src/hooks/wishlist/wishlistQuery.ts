@@ -44,27 +44,33 @@ export function useAddToWishlistMutation() {
       return await wishlistApi.addToWishlist(productId);
     },
     onMutate: async (productId) => {
-      // Cancel outgoing refetches
       await qc.cancelQueries({ queryKey: WISHLIST_MY_KEY });
-      await qc.cancelQueries({ queryKey: wishlistCheckKey(productId) });
+      const previousWishlist = qc.getQueryData<WishlistItem[]>(WISHLIST_MY_KEY);
 
-      // Snapshot previous values
-      const previousWishlist = qc.getQueryData(WISHLIST_MY_KEY);
-      const previousCheck = qc.getQueryData(wishlistCheckKey(productId));
+      // Optimistic placeholder: enough for the button's `isWishlisted`
+      // lookup (keyed on product._id) to flip immediately. The real item
+      // (with createdAt/updatedAt) arrives on the invalidation refetch.
+      if (!previousWishlist?.some((w) => w.product?._id === productId)) {
+        qc.setQueryData<WishlistItem[]>(WISHLIST_MY_KEY, (prev) => [
+          ...(prev ?? []),
+          {
+            _id: `optimistic-${productId}`,
+            user: '',
+            product: { _id: productId } as WishlistItem['product'],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ]);
+      }
 
-      // Optimistically update check query
-      qc.setQueryData(wishlistCheckKey(productId), { isWishlisted: true });
-
-      return { previousWishlist, previousCheck };
+      return { previousWishlist };
     },
-    onError: (err, productId, context) => {
-      // Rollback on error
-      if (context?.previousCheck) {
-        qc.setQueryData(wishlistCheckKey(productId), context.previousCheck);
+    onError: (_err, _productId, context) => {
+      if (context?.previousWishlist) {
+        qc.setQueryData(WISHLIST_MY_KEY, context.previousWishlist);
       }
     },
     onSuccess: async () => {
-      // Invalidate wishlist queries to refetch
       await qc.invalidateQueries({ queryKey: WISHLIST_MY_KEY });
     },
   });
@@ -78,27 +84,22 @@ export function useRemoveFromWishlistMutation() {
       return await wishlistApi.removeFromWishlist(productId);
     },
     onMutate: async (productId) => {
-      // Cancel outgoing refetches
       await qc.cancelQueries({ queryKey: WISHLIST_MY_KEY });
-      await qc.cancelQueries({ queryKey: wishlistCheckKey(productId) });
+      const previousWishlist = qc.getQueryData<WishlistItem[]>(WISHLIST_MY_KEY);
 
-      // Snapshot previous values
-      const previousWishlist = qc.getQueryData(WISHLIST_MY_KEY);
-      const previousCheck = qc.getQueryData(wishlistCheckKey(productId));
+      qc.setQueryData<WishlistItem[]>(
+        WISHLIST_MY_KEY,
+        (prev) => prev?.filter((w) => w.product?._id !== productId) ?? [],
+      );
 
-      // Optimistically update check query
-      qc.setQueryData(wishlistCheckKey(productId), { isWishlisted: false });
-
-      return { previousWishlist, previousCheck };
+      return { previousWishlist };
     },
-    onError: (err, productId, context) => {
-      // Rollback on error
-      if (context?.previousCheck) {
-        qc.setQueryData(wishlistCheckKey(productId), context.previousCheck);
+    onError: (_err, _productId, context) => {
+      if (context?.previousWishlist) {
+        qc.setQueryData(WISHLIST_MY_KEY, context.previousWishlist);
       }
     },
     onSuccess: async () => {
-      // Invalidate wishlist queries to refetch
       await qc.invalidateQueries({ queryKey: WISHLIST_MY_KEY });
     },
   });
