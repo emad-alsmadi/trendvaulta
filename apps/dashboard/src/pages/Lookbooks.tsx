@@ -31,6 +31,7 @@ import { FilterBar } from '../components/ui/FilterBar';
 import { Field, Input, Select, Switch, Textarea } from '../components/ui/Field';
 import { Badge, StatusBadge } from '../components/ui/StatusBadge';
 import { Thumbnail } from '../components/ui/Table';
+import { hintClass, labelClass } from '../components/ui/styles';
 
 const TONES: LookbookTone[] = ['rose', 'stone', 'teal'];
 
@@ -43,6 +44,7 @@ const emptyForm: LookbookPayload = {
   ctaHref: '',
   imageUrl: '',
   tone: 'stone',
+  translations: { ar: { eyebrow: '', title: '', body: '', ctaLabel: '' } },
   active: true,
   sortOrder: 0,
 };
@@ -93,6 +95,14 @@ export default function Lookbooks() {
       ctaHref: lookbook.ctaHref,
       imageUrl: lookbook.imageUrl,
       tone: lookbook.tone,
+      translations: {
+        ar: {
+          eyebrow: lookbook.translations?.ar?.eyebrow || '',
+          title: lookbook.translations?.ar?.title || '',
+          body: lookbook.translations?.ar?.body || '',
+          ctaLabel: lookbook.translations?.ar?.ctaLabel || '',
+        },
+      },
       active: lookbook.active,
       sortOrder: lookbook.sortOrder,
     });
@@ -121,6 +131,14 @@ export default function Lookbooks() {
       ctaLabel: (form.ctaLabel || '').trim(),
       ctaHref: form.ctaHref.trim(),
       imageUrl: form.imageUrl.trim(),
+      translations: {
+        ar: {
+          eyebrow: form.translations?.ar?.eyebrow?.trim() || '',
+          title: form.translations?.ar?.title?.trim() || '',
+          body: form.translations?.ar?.body?.trim() || '',
+          ctaLabel: form.translations?.ar?.ctaLabel?.trim() || '',
+        },
+      },
       active: !!form.active,
       sortOrder: Number(form.sortOrder || 0),
     };
@@ -435,6 +453,72 @@ export default function Lookbooks() {
                 />
               </Field>
             </div>
+
+            <fieldset className='space-y-3 border-t border-border pt-4'>
+              <div className='space-y-1'>
+                <legend className={labelClass}>{t('lookbooks.form.arabicLegend')}</legend>
+                <p className={hintClass}>{t('lookbooks.form.arabicHint')}</p>
+              </div>
+              <div className='grid gap-4 sm:grid-cols-2'>
+                <Field label={t('lookbooks.form.eyebrowAr')}>
+                  <Input
+                    value={form.translations?.ar?.eyebrow || ''}
+                    dir='rtl'
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        translations: {
+                          ar: { ...f.translations?.ar, eyebrow: e.target.value },
+                        },
+                      }))
+                    }
+                  />
+                </Field>
+                <Field label={t('lookbooks.form.titleAr')}>
+                  <Input
+                    value={form.translations?.ar?.title || ''}
+                    dir='rtl'
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        translations: {
+                          ar: { ...f.translations?.ar, title: e.target.value },
+                        },
+                      }))
+                    }
+                  />
+                </Field>
+              </div>
+              <Field label={t('lookbooks.form.bodyAr')}>
+                <Textarea
+                  value={form.translations?.ar?.body || ''}
+                  dir='rtl'
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      translations: {
+                        ar: { ...f.translations?.ar, body: e.target.value },
+                      },
+                    }))
+                  }
+                  rows={3}
+                />
+              </Field>
+              <Field label={t('lookbooks.form.ctaLabelAr')}>
+                <Input
+                  value={form.translations?.ar?.ctaLabel || ''}
+                  dir='rtl'
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      translations: {
+                        ar: { ...f.translations?.ar, ctaLabel: e.target.value },
+                      },
+                    }))
+                  }
+                />
+              </Field>
+            </fieldset>
             <Switch
               checked={!!form.active}
               onCheckedChange={(active) => setForm((f) => ({ ...f, active }))}

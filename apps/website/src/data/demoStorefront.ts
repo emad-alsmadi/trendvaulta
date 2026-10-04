@@ -77,11 +77,19 @@ export type DemoLookbookStory = {
   /** Local placeholder assets only — not scraped from third parties */
   imageUrl: string;
   tone: 'rose' | 'stone' | 'teal';
+  /** Falls back to the English fields above when a field is missing. */
+  translations?: {
+    ar?: { eyebrow?: string; title?: string; body?: string; ctaLabel?: string };
+  };
 };
 
 export type DemoGiftOption = {
   id: string;
   label: string;
+  /** Falls back to label above when missing. */
+  translations?: {
+    ar?: { label?: string };
+  };
   /** Search / filter hints used to build /products URL */
   q?: string;
   category?: string;
@@ -109,6 +117,10 @@ export type DemoHelpTopic = {
     | 'headset'
     | 'user'
     | 'tag';
+  /** Falls back to title/description above when a field is missing. */
+  translations?: {
+    ar?: { title?: string; description?: string };
+  };
 };
 
 /** DEMO deliver-to regions — expectation messaging only (no geo/shipping engine).

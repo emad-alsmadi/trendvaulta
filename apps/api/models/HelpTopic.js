@@ -33,6 +33,15 @@ const HelpTopicSchema = new mongoose.Schema(
       maxlength: 50,
       default: '',
     },
+    // Per-language copy; the storefront falls back to title/description
+    // above when a translation (or one of its fields) is missing — same
+    // pattern as StorefrontModule's hero slides (models/StorefrontModule.js).
+    translations: {
+      ar: {
+        title: { type: String, trim: true, maxlength: 200 },
+        description: { type: String, trim: true, maxlength: 500 },
+      },
+    },
     active: {
       type: Boolean,
       default: true,

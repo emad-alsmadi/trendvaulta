@@ -240,7 +240,7 @@ export default function Brands() {
           {can('brands:delete') && (
             <IconButton
               icon={<Trash2 aria-hidden />}
-              label={t('common.deleteItem', { name: brand.name })}
+              label={t('common.deactivateItem', { name: brand.name })}
               onClick={() => void handleDelete(brand)}
               disabled={deleteMut.isPending}
             />

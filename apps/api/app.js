@@ -54,10 +54,23 @@ app.use(
   }),
 );
 
-// Baseline security headers (CSP disabled: this process serves JSON only,
-// no HTML views, so a content policy has nothing to protect and would only
-// risk breaking Swagger/API-doc tooling if added later).
-app.use(helmet({ contentSecurityPolicy: false }));
+// Baseline security headers. This process serves JSON only (the one HTML
+// response, the order invoice, sets its own stricter CSP explicitly and
+// overrides this), so a default-deny policy costs nothing for the normal
+// JSON responses — CSP only ever constrains how a browser renders HTML/JS,
+// never a fetch() reading JSON — while still covering any other HTML
+// response added later (an error page, future admin tooling) that would
+// otherwise ship with no policy at all.
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+  }),
+);
 
 // Locally-stored product/brand upload images (see services/storage.service.js).
 // Files are content-addressed by uuid, so a hard, long-lived cache is safe.

@@ -8,7 +8,9 @@ import {
 import {
   DEMO_GIFT_FINDER,
   type DemoGiftFinderConfig,
+  type DemoGiftOption,
 } from '@/data/demoStorefront';
+import type { Locale } from '@/lib/locale';
 
 export type GiftFinderQueryResult = {
   config: DemoGiftFinderConfig;
@@ -58,4 +60,13 @@ export function useGiftFinderConfig() {
     staleTime: 60_000,
     placeholderData: { config: DEMO_GIFT_FINDER, fromApi: false },
   });
+}
+
+/**
+ * Label in the reader's language, falling back to English when missing
+ * (same pattern as localizeContent, hooks/storefront/contentQuery.ts).
+ */
+export function localizeGiftOption(option: DemoGiftOption, locale: Locale) {
+  const ar = locale === 'ar' ? option.translations?.ar : undefined;
+  return ar?.label?.trim() || option.label;
 }

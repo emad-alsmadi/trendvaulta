@@ -12,7 +12,7 @@ const getTestimonials = asyncHandler(async (req, res) => {
   // lists go through /testimonials/admin.
   const testimonials = await Testimonial.find({ active: true })
     .sort({ sortOrder: 1, createdAt: -1 })
-    .select('-_id id name role quote rating active sortOrder')
+    .select('-_id id name role quote translations rating active sortOrder')
     .lean();
 
   res.status(200).json({
@@ -76,7 +76,7 @@ const getTestimonialById = asyncHandler(async (req, res) => {
  * Admin endpoint
  */
 const createTestimonial = asyncHandler(async (req, res) => {
-  const { id, name, role, quote, rating, active, sortOrder } = req.body;
+  const { id, name, role, quote, translations, rating, active, sortOrder } = req.body;
 
   if (!id || !name || !quote) {
     return res
@@ -84,11 +84,23 @@ const createTestimonial = asyncHandler(async (req, res) => {
       .json({ message: 'id, name, and quote are required' });
   }
 
+  // Optional Arabic translation — both fields optional, either can be
+  // blank to fall back to the English role/quote on the storefront.
+  const ar = translations?.ar || {};
+
   const testimonial = await Testimonial.create({
     id,
     name,
     role,
     quote,
+    translations: translations !== undefined
+      ? {
+          ar: {
+            role: typeof ar.role === 'string' ? ar.role.trim() : '',
+            quote: typeof ar.quote === 'string' ? ar.quote.trim() : '',
+          },
+        }
+      : undefined,
     rating: rating || 5,
     active: active !== undefined ? active : true,
     sortOrder: sortOrder || 0,
@@ -106,7 +118,7 @@ const createTestimonial = asyncHandler(async (req, res) => {
  */
 const updateTestimonial = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { name, role, quote, rating, active, sortOrder } = req.body;
+  const { name, role, quote, translations, rating, active, sortOrder } = req.body;
 
   const testimonial = await Testimonial.findById(id);
   if (!testimonial) {
@@ -116,6 +128,15 @@ const updateTestimonial = asyncHandler(async (req, res) => {
   if (name !== undefined) testimonial.name = name;
   if (role !== undefined) testimonial.role = role;
   if (quote !== undefined) testimonial.quote = quote;
+  if (translations !== undefined) {
+    const ar = translations?.ar || {};
+    testimonial.translations = {
+      ar: {
+        role: typeof ar.role === 'string' ? ar.role.trim() : '',
+        quote: typeof ar.quote === 'string' ? ar.quote.trim() : '',
+      },
+    };
+  }
   if (rating !== undefined) testimonial.rating = rating;
   if (active !== undefined) testimonial.active = active;
   if (sortOrder !== undefined) testimonial.sortOrder = sortOrder;

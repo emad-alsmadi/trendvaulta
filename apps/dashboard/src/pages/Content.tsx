@@ -30,6 +30,7 @@ import {
 import { FilterBar } from '../components/ui/FilterBar';
 import { Field, Input, Select, Switch, Textarea } from '../components/ui/Field';
 import { Badge, StatusBadge } from '../components/ui/StatusBadge';
+import { hintClass, labelClass } from '../components/ui/styles';
 
 const CONTENT_TYPES: ContentType[] = [
   'SHIPPING',
@@ -43,6 +44,7 @@ const emptyForm: ContentPayload = {
   type: 'SHIPPING',
   title: '',
   body: '',
+  translations: { ar: { title: '', body: '' } },
   active: true,
 };
 
@@ -87,6 +89,12 @@ export default function Content() {
       type: content.type,
       title: content.title,
       body: content.body,
+      translations: {
+        ar: {
+          title: content.translations?.ar?.title || '',
+          body: content.translations?.ar?.body || '',
+        },
+      },
       active: content.active,
     });
     setOpen(true);
@@ -103,6 +111,12 @@ export default function Content() {
       type: form.type,
       title: form.title.trim(),
       body: form.body.trim(),
+      translations: {
+        ar: {
+          title: form.translations?.ar?.title?.trim() || '',
+          body: form.translations?.ar?.body?.trim() || '',
+        },
+      },
       active: !!form.active,
     };
 
@@ -333,6 +347,43 @@ export default function Content() {
                 className='leading-relaxed'
               />
             </Field>
+
+            <fieldset className='space-y-3 border-t border-border pt-4'>
+              <div className='space-y-1'>
+                <legend className={labelClass}>{t('content.form.arabicLegend')}</legend>
+                <p className={hintClass}>{t('content.form.arabicHint')}</p>
+              </div>
+              <Field label={t('content.form.titleAr')}>
+                <Input
+                  value={form.translations?.ar?.title || ''}
+                  dir='rtl'
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      translations: {
+                        ar: { ...f.translations?.ar, title: e.target.value },
+                      },
+                    }))
+                  }
+                />
+              </Field>
+              <Field label={t('content.form.bodyAr')}>
+                <Textarea
+                  value={form.translations?.ar?.body || ''}
+                  dir='rtl'
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      translations: {
+                        ar: { ...f.translations?.ar, body: e.target.value },
+                      },
+                    }))
+                  }
+                  rows={12}
+                  className='leading-relaxed'
+                />
+              </Field>
+            </fieldset>
             <Switch
               checked={!!form.active}
               onCheckedChange={(active) => setForm((f) => ({ ...f, active }))}

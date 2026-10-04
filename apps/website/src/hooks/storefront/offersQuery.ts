@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { offersApi, type StorefrontOffer } from '@/lib/api';
 import type { DemoDeal } from '@/data/demoStorefront';
+import type { Locale } from '@/lib/locale';
 
 export type OffersQueryParams = {
   active?: boolean;
@@ -55,4 +56,19 @@ export function useOffersList(limit = 24) {
     },
     staleTime: 60_000,
   });
+}
+
+/**
+ * Title/subtitle/badge in the reader's language. Each field falls back to
+ * English on its own (same pattern as localizeContent,
+ * hooks/storefront/contentQuery.ts) so a half-translated offer still reads
+ * as a whole card rather than mixing an empty Arabic field into English copy.
+ */
+export function localizeOffer(offer: StorefrontOffer, locale: Locale) {
+  const ar = locale === 'ar' ? offer.translations?.ar : undefined;
+  return {
+    title: ar?.title?.trim() || offer.title,
+    subtitle: ar?.subtitle?.trim() || offer.subtitle,
+    badge: ar?.badge?.trim() || offer.badge,
+  };
 }

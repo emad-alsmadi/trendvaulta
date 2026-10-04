@@ -29,7 +29,8 @@ describe('checkRolePermission', () => {
 
     assert.equal(nextCalled, false);
     assert.equal(res.statusCode, 401);
-    assert.equal(res.body.error, 'NO_TOKEN');
+    assert.equal(res.body.success, false);
+    assert.equal(res.body.code, 'NO_TOKEN');
   });
 
   it('rejects with 403 when the user role lacks the required permission', () => {

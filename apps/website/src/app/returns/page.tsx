@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Sparkles, RefreshCw } from 'lucide-react';
-import { useContent } from '@/hooks/storefront/contentQuery';
+import { useContent, localizeContent } from '@/hooks/storefront/contentQuery';
 import { sanitizeHtml } from '@/lib/sanitizeHtml';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { ProseSkeleton } from '@/components/ui/Skeleton';
@@ -11,7 +11,8 @@ import { ProseSkeleton } from '@/components/ui/Skeleton';
 /** Returns policy page — API: GET /api/content?type=RETURNS */
 export default function ReturnsPage() {
   const { data: content, isLoading, error } = useContent('RETURNS');
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
+  const localized = content ? localizeContent(content, locale) : null;
   // One sentence with {helpLink} / {contactLink} slots so the links can sit
   // anywhere in the translated text.
   const helpParts = t('returnsPolicy.helpPrompt').split(
@@ -34,7 +35,7 @@ export default function ReturnsPage() {
             {t('returnsPolicy.badge')}
           </div>
           <h1 className='text-3xl font-extrabold text-stone-900 sm:text-4xl'>
-            {content?.title || t('returnsPolicy.title')}
+            {localized?.title || t('returnsPolicy.title')}
           </h1>
         </motion.div>
 
@@ -51,12 +52,12 @@ export default function ReturnsPage() {
           </div>
         )}
 
-        {!isLoading && !error && content && (
+        {!isLoading && !error && localized && (
           <motion.article
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             className='rounded-2xl border border-stone-200 bg-white p-8'
-            dangerouslySetInnerHTML={{ __html: sanitizeHtml(content.body) }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(localized.body) }}
           />
         )}
 

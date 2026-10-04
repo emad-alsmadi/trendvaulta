@@ -30,12 +30,14 @@ import { FilterBar } from '../components/ui/FilterBar';
 import { Field, Input, Switch, Textarea } from '../components/ui/Field';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { Rating } from '../components/ui/Rating';
+import { hintClass, labelClass } from '../components/ui/styles';
 
 const emptyForm: TestimonialPayload = {
   id: '',
   name: '',
   role: '',
   quote: '',
+  translations: { ar: { role: '', quote: '' } },
   rating: 5,
   active: true,
   sortOrder: 0,
@@ -83,6 +85,12 @@ export default function Testimonials() {
       name: testimonial.name,
       role: testimonial.role || '',
       quote: testimonial.quote,
+      translations: {
+        ar: {
+          role: testimonial.translations?.ar?.role || '',
+          quote: testimonial.translations?.ar?.quote || '',
+        },
+      },
       rating: testimonial.rating,
       active: testimonial.active,
       sortOrder: testimonial.sortOrder,
@@ -103,6 +111,12 @@ export default function Testimonials() {
       name: form.name.trim(),
       role: (form.role || '').trim(),
       quote: form.quote.trim(),
+      translations: {
+        ar: {
+          role: form.translations?.ar?.role?.trim() || '',
+          quote: form.translations?.ar?.quote?.trim() || '',
+        },
+      },
       rating: Number(form.rating) || 5,
       active: !!form.active,
       sortOrder: Number(form.sortOrder || 0),
@@ -363,6 +377,42 @@ export default function Testimonials() {
                 />
               </Field>
             </div>
+
+            <fieldset className='space-y-3 border-t border-border pt-4'>
+              <div className='space-y-1'>
+                <legend className={labelClass}>{t('testimonials.form.arabicLegend')}</legend>
+                <p className={hintClass}>{t('testimonials.form.arabicHint')}</p>
+              </div>
+              <Field label={t('testimonials.form.roleAr')}>
+                <Input
+                  value={form.translations?.ar?.role || ''}
+                  dir='rtl'
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      translations: {
+                        ar: { ...f.translations?.ar, role: e.target.value },
+                      },
+                    }))
+                  }
+                />
+              </Field>
+              <Field label={t('testimonials.form.quoteAr')}>
+                <Textarea
+                  value={form.translations?.ar?.quote || ''}
+                  dir='rtl'
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      translations: {
+                        ar: { ...f.translations?.ar, quote: e.target.value },
+                      },
+                    }))
+                  }
+                  rows={3}
+                />
+              </Field>
+            </fieldset>
             <Switch
               checked={!!form.active}
               onCheckedChange={(active) => setForm((f) => ({ ...f, active }))}

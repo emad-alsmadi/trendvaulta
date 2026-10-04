@@ -116,6 +116,15 @@ function parseContentBody(body, { partial = false } = {}) {
     data.active = Boolean(body.active);
   }
 
+  // Optional Arabic translation — both fields optional, either can be
+  // blank to fall back to the English title/body on the storefront.
+  if (body.translations !== undefined) {
+    const ar = body.translations?.ar || {};
+    const arTitle = typeof ar.title === 'string' ? ar.title.trim() : '';
+    const arBody = typeof ar.body === 'string' ? ar.body.trim() : '';
+    data.translations = { ar: { title: arTitle, body: arBody } };
+  }
+
   return { data, errors };
 }
 
@@ -135,6 +144,7 @@ const createContent = asyncHandler(async (req, res) => {
     type: data.type,
     title: data.title,
     body: data.body,
+    translations: data.translations,
     active: data.active !== undefined ? data.active : true,
   });
   // Fail on bad input (e.g. title > 200) before touching the live page.

@@ -204,6 +204,20 @@ async function resolveTaxPrice(itemsPrice = 0) {
   return Math.round(amount * 100) / 100;
 }
 
+/**
+ * A coupon's `expirationDate` is stored as whatever midnight the dashboard
+ * datepicker sent, so comparing it directly against `now` kills the coupon
+ * at 00:00 on the expiry day instead of at the end of it — a coupon meant
+ * to work "through" that date stops working a full day early. Normalizing
+ * to 23:59:59.999 server-local-time at the comparison site (not at write
+ * time) needs no migration and keeps every existing expiry check in sync.
+ */
+function couponExpiresAt(coupon) {
+  const expiresAt = new Date(coupon.expirationDate);
+  expiresAt.setHours(23, 59, 59, 999);
+  return expiresAt;
+}
+
 function calculateCouponDiscount(coupon, orderAmount) {
   const amount = Math.max(0, Number(orderAmount) || 0);
   if (!coupon) {
@@ -212,7 +226,7 @@ function calculateCouponDiscount(coupon, orderAmount) {
   if (!coupon.isActive) {
     return { discountAmount: 0, valid: false, code: 'COUPON_INACTIVE', message: 'Coupon is inactive' };
   }
-  if (new Date(coupon.expirationDate) < new Date()) {
+  if (couponExpiresAt(coupon) < new Date()) {
     return { discountAmount: 0, valid: false, code: 'COUPON_EXPIRED', message: 'Coupon has expired' };
   }
   if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {

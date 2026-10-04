@@ -24,8 +24,20 @@ const resolveProductBadges = (product) => {
     badges.add('bestseller');
   }
 
+  // Checkout sells a variant product from its variants' stock, not the
+  // product-level field, so a variant product needs the badge as soon as
+  // any one option runs low — matching the admin low-stock list's
+  // $elemMatch definition (adminStats.controller.js) — not only when the
+  // (often-unused) top-level stock happens to be low.
+  const hasVariants = Array.isArray(product?.variants) && product.variants.length > 0;
   const stock = Number(product?.stock) || 0;
-  if (stock > 0 && stock <= LOW_STOCK_THRESHOLD) {
+  const lowStockTrigger = hasVariants
+    ? product.variants.some((v) => {
+        const vStock = Number(v?.stock) || 0;
+        return vStock > 0 && vStock <= LOW_STOCK_THRESHOLD;
+      })
+    : stock > 0 && stock <= LOW_STOCK_THRESHOLD;
+  if (lowStockTrigger) {
     badges.add('lowStock');
   }
 

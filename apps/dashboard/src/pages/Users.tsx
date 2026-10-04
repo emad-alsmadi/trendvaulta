@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   Ban,
   Check,
@@ -15,6 +16,7 @@ import {
   useUpdateUserMutation,
 } from '../hooks/useAdminUsers';
 import {
+  authApi,
   errorMessage,
   type AdminUser,
   type AppRole,
@@ -77,6 +79,16 @@ export default function Users() {
   const updateMut = useUpdateUserMutation();
   const deleteMut = useDeleteUserMutation();
 
+  // The API already rejects an admin disabling/deleting their own account —
+  // hiding the buttons on that row avoids a confusing 400 from a click that
+  // was never going to work.
+  const currentUserQ = useQuery({
+    queryKey: ['auth', 'profile'],
+    queryFn: () => authApi.getProfile(),
+    staleTime: 30_000,
+  });
+  const currentUserId = currentUserQ.data?.user?._id;
+
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AdminUser | null>(null);
   const [form, setForm] = useState<UserForm>({
@@ -90,6 +102,8 @@ export default function Users() {
   const users = usersQ.data?.data || [];
   const meta = usersQ.data?.meta;
   const saving = updateMut.isPending;
+  const isEditingSelf =
+    Boolean(currentUserId) && editing?._id === currentUserId;
 
   function openEdit(user: AdminUser) {
     setEditing(user);
@@ -265,53 +279,56 @@ export default function Users() {
       key: 'actions',
       header: t('users.columns.actions'),
       actions: true,
-      cell: (user) => (
-        <RowActions>
-          {can('orders:read') && (
-            <Tip label={t('users.orderHistory')}>
-              <Link
-                to={`/orders?user=${user._id}`}
-                aria-label={t('users.ordersOf', { name: user.username })}
-                className={cn(
-                  buttonVariants({ variant: 'ghost', size: 'icon-sm' }),
-                  'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                <Receipt aria-hidden />
-              </Link>
-            </Tip>
-          )}
-          {can('users:write') && (
-            <IconButton
-              icon={
-                user.disabled ? <CircleCheck aria-hidden /> : <Ban aria-hidden />
-              }
-              label={
-                user.disabled
-                  ? t('users.enableUser', { name: user.username })
-                  : t('users.disableUser', { name: user.username })
-              }
-              onClick={() => void handleToggleDisabled(user)}
-              disabled={updateMut.isPending}
-            />
-          )}
-          {can('users:write') && (
-            <IconButton
-              icon={<Pencil aria-hidden />}
-              label={t('users.editUser', { name: user.username })}
-              onClick={() => openEdit(user)}
-            />
-          )}
-          {can('users:delete') && (
-            <IconButton
-              icon={<Trash2 aria-hidden />}
-              label={t('users.deleteUser', { name: user.username })}
-              onClick={() => void handleDelete(user)}
-              disabled={deleteMut.isPending}
-            />
-          )}
-        </RowActions>
-      ),
+      cell: (user) => {
+        const isSelf = Boolean(currentUserId) && user._id === currentUserId;
+        return (
+          <RowActions>
+            {can('orders:read') && (
+              <Tip label={t('users.orderHistory')}>
+                <Link
+                  to={`/orders?user=${user._id}`}
+                  aria-label={t('users.ordersOf', { name: user.username })}
+                  className={cn(
+                    buttonVariants({ variant: 'ghost', size: 'icon-sm' }),
+                    'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  <Receipt aria-hidden />
+                </Link>
+              </Tip>
+            )}
+            {can('users:write') && !isSelf && (
+              <IconButton
+                icon={
+                  user.disabled ? <CircleCheck aria-hidden /> : <Ban aria-hidden />
+                }
+                label={
+                  user.disabled
+                    ? t('users.enableUser', { name: user.username })
+                    : t('users.disableUser', { name: user.username })
+                }
+                onClick={() => void handleToggleDisabled(user)}
+                disabled={updateMut.isPending}
+              />
+            )}
+            {can('users:write') && (
+              <IconButton
+                icon={<Pencil aria-hidden />}
+                label={t('users.editUser', { name: user.username })}
+                onClick={() => openEdit(user)}
+              />
+            )}
+            {can('users:delete') && !isSelf && (
+              <IconButton
+                icon={<Trash2 aria-hidden />}
+                label={t('users.deleteUser', { name: user.username })}
+                onClick={() => void handleDelete(user)}
+                disabled={deleteMut.isPending}
+              />
+            )}
+          </RowActions>
+        );
+      },
     },
   ];
 
@@ -442,11 +459,19 @@ export default function Users() {
               <div className='flex flex-wrap gap-2'>
                 {ROLES.map((role) => {
                   const selected = form.roles.includes(role);
+                  // The API rejects an admin removing their own admin role
+                  // (nobody left to undo it), so that one toggle is locked
+                  // when editing yourself — adding a role to yourself is
+                  // still fine and stays enabled.
+                  const lockedForSelf =
+                    isEditingSelf && role === 'admin' && selected;
                   return (
                     <button
                       key={role}
                       type='button'
                       aria-pressed={selected}
+                      disabled={lockedForSelf}
+                      title={lockedForSelf ? t('users.form.cannotRemoveOwnAdmin') : undefined}
                       onClick={() => toggleRole(role)}
                       className={cn(
                         'inline-flex h-control items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors duration-fast',
@@ -454,6 +479,7 @@ export default function Users() {
                         selected
                           ? 'border-primary bg-primary text-primary-foreground'
                           : 'border-border-strong bg-background text-foreground hover:bg-accent',
+                        lockedForSelf && 'cursor-not-allowed opacity-60',
                       )}
                     >
                       {selected && (
@@ -468,18 +494,20 @@ export default function Users() {
                 })}
               </div>
             </div>
-            <Field label={t('users.form.password')}>
-              <Input
-                type='password'
-                autoComplete='new-password'
-                minLength={8}
-                value={form.password}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, password: e.target.value }))
-                }
-                placeholder={t('users.form.passwordPlaceholder')}
-              />
-            </Field>
+            {!isEditingSelf && (
+              <Field label={t('users.form.password')}>
+                <Input
+                  type='password'
+                  autoComplete='new-password'
+                  minLength={8}
+                  value={form.password}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, password: e.target.value }))
+                  }
+                  placeholder={t('users.form.passwordPlaceholder')}
+                />
+              </Field>
+            )}
             <Field label={t('users.form.notes')}>
               <Textarea
                 rows={3}

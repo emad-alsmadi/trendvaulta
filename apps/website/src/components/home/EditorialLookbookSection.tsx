@@ -8,7 +8,7 @@ import {
   DEMO_LOOKBOOK_STORIES,
   type DemoLookbookStory,
 } from '@/data/demoStorefront';
-import { useLookbooks } from '@/hooks/storefront/lookbooksQuery';
+import { useLookbooks, localizeLookbookStory } from '@/hooks/storefront/lookbooksQuery';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { Skeleton, SkeletonGroup, SkeletonText } from '@/components/ui/Skeleton';
 
@@ -25,7 +25,7 @@ type Props = {
 
 /** Editorial lookbook — live GET /api/storefront/lookbooks with demo fallback */
 export function EditorialLookbookSection({ stories: storiesProp }: Props) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { data, isLoading, isError } = useLookbooks();
 
   const liveStories = data && data.length > 0 ? data : null;
@@ -81,6 +81,7 @@ export function EditorialLookbookSection({ stories: storiesProp }: Props) {
           <ul className='space-y-6'>
             {stories.map((story, index) => {
               const reverse = index % 2 === 1;
+              const localized = localizeLookbookStory(story, locale);
               return (
                 <motion.li
                   key={story.id}
@@ -98,7 +99,7 @@ export function EditorialLookbookSection({ stories: storiesProp }: Props) {
                     <div className='relative aspect-[16/10] md:aspect-auto md:min-h-[280px]'>
                       <Image
                         src={story.imageUrl}
-                        alt={t(story.title)}
+                        alt={t(localized.title)}
                         fill
                         className='object-cover'
                         sizes='(max-width: 768px) 100vw, 50vw'
@@ -110,19 +111,19 @@ export function EditorialLookbookSection({ stories: storiesProp }: Props) {
                     </div>
                     <div className='flex flex-col justify-center p-6 sm:p-8 lg:p-10'>
                       <p className='text-xs font-semibold uppercase tracking-[0.18em] text-stone-500'>
-                        {t(story.eyebrow)}
+                        {t(localized.eyebrow)}
                       </p>
                       <h3 className='mt-2 text-xl font-bold text-stone-900 sm:text-2xl'>
-                        {t(story.title)}
+                        {t(localized.title)}
                       </h3>
                       <p className='mt-3 text-sm leading-relaxed text-stone-600 sm:text-base'>
-                        {t(story.body)}
+                        {t(localized.body)}
                       </p>
                       <Link
                         href={story.href}
                         className='mt-6 inline-flex w-fit items-center rounded-lg bg-stone-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-500 focus-visible:ring-offset-2'
                       >
-                        {t(story.ctaLabel)}
+                        {t(localized.ctaLabel)}
                       </Link>
                     </div>
                   </div>

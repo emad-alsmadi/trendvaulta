@@ -787,6 +787,10 @@ export type StorefrontOffer = {
   href: string;
   imageUrl: string;
   endsAt?: string | null;
+  /** Falls back to title/subtitle/badge above when a field is missing. */
+  translations?: {
+    ar?: { title?: string; subtitle?: string; badge?: string };
+  };
 };
 
 export type OffersResponse = {
@@ -857,6 +861,10 @@ export const recommendationsApi = {
 export type GiftFinderOption = {
   id: string;
   label: string;
+  /** Falls back to label above when missing. */
+  translations?: {
+    ar?: { label?: string };
+  };
   q?: string;
   category?: string;
   minPrice?: number;
@@ -921,6 +929,10 @@ export type StorefrontLookbookStory = {
   ctaHref: string;
   imageUrl: string;
   tone: 'rose' | 'stone' | 'teal';
+  /** Falls back to the English fields above when a field is missing. */
+  translations?: {
+    ar?: { eyebrow?: string; title?: string; body?: string; ctaLabel?: string };
+  };
 };
 
 export type LookbooksResponse = {
@@ -978,6 +990,10 @@ export type StorefrontTestimonial = {
   role?: string;
   quote: string;
   rating?: number;
+  /** Falls back to role/quote above when a field is missing. Name is not translated. */
+  translations?: {
+    ar?: { role?: string; quote?: string };
+  };
 };
 
 export type TestimonialsResponse = {
@@ -1078,6 +1094,10 @@ export type HelpTopic = {
   description?: string;
   href: string;
   icon?: string;
+  /** Falls back to title/description above when a field is missing. */
+  translations?: {
+    ar?: { title?: string; description?: string };
+  };
   active: boolean;
   sortOrder: number;
 };
@@ -1119,6 +1139,10 @@ export type Content = {
   type: ContentType;
   title: string;
   body: string;
+  /** Falls back to title/body above when a field is missing. */
+  translations?: {
+    ar?: { title?: string; body?: string };
+  };
   active: boolean;
   createdAt?: string;
   updatedAt?: string;

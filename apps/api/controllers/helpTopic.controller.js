@@ -24,7 +24,7 @@ const getHelpTopics = asyncHandler(async (req, res) => {
 
   const results = await HelpTopic.find(query)
     .sort({ sortOrder: 1, createdAt: -1 })
-    .select('id title description href icon active sortOrder')
+    .select('id title description href icon translations active sortOrder')
     .lean();
 
   res.status(200).json({
@@ -127,6 +127,15 @@ function parseHelpTopicBody(body, { partial = false } = {}) {
     else data.sortOrder = n;
   }
 
+  // Optional Arabic translation — both fields optional, either can be
+  // blank to fall back to the English title/description on the storefront.
+  if (body.translations !== undefined) {
+    const ar = body.translations?.ar || {};
+    const arTitle = typeof ar.title === 'string' ? ar.title.trim() : '';
+    const arDescription = typeof ar.description === 'string' ? ar.description.trim() : '';
+    data.translations = { ar: { title: arTitle, description: arDescription } };
+  }
+
   return { data, errors };
 }
 
@@ -148,6 +157,7 @@ const createHelpTopic = asyncHandler(async (req, res) => {
     href: data.href,
     description: data.description ?? '',
     icon: data.icon ?? '',
+    translations: data.translations,
     active: data.active !== undefined ? data.active : true,
     sortOrder: data.sortOrder !== undefined ? data.sortOrder : 0,
   });

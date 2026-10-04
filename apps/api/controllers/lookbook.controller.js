@@ -18,7 +18,7 @@ const getLookbooks = asyncHandler(async (req, res) => {
   const lookbooks = await Lookbook.find({ active: true })
     .sort({ sortOrder: 1, createdAt: -1 })
     .select(
-      '-_id id eyebrow title body ctaLabel ctaHref imageUrl tone active sortOrder',
+      '-_id id eyebrow title body ctaLabel ctaHref imageUrl tone translations active sortOrder',
     )
     .lean();
 
@@ -94,6 +94,7 @@ const createLookbook = asyncHandler(async (req, res) => {
     ctaHref,
     imageUrl,
     tone,
+    translations,
     active,
     sortOrder,
   } = req.body;
@@ -104,6 +105,10 @@ const createLookbook = asyncHandler(async (req, res) => {
       .json({ message: 'id, title, body, ctaHref, and imageUrl are required' });
   }
 
+  // Optional Arabic translation — every field optional, each can be left
+  // blank to fall back to the matching English field on the storefront.
+  const ar = translations?.ar || {};
+
   const lookbook = await Lookbook.create({
     id,
     eyebrow,
@@ -113,6 +118,16 @@ const createLookbook = asyncHandler(async (req, res) => {
     ctaHref,
     imageUrl,
     tone: tone || 'stone',
+    translations: translations !== undefined
+      ? {
+          ar: {
+            eyebrow: typeof ar.eyebrow === 'string' ? ar.eyebrow.trim() : '',
+            title: typeof ar.title === 'string' ? ar.title.trim() : '',
+            body: typeof ar.body === 'string' ? ar.body.trim() : '',
+            ctaLabel: typeof ar.ctaLabel === 'string' ? ar.ctaLabel.trim() : '',
+          },
+        }
+      : undefined,
     active: active !== undefined ? active : true,
     sortOrder: sortOrder || 0,
   });
@@ -137,6 +152,7 @@ const updateLookbook = asyncHandler(async (req, res) => {
     ctaHref,
     imageUrl,
     tone,
+    translations,
     active,
     sortOrder,
   } = req.body;
@@ -153,6 +169,17 @@ const updateLookbook = asyncHandler(async (req, res) => {
   if (ctaHref !== undefined) lookbook.ctaHref = ctaHref;
   if (imageUrl !== undefined) lookbook.imageUrl = imageUrl;
   if (tone !== undefined) lookbook.tone = tone;
+  if (translations !== undefined) {
+    const ar = translations?.ar || {};
+    lookbook.translations = {
+      ar: {
+        eyebrow: typeof ar.eyebrow === 'string' ? ar.eyebrow.trim() : '',
+        title: typeof ar.title === 'string' ? ar.title.trim() : '',
+        body: typeof ar.body === 'string' ? ar.body.trim() : '',
+        ctaLabel: typeof ar.ctaLabel === 'string' ? ar.ctaLabel.trim() : '',
+      },
+    };
+  }
   if (active !== undefined) lookbook.active = active;
   if (sortOrder !== undefined) lookbook.sortOrder = sortOrder;
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { DEMO_FALLBACK_ENABLED } from '@/data/demoStorefront';
-import { useTestimonials } from '@/hooks/storefront/testimonialsQuery';
+import { useTestimonials, localizeTestimonial } from '@/hooks/storefront/testimonialsQuery';
 import { useTranslation } from '@/contexts/TranslationContext';
 
 /** `role`/`quote` are message keys, resolved with t() at render. */
@@ -39,7 +39,7 @@ function initials(name: string) {
 }
 
 export function Testimonials() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const q = useTestimonials();
   const usingFallback = !q.data || q.data.length === 0;
   // The fallback quotes are invented customers: development only. In
@@ -73,6 +73,9 @@ export function Testimonials() {
               Math.max(1, Math.round(Number(testimonial.rating ?? 5)) || 5),
             );
             const avatar = initials(testimonial.name);
+            const localized = usingFallback
+              ? null
+              : localizeTestimonial(testimonial, locale);
             return (
               <figure
                 key={testimonial.id || testimonial.name}
@@ -91,7 +94,7 @@ export function Testimonials() {
                 </div>
                 {/* dir=auto: live quotes may be in either language. */}
                 <blockquote dir='auto' className='mb-6 flex-1 leading-relaxed text-ink'>
-                  {usingFallback ? t(testimonial.quote) : testimonial.quote}
+                  {usingFallback ? t(testimonial.quote) : localized!.quote}
                 </blockquote>
                 <figcaption className='flex items-center gap-3 border-t border-line pt-4'>
                   <span
@@ -106,7 +109,7 @@ export function Testimonials() {
                     </span>
                     {testimonial.role && (
                       <span className='block truncate text-sm text-ink-muted'>
-                        {usingFallback ? t(testimonial.role) : testimonial.role}
+                        {usingFallback ? t(testimonial.role) : localized!.role}
                       </span>
                     )}
                   </span>

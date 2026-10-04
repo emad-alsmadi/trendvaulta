@@ -16,7 +16,7 @@ import {
   ArrowRight,
   HelpCircle,
 } from 'lucide-react';
-import { useHelpTopics } from '@/hooks/storefront/helpTopicsQuery';
+import { useHelpTopics, localizeHelpTopic } from '@/hooks/storefront/helpTopicsQuery';
 import type { DemoHelpTopic } from '@/data/demoStorefront';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { ListSkeleton } from '@/components/ui/Skeleton';
@@ -42,7 +42,7 @@ const ICONS: Record<
  */
 export default function HelpPage() {
   const { data: topics = [], isLoading, error } = useHelpTopics();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [faqBefore, faqAfter = ''] = t('help.quickAnswers.faq').split('{link}');
   const [shippingBefore, shippingAfter = ''] = t(
     'help.quickAnswers.shipping',
@@ -94,6 +94,7 @@ export default function HelpPage() {
           <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
             {topics.map((topic, index) => {
               const Icon = ICONS[topic.icon] || HelpCircle;
+              const localized = localizeHelpTopic(topic, locale);
               return (
                 <motion.div
                   key={topic.id}
@@ -112,10 +113,10 @@ export default function HelpPage() {
                       />
                     </span>
                     <h2 className='mt-4 text-base font-extrabold text-stone-900'>
-                      {t(topic.title)}
+                      {localized.title}
                     </h2>
                     <p className='mt-2 flex-1 text-sm font-semibold text-stone-600'>
-                      {t(topic.description)}
+                      {localized.description}
                     </p>
                     <span className='mt-4 inline-flex items-center gap-1 text-sm font-bold text-fuchsia-700'>
                       {t('help.open')}

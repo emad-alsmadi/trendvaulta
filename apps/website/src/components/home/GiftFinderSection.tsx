@@ -12,8 +12,9 @@ import {
   type DemoGiftFinderConfig,
   type DemoGiftOption,
 } from '@/data/demoStorefront';
-import { useGiftFinderConfig } from '@/hooks/storefront/giftFinderQuery';
+import { useGiftFinderConfig, localizeGiftOption } from '@/hooks/storefront/giftFinderQuery';
 import { useTranslation } from '@/contexts/TranslationContext';
+import type { Locale } from '@/lib/locale';
 
 type Props = {
   config?: DemoGiftFinderConfig;
@@ -24,11 +25,13 @@ function ChipGroup({
   options,
   value,
   onChange,
+  locale,
 }: {
   legend: string;
   options: DemoGiftOption[];
   value: string | null;
   onChange: (id: string) => void;
+  locale: Locale;
 }) {
   const { t } = useTranslation();
   return (
@@ -51,7 +54,7 @@ function ChipGroup({
                   : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300'
               }`}
             >
-              {t(option.label)}
+              {t(localizeGiftOption(option, locale))}
             </button>
           );
         })}
@@ -62,7 +65,7 @@ function ChipGroup({
 
 /** Gift finder — GET /api/storefront/gift-finder with DEMO_GIFT_FINDER fallback */
 export function GiftFinderSection({ config: configProp }: Props) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { data, isFetching } = useGiftFinderConfig();
 
   const fromApi = Boolean(data?.fromApi);
@@ -146,18 +149,21 @@ export function GiftFinderSection({ config: configProp }: Props) {
                   options={config.occasions}
                   value={occasionId}
                   onChange={setOccasionId}
+                  locale={locale}
                 />
                 <ChipGroup
                   legend={t('home.giftFinder.recipient')}
                   options={config.recipients}
                   value={recipientId}
                   onChange={setRecipientId}
+                  locale={locale}
                 />
                 <ChipGroup
                   legend={t('home.giftFinder.budget')}
                   options={config.budgets}
                   value={budgetId}
                   onChange={setBudgetId}
+                  locale={locale}
                 />
               </div>
 

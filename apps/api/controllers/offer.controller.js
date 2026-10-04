@@ -29,7 +29,7 @@ const getOffers = asyncHandler(async (req, res) => {
   const results = await Offer.find(query)
     .sort({ sortOrder: 1, createdAt: -1 })
     .limit(limitNum)
-    .select('title subtitle badge href imageUrl endsAt active sortOrder')
+    .select('title subtitle badge href imageUrl translations endsAt active sortOrder')
     .lean();
 
   res.status(200).json({
@@ -141,6 +141,16 @@ function parseOfferBody(body, { partial = false } = {}) {
     else data.sortOrder = n;
   }
 
+  // Optional Arabic translation — all fields optional, any can be blank to
+  // fall back to the English title/subtitle/badge on the storefront.
+  if (body.translations !== undefined) {
+    const ar = body.translations?.ar || {};
+    const arTitle = typeof ar.title === 'string' ? ar.title.trim() : '';
+    const arSubtitle = typeof ar.subtitle === 'string' ? ar.subtitle.trim() : '';
+    const arBadge = typeof ar.badge === 'string' ? ar.badge.trim() : '';
+    data.translations = { ar: { title: arTitle, subtitle: arSubtitle, badge: arBadge } };
+  }
+
   return { data, errors };
 }
 
@@ -162,6 +172,7 @@ const createOffer = asyncHandler(async (req, res) => {
     subtitle: data.subtitle ?? '',
     badge: data.badge ?? '',
     imageUrl: data.imageUrl ?? '',
+    translations: data.translations,
     endsAt: data.endsAt !== undefined ? data.endsAt : null,
     active: data.active !== undefined ? data.active : true,
     sortOrder: data.sortOrder !== undefined ? data.sortOrder : 0,

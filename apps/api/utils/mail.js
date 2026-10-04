@@ -342,6 +342,23 @@ async function sendPasswordChangedEmail(opts) {
   });
 }
 
+/**
+ * The reset link itself (forgot-password flow). Fail-soft, like every
+ * other mail here — the caller must still answer with the generic
+ * "if an account exists…" message regardless of the return value, so a
+ * delivery failure never reveals whether the address is registered.
+ * @param {{ to: string, link: string, locale?: string }} opts
+ */
+async function sendPasswordResetEmail(opts) {
+  return deliver({
+    to: opts.to,
+    kind: 'passwordReset',
+    label: 'password-reset link',
+    locale: opts.locale || (await localeForEmail(opts.to)),
+    vars: { link: opts.link },
+  });
+}
+
 module.exports = {
   sendNewsletterConfirmEmail,
   createTransporter,
@@ -357,6 +374,7 @@ module.exports = {
   sendOrderRefundedEmail,
   sendReturnUpdateEmail,
   sendPasswordChangedEmail,
+  sendPasswordResetEmail,
   localeForOrder,
   localeForEmail,
 };

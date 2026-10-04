@@ -22,6 +22,7 @@ export const ar: Messages = {
     unlimited: 'غير محدود',
     editItem: 'تعديل {name}',
     deleteItem: 'حذف {name}',
+    deactivateItem: 'تعطيل {name}',
     loading: 'جارٍ التحميل…',
     clearFilters: 'مسح عوامل التصفية',
     removeFilter: 'إزالة عامل التصفية: {name}',
@@ -527,6 +528,11 @@ export const ar: Messages = {
       type: 'النوع',
       title: 'العنوان',
       body: 'النص',
+      arabicLegend: 'الترجمة العربية (اختياري)',
+      arabicHint:
+        'تظهر بالمتجر العربي عند تعبئتها؛ أي حقل تتركه فارغًا يعود للنص الإنجليزي أعلاه.',
+      titleAr: 'العنوان (عربي)',
+      bodyAr: 'النص (عربي)',
     },
   },
   helpTopics: {
@@ -558,6 +564,11 @@ export const ar: Messages = {
       href: 'الرابط',
       icon: 'الأيقونة',
       sortOrder: 'ترتيب العرض',
+      arabicLegend: 'الترجمة العربية (اختياري)',
+      arabicHint:
+        'تظهر بالمتجر العربي عند تعبئتها؛ أي حقل تتركه فارغًا يعود للنص الإنجليزي أعلاه.',
+      titleAr: 'العنوان (عربي)',
+      descriptionAr: 'الوصف (عربي)',
     },
   },
   testimonials: {
@@ -592,6 +603,11 @@ export const ar: Messages = {
       quote: 'الاقتباس',
       rating: 'التقييم (1-5)',
       sortOrder: 'ترتيب العرض',
+      arabicLegend: 'الترجمة العربية (اختياري)',
+      arabicHint:
+        'تظهر بالمتجر العربي عند تعبئتها؛ أي حقل تتركه فارغًا يعود للنص الإنجليزي أعلاه.',
+      roleAr: 'الصفة (عربي)',
+      quoteAr: 'الاقتباس (عربي)',
     },
   },
   giftFinder: {
@@ -624,6 +640,7 @@ export const ar: Messages = {
       budget: 'الميزانية {n}',
       id: 'المعرّف',
       label: 'التسمية',
+      labelAr: 'التسمية (عربي)',
       query: 'عبارة البحث',
       minPrice: 'أدنى سعر',
       maxPrice: 'أعلى سعر',
@@ -911,6 +928,13 @@ export const ar: Messages = {
       imageUrl: 'رابط الصورة',
       tone: 'اللون',
       sortOrder: 'ترتيب العرض',
+      arabicLegend: 'الترجمة العربية (اختياري)',
+      arabicHint:
+        'تظهر بالمتجر العربي عند تعبئتها؛ أي حقل تتركه فارغًا يعود للنص الإنجليزي أعلاه.',
+      eyebrowAr: 'العنوان التمهيدي (عربي)',
+      titleAr: 'العنوان (عربي)',
+      bodyAr: 'النص (عربي)',
+      ctaLabelAr: 'نص الزر (عربي)',
     },
   },
   offers: {
@@ -944,6 +968,12 @@ export const ar: Messages = {
       href: 'الرابط',
       imageUrl: 'رابط الصورة',
       endsAt: 'تاريخ الانتهاء',
+      arabicLegend: 'الترجمة العربية (اختياري)',
+      arabicHint:
+        'تظهر بالمتجر العربي عند تعبئتها؛ أي حقل تتركه فارغًا يعود للنص الإنجليزي أعلاه.',
+      titleAr: 'العنوان (عربي)',
+      subtitleAr: 'العنوان الفرعي (عربي)',
+      badgeAr: 'الشارة (عربي)',
     },
   },
   bundles: {
@@ -1275,6 +1305,11 @@ export const ar: Messages = {
       hideWarning:
         'الإخفاء يزيل هذه الفئة من مربعات الصفحة الرئيسية. تبقى منتجاتها متاحة عبر البحث والرابط المباشر.',
       add: 'إضافة',
+      arabicLegend: 'الترجمة العربية (اختياري)',
+      arabicHint:
+        'لا تظهر حاليًا في مربعات الصفحة الرئيسية بالمتجر — محفوظة هنا لحين ربط ذلك القسم بهذه البيانات.',
+      nameAr: 'الاسم (عربي)',
+      descriptionAr: 'الوصف (عربي)',
     },
   },
   coupons: {
@@ -1369,6 +1404,7 @@ export const ar: Messages = {
       username: 'اسم المستخدم',
       email: 'البريد الإلكتروني',
       roles: 'الأدوار',
+      cannotRemoveOwnAdmin: 'لا يمكنك إزالة صلاحية المسؤول عن حسابك الخاص',
       password: 'كلمة مرور جديدة (اختياري)',
       passwordPlaceholder: 'اتركه فارغًا للإبقاء على الحالية',
       notes: 'ملاحظات الموظفين',

@@ -29,6 +29,7 @@ import {
 import { FilterBar } from '../components/ui/FilterBar';
 import { Field, Input, Switch } from '../components/ui/Field';
 import { Badge, StatusBadge } from '../components/ui/StatusBadge';
+import { hintClass, labelClass } from '../components/ui/styles';
 
 const emptyForm: HelpTopicPayload = {
   id: '',
@@ -36,6 +37,7 @@ const emptyForm: HelpTopicPayload = {
   href: '',
   description: '',
   icon: '',
+  translations: { ar: { title: '', description: '' } },
   active: true,
   sortOrder: 0,
 };
@@ -84,6 +86,12 @@ export default function HelpTopics() {
       href: topic.href,
       description: topic.description || '',
       icon: topic.icon || '',
+      translations: {
+        ar: {
+          title: topic.translations?.ar?.title || '',
+          description: topic.translations?.ar?.description || '',
+        },
+      },
       active: topic.active,
       sortOrder: topic.sortOrder ?? 0,
     });
@@ -104,6 +112,12 @@ export default function HelpTopics() {
       href: form.href.trim(),
       description: (form.description || '').trim(),
       icon: (form.icon || '').trim(),
+      translations: {
+        ar: {
+          title: form.translations?.ar?.title?.trim() || '',
+          description: form.translations?.ar?.description?.trim() || '',
+        },
+      },
       sortOrder: Number(form.sortOrder || 0),
       active: !!form.active,
     };
@@ -385,6 +399,41 @@ export default function HelpTopics() {
                 />
               </Field>
             </div>
+
+            <fieldset className='space-y-3 border-t border-border pt-4'>
+              <div className='space-y-1'>
+                <legend className={labelClass}>{t('helpTopics.form.arabicLegend')}</legend>
+                <p className={hintClass}>{t('helpTopics.form.arabicHint')}</p>
+              </div>
+              <Field label={t('helpTopics.form.titleAr')}>
+                <Input
+                  value={form.translations?.ar?.title || ''}
+                  dir='rtl'
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      translations: {
+                        ar: { ...f.translations?.ar, title: e.target.value },
+                      },
+                    }))
+                  }
+                />
+              </Field>
+              <Field label={t('helpTopics.form.descriptionAr')}>
+                <Input
+                  value={form.translations?.ar?.description || ''}
+                  dir='rtl'
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      translations: {
+                        ar: { ...f.translations?.ar, description: e.target.value },
+                      },
+                    }))
+                  }
+                />
+              </Field>
+            </fieldset>
             <Switch
               checked={!!form.active}
               onCheckedChange={(active) => setForm((f) => ({ ...f, active }))}

@@ -43,6 +43,17 @@ const CategorySchema = new mongoose.Schema(
       maxlength: 300,
       default: '',
     },
+    // Per-language copy; admins can enter it here, same optional sub-document
+    // pattern as StorefrontModule's hero slides (models/StorefrontModule.js).
+    // Not yet consumed by the storefront: homepage category tiles currently
+    // read apps/website/src/lib/categories.ts (a hardcoded constant), not
+    // this collection — see getStorefrontCategories in categories.controller.js.
+    translations: {
+      ar: {
+        name: { type: String, trim: true, maxlength: 80 },
+        description: { type: String, trim: true, maxlength: 300 },
+      },
+    },
     imageUrl: {
       type: String,
       trim: true,

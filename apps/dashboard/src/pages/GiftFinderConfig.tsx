@@ -32,7 +32,7 @@ import { text } from '../components/ui/styles';
 
 type Section = 'occasions' | 'recipients' | 'budgets';
 
-const emptyOption: GiftOption = { id: '', label: '' };
+const emptyOption: GiftOption = { id: '', label: '', translations: { ar: { label: '' } } };
 
 const emptyForm: GiftFinderConfigPayload = {
   occasions: [{ ...emptyOption }, { ...emptyOption }],
@@ -59,7 +59,7 @@ export default function GiftFinderConfig() {
   const fieldLabel = (
     section: Section,
     index: number,
-    field: 'id' | 'label' | 'query' | 'minPrice' | 'maxPrice',
+    field: 'id' | 'label' | 'labelAr' | 'query' | 'minPrice' | 'maxPrice',
   ) =>
     t('giftFinder.form.fieldLabel', {
       option: optionName(section, index),
@@ -104,6 +104,17 @@ export default function GiftFinderConfig() {
     setForm((f) => ({ ...f, [section]: newSection }));
   }
 
+  /** Arabic label for one option — same per-item pattern as HeroSlidesEditor's updateArabic. */
+  function updateArabicLabel(section: Section, index: number, label: string) {
+    const option = form[section][index];
+    const newSection = [...form[section]];
+    newSection[index] = {
+      ...option,
+      translations: { ...option.translations, ar: { ...option.translations?.ar, label } },
+    };
+    setForm((f) => ({ ...f, [section]: newSection }));
+  }
+
   function addOption(section: Section) {
     setForm((f) => ({ ...f, [section]: [...f[section], { ...emptyOption }] }));
   }
@@ -136,6 +147,7 @@ export default function GiftFinderConfig() {
       ...o,
       id: o.id.trim(),
       label: o.label.trim(),
+      translations: { ar: { label: o.translations?.ar?.label?.trim() || '' } },
       q: o.q?.trim(),
       category: o.category?.trim(),
       minPrice: o.minPrice !== undefined ? Number(o.minPrice) : undefined,
@@ -283,6 +295,14 @@ export default function GiftFinderConfig() {
               placeholder={t('giftFinder.form.label')}
               aria-label={fieldLabel(section, index, 'label')}
               dir='auto'
+              className='min-w-0 flex-1'
+            />
+            <Input
+              value={option.translations?.ar?.label || ''}
+              onChange={(e) => updateArabicLabel(section, index, e.target.value)}
+              placeholder={t('giftFinder.form.labelAr')}
+              aria-label={fieldLabel(section, index, 'labelAr')}
+              dir='rtl'
               className='min-w-0 flex-1'
             />
             {section === 'budgets' ? (

@@ -3,16 +3,18 @@ const { getUserPermissions } = require('./rolePermissions');
 const checkRolePermission = (requiredPermission) => {
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({ 
+      return res.status(401).json({
+        success: false,
         message: 'Authentication required',
-        error: 'NO_TOKEN'
+        code: 'NO_TOKEN',
       });
     }
 
     const userPermissions = getUserPermissions(req.user.roles || ['user']);
-    
+
     if (!userPermissions.includes(requiredPermission)) {
       return res.status(403).json({
+        success: false,
         message: 'You do not have permission to perform this action',
         code: 'FORBIDDEN',
       });

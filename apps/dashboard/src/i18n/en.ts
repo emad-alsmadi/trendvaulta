@@ -25,6 +25,7 @@ export const en = {
     unlimited: 'Unlimited',
     editItem: 'Edit {name}',
     deleteItem: 'Delete {name}',
+    deactivateItem: 'Deactivate {name}',
     // Shared primitives (components/ui).
     loading: 'Loading…',
     clearFilters: 'Clear filters',
@@ -562,6 +563,11 @@ export const en = {
       type: 'Type',
       title: 'Title',
       body: 'Body',
+      arabicLegend: 'Arabic translation (optional)',
+      arabicHint:
+        'Shown on the Arabic storefront when filled in; falls back to the English text above field by field.',
+      titleAr: 'Title (Arabic)',
+      bodyAr: 'Body (Arabic)',
     },
   },
   helpTopics: {
@@ -593,6 +599,11 @@ export const en = {
       href: 'Link',
       icon: 'Icon',
       sortOrder: 'Sort order',
+      arabicLegend: 'Arabic translation (optional)',
+      arabicHint:
+        'Shown on the Arabic storefront when filled in; falls back to the English text above field by field.',
+      titleAr: 'Title (Arabic)',
+      descriptionAr: 'Description (Arabic)',
     },
   },
   testimonials: {
@@ -627,6 +638,11 @@ export const en = {
       quote: 'Quote',
       rating: 'Rating (1-5)',
       sortOrder: 'Sort order',
+      arabicLegend: 'Arabic translation (optional)',
+      arabicHint:
+        'Shown on the Arabic storefront when filled in; falls back to the English text above field by field.',
+      roleAr: 'Role (Arabic)',
+      quoteAr: 'Quote (Arabic)',
     },
   },
   giftFinder: {
@@ -659,6 +675,7 @@ export const en = {
       budget: 'Budget {n}',
       id: 'ID',
       label: 'Label',
+      labelAr: 'Label (Arabic)',
       query: 'Query',
       minPrice: 'Min price',
       maxPrice: 'Max price',
@@ -947,6 +964,13 @@ export const en = {
       imageUrl: 'Image URL',
       tone: 'Tone',
       sortOrder: 'Sort order',
+      arabicLegend: 'Arabic translation (optional)',
+      arabicHint:
+        'Shown on the Arabic storefront when filled in; falls back to the English text above field by field.',
+      eyebrowAr: 'Eyebrow (Arabic)',
+      titleAr: 'Title (Arabic)',
+      bodyAr: 'Body (Arabic)',
+      ctaLabelAr: 'Button label (Arabic)',
     },
   },
   offers: {
@@ -981,6 +1005,12 @@ export const en = {
       href: 'Link',
       imageUrl: 'Image URL',
       endsAt: 'Ends at',
+      arabicLegend: 'Arabic translation (optional)',
+      arabicHint:
+        'Shown on the Arabic storefront when filled in; falls back to the English text above field by field.',
+      titleAr: 'Title (Arabic)',
+      subtitleAr: 'Subtitle (Arabic)',
+      badgeAr: 'Badge (Arabic)',
     },
   },
   bundles: {
@@ -1312,6 +1342,11 @@ export const en = {
       hideWarning:
         'Hiding removes this category from the homepage tiles. Its products stay live and reachable by search and direct link.',
       add: 'Add',
+      arabicLegend: 'Arabic translation (optional)',
+      arabicHint:
+        'Not yet shown on the storefront homepage tiles — saved here for when that section switches to this data.',
+      nameAr: 'Name (Arabic)',
+      descriptionAr: 'Description (Arabic)',
     },
   },
   coupons: {
@@ -1406,6 +1441,7 @@ export const en = {
       username: 'Username',
       email: 'Email',
       roles: 'Roles',
+      cannotRemoveOwnAdmin: 'You cannot remove your own admin role',
       password: 'New password (optional)',
       passwordPlaceholder: 'Leave blank to keep current',
       notes: 'Staff notes',

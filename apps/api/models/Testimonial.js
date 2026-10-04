@@ -25,6 +25,16 @@ const TestimonialSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    // Per-language copy; the storefront falls back to name/role/quote above
+    // when a translation (or one of its fields) is missing — same pattern
+    // as StorefrontModule's hero slides (models/StorefrontModule.js). Name
+    // is not translated — it's a person's name.
+    translations: {
+      ar: {
+        role: { type: String, trim: true, maxlength: 100 },
+        quote: { type: String, trim: true },
+      },
+    },
     rating: {
       type: Number,
       min: 1,

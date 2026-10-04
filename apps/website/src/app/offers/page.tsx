@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Tag, Clock, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { useOffersList } from '@/hooks/storefront/offersQuery';
+import { useOffersList, localizeOffer } from '@/hooks/storefront/offersQuery';
 import type { StorefrontOffer } from '@/lib/api';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { intlLocale, type Locale } from '@/lib/locale';
@@ -28,6 +28,7 @@ function formatEndsAt(
 function OfferCard({ offer }: { offer: StorefrontOffer }) {
   const { t, locale } = useTranslation();
   const ends = formatEndsAt(offer.endsAt, locale);
+  const localized = localizeOffer(offer, locale);
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.96 }}
@@ -52,14 +53,14 @@ function OfferCard({ offer }: { offer: StorefrontOffer }) {
         </div>
       )}
       <div className='flex flex-1 flex-col p-6'>
-        {offer.badge && (
+        {localized.badge && (
           <span className='mb-2 inline-flex w-fit rounded-full bg-fuchsia-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-fuchsia-700'>
-            {offer.badge}
+            {localized.badge}
           </span>
         )}
-        <h2 className='text-xl font-bold text-gray-900'>{offer.title}</h2>
-        {offer.subtitle && (
-          <p className='mt-2 text-sm text-gray-700'>{offer.subtitle}</p>
+        <h2 className='text-xl font-bold text-gray-900'>{localized.title}</h2>
+        {localized.subtitle && (
+          <p className='mt-2 text-sm text-gray-700'>{localized.subtitle}</p>
         )}
         <div className='mt-auto flex items-center justify-between pt-4'>
           {ends ? (

@@ -5,7 +5,7 @@ import {
   useLocation,
   useNavigate,
 } from 'react-router-dom';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { IconButton } from '../components/ui/IconButton';
@@ -251,6 +251,8 @@ export default function DashboardLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const role = getAuthRole();
+  const asideRef = useRef<HTMLElement>(null);
+  const openMenuButtonRef = useRef<HTMLButtonElement>(null);
   // Before the auth redirects below: hooks must run on every render.
   const unreadMessages =
     useUnreadContactCount(
@@ -261,6 +263,64 @@ export default function DashboardLayout() {
   useEffect(() => {
     setMobileOpen(false);
   }, [location.pathname]);
+
+  // The same <aside> is the always-visible desktop rail AND the mobile
+  // off-canvas drawer (CSS transform only) — `inert` must only apply while
+  // it's actually off-screen as a drawer (below the md breakpoint), never
+  // on desktop where it's permanently visible and interactive regardless
+  // of `mobileOpen`.
+  useEffect(() => {
+    const aside = asideRef.current;
+    if (!aside) return;
+    const isMobileViewport = () => !window.matchMedia('(min-width: 768px)').matches;
+    aside.inert = !mobileOpen && isMobileViewport();
+    const onResize = () => {
+      aside.inert = !mobileOpen && isMobileViewport();
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [mobileOpen]);
+
+  // The mobile drawer is the same <aside> used as the always-visible desktop
+  // rail (CSS transform only), so it can't be wrapped in Radix's Dialog —
+  // that would unmount it on desktop. Escape, a focus trap and returning
+  // focus to the trigger are done by hand instead, matching what Dialog
+  // gives for free elsewhere (components/ui/Drawer.tsx).
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const aside = asideRef.current;
+    if (!aside) return;
+
+    const focusable = aside.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    focusable[0]?.focus();
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setMobileOpen(false);
+        return;
+      }
+      if (e.key !== 'Tab' || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      // Return focus to whatever opened the drawer (the topbar's menu
+      // button on mobile), matching Radix Dialog's own close behavior.
+      openMenuButtonRef.current?.focus();
+    };
+  }, [mobileOpen]);
 
   if (!getAuthToken()) {
     return (
@@ -325,6 +385,7 @@ export default function DashboardLayout() {
 
       {/* Sidebar: dark in both themes */}
       <aside
+        ref={asideRef}
         aria-label={t('nav.label')}
         className={cn(
           'fixed start-0 top-0 z-50 flex h-full w-sidebar flex-col border-e border-sidebar-border bg-sidebar text-sidebar-foreground',
@@ -509,6 +570,7 @@ export default function DashboardLayout() {
           <div className='flex h-topbar items-center gap-2 px-4 sm:px-6'>
             {/* Mobile: open drawer */}
             <IconButton
+              ref={openMenuButtonRef}
               icon={<Menu aria-hidden />}
               label={t('nav.openMenu')}
               size='md'

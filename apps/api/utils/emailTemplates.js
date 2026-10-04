@@ -201,6 +201,20 @@ const COPY = {
       button: { label: 'إعادة تعيين كلمة المرور', urlVar: 'resetUrl' },
     },
   },
+  passwordReset: {
+    en: {
+      subject: 'Reset your password',
+      heading: 'Reset your password',
+      lines: ['We received a request to reset your TrendVaulta password.', 'This link is valid for a limited time. If you did not request this, you can ignore this email.'],
+      button: { label: 'Reset my password', urlVar: 'link' },
+    },
+    ar: {
+      subject: 'إعادة تعيين كلمة المرور',
+      heading: 'إعادة تعيين كلمة المرور',
+      lines: ['استلمنا طلبًا لإعادة تعيين كلمة مرور حسابك في TrendVaulta.', 'هذا الرابط صالح لفترة محدودة. إن لم تكن أنت من طلب ذلك، يمكنك تجاهل هذه الرسالة.'],
+      button: { label: 'إعادة تعيين كلمة المرور', urlVar: 'link' },
+    },
+  },
 };
 
 const FOOTER = {

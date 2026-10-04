@@ -3,9 +3,17 @@
 import { motion } from 'framer-motion';
 import { Sparkles, FileText } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { useContent, localizeContent } from '@/hooks/storefront/contentQuery';
+import { sanitizeHtml } from '@/lib/sanitizeHtml';
 
 export default function TermsPage() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
+  // CMS override (admin-edited TERMS content) wins when published; the
+  // static sections below — already bilingual — stay as the fallback so
+  // this page is never emptier than it is today just because nothing has
+  // been entered in the CMS yet.
+  const { data: cmsContent } = useContent('TERMS');
+  const localized = cmsContent ? localizeContent(cmsContent, locale) : null;
 
   return (
     <div className='min-h-screen bg-gray-50 py-12'>
@@ -20,11 +28,19 @@ export default function TermsPage() {
             {t('legal.badge')}
           </div>
           <h1 className='text-4xl font-extrabold text-gray-900 mb-4'>
-            {t('termsPage.title')}
+            {localized?.title || t('termsPage.title')}
           </h1>
           <p className='text-lg text-gray-600'>{t('legal.lastUpdated')}</p>
         </motion.div>
 
+        {localized ? (
+          <motion.article
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className='bg-white rounded-2xl border border-gray-200 p-8'
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(localized.body) }}
+          />
+        ) : (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -139,6 +155,7 @@ export default function TermsPage() {
             </p>
           </section>
         </motion.div>
+        )}
       </div>
     </div>
   );

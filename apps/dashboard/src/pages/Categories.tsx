@@ -23,6 +23,7 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { Field, Input, Switch, Textarea } from '../components/ui/Field';
 import { Badge } from '../components/ui/StatusBadge';
 import { cn } from '../lib/cn';
+import { hintClass, labelClass } from '../components/ui/styles';
 
 /** Mirrors SLUG_PATTERN in apps/api/models/Category.js. */
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -32,6 +33,7 @@ type CategoryForm = {
   slug: string;
   description: string;
   imageUrl: string;
+  translations: { ar: { name: string; description: string } };
   sortOrder: number;
   isActive: boolean;
 };
@@ -41,6 +43,7 @@ const emptyForm: CategoryForm = {
   slug: '',
   description: '',
   imageUrl: '',
+  translations: { ar: { name: '', description: '' } },
   sortOrder: 0,
   isActive: true,
 };
@@ -100,6 +103,12 @@ export default function Categories() {
       slug: category.slug,
       description: category.description || '',
       imageUrl: category.imageUrl || '',
+      translations: {
+        ar: {
+          name: category.translations?.ar?.name || '',
+          description: category.translations?.ar?.description || '',
+        },
+      },
       sortOrder: category.sortOrder,
       isActive: category.isActive,
     });
@@ -132,6 +141,12 @@ export default function Categories() {
       name,
       description: form.description.trim(),
       imageUrl: form.imageUrl.trim(),
+      translations: {
+        ar: {
+          name: form.translations.ar.name.trim(),
+          description: form.translations.ar.description.trim(),
+        },
+      },
       sortOrder: Math.trunc(Number(form.sortOrder) || 0),
       isActive: form.isActive,
     };
@@ -442,6 +457,44 @@ export default function Categories() {
               value={form.imageUrl}
               onChange={(url) => setForm((f) => ({ ...f, imageUrl: url }))}
             />
+
+            <fieldset className='space-y-3 border-t border-border pt-4'>
+              <div className='space-y-1'>
+                <legend className={labelClass}>{t('categories.form.arabicLegend')}</legend>
+                <p className={hintClass}>{t('categories.form.arabicHint')}</p>
+              </div>
+              <Field label={t('categories.form.nameAr')}>
+                <Input
+                  value={form.translations.ar.name}
+                  dir='rtl'
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      translations: {
+                        ar: { ...f.translations.ar, name: e.target.value },
+                      },
+                    }))
+                  }
+                />
+              </Field>
+              <Field label={t('categories.form.descriptionAr')}>
+                <Textarea
+                  rows={2}
+                  maxLength={300}
+                  value={form.translations.ar.description}
+                  dir='rtl'
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      translations: {
+                        ar: { ...f.translations.ar, description: e.target.value },
+                      },
+                    }))
+                  }
+                  className='min-h-16'
+                />
+              </Field>
+            </fieldset>
             <div className='grid gap-4 sm:grid-cols-2'>
               <Field label={t('categories.form.order')}>
                 <Input

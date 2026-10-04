@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { contentApi, type Content, type ContentType } from '@/lib/api';
+import type { Locale } from '@/lib/locale';
 
 export function contentKey(type: ContentType) {
   return ['content', type] as const;
@@ -22,4 +23,18 @@ export function useContent(type: ContentType) {
     },
     staleTime: 300_000, // 5 minutes - content changes rarely
   });
+}
+
+/**
+ * Title/body in the reader's language. Each field falls back to English on
+ * its own (same pattern as getHeroSlidesFromHome, hooks/storefront/homeQuery.ts)
+ * so a half-translated content row still reads as a whole page rather than
+ * mixing an empty Arabic field into English copy.
+ */
+export function localizeContent(content: Content, locale: Locale) {
+  const ar = locale === 'ar' ? content.translations?.ar : undefined;
+  return {
+    title: ar?.title?.trim() || content.title,
+    body: ar?.body?.trim() || content.body,
+  };
 }

@@ -118,11 +118,16 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
   try {
     stripe = getStripeOrThrow();
   } catch (_e) {
+    // The operator detail (env var name) never reaches the client — only
+    // the server log, which is where it's actually actionable.
+    logger.error('Checkout attempted with STRIPE_SECRET_KEY missing from the backend environment');
     return res.status(503).json({
       code: 'STRIPE_SECRET_MISSING',
       message:
         'Checkout is not available right now. Please try again later or contact support.',
-      detail: 'Missing STRIPE_SECRET_KEY in backend/.env.',
+      ...(process.env.NODE_ENV !== 'production'
+        ? { detail: 'Missing STRIPE_SECRET_KEY in backend/.env.' }
+        : {}),
     });
   }
 
@@ -329,10 +334,13 @@ const createCheckoutSession = asyncHandler(async (req, res) => {
       stripeErr && typeof stripeErr.message === 'string'
         ? stripeErr.message
         : 'Stripe Checkout could not be created';
+    logger.error({ err: stripeErr }, `Stripe Checkout session creation failed: ${raw}`);
     return res.status(502).json({
       message:
         'We could not open the secure payment page. Please try again shortly.',
-      detail: `${raw} — Verify Stripe keys and test/live mode match.`,
+      ...(process.env.NODE_ENV !== 'production'
+        ? { detail: `${raw} — Verify Stripe keys and test/live mode match.` }
+        : {}),
     });
   }
 

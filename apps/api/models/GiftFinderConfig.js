@@ -12,6 +12,14 @@ const GiftOptionSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    // Per-language label; the storefront falls back to the English label
+    // above when missing — same pattern as StorefrontModule's hero slides
+    // (models/StorefrontModule.js).
+    translations: {
+      ar: {
+        label: { type: String, trim: true },
+      },
+    },
     q: {
       type: String,
       trim: true,

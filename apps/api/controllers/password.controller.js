@@ -1,14 +1,19 @@
 const asyncHandler = require('express-async-handler');
 const { validationBody } = require('../utils/errors');
 const logger = require('../utils/logger');
-const nodemailer = require('nodemailer');
-const { sendPasswordChangedEmail } = require('../utils/mail');
+const { sendPasswordChangedEmail, sendPasswordResetEmail } = require('../utils/mail');
 const Joi = require('joi');
 const { User } = require('../models/User');
 const { RefreshToken } = require('../models/RefreshToken');
 const { revokeAllForUser } = require('../utils/refreshTokens');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const {
+  LOCKED_RESPONSE,
+  isAccountLocked,
+  recordFailedPassword,
+  clearFailedPasswords,
+} = require('../utils/loginLockout');
 
 const forgotPasswordSchema = Joi.object({
   email: Joi.string().trim().lowercase().max(100).email().required(),
@@ -65,61 +70,26 @@ const sendForgotPasswordLink = asyncHandler(async (req, res) => {
 
     const secret = process.env.JWT_SECRET_KEY + user.password;
     const token = jwt.sign({ email: user.email, id: user._id }, secret, {
-      expiresIn: '5m',
+      // 5 minutes was too tight for real-world email delivery latency —
+      // the token is already single-use in effect (the signing secret
+      // includes the current password hash, so it dies the moment the
+      // password actually changes).
+      expiresIn: '30m',
     });
     const frontendBaseUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
     const link = `${frontendBaseUrl}/password/reset-password/${user.id}/${token}`;
 
-    const transportOptions = process.env.SMTP_HOST
-      ? {
-          host: process.env.SMTP_HOST,
-          port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587,
-          secure: String(process.env.SMTP_SECURE || 'false') === 'true',
-          auth: process.env.SMTP_USER
-            ? {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS,
-              }
-            : undefined,
-        }
-      : {
-          service: 'gmail',
-          auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASSWORD,
-          },
-        };
-
-    const fromAddress =
-      process.env.SMTP_USER || process.env.EMAIL_USER || 'no-reply@example.com';
-
-    const transporter = nodemailer.createTransport({
-      ...transportOptions,
-      ...(process.env.NODE_ENV !== 'production'
-        ? { tls: { rejectUnauthorized: false } }
-        : {}),
-    });
-
-    const mailOptions = {
-      from: fromAddress,
-      to: user.email,
-      subject: 'Reset Password',
-      text: `Click on the link to reset your password: ${link}`,
-    };
-
-    try {
-      await transporter.sendMail(mailOptions);
-      return res.status(200).json({ message: FORGOT_PASSWORD_MESSAGE });
-    } catch (error) {
-      // Never return the link: anyone can request a reset for any email, so
-      // echoing it (even outside production) hands over the account. Same
-      // generic 200 as an unknown email, so failures don't reveal accounts.
-      logger.error({ err: error }, 'Password reset email failed');
-      if (process.env.NODE_ENV === 'development') {
-        logger.info(`[dev] Password reset link for ${user.email}: ${link}`);
-      }
-      return res.status(200).json({ message: FORGOT_PASSWORD_MESSAGE });
+    // Never return the link in the response: anyone can request a reset for
+    // any email, so echoing it (even outside production) hands over the
+    // account. Same generic 200 regardless of delivery outcome, so a send
+    // failure doesn't reveal whether the address is registered.
+    await sendPasswordResetEmail({ to: user.email, link }).catch((err) =>
+      logger.error({ err }, 'Password reset email failed'),
+    );
+    if (process.env.NODE_ENV === 'development') {
+      logger.info(`[dev] Password reset link for ${user.email}: ${link}`);
     }
+    return res.status(200).json({ message: FORGOT_PASSWORD_MESSAGE });
   } catch (error) {
     logger.error({ err: error }, 'Forgot-password request failed');
     if (process.env.NODE_ENV !== 'production') {
@@ -205,15 +175,21 @@ const changePassword = asyncHandler(async (req, res) => {
     return res.status(400).json(validationBody(error));
   }
 
-  const user = await User.findById(userId);
+  const user = await User.findById(userId).select('+failedLoginAttempts +lockUntil');
   if (!user) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'User not found' });
   }
 
+  if (isAccountLocked(user)) {
+    return res.status(429).json(LOCKED_RESPONSE);
+  }
+
   const isMatch = await bcrypt.compare(value.currentPassword, user.password);
   if (!isMatch) {
+    await recordFailedPassword(User, user._id);
     return res.status(400).json({ code: 'CURRENT_PASSWORD_INCORRECT', message: 'Current password is incorrect' });
   }
+  await clearFailedPasswords(User, user);
 
   const salt = await bcrypt.genSalt(10);
   user.password = await bcrypt.hash(value.newPassword, salt);

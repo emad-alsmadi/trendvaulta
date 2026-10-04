@@ -771,6 +771,15 @@ export type AdminCategory = {
   parent: string | null;
   description?: string;
   imageUrl?: string;
+  /**
+   * Falls back to name/description above when a field is missing. Not yet
+   * read by the storefront — homepage category tiles still come from
+   * apps/website/src/lib/categories.ts (a hardcoded constant), not this
+   * collection — so this only lets admins enter Arabic copy ahead of that.
+   */
+  translations?: {
+    ar?: { name?: string; description?: string };
+  };
   sortOrder: number;
   isActive: boolean;
   /** Products filed under this category (or subcategory). */
@@ -784,6 +793,9 @@ export type CategoryCreatePayload = {
   name: string;
   description?: string;
   imageUrl?: string;
+  translations?: {
+    ar?: { name?: string; description?: string };
+  };
   sortOrder?: number;
   isActive?: boolean;
 };
@@ -979,6 +991,9 @@ export type AdminOffer = {
   badge?: string;
   href: string;
   imageUrl?: string;
+  translations?: {
+    ar?: { title?: string; subtitle?: string; badge?: string };
+  };
   endsAt?: string | null;
   active: boolean;
   sortOrder: number;
@@ -992,6 +1007,9 @@ export type OfferPayload = {
   subtitle?: string;
   badge?: string;
   imageUrl?: string;
+  translations?: {
+    ar?: { title?: string; subtitle?: string; badge?: string };
+  };
   endsAt?: string | null;
   active?: boolean;
   sortOrder?: number;
@@ -1146,6 +1164,9 @@ export type AdminHelpTopic = {
   description?: string;
   href: string;
   icon?: string;
+  translations?: {
+    ar?: { title?: string; description?: string };
+  };
   active: boolean;
   sortOrder: number;
   createdAt?: string;
@@ -1158,6 +1179,9 @@ export type HelpTopicPayload = {
   href: string;
   description?: string;
   icon?: string;
+  translations?: {
+    ar?: { title?: string; description?: string };
+  };
   active?: boolean;
   sortOrder?: number;
 };
@@ -1285,11 +1309,16 @@ export type ContentType =
   | 'TERMS'
   | 'STOREFRONT_TRUST';
 
+export type ContentTranslations = {
+  ar?: { title?: string; body?: string };
+};
+
 export type AdminContent = {
   _id: string;
   type: ContentType;
   title: string;
   body: string;
+  translations?: ContentTranslations;
   active: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -1299,6 +1328,7 @@ export type ContentPayload = {
   type: ContentType;
   title: string;
   body: string;
+  translations?: ContentTranslations;
   active?: boolean;
 };
 
@@ -1451,6 +1481,9 @@ export type AdminLookbook = {
   ctaHref: string;
   imageUrl: string;
   tone: LookbookTone;
+  translations?: {
+    ar?: { eyebrow?: string; title?: string; body?: string; ctaLabel?: string };
+  };
   active: boolean;
   sortOrder: number;
   createdAt?: string;
@@ -1466,6 +1499,9 @@ export type LookbookPayload = {
   ctaHref: string;
   imageUrl: string;
   tone?: LookbookTone;
+  translations?: {
+    ar?: { eyebrow?: string; title?: string; body?: string; ctaLabel?: string };
+  };
   active?: boolean;
   sortOrder?: number;
 };
@@ -1508,6 +1544,9 @@ export type AdminTestimonial = {
   name: string;
   role?: string;
   quote: string;
+  translations?: {
+    ar?: { role?: string; quote?: string };
+  };
   rating: number;
   active: boolean;
   sortOrder: number;
@@ -1520,6 +1559,9 @@ export type TestimonialPayload = {
   name: string;
   role?: string;
   quote: string;
+  translations?: {
+    ar?: { role?: string; quote?: string };
+  };
   rating?: number;
   active?: boolean;
   sortOrder?: number;
@@ -1650,6 +1692,10 @@ export const adminBundlesApi = {
 export type GiftOption = {
   id: string;
   label: string;
+  /** Falls back to label above when missing. */
+  translations?: {
+    ar?: { label?: string };
+  };
   q?: string;
   category?: string;
   minPrice?: number;

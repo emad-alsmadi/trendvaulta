@@ -36,6 +36,17 @@ const LookbookSchema = new mongoose.Schema(
       trim: true,
       maxlength: 500,
     },
+    // Per-language copy; the storefront falls back to the English fields
+    // above when a translation (or one of its fields) is missing — same
+    // pattern as StorefrontModule's hero slides (models/StorefrontModule.js).
+    translations: {
+      ar: {
+        eyebrow: { type: String, trim: true, maxlength: 100 },
+        title: { type: String, trim: true, maxlength: 200 },
+        body: { type: String, trim: true },
+        ctaLabel: { type: String, trim: true, maxlength: 100 },
+      },
+    },
     imageUrl: {
       type: String,
       required: true,

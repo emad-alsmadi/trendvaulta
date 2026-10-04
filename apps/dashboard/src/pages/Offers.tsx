@@ -25,6 +25,7 @@ import { FilterBar } from '../components/ui/FilterBar';
 import { Field, Input, Switch } from '../components/ui/Field';
 import { FormActions, FormDialog } from '../components/ui/FormDialog';
 import { Badge, StatusBadge } from '../components/ui/StatusBadge';
+import { hintClass, labelClass } from '../components/ui/styles';
 
 const emptyForm: OfferPayload = {
   title: '',
@@ -32,6 +33,7 @@ const emptyForm: OfferPayload = {
   subtitle: '',
   badge: '',
   imageUrl: '',
+  translations: { ar: { title: '', subtitle: '', badge: '' } },
   endsAt: '',
   active: true,
   sortOrder: 0,
@@ -86,6 +88,13 @@ export default function Offers() {
       subtitle: offer.subtitle || '',
       badge: offer.badge || '',
       imageUrl: offer.imageUrl || '',
+      translations: {
+        ar: {
+          title: offer.translations?.ar?.title || '',
+          subtitle: offer.translations?.ar?.subtitle || '',
+          badge: offer.translations?.ar?.badge || '',
+        },
+      },
       endsAt: toDateInput(offer.endsAt),
       active: offer.active,
       sortOrder: offer.sortOrder ?? 0,
@@ -107,6 +116,13 @@ export default function Offers() {
       subtitle: (form.subtitle || '').trim(),
       badge: (form.badge || '').trim(),
       imageUrl: (form.imageUrl || '').trim(),
+      translations: {
+        ar: {
+          title: form.translations?.ar?.title?.trim() || '',
+          subtitle: form.translations?.ar?.subtitle?.trim() || '',
+          badge: form.translations?.ar?.badge?.trim() || '',
+        },
+      },
       endsAt: form.endsAt ? form.endsAt : null,
       sortOrder: Number(form.sortOrder || 0),
       active: !!form.active,
@@ -385,6 +401,55 @@ export default function Offers() {
                 />
               </Field>
             </div>
+
+            <fieldset className='space-y-3 border-t border-border pt-4'>
+              <div className='space-y-1'>
+                <legend className={labelClass}>{t('offers.form.arabicLegend')}</legend>
+                <p className={hintClass}>{t('offers.form.arabicHint')}</p>
+              </div>
+              <Field label={t('offers.form.titleAr')}>
+                <Input
+                  value={form.translations?.ar?.title || ''}
+                  dir='rtl'
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      translations: {
+                        ar: { ...f.translations?.ar, title: e.target.value },
+                      },
+                    }))
+                  }
+                />
+              </Field>
+              <Field label={t('offers.form.subtitleAr')}>
+                <Input
+                  value={form.translations?.ar?.subtitle || ''}
+                  dir='rtl'
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      translations: {
+                        ar: { ...f.translations?.ar, subtitle: e.target.value },
+                      },
+                    }))
+                  }
+                />
+              </Field>
+              <Field label={t('offers.form.badgeAr')}>
+                <Input
+                  value={form.translations?.ar?.badge || ''}
+                  dir='rtl'
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      translations: {
+                        ar: { ...f.translations?.ar, badge: e.target.value },
+                      },
+                    }))
+                  }
+                />
+              </Field>
+            </fieldset>
             <Switch
               checked={!!form.active}
               onCheckedChange={(active) => setForm((f) => ({ ...f, active }))}

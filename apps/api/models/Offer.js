@@ -20,6 +20,16 @@ const OfferSchema = new mongoose.Schema(
       maxlength: 50,
       default: '',
     },
+    // Per-language copy; the storefront falls back to title/subtitle/badge
+    // above when a translation (or one of its fields) is missing — same
+    // pattern as StorefrontModule's hero slides (models/StorefrontModule.js).
+    translations: {
+      ar: {
+        title: { type: String, trim: true, maxlength: 200 },
+        subtitle: { type: String, trim: true, maxlength: 500 },
+        badge: { type: String, trim: true, maxlength: 50 },
+      },
+    },
     href: {
       type: String,
       required: true,
