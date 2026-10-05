@@ -51,17 +51,19 @@ function SettingsSection({
 }) {
   return (
     <section className='grid gap-4 border-b border-border pb-8 last:border-0 last:pb-0 lg:grid-cols-[18rem_1fr] lg:gap-8'>
-      <div className='space-y-2'>
+      <div className='flex items-center gap-4'>
         <span
           aria-hidden
-          className='flex size-9 items-center justify-center rounded-control border border-border bg-card text-foreground shadow-card [&_svg]:size-4'
+          className='flex size-9 shrink-0 items-center justify-center rounded-control border border-border bg-card text-foreground shadow-card [&_svg]:size-4'
         >
           {icon}
         </span>
-        <h2 className={text.section}>{title}</h2>
-        {description && (
-          <p className={text.secondary}>{description}</p>
-        )}
+        <div className='space-y-1'>
+          <h2 className={text.section}>{title}</h2>
+          {description && (
+            <p className={text.secondary}>{description}</p>
+          )}
+        </div>
       </div>
       <Card>{children}</Card>
     </section>
