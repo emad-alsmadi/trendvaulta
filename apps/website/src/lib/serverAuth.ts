@@ -129,15 +129,38 @@ export function isSuccessStatus(status: number) {
  * but without this check the request still executes server-side and burns
  * the backend's IP-based rate-limit budget, or probes for valid emails.
  *
+ * Checked against the request's own Host/X-Forwarded-Host first — that is
+ * always correct regardless of env var configuration, unlike comparing
+ * against NEXT_PUBLIC_SITE_URL/FRONTEND_URL alone (an unset or mismatched
+ * value there previously 403'd every real login in production — see
+ * incident: isAllowedOrigin rejected legitimate same-origin requests
+ * whenever the site env var didn't exactly match the deployed domain).
+ * getSiteUrl() is still checked as a secondary allowance for cases where
+ * the public URL legitimately differs from the request's Host (e.g. a
+ * CDN/proxy in front of Vercel).
+ *
  * Mirrors the API's own corsAllowlist.js policy: a request with no Origin
  * header (curl, server-to-server, same-origin navigations in some browsers)
  * is allowed through — only a *present but mismatched* Origin is rejected.
  */
-export function isAllowedOrigin(origin: string | null): boolean {
+export function isAllowedOrigin(origin: string | null, request?: NextRequest): boolean {
   if (!origin) return true;
   const normalized = origin.replace(/\/+$/, '');
+
+  const requestHost =
+    request?.headers.get('x-forwarded-host') || request?.headers.get('host');
+  if (requestHost) {
+    // Origin carries a scheme (https://host); Host/X-Forwarded-Host don't.
+    // Accept either scheme here — Vercel terminates TLS in front of the
+    // app, so a same-origin request may arrive as http internally even
+    // when the browser's Origin says https.
+    const hostOnly = normalized.replace(/^https?:\/\//, '');
+    if (hostOnly === requestHost) return true;
+  }
+
   const site = getSiteUrl();
   if (normalized === site) return true;
+
   if (process.env.NODE_ENV !== 'production') {
     return ['http://localhost:3001', 'http://127.0.0.1:3001'].includes(normalized);
   }
@@ -157,7 +180,7 @@ export function rejectCrossOriginJson(request: NextRequest): NextResponse | null
   if (!contentType.includes('application/json')) {
     return NextResponse.json({ message: 'Unsupported content type' }, { status: 415 });
   }
-  if (!isAllowedOrigin(request.headers.get('origin'))) {
+  if (!isAllowedOrigin(request.headers.get('origin'), request)) {
     return NextResponse.json({ message: 'Origin not allowed' }, { status: 403 });
   }
   return null;
