@@ -290,6 +290,11 @@ export default function DashboardLayout() {
     if (!mobileOpen) return;
     const aside = asideRef.current;
     if (!aside) return;
+    // Captured now, not re-read in the cleanup below: by the time cleanup
+    // runs the ref may already point elsewhere (e.g. unmounted on route
+    // change), so the closure needs its own stable reference to the
+    // element that actually opened this drawer.
+    const trigger = openMenuButtonRef.current;
 
     const focusable = aside.querySelectorAll<HTMLElement>(
       'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])',
@@ -318,7 +323,7 @@ export default function DashboardLayout() {
       document.removeEventListener('keydown', onKeyDown);
       // Return focus to whatever opened the drawer (the topbar's menu
       // button on mobile), matching Radix Dialog's own close behavior.
-      openMenuButtonRef.current?.focus();
+      trigger?.focus();
     };
   }, [mobileOpen]);
 
