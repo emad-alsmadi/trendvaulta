@@ -1044,6 +1044,8 @@ export const adminOffersApi = {
   },
 };
 
+export type ReviewStatus = 'pending' | 'approved' | 'rejected';
+
 export type AdminReview = {
   _id: string;
   rating: number;
@@ -1055,6 +1057,8 @@ export type AdminReview = {
     | { _id?: string; title?: string; cover?: string; sku?: string };
   /** The store's public reply, if any. */
   reply?: { text: string; repliedAt?: string; repliedBy?: string };
+  /** Moderation (API-327). Missing on documents older than this field = approved. */
+  status?: ReviewStatus;
 };
 
 export type AdminReviewsQuery = {
@@ -1099,6 +1103,18 @@ export const adminReviewsApi = {
       `/reviews/admin/${id}/reply`,
     );
     return data;
+  },
+
+  /** Approve/reject/hold a review (API-327) — recomputes the product rating. */
+  moderateReview: async (
+    id: string,
+    status: ReviewStatus,
+  ): Promise<AdminReview> => {
+    const { data } = await api.patch<{ data: AdminReview }>(
+      `/reviews/admin/${id}/status`,
+      { status },
+    );
+    return data.data;
   },
 };
 

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { CategoryLanding } from '@/components/category/CategoryLanding';
 import { CATEGORY_SLUGS, getCategory } from '@/lib/categories';
 import { buildCategoryMetadata, fetchSubcategories } from '@/lib/categoryPage';
+import { getTranslation } from '@/lib/i18n-server';
 
 type Params = { params: Promise<{ category: string }> };
 
@@ -16,7 +17,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   if (!def) {
     return { title: 'Category', robots: { index: false, follow: true } };
   }
-  return buildCategoryMetadata(def);
+  const { t } = await getTranslation();
+  return buildCategoryMetadata(def, undefined, t);
 }
 
 export default async function CategoryPage({ params }: Params) {

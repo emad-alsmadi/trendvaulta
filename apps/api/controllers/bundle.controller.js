@@ -174,13 +174,13 @@ const createBundle = asyncHandler(async (req, res) => {
   if (!primaryProduct || !items || !Array.isArray(items) || items.length < 2) {
     return res
       .status(400)
-      .json({ message: 'primaryProduct and at least 2 items are required' });
+      .json({ code: 'VALIDATION_ERROR', message: 'primaryProduct and at least 2 items are required' });
   }
 
   if (bundlePrice === undefined || savings === undefined) {
     return res
       .status(400)
-      .json({ message: 'bundlePrice and savings are required' });
+      .json({ code: 'VALIDATION_ERROR', message: 'bundlePrice and savings are required' });
   }
 
   // Validate primary product exists
@@ -243,7 +243,7 @@ const updateBundle = asyncHandler(async (req, res) => {
     if (!Array.isArray(items) || items.length < 2) {
       return res
         .status(400)
-        .json({ message: 'Bundle must have at least 2 items' });
+        .json({ code: 'VALIDATION_ERROR', message: 'Bundle must have at least 2 items' });
     }
     const productIds = items.map((item) => item.product);
     const products = await Product.find({ _id: { $in: productIds } });

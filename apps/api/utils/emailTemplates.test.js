@@ -18,8 +18,8 @@ const VARS = {
 
 describe('renderEmail', () => {
   it('has every kind in both languages, with no placeholder left unfilled', () => {
-    // 5 order, 4 return, 3 account emails
-    assert.equal(EMAIL_KINDS.length, 12);
+    // 5 order, 4 return, 4 account emails (OPS-712 added passwordReset)
+    assert.equal(EMAIL_KINDS.length, 13);
     for (const kind of EMAIL_KINDS) {
       for (const locale of ['en', 'ar']) {
         const { subject, text, html } = renderEmail(kind, locale, VARS);

@@ -1,9 +1,17 @@
 import { useState } from 'react';
-import { CornerDownRight, MessageSquareReply, Star, Trash2 } from 'lucide-react';
+import {
+  Check,
+  CornerDownRight,
+  EyeOff,
+  MessageSquareReply,
+  Star,
+  Trash2,
+} from 'lucide-react';
 import {
   useAdminReviews,
   useDeleteAdminReviewMutation,
   useDeleteReviewReplyMutation,
+  useModerateReviewMutation,
   useReplyToReviewMutation,
 } from '../hooks/useAdminReviews';
 import { errorMessage, type AdminReview } from '../lib/api';
@@ -25,6 +33,7 @@ import { FilterBar, FilterBarItem } from '../components/ui/FilterBar';
 import { Field, Select, Textarea } from '../components/ui/Field';
 import { FormDialog, FormDialogFooter } from '../components/ui/FormDialog';
 import { Rating } from '../components/ui/Rating';
+import { StatusBadge } from '../components/ui/StatusBadge';
 
 function productLabel(review: AdminReview, fallback: string) {
   if (review.product && typeof review.product === 'object') {
@@ -62,6 +71,7 @@ export default function Reviews() {
     rating: ratingFilter ? Number(ratingFilter) : undefined,
   });
   const deleteMut = useDeleteAdminReviewMutation();
+  const moderateMut = useModerateReviewMutation();
 
   const reviews = reviewsQ.data?.data || [];
   const meta = reviewsQ.data?.meta;
@@ -129,6 +139,17 @@ export default function Reviews() {
     }
   }
 
+  async function handleModerate(review: AdminReview, status: 'approved' | 'rejected') {
+    try {
+      await moderateMut.mutateAsync({ id: review._id, status });
+      toast.success(
+        status === 'approved' ? t('reviews.approved') : t('reviews.rejected'),
+      );
+    } catch (err) {
+      toast.error(errorMessage(err, t('reviews.moderateFailed')));
+    }
+  }
+
   const columns: DataTableColumn<AdminReview>[] = [
     {
       key: 'product',
@@ -166,6 +187,18 @@ export default function Reviews() {
           label={ratingLabel(review.rating)}
         />
       ),
+    },
+    {
+      key: 'status',
+      header: t('reviews.columns.status'),
+      cell: (review) => {
+        const status = review.status ?? 'approved';
+        return (
+          <StatusBadge status={status}>
+            {t(`reviews.status.${status}`)}
+          </StatusBadge>
+        );
+      },
     },
     {
       key: 'comment',
@@ -211,33 +244,52 @@ export default function Reviews() {
       key: 'actions',
       header: t('common.actions'),
       actions: true,
-      cell: (review) => (
-        <RowActions>
-          {can('reviews:write') && (
-            <IconButton
-              icon={
-                <MessageSquareReply
-                  className='rtl:-scale-x-100'
-                  aria-hidden
-                />
-              }
-              label={
-                review.reply ? t('reviews.editReply') : t('reviews.replyTo')
-              }
-              onClick={() => openReply(review)}
-              className={review.reply ? 'text-foreground' : undefined}
-            />
-          )}
-          {can('reviews:delete') && (
-            <IconButton
-              icon={<Trash2 aria-hidden />}
-              label={t('reviews.deleteReview')}
-              onClick={() => void handleDelete(review)}
-              disabled={deleteMut.isPending}
-            />
-          )}
-        </RowActions>
-      ),
+      cell: (review) => {
+        const status = review.status ?? 'approved';
+        return (
+          <RowActions>
+            {can('reviews:write') && status !== 'approved' && (
+              <IconButton
+                icon={<Check aria-hidden />}
+                label={t('reviews.approve')}
+                onClick={() => void handleModerate(review, 'approved')}
+                disabled={moderateMut.isPending}
+              />
+            )}
+            {can('reviews:write') && status !== 'rejected' && (
+              <IconButton
+                icon={<EyeOff aria-hidden />}
+                label={t('reviews.reject')}
+                onClick={() => void handleModerate(review, 'rejected')}
+                disabled={moderateMut.isPending}
+              />
+            )}
+            {can('reviews:write') && (
+              <IconButton
+                icon={
+                  <MessageSquareReply
+                    className='rtl:-scale-x-100'
+                    aria-hidden
+                  />
+                }
+                label={
+                  review.reply ? t('reviews.editReply') : t('reviews.replyTo')
+                }
+                onClick={() => openReply(review)}
+                className={review.reply ? 'text-foreground' : undefined}
+              />
+            )}
+            {can('reviews:delete') && (
+              <IconButton
+                icon={<Trash2 aria-hidden />}
+                label={t('reviews.deleteReview')}
+                onClick={() => void handleDelete(review)}
+                disabled={deleteMut.isPending}
+              />
+            )}
+          </RowActions>
+        );
+      },
     },
   ];
 

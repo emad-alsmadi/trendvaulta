@@ -59,7 +59,11 @@ async function rotateRefreshToken(RefreshToken, presentedPlaintext) {
       return issueSuccessor(RefreshToken, existing);
     }
     // Already used once before — treat as compromised and kill every
-    // active session for this user.
+    // active session for this user. Deliberately not calling
+    // bumpTokenVersion here too: this function only has the RefreshToken
+    // model in scope (not User), and a stolen access token is already
+    // bounded by its own 15-minute TTL — the real exposure this closes is
+    // the refresh chain, which revokeAllForUser already does.
     await revokeAllForUser(RefreshToken, existing.user);
     return { status: 'reused', userId: String(existing.user) };
   }
@@ -129,6 +133,22 @@ async function revokeAllForUser(RefreshToken, userId) {
   );
 }
 
+/**
+ * Invalidates every access token already issued to this user (SEC-111):
+ * the access JWT carries `tokenVersion` and can't be revoked by itself, so
+ * bumping the counter on the User document is what makes verfiyToken's
+ * per-request DB check reject it before its 15-minute TTL would otherwise
+ * expire it naturally. Call this alongside revokeAllForUser at every point
+ * that already kills refresh sessions (disable, role change, password
+ * change/reset) so a demoted/disabled admin loses access immediately, not
+ * up to 15 minutes later.
+ * @param {import('mongoose').Model} User
+ * @param {string} userId
+ */
+async function bumpTokenVersion(User, userId) {
+  await User.updateOne({ _id: userId }, { $inc: { tokenVersion: 1 } });
+}
+
 module.exports = {
   REFRESH_TOKEN_TTL_MS,
   ROTATION_GRACE_MS,
@@ -136,4 +156,5 @@ module.exports = {
   rotateRefreshToken,
   revokeRefreshToken,
   revokeAllForUser,
+  bumpTokenVersion,
 };

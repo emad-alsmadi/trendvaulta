@@ -69,18 +69,22 @@ export type BackendAuthResult = {
   data: Record<string, unknown>;
 };
 
-const SERVICE_UNAVAILABLE_MESSAGE =
-  'Authentication service is unavailable. Please try again.';
-
 /**
  * POSTs a JSON body to a backend auth endpoint and returns its status + JSON.
  * Never throws: a network failure or a non-JSON reply becomes a 502 with a
  * user-safe message so the raw error is not forwarded to the browser.
+ *
+ * `serviceUnavailableMessage` is passed in (rather than hardcoded here)
+ * because this module stays import-safe on the client — it must not import
+ * `getTranslation()` (lib/i18n-server.ts), which uses next/headers and is
+ * server-only. The route handler resolves the translator and passes the
+ * already-localized string down.
  */
 export async function callBackendAuth(
   path: string,
   body: unknown,
-  forwardedFor?: string | null,
+  forwardedFor: string | null | undefined,
+  serviceUnavailableMessage: string,
 ): Promise<BackendAuthResult> {
   try {
     const res = await fetch(`${getBackendApiBase()}${path}`, {
@@ -98,10 +102,10 @@ export async function callBackendAuth(
       data:
         data && typeof data === 'object' && !Array.isArray(data)
           ? (data as Record<string, unknown>)
-          : { message: res.ok ? 'OK' : SERVICE_UNAVAILABLE_MESSAGE },
+          : { message: res.ok ? 'OK' : serviceUnavailableMessage },
     };
   } catch {
-    return { status: 502, data: { message: SERVICE_UNAVAILABLE_MESSAGE } };
+    return { status: 502, data: { message: serviceUnavailableMessage } };
   }
 }
 
@@ -143,7 +147,10 @@ export function isAllowedOrigin(origin: string | null): boolean {
 /**
  * Rejects a request to a same-origin-only BFF route when its Content-Type
  * isn't JSON or its Origin doesn't match this site. Returns the response to
- * send (and bail out with) or null when the request may proceed.
+ * send (and bail out with) or null when the request may proceed. These two
+ * messages stay English-only on purpose: a legitimate browser request never
+ * hits them (same-origin fetches here always send JSON with no Origin
+ * mismatch), so only bots/scripts/misconfigured tooling ever see them.
  */
 export function rejectCrossOriginJson(request: NextRequest): NextResponse | null {
   const contentType = request.headers.get('content-type') || '';

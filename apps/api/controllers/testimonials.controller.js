@@ -81,7 +81,7 @@ const createTestimonial = asyncHandler(async (req, res) => {
   if (!id || !name || !quote) {
     return res
       .status(400)
-      .json({ message: 'id, name, and quote are required' });
+      .json({ code: 'VALIDATION_ERROR', message: 'id, name, and quote are required' });
   }
 
   // Optional Arabic translation — both fields optional, either can be

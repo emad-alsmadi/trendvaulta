@@ -165,6 +165,19 @@ async function resolveShippingPrice({
       );
       if (method) {
         zoneRate = Number(method.priceUsd) || 0;
+      } else {
+        // A zone matched the address, but not the requested method handle
+        // (DASH-609/API-203) — stale/renamed/deactivated method, or a bug
+        // on the client. Letting this fall through to the flat rate would
+        // silently charge the wrong price; the caller must fail the quote
+        // instead. (When no zone matches the address at all, the flat-rate
+        // fallback below is still the correct, intended behavior.)
+        const err = new Error(
+          `Shipping method "${shippingMethod}" is not available for this address`,
+        );
+        err.statusCode = 400;
+        err.code = 'SHIPPING_METHOD_UNAVAILABLE';
+        throw err;
       }
     }
   }

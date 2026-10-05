@@ -5,7 +5,7 @@ const { sendPasswordChangedEmail, sendPasswordResetEmail } = require('../utils/m
 const Joi = require('joi');
 const { User } = require('../models/User');
 const { RefreshToken } = require('../models/RefreshToken');
-const { revokeAllForUser } = require('../utils/refreshTokens');
+const { revokeAllForUser, bumpTokenVersion } = require('../utils/refreshTokens');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const {
@@ -140,9 +140,13 @@ const resetPassword = asyncHandler(async (req, res) => {
     return res.status(400).json({ code: 'RESET_LINK_INVALID', message: RESET_LINK_INVALID_MESSAGE });
   }
 
-  // Every existing session must re-authenticate with the new password
+  // Every existing session must re-authenticate with the new password, and
+  // any access token already issued dies now rather than at its own TTL.
   await revokeAllForUser(RefreshToken, user._id).catch((revokeErr) => {
     logger.error({ err: revokeErr }, 'Failed to revoke sessions after password reset');
+  });
+  await bumpTokenVersion(User, user._id).catch((err) => {
+    logger.error({ err }, 'Failed to bump tokenVersion after password reset');
   });
   // Heads-up to the owner, in their language (P1-02). Best effort.
   await sendPasswordChangedEmail({ to: user.email }).catch(() => {});
@@ -197,6 +201,9 @@ const changePassword = asyncHandler(async (req, res) => {
 
   await revokeAllForUser(RefreshToken, user._id).catch((revokeErr) => {
     logger.error({ err: revokeErr }, 'Failed to revoke sessions after password change');
+  });
+  await bumpTokenVersion(User, user._id).catch((err) => {
+    logger.error({ err }, 'Failed to bump tokenVersion after password change');
   });
   await sendPasswordChangedEmail({ to: user.email }).catch(() => {});
 

@@ -1,4 +1,18 @@
 {
+  "metadata": {
+    "shopCategory": "تسوّق {label} في {site}. {description}",
+    "shopSubcategory": "تسوّق {subcategory} ضمن {label} في {site}. {description}",
+    "productFallback": "منتج",
+    "productAt": "{title} في {site}",
+    "brandFallback": "علامة تجارية",
+    "shopBrand": "تسوّق منتجات {name} في {site}."
+  },
+  "bff": {
+    "requestBodyRequired": "محتوى الطلب مطلوب",
+    "notAuthenticated": "غير مسجّل الدخول",
+    "loggedOut": "تم تسجيل الخروج",
+    "serviceUnavailable": "خدمة تسجيل الدخول غير متاحة. يرجى المحاولة مرة أخرى."
+  },
   "common": {
     "home": "الرئيسية",
     "products": "المنتجات",
@@ -504,7 +518,8 @@
     "toast": {
       "updated": "تم تحديث كلمة المرور بنجاح",
       "signInAgain": "تم تحديث كلمة المرور. يرجى تسجيل الدخول بكلمة المرور الجديدة.",
-      "updateFailed": "تعذّر تحديث كلمة المرور"
+      "updateFailed": "تعذّر تحديث كلمة المرور",
+      "notAuthenticated": "يرجى تسجيل الدخول مرة أخرى لتغيير كلمة المرور."
     }
   },
   "returns": {

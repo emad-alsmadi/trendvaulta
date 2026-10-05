@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { getTranslation } from '@/lib/i18n-server';
 import {
   REFRESH_COOKIE,
   callBackendAuth,
@@ -16,10 +17,12 @@ import {
  * falls through to its normal forced-logout path.
  */
 export async function POST(request: NextRequest) {
+  const { t } = await getTranslation();
+
   const presented = request.cookies.get(REFRESH_COOKIE)?.value;
   if (!presented) {
     return clearRefreshCookie(
-      NextResponse.json({ message: 'Not authenticated' }, { status: 401 }),
+      NextResponse.json({ message: t('bff.notAuthenticated') }, { status: 401 }),
     );
   }
 
@@ -27,6 +30,7 @@ export async function POST(request: NextRequest) {
     '/auth/refresh',
     { refreshToken: presented },
     request.headers.get('x-forwarded-for'),
+    t('bff.serviceUnavailable'),
   );
   const { refreshToken, rest } = splitRefreshToken(data);
 

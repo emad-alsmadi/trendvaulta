@@ -5,6 +5,7 @@ const {
   validateCreateReview,
   validateUpdateReview,
   validateReviewReply,
+  validateReviewStatus,
 } = require('../models/Review');
 const { Product } = require('../models/Product');
 const { Order } = require('../models/Order');
@@ -32,10 +33,12 @@ const hasVerifiedPurchase = async (userId, productId) => {
 };
 
 /**
- * Helper function to update product's average rating and review count
+ * Helper function to update product's average rating and review count.
+ * Only counts approved reviews (API-327) — a pending or rejected one must
+ * not move the public rating until a moderator approves it.
  */
 const updateProductRating = asyncHandler(async (productId) => {
-  const reviews = await Review.find({ product: productId });
+  const reviews = await Review.find({ product: productId, status: 'approved' });
   const reviewCount = reviews.length;
 
   if (reviewCount === 0) {
@@ -89,7 +92,7 @@ const createReview = asyncHandler(async (req, res) => {
   if (existingReview) {
     return res
       .status(400)
-      .json({ message: 'You have already reviewed this product' });
+      .json({ code: 'REVIEW_ALREADY_EXISTS', message: 'You have already reviewed this product' });
   }
 
   // Reviews are gated on having actually purchased the product (paid or
@@ -111,7 +114,9 @@ const createReview = asyncHandler(async (req, res) => {
     return res.status(403).json(EMAIL_NOT_VERIFIED);
   }
 
-  // Create review
+  // Create review. status defaults to 'approved' (API-327) — publishing
+  // behavior is unchanged; moderation is an admin-only follow-up action,
+  // not a gate on new submissions.
   const review = new Review({
     user: userId,
     product,
@@ -160,7 +165,7 @@ const updateReview = asyncHandler(async (req, res) => {
   if (review.user.toString() !== userId) {
     return res
       .status(403)
-      .json({ message: 'Not authorized to update this review' });
+      .json({ code: 'FORBIDDEN', message: 'Not authorized to update this review' });
   }
 
   // Update review
@@ -200,7 +205,7 @@ const deleteReview = asyncHandler(async (req, res) => {
   if (review.user.toString() !== userId) {
     return res
       .status(403)
-      .json({ message: 'Not authorized to delete this review' });
+      .json({ code: 'FORBIDDEN', message: 'Not authorized to delete this review' });
   }
 
   const productId = review.product;
@@ -225,7 +230,8 @@ const deleteReview = asyncHandler(async (req, res) => {
 const getProductReviews = asyncHandler(async (req, res) => {
   const { productId } = req.params;
 
-  const reviews = await Review.find({ product: productId })
+  // Pending/rejected reviews are a moderation concern, not a public one.
+  const reviews = await Review.find({ product: productId, status: 'approved' })
     // The reply's author is a staff account; the public sees the store's
     // voice, not which employee wrote it.
     .select('-reply.repliedBy')
@@ -378,6 +384,33 @@ const deleteReviewReply = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Admin: moderate a review's visibility (API-327). Approving/rejecting
+ * recomputes the product's rating, since updateProductRating only counts
+ * approved reviews.
+ * @route PATCH /api/reviews/admin/:reviewId/status
+ * @access Private (reviews:write)
+ */
+const moderateReview = asyncHandler(async (req, res) => {
+  const error = validateReviewStatus(req.body);
+  if (error) {
+    return res.status(400).json(validationBody(error));
+  }
+  const review = await Review.findByIdAndUpdate(
+    req.params.reviewId,
+    { $set: { status: req.body.status } },
+    { new: true },
+  )
+    .populate('user', 'username email')
+    .populate('product', 'title cover sku')
+    .lean();
+  if (!review) {
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'Review not found' });
+  }
+  await updateProductRating(review.product?._id || review.product);
+  res.status(200).json({ message: 'Review status updated', data: review });
+});
+
+/**
  * Admin: delete any review.
  * @route DELETE /api/reviews/admin/:reviewId
  * @access Private (reviews:delete)
@@ -407,5 +440,6 @@ module.exports = {
   adminDeleteReview,
   replyToReview,
   deleteReviewReply,
+  moderateReview,
   hasVerifiedPurchase,
 };

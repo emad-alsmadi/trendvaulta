@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import { SITE_NAME, getServerApiBase } from '@/lib/site';
+import type { Translate } from '@/lib/i18n';
 import {
   categoryHref,
+  categoryDescription,
+  categoryLabel,
   subcategoryLabel,
   type CategoryDef,
 } from '@/lib/categories';
@@ -47,30 +50,45 @@ export async function fetchSubcategories(def: CategoryDef): Promise<string[]> {
 export function buildCategoryMetadata(
   def: CategoryDef,
   subcategory?: string,
+  t?: Translate,
 ): Metadata {
-  const title = subcategory
-    ? `${subcategoryLabel(subcategory)} — ${def.label}`
-    : def.label;
-  const description = subcategory
-    ? `Shop ${subcategoryLabel(subcategory).toLowerCase()} in ${def.label} at ${SITE_NAME}. ${def.description}`
-    : `Shop ${def.label} at ${SITE_NAME}. ${def.description}`;
+  // Translated label/description when a translator is passed (the category
+  // name itself may still be English-only if dashboard content has no
+  // Arabic field yet — see API-311); the "Shop ... at" sentence around it
+  // is always translated now regardless.
+  const label = categoryLabel(def, t);
+  const description = categoryDescription(def, t);
+  const subLabel = subcategory ? subcategoryLabel(subcategory, t) : undefined;
+  const title = subLabel ? `${subLabel} — ${label}` : label;
+  const metaDescription = t
+    ? subLabel
+      ? t('metadata.shopSubcategory', {
+          subcategory: subLabel.toLowerCase(),
+          label,
+          site: SITE_NAME,
+          description,
+        })
+      : t('metadata.shopCategory', { label, site: SITE_NAME, description })
+    : subLabel
+      ? `Shop ${subLabel.toLowerCase()} in ${label} at ${SITE_NAME}. ${description}`
+      : `Shop ${label} at ${SITE_NAME}. ${description}`;
   const path = categoryHref(def.slug, subcategory);
-  const images = def.image ? [{ url: def.image, alt: def.label }] : [];
+  const images = def.image ? [{ url: def.image, alt: label }] : [];
   return {
     title,
-    description,
+    description: metaDescription,
     alternates: { canonical: path },
     openGraph: {
       type: 'website',
       title: `${title} | ${SITE_NAME}`,
-      description,
+      description: metaDescription,
       url: path,
       images,
     },
     twitter: {
       card: images.length ? 'summary_large_image' : 'summary',
       title: `${title} | ${SITE_NAME}`,
-      description,
+      description: metaDescription,
       images: images.map((i) => i.url),
     },
   };

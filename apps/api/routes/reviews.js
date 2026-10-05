@@ -14,6 +14,7 @@ const {
   adminDeleteReview,
   replyToReview,
   deleteReviewReply,
+  moderateReview,
 } = require('../controllers/review.controller');
 
 // Public
@@ -31,6 +32,12 @@ router.put(
   verfiyToken,
   checkRolePermission('reviews:write'),
   replyToReview,
+);
+router.patch(
+  '/reviews/admin/:reviewId/status',
+  verfiyToken,
+  checkRolePermission('reviews:write'),
+  moderateReview,
 );
 router.delete(
   '/reviews/admin/:reviewId/reply',

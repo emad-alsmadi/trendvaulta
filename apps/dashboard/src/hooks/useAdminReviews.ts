@@ -4,7 +4,11 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { adminReviewsApi, type AdminReviewsQuery } from '../lib/api';
+import {
+  adminReviewsApi,
+  type AdminReviewsQuery,
+  type ReviewStatus,
+} from '../lib/api';
 
 export const ADMIN_REVIEWS_KEY = ['admin', 'reviews'] as const;
 
@@ -42,6 +46,17 @@ export function useDeleteReviewReplyMutation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => adminReviewsApi.deleteReply(id),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ADMIN_REVIEWS_KEY });
+    },
+  });
+}
+
+export function useModerateReviewMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: ReviewStatus }) =>
+      adminReviewsApi.moderateReview(id, status),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ADMIN_REVIEWS_KEY });
     },

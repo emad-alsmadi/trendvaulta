@@ -25,7 +25,7 @@ const updateLocale = asyncHandler(async (req, res) => {
     .select('locale')
     .lean();
   if (!updated) {
-    return res.status(404).json({ message: 'User not found' });
+    return res.status(404).json({ code: 'NOT_FOUND', message: 'User not found' });
   }
   res.status(200).json({ locale: updated.locale });
 });

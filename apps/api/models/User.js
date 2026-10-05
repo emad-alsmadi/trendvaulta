@@ -123,6 +123,15 @@ const UserSchema = new mongoose.Schema(
       default: false,
       index: true,
     },
+    // Bumped whenever every access token already issued to this account
+    // must die immediately rather than linger up to 15 minutes (disable,
+    // role change, password change/reset — see utils/refreshTokens.js
+    // bumpTokenVersion). Carried in the JWT; verfiyToken rejects a token
+    // whose version doesn't match the current one.
+    tokenVersion: {
+      type: Number,
+      default: 0,
+    },
     // Language of this customer's emails (plan P1-02): the storefront
     // language they last used while signed in (PUT /auth/locale).
     locale: {
@@ -171,7 +180,13 @@ const ACCESS_TOKEN_TTL = '15m';
 
 UserSchema.methods.generateToken = function() {
   return jwt.sign(
-    { id: String(this._id), roles: this._doc.roles },
+    {
+      id: String(this._id),
+      roles: this._doc.roles,
+      // Defaults to 0 for a doc fetched before this field existed, matching
+      // the schema default — verfiyToken compares against the same default.
+      tokenVersion: this._doc.tokenVersion ?? 0,
+    },
     process.env.JWT_SECRET_KEY,
     { expiresIn: ACCESS_TOKEN_TTL },
   );

@@ -866,7 +866,7 @@ const stripeWebhook = asyncHandler(async (req, res) => {
   } catch (procErr) {
     await releaseWebhookEvent(StripeWebhookEvent, event.id);
     logger.error({ err: procErr }, 'Stripe webhook processing error');
-    return res.status(500).json({ message: 'Webhook handler failed' });
+    return res.status(500).json({ code: 'WEBHOOK_HANDLER_FAILED', message: 'Webhook handler failed' });
   }
 
   await markWebhookEventProcessed(StripeWebhookEvent, event.id, {
@@ -896,7 +896,7 @@ const verifyPaymentStatus = asyncHandler(async (req, res) => {
   if (!isOwner && !isValidGuestToken(order, guestToken)) {
     return res
       .status(userId || guestToken ? 403 : 401)
-      .json({ message: 'Not authorized to access this order' });
+      .json({ code: 'FORBIDDEN', message: 'Not authorized to access this order' });
   }
 
   if (order.paymentStatus === 'paid') {
@@ -906,7 +906,7 @@ const verifyPaymentStatus = asyncHandler(async (req, res) => {
   if (!order.stripeSessionId) {
     return res
       .status(400)
-      .json({ message: 'No Stripe session associated with this order' });
+      .json({ code: 'NO_STRIPE_SESSION', message: 'No Stripe session associated with this order' });
   }
 
   try {

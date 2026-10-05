@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { getTranslation } from '@/lib/i18n-server';
 import {
   callBackendAuth,
   isSuccessStatus,
@@ -16,10 +17,12 @@ export async function POST(request: NextRequest) {
   const blocked = rejectCrossOriginJson(request);
   if (blocked) return blocked;
 
+  const { t } = await getTranslation();
+
   const body: unknown = await request.json().catch(() => null);
   if (!body || typeof body !== 'object') {
     return NextResponse.json(
-      { message: 'Request body is required' },
+      { message: t('bff.requestBodyRequired') },
       { status: 400 },
     );
   }
@@ -28,6 +31,7 @@ export async function POST(request: NextRequest) {
     '/auth/login',
     body,
     request.headers.get('x-forwarded-for'),
+    t('bff.serviceUnavailable'),
   );
   const { refreshToken, rest } = splitRefreshToken(data);
   const res = NextResponse.json(rest, { status });

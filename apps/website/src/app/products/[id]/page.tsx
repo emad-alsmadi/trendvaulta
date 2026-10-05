@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { ProductDetailClient } from './ProductDetailClient';
 import { SITE_NAME, getServerApiBase, getSiteUrl } from '@/lib/site';
+import { getTranslation } from '@/lib/i18n-server';
 import type { Product } from '@/types';
 
 type Params = { params: Promise<{ id: string }> };
@@ -28,8 +29,9 @@ function brandName(product: Product): string | undefined {
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { id } = await params;
   const product = await fetchProduct(id);
+  const { t } = await getTranslation();
   if (!product) {
-    return { title: 'Product', robots: { index: false, follow: true } };
+    return { title: t('metadata.productFallback'), robots: { index: false, follow: true } };
   }
   const description = (product.description || '')
     .replace(/\s+/g, ' ')
@@ -38,7 +40,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const images = product.cover ? [{ url: product.cover, alt: product.title }] : [];
   return {
     title: product.title,
-    description: description || `${product.title} at ${SITE_NAME}`,
+    description: description || t('metadata.productAt', { title: product.title, site: SITE_NAME }),
     alternates: { canonical: `/products/${product._id}` },
     openGraph: {
       type: 'website',

@@ -78,14 +78,22 @@ const updateShippingZone = asyncHandler(async (req, res) => {
   res.status(200).json({ message: 'Shipping zone updated', data: zone });
 });
 
+// Soft delete (DASH-609/API-203) — matches the Brands/Content pattern. A
+// hard delete mid-checkout could orphan an in-flight quote; deactivating
+// instead also makes the zone recoverable via updateShippingZone
+// ({ isActive: true }), the same way a deactivated brand can be reactivated.
 const deleteShippingZone = asyncHandler(async (req, res) => {
-  const zone = await ShippingZone.findByIdAndDelete(req.params.id);
+  const zone = await ShippingZone.findByIdAndUpdate(
+    req.params.id,
+    { $set: { isActive: false } },
+    { new: true },
+  ).lean();
   if (!zone) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Shipping zone not found' });
   }
 
   invalidateStoreSettingsCache();
-  res.status(200).json({ message: 'Shipping zone deleted' });
+  res.status(200).json({ message: 'Shipping zone deactivated' });
 });
 
 const addShippingMethod = asyncHandler(async (req, res) => {

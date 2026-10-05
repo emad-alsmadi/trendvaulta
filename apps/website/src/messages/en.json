@@ -1,4 +1,18 @@
 {
+  "metadata": {
+    "shopCategory": "Shop {label} at {site}. {description}",
+    "shopSubcategory": "Shop {subcategory} in {label} at {site}. {description}",
+    "productFallback": "Product",
+    "productAt": "{title} at {site}",
+    "brandFallback": "Brand",
+    "shopBrand": "Shop {name} products at {site}."
+  },
+  "bff": {
+    "requestBodyRequired": "Request body is required",
+    "notAuthenticated": "Not authenticated",
+    "loggedOut": "Logged out",
+    "serviceUnavailable": "Authentication service is unavailable. Please try again."
+  },
   "common": {
     "home": "Home",
     "products": "Products",
@@ -504,7 +518,8 @@
     "toast": {
       "updated": "Password updated successfully",
       "signInAgain": "Password updated. Please sign in with your new password.",
-      "updateFailed": "Failed to update password"
+      "updateFailed": "Failed to update password",
+      "notAuthenticated": "Please sign in again to change your password."
     }
   },
   "returns": {

@@ -126,7 +126,7 @@ const createProductQuestion = asyncHandler(async (req, res) => {
   if (!productId || !question) {
     return res
       .status(400)
-      .json({ message: 'productId and question are required' });
+      .json({ code: 'VALIDATION_ERROR', message: 'productId and question are required' });
   }
 
   // Deactivated products are hidden from the storefront; don't collect

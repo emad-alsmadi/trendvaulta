@@ -7,6 +7,7 @@ import {
   fetchSubcategories,
   isValidSubcategorySlug,
 } from '@/lib/categoryPage';
+import { getTranslation } from '@/lib/i18n-server';
 
 type Params = { params: Promise<{ category: string; subcategory: string }> };
 
@@ -29,7 +30,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   if (!resolved) {
     return { title: 'Category', robots: { index: false, follow: true } };
   }
-  return buildCategoryMetadata(resolved.def, resolved.sub);
+  const { t } = await getTranslation();
+  return buildCategoryMetadata(resolved.def, resolved.sub, t);
 }
 
 export default async function SubcategoryPage({ params }: Params) {

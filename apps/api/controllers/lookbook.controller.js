@@ -102,7 +102,7 @@ const createLookbook = asyncHandler(async (req, res) => {
   if (!id || !title || !body || !ctaHref || !imageUrl) {
     return res
       .status(400)
-      .json({ message: 'id, title, body, ctaHref, and imageUrl are required' });
+      .json({ code: 'VALIDATION_ERROR', message: 'id, title, body, ctaHref, and imageUrl are required' });
   }
 
   // Optional Arabic translation — every field optional, each can be left

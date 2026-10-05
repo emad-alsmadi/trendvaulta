@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { BrandDetailClient } from './BrandDetailClient';
 import { SITE_NAME, getServerApiBase, getSiteUrl } from '@/lib/site';
+import { getTranslation } from '@/lib/i18n-server';
 import type { Brand } from '@/types';
 
 type Params = { params: Promise<{ id: string }> };
@@ -28,13 +29,14 @@ async function fetchBrand(id: string): Promise<Brand | null> {
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { id } = await params;
   const brand = await fetchBrand(id);
+  const { t } = await getTranslation();
   if (!brand) {
-    return { title: 'Brand', robots: { index: false, follow: true } };
+    return { title: t('metadata.brandFallback'), robots: { index: false, follow: true } };
   }
 
   const description =
     (brand.description || '').replace(/\s+/g, ' ').trim().slice(0, 160) ||
-    `Shop ${brand.name} products at ${SITE_NAME}.`;
+    t('metadata.shopBrand', { name: brand.name, site: SITE_NAME });
   const images = brand.logo ? [{ url: brand.logo, alt: brand.name }] : [];
   // The sitemap links brands by slug, so canonicalise to the slug when the
   // brand has one; otherwise fall back to the id.

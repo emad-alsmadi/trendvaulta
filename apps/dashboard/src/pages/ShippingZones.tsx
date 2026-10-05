@@ -235,7 +235,7 @@ export default function ShippingZones() {
     const ok = await confirm({
       message: t('shippingZones.confirmDelete', { name: zone.name }),
       danger: true,
-      confirmLabel: t('common.delete'),
+      confirmLabel: t('shippingZones.deactivate'),
     });
     if (!ok) return;
     try {
@@ -338,7 +338,7 @@ export default function ShippingZones() {
             />
             <IconButton
               icon={<Trash2 aria-hidden />}
-              label={t('common.deleteItem', { name: zone.name })}
+              label={t('common.deactivateItem', { name: zone.name })}
               onClick={() => void handleDelete(zone)}
               disabled={deleteMut.isPending}
             />

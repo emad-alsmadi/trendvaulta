@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/Toast';
 import { useForm } from 'react-hook-form';
 import { useChangePassword } from '@/hooks/auth/useChangePassword';
 import { useLogout } from '@/hooks/auth/authQuery';
+import { useHasAuthToken } from '@/hooks/auth/useHasAuthToken';
 import { getUserFacingErrorMessage } from '@/lib/userFacingError';
 import { useProfile } from '@/hooks/profile/useProfile';
 import { useTranslation } from '@/contexts/TranslationContext';
@@ -32,6 +33,7 @@ export default function SecurityPage() {
   const { toast } = useToast();
   const { t } = useTranslation();
   const { data: profile } = useProfile();
+  const isAuthenticated = useHasAuthToken();
   const changePassword = useChangePassword();
   const logout = useLogout();
 
@@ -61,6 +63,10 @@ export default function SecurityPage() {
   const passwordsMatch = newPassword === confirmPassword && newPassword.length >= 8;
 
   const onSubmit = async (data: PasswordFormValues) => {
+    if (!isAuthenticated) {
+      toast(t('security.toast.notAuthenticated'), { variant: 'error' });
+      return;
+    }
     try {
       await changePassword.mutateAsync({
         currentPassword: data.currentPassword,

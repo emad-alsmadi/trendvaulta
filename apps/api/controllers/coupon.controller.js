@@ -196,7 +196,7 @@ const updateCoupon = asyncHandler(async (req, res) => {
     if (type === 'percentage' && Number(value) > 100) {
       return res
         .status(400)
-        .json({ message: 'A percentage discount cannot exceed 100' });
+        .json({ code: 'VALIDATION_ERROR', message: 'A percentage discount cannot exceed 100' });
     }
   }
 

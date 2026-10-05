@@ -7,7 +7,7 @@ const { RefreshToken } = require('../models/RefreshToken');
 const { Wishlist } = require('../models/Wishlist');
 const { RecentlyViewed } = require('../models/RecentlyViewed');
 const { Subscriber } = require('../models/Subscriber');
-const { revokeAllForUser } = require('../utils/refreshTokens');
+const { revokeAllForUser, bumpTokenVersion } = require('../utils/refreshTokens');
 const { parsePagination } = require('../utils/pagination');
 const { normalizeSearchTerm } = require('../utils/search');
 const { buildSort } = require('../utils/sort');
@@ -133,7 +133,7 @@ const updateUser = asyncHandler(async (req, res) => {
     if (req.body.disabled && String(req.params.id) === String(req.user?.id)) {
       return res
         .status(400)
-        .json({ message: 'You cannot disable your own account' });
+        .json({ code: 'CANNOT_DISABLE_SELF', message: 'You cannot disable your own account' });
     }
     update.disabled = req.body.disabled;
   }
@@ -149,7 +149,7 @@ const updateUser = asyncHandler(async (req, res) => {
       if (String(req.params.id) === String(req.user?.id)) {
         return res
           .status(400)
-          .json({ message: 'You cannot remove your own admin role' });
+          .json({ code: 'CANNOT_REMOVE_OWN_ADMIN', message: 'You cannot remove your own admin role' });
       }
       if (await isLastAdmin(req.params.id)) {
         return res.status(400).json({
@@ -184,10 +184,12 @@ const updateUser = asyncHandler(async (req, res) => {
   }
 
   // Disabling, a new password or a role change ends every session now:
-  // refresh tokens are revoked here, and the stateless access token (which
-  // carries the old roles) dies within its 15-minute TTL.
+  // refresh tokens are revoked, and tokenVersion bumped so the stateless
+  // access token (which carries the old roles) is rejected immediately by
+  // verfiyToken instead of staying valid for up to its 15-minute TTL.
   if (update.password || update.disabled || update.roles !== undefined) {
     await revokeAllForUser(RefreshToken, updatedUser._id);
+    await bumpTokenVersion(User, updatedUser._id);
   }
 
   res.status(200).json({ message: 'User is Updated', updatedUser });
@@ -242,6 +244,7 @@ const deleteUser = asyncHandler(async (req, res) => {
     },
   );
   await revokeAllForUser(RefreshToken, user._id);
+  await bumpTokenVersion(User, user._id);
   await Promise.all([
     Wishlist.deleteMany({ user: user._id }),
     RecentlyViewed.deleteMany({ user: user._id }),

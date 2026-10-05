@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { getTranslation } from '@/lib/i18n-server';
 import {
   REFRESH_COOKIE,
   callBackendAuth,
@@ -11,15 +12,18 @@ import {
  * client clears its own cookies regardless of what the backend says.
  */
 export async function POST(request: NextRequest) {
+  const { t } = await getTranslation();
+
   const presented = request.cookies.get(REFRESH_COOKIE)?.value;
   if (presented) {
     await callBackendAuth(
       '/auth/logout',
       { refreshToken: presented },
       request.headers.get('x-forwarded-for'),
+      t('bff.serviceUnavailable'),
     );
   }
   return clearRefreshCookie(
-    NextResponse.json({ message: 'Logged out' }, { status: 200 }),
+    NextResponse.json({ message: t('bff.loggedOut') }, { status: 200 }),
   );
 }
