@@ -1,6 +1,22 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models/User');
 
+// What req.user should be for a decoded access token, or null when the token
+// must no longer be honoured: the account is gone or disabled, or its
+// tokenVersion was bumped after the token was issued. Roles are taken from
+// the account, not the token, so a role edit that never bumped tokenVersion
+// (a script, a direct DB change) applies on the next request rather than
+// when the token expires.
+const resolveActiveUser = async (decoded) => {
+  const user = await User.findById(decoded.id).select('roles disabled tokenVersion').lean();
+  const currentVersion = user?.tokenVersion ?? 0;
+  const tokenVersion = decoded.tokenVersion ?? 0;
+  if (!user || user.disabled || tokenVersion !== currentVersion) {
+    return null;
+  }
+  return { ...decoded, roles: user.roles };
+};
+
 // Verify Token
 //
 // SEC-111: the legacy `token:` header fallback is gone — only a standard
@@ -29,17 +45,16 @@ const verfiyToken = async (req, res, next) => {
     return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
   }
 
-  const user = await User.findById(decoded.id).select('roles disabled tokenVersion').lean();
-  const currentVersion = user?.tokenVersion ?? 0;
-  const tokenVersion = decoded.tokenVersion ?? 0;
-  if (!user || user.disabled || tokenVersion !== currentVersion) {
+  const user = await resolveActiveUser(decoded);
+  if (!user) {
     return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
   }
 
-  req.user = decoded;
+  req.user = user;
   next();
 };
 
 module.exports = {
   verfiyToken,
+  resolveActiveUser,
 };

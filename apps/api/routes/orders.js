@@ -2,7 +2,10 @@ const express = require('express');
 const router = express.Router();
 
 const { verfiyToken } = require('../middlewares/verfiyToken');
-const { optionalVerifyToken } = require('../middlewares/optionalVerifyToken');
+const {
+  optionalVerifyToken,
+  optionalVerifyTokenStrict,
+} = require('../middlewares/optionalVerifyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 const { verifyPaymentRateLimit } = require('../middlewares/rateLimit');
 
@@ -63,9 +66,10 @@ router.post('/orders/:id/cancel', verifyPaymentRateLimit, optionalVerifyToken, c
 
 /**
  * @desc Get order invoice: owner/staff session, or a guest's
- * `X-Guest-Token` header
+ * `X-Guest-Token` header. Strict variant: the staff branch reads any
+ * order, so a revoked session (role change, disabled account) must not pass.
  */
-router.get('/orders/:id/invoice', optionalVerifyToken, getOrderInvoice);
+router.get('/orders/:id/invoice', optionalVerifyTokenStrict, getOrderInvoice);
 
 /**
  * @desc Return request routes
