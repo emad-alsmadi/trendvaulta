@@ -126,6 +126,9 @@ export const en = {
       'This account does not have dashboard access (staff role required).',
     errorNoToken:
       'Sign-in succeeded but no session was returned. Please try again.',
+    sessionRevoked:
+      'You were signed out for security reasons, such as a change to your role or password. Please sign in again.',
+    sessionExpired: 'Your session has expired. Please sign in again.',
   },
   pagination: {
     label: 'Pagination',

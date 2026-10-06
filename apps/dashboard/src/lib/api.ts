@@ -46,12 +46,20 @@ function isAuthBypassRequest(config: { url?: string } | undefined) {
   return AUTH_BYPASS_PATHS.some((p) => url.endsWith(p));
 }
 
-function forceLogoutRedirect() {
+/** Shown on the login page as `/login?reason=…` (see pages/Login.tsx). */
+type LogoutReason = 'revoked' | 'expired';
+
+// The first forced logout names the real cause. Requests still in flight, or
+// retried by React Query, then fail only because the cookies are already
+// gone — they must not repoint the pending redirect at a vaguer reason.
+let logoutRedirectStarted = false;
+
+function forceLogoutRedirect(reason: LogoutReason) {
   if (typeof window === 'undefined') return;
   clearAuthSession();
-  if (!window.location.pathname.startsWith('/login')) {
-    window.location.href = '/login';
-  }
+  if (logoutRedirectStarted || window.location.pathname.startsWith('/login')) return;
+  logoutRedirectStarted = true;
+  window.location.href = `/login?reason=${reason}`;
 }
 
 // Share one in-flight refresh call across concurrent 401s — the refresh
@@ -61,8 +69,10 @@ function forceLogoutRedirect() {
  * `sessionEnded` = the API rejected the refresh token (401/400), so signing
  * out is right. A network error, 5xx or 429 is NOT a dead session — logging
  * out then would throw away a still-valid refresh token over a blip.
+ * `revoked` = the API ended this session on purpose (role or password
+ * change, disabled account) rather than it simply running out.
  */
-type RefreshOutcome = { token: string | null; sessionEnded: boolean };
+type RefreshOutcome = { token: string | null; sessionEnded: boolean; revoked?: boolean };
 
 let refreshPromise: Promise<RefreshOutcome> | null = null;
 
@@ -86,8 +96,13 @@ async function refreshAccessToken(): Promise<RefreshOutcome> {
         return { token: nextToken, sessionEnded: !nextToken };
       })
       .catch((err): RefreshOutcome => {
-        const status = axios.isAxiosError(err) ? err.response?.status : undefined;
-        return { token: null, sessionEnded: status === 401 || status === 400 };
+        const response = axios.isAxiosError(err) ? err.response : undefined;
+        const status = response?.status;
+        return {
+          token: null,
+          sessionEnded: status === 401 || status === 400,
+          revoked: response?.data?.code === 'REFRESH_TOKEN_REUSED',
+        };
       })
       .finally(() => {
         refreshPromise = null;
@@ -109,7 +124,7 @@ api.interceptors.response.use(
       !isAuthBypassRequest(original)
     ) {
       original._retriedAfterRefresh = true;
-      const { token: newToken, sessionEnded } = await refreshAccessToken();
+      const { token: newToken, sessionEnded, revoked } = await refreshAccessToken();
       if (newToken) {
         original.headers = original.headers || {};
         original.headers.Authorization = `Bearer ${newToken}`;
@@ -117,12 +132,12 @@ api.interceptors.response.use(
       }
       // Refresh endpoint unreachable/overloaded: keep the session; the
       // request fails and the user can simply retry.
-      if (sessionEnded) forceLogoutRedirect();
+      if (sessionEnded) forceLogoutRedirect(revoked ? 'revoked' : 'expired');
       return Promise.reject(error);
     }
 
     if (error.response?.status === 401) {
-      forceLogoutRedirect();
+      forceLogoutRedirect('expired');
     }
 
     return Promise.reject(error);

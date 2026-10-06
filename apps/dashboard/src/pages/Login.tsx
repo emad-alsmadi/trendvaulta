@@ -37,6 +37,13 @@ const HIGHLIGHTS = [
 /** Taller controls on the sign-in card: easier to hit, calmer to read. */
 const loginInput = cn(inputClass, 'h-control-lg ps-10');
 
+/** Why the API client signed the visitor out (`/login?reason=…`), if it did. */
+function sessionEndedNotice(reason: string | null): MessageKey | null {
+  if (reason === 'revoked') return 'login.sessionRevoked';
+  if (reason === 'expired') return 'login.sessionExpired';
+  return null;
+}
+
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -50,6 +57,11 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
   const [remember, setRemember] = useState(true);
+  // The API client's forced logout reloads the page, so its reason arrives
+  // in the query string instead of router state (lib/api.ts).
+  const [notice, setNotice] = useState<MessageKey | null>(() =>
+    sessionEndedNotice(new URLSearchParams(location.search).get('reason')),
+  );
   // A key for our own messages, or already-resolved API text.
   const [error, setError] = useState<{ key: MessageKey } | { text: string } | null>(
     locationState.reason === 'forbidden' ? { key: 'login.errorNoAccess' } : null,
@@ -60,6 +72,7 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setNotice(null);
     setLoading(true);
     try {
       const data = await authApi.login({ email: email.trim(), password });
@@ -177,6 +190,7 @@ export default function Login() {
             onSubmit={handleLogin}
             className='mt-8 space-y-5'
           >
+            {notice && <Alert tone='warning'>{t(notice)}</Alert>}
             {errorText && <Alert tone='error'>{errorText}</Alert>}
 
             <div className='space-y-1.5'>
