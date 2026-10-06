@@ -58,7 +58,9 @@ const PRODUCTS = [
 
 beforeEach(() => {
   jest.resetAllMocks();
-  mockedGetLowStock.mockResolvedValue({ data: PRODUCTS, threshold: 5 });
+  // The page defaults to the "all" filter (threshold 1000, the API's own
+  // cap — see LowStock.tsx), not 5.
+  mockedGetLowStock.mockResolvedValue({ data: PRODUCTS, threshold: 1000 });
 });
 
 describe('LowStock page', () => {
@@ -75,6 +77,17 @@ describe('LowStock page', () => {
       .getByText('Velvet Matte Lipstick')
       .closest('tr') as HTMLElement;
     expect(outOfStockRow).toHaveTextContent('Out of stock');
+  });
+
+  it('defaults to "All" on load, not a 5-or-below threshold', async () => {
+    render(<LowStock />, { wrapper: Wrapper });
+    await screen.findByText('Hydrating Serum');
+
+    expect(mockedGetLowStock).toHaveBeenCalledWith(1000);
+    expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 
   it('requests a new threshold when the range is changed', async () => {
@@ -139,8 +152,19 @@ describe('LowStock page', () => {
   });
 
   it('shows an empty state rather than a blank table', async () => {
+    mockedGetLowStock.mockResolvedValue({ data: [], threshold: 1000 });
+    render(<LowStock />, { wrapper: Wrapper });
+
+    expect(
+      await screen.findByText(/Nothing needs restocking right now/),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the threshold-specific empty state once a fixed range is picked', async () => {
     mockedGetLowStock.mockResolvedValue({ data: [], threshold: 5 });
     render(<LowStock />, { wrapper: Wrapper });
+
+    await userEvent.click(screen.getByRole('button', { name: '≤ 5' }));
 
     expect(
       await screen.findByText(/Nothing at or below 5 in stock/),

@@ -1254,7 +1254,9 @@ export const en = {
     outOfStock: 'Out of stock',
     left: '{count} left',
     loading: 'Loading…',
+    all: 'All',
     nothing: 'Nothing at or below {threshold} in stock.',
+    nothingAtAll: 'Nothing needs restocking right now.',
     browse: 'Browse the catalog',
     columns: {
       product: 'Product',

@@ -27,7 +27,16 @@ import { StatusBadge } from '../components/ui/StatusBadge';
 import { buttonVariants, focusRing } from '../components/ui/styles';
 import { cn } from '../lib/cn';
 
-const THRESHOLDS = [5, 10, 25];
+// 'all' sends the API's own max threshold (1000 — see adminStats.controller.js
+// getLowStockProducts) rather than needing a backend change for "no cap".
+const THRESHOLDS = ['all', 5, 10, 25] as const;
+const ALL_THRESHOLD = 1000;
+
+// Which variants a row flags as "low" and shows a restock input for is
+// independent of the list filter above: with 'all' selected the list shows
+// every active product, but a row must still only surface the options that
+// actually need restocking, not every option on every product.
+const VARIANT_LOW_THRESHOLD = 5;
 
 function StockBadge({ stock }: { stock: number }) {
   const { t, formatNumber } = useT();
@@ -45,12 +54,15 @@ function StockBadge({ stock }: { stock: number }) {
 
 function RestockRow({
   product,
-  threshold,
+  lowThreshold,
   canWrite,
   onDone,
 }: {
   product: LowStockProduct;
-  threshold: number;
+  /** Which variants count as "low" for this row — capped independently of
+   *  the list filter, so picking "all" in the toolbar doesn't flag every
+   *  option on every product as needing a restock input. */
+  lowThreshold: number;
   canWrite: boolean;
   onDone: () => void;
 }) {
@@ -62,7 +74,7 @@ function RestockRow({
   // Checkout sells from variant stock, so a variant product is restocked per
   // option (its total is kept as their sum) — never through `stock` alone.
   const lowIndexes = variants
-    .map((v, i) => ((Number(v.stock) || 0) <= threshold ? i : -1))
+    .map((v, i) => ((Number(v.stock) || 0) <= lowThreshold ? i : -1))
     .filter((i) => i >= 0);
   const initial = (): Record<number, string> =>
     hasVariants
@@ -220,7 +232,11 @@ function RestockRow({
 export default function LowStock() {
   const { can } = usePermissions();
   const { t, formatNumber } = useT();
-  const [threshold, setThreshold] = useState(5);
+  // Defaults to showing every active low/out-of-stock product, not just the
+  // ones at or below 5 — a store owner opening this page for the first time
+  // should see the full restock list, then narrow it down if they want.
+  const [filter, setFilter] = useState<'all' | number>('all');
+  const threshold = filter === 'all' ? ALL_THRESHOLD : filter;
   const q = useAdminLowStock(threshold);
 
   const products = q.data?.data ?? [];
@@ -238,17 +254,17 @@ export default function LowStock() {
                 <button
                   key={n}
                   type='button'
-                  onClick={() => setThreshold(n)}
-                  aria-pressed={threshold === n}
+                  onClick={() => setFilter(n)}
+                  aria-pressed={filter === n}
                   className={cn(
                     'inline-flex h-full items-center rounded px-3 text-body-sm font-medium tabular-nums transition-colors duration-fast',
                     focusRing,
-                    threshold === n
+                    filter === n
                       ? 'border border-border bg-background text-foreground shadow-card'
                       : 'text-muted-foreground hover:text-foreground',
                   )}
                 >
-                  ≤ {n}
+                  {n === 'all' ? t('lowStock.all') : `≤ ${n}`}
                 </button>
               ))}
             </div>
@@ -317,7 +333,11 @@ export default function LowStock() {
         ) : products.length === 0 ? (
           <EmptyState
             icon={<PackageCheck aria-hidden />}
-            title={t('lowStock.nothing', { threshold })}
+            title={
+              filter === 'all'
+                ? t('lowStock.nothingAtAll')
+                : t('lowStock.nothing', { threshold })
+            }
             action={
               <Link
                 to='/products'
@@ -343,7 +363,9 @@ export default function LowStock() {
                 <RestockRow
                   key={`${product._id}:${product.updatedAt ?? ''}`}
                   product={product}
-                  threshold={threshold}
+                  lowThreshold={
+                    filter === 'all' ? VARIANT_LOW_THRESHOLD : threshold
+                  }
                   canWrite={can('products:write')}
                   onDone={() => void q.refetch()}
                 />

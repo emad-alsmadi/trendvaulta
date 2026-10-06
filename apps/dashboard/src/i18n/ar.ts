@@ -1217,7 +1217,9 @@ export const ar: Messages = {
     outOfStock: 'نفد من المخزون',
     left: 'متبقٍ {count}',
     loading: 'جارٍ التحميل…',
+    all: 'الكل',
     nothing: 'لا توجد منتجات بمخزون {threshold} أو أقل.',
+    nothingAtAll: 'لا توجد منتجات بحاجة إلى إعادة تخزين حاليًا.',
     browse: 'تصفح الكتالوج',
     columns: {
       product: 'المنتج',
