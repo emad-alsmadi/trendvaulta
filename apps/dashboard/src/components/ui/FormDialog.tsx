@@ -69,7 +69,7 @@ export function FormDialogFooter({
   return (
     <div
       className={cn(
-        'sticky bottom-0 z-10 -mx-6 -mb-5 mt-6 flex flex-wrap items-center justify-end gap-2 border-t border-border bg-card px-6 py-4',
+        'bottom-0 z-10 -mx-6 -mb-5 mt-6 flex flex-wrap items-center justify-end gap-2 border-t border-border bg-card px-6 py-4',
         className,
       )}
     >
