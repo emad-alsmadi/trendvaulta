@@ -50,7 +50,7 @@ function SettingsSection({
   children: ReactNode;
 }) {
   return (
-    <section className='grid gap-4 border-b border-border pb-8 last:border-0 last:pb-0 lg:grid-cols-[18rem_1fr] lg:gap-8'>
+    <section className='flex flex-col gap-4 border-b border-border pb-8 last:border-0 last:pb-0 lg:grid-cols-[18rem_1fr] lg:gap-8'>
       <div className='flex items-center gap-4'>
         <span
           aria-hidden
