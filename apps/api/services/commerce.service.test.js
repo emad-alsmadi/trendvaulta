@@ -9,7 +9,7 @@ const {
   resolveFulfillment,
   roundMoney,
   computeOrderTotal,
-} = require('./commerce');
+} = require('./commerce.service');
 const { zoneMatchesAddress } = require('../models/ShippingZone');
 
 describe('calculateCouponDiscount', () => {

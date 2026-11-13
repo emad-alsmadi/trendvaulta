@@ -7,7 +7,7 @@ const {
   updateCategory,
   deleteCategory,
 } = require('../controllers/categories.controller');
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 const { validate } = require('../middlewares/validate');
 const {
@@ -21,27 +21,27 @@ router.get('/storefront/categories', getStorefrontCategories);
 // Admin — categories are catalog data, so they share the products:* permissions
 router.get(
   '/categories/admin',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('products:read'),
   getAdminCategories,
 );
 router.post(
   '/categories',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('products:write'),
   validate(createCategorySchema),
   createCategory,
 );
 router.put(
   '/categories/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('products:write'),
   validate(updateCategorySchema),
   updateCategory,
 );
 router.delete(
   '/categories/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('products:delete'),
   deleteCategory,
 );

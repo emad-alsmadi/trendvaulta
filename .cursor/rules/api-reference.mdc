@@ -36,7 +36,7 @@ There is **no**  trendvaulta / API-3 extract in this repo. Do not search for `ap
 ## Response & error contract
 
 - Prefer confirming per controller; common shape is `{ message, data?, errors? }` or direct payload + `message`.
-- Auth: `Authorization: Bearer <token>` via `verfiyToken` (existing spelling).
+- Auth: `Authorization: Bearer <token>` via `verifyToken`.
 - Validation: Joi in models/controllers — typically **400** with message/`errors`.
 - Lists: check controller for `page` / `limit` / `total` / results array naming.
 - User-facing copy: Arabic-first where helpers already exist — never show raw internal codes in UI.

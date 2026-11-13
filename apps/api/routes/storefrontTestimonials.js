@@ -8,7 +8,7 @@ const {
   updateTestimonial,
   deleteTestimonial,
 } = require('../controllers/testimonials.controller');
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 const { validate } = require('../middlewares/validate');
 const {
@@ -22,33 +22,33 @@ router.get('/storefront/testimonials', getTestimonials);
 // Admin endpoints
 router.get(
   '/testimonials/admin',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:read'),
   getAllTestimonials,
 );
 router.get(
   '/testimonials/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:read'),
   getTestimonialById,
 );
 router.post(
   '/testimonials',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:write'),
   validate(createTestimonialSchema),
   createTestimonial,
 );
 router.put(
   '/testimonials/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:write'),
   validate(updateTestimonialSchema),
   updateTestimonial,
 );
 router.delete(
   '/testimonials/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:delete'),
   deleteTestimonial,
 );

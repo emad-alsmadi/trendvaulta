@@ -26,7 +26,7 @@ const {
   reloadProduct,
   reloadOrder,
 } = require('./setup');
-const { reconcileStaleCheckouts } = require('../controllers/payment.controller');
+const { reconcileStaleCheckouts } = require('../services/payment.service');
 
 /** Well past the 30 min session TTL plus the reconciler's grace period. */
 const LATER = () => Date.now() + 45 * 60 * 1000;

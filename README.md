@@ -147,7 +147,7 @@ Common areas:
 - Admin stats (and related admin routes)
 - Ops — `GET /api/trendvaulta` (liveness), `GET /api/ready` (DB readiness)
 
-Typical JSON shape: `{ message, data?, errors? }` (confirm per controller). Auth uses `Authorization: Bearer <token>` via `verfiyToken`.
+Typical JSON shape: `{ message, data?, errors? }` (confirm per controller). Auth uses `Authorization: Bearer <token>` via `verifyToken`.
 
 Storefront client: `apps/website/src/lib/api.ts`  
 Dashboard client: `apps/dashboard/src/lib/api.ts`

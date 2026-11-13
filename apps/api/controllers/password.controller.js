@@ -1,11 +1,22 @@
 const asyncHandler = require('express-async-handler');
 const { validationBody } = require('../utils/errors');
 const logger = require('../utils/logger');
-const { sendPasswordChangedEmail, sendPasswordResetEmail } = require('../utils/mail');
-const Joi = require('joi');
+const {
+  sendPasswordChangedEmail,
+  sendPasswordResetEmail,
+} = require('../utils/mail');
+const {
+  forgotPasswordSchema,
+  resetPasswordParamsSchema,
+  resetPasswordBodySchema,
+  changePasswordSchema,
+} = require('../validators/password.validator');
 const { User } = require('../models/User');
 const { RefreshToken } = require('../models/RefreshToken');
-const { revokeAllForUser, bumpTokenVersion } = require('../utils/refreshTokens');
+const {
+  revokeAllForUser,
+  bumpTokenVersion,
+} = require('../services/refreshTokens.service');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const {
@@ -13,28 +24,11 @@ const {
   isAccountLocked,
   recordFailedPassword,
   clearFailedPasswords,
-} = require('../utils/loginLockout');
-
-const forgotPasswordSchema = Joi.object({
-  email: Joi.string().trim().lowercase().max(100).email().required(),
-});
+} = require('../services/loginLockout.service');
 
 // Same body whether or not the account exists (no email enumeration).
 const FORGOT_PASSWORD_MESSAGE =
   'If an account exists for that email, a password reset link has been sent.';
-
-const resetPasswordParamsSchema = Joi.object({
-  userId: Joi.string()
-    .hex()
-    .length(24)
-    .required()
-    .messages({ '*': 'Invalid or expired reset link' }),
-  token: Joi.string().trim().max(1000).required(),
-});
-
-const resetPasswordBodySchema = Joi.object({
-  password: Joi.string().min(8).max(128).required(),
-}).unknown(true);
 
 // Unknown user and bad token are indistinguishable, so a caller cannot probe
 // which user ids exist by replaying the reset endpoint.
@@ -55,7 +49,10 @@ const sendForgotPasswordLink = asyncHandler(async (req, res) => {
   try {
     const { error, value } = forgotPasswordSchema.validate(req.body || {});
     if (error) {
-      return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'A valid email is required' });
+      return res.status(400).json({
+        code: 'VALIDATION_ERROR',
+        message: 'A valid email is required',
+      });
     }
     const { email } = value;
 
@@ -109,12 +106,16 @@ const sendForgotPasswordLink = asyncHandler(async (req, res) => {
  * @returns {Promise<void>} JSON confirmation message
  */
 const resetPassword = asyncHandler(async (req, res) => {
-  const { error: paramsError, value: params } = resetPasswordParamsSchema.validate(
-    { userId: req.params.userId, token: req.params.token },
-    { stripUnknown: true },
-  );
+  const { error: paramsError, value: params } =
+    resetPasswordParamsSchema.validate(
+      { userId: req.params.userId, token: req.params.token },
+      { stripUnknown: true },
+    );
   if (paramsError) {
-    return res.status(400).json({ code: 'RESET_LINK_INVALID', message: RESET_LINK_INVALID_MESSAGE });
+    return res.status(400).json({
+      code: 'RESET_LINK_INVALID',
+      message: RESET_LINK_INVALID_MESSAGE,
+    });
   }
 
   const { error: bodyError } = resetPasswordBodySchema.validate(req.body ?? {});
@@ -127,23 +128,35 @@ const resetPassword = asyncHandler(async (req, res) => {
 
   const user = await User.findById(params.userId);
   if (!user) {
-    return res.status(400).json({ code: 'RESET_LINK_INVALID', message: RESET_LINK_INVALID_MESSAGE });
+    return res.status(400).json({
+      code: 'RESET_LINK_INVALID',
+      message: RESET_LINK_INVALID_MESSAGE,
+    });
   }
   const secret = process.env.JWT_SECRET_KEY + user.password;
 
   try {
     jwt.verify(params.token, secret);
 
-    user.password = await bcrypt.hash(req.body.password, await bcrypt.genSalt(10));
+    user.password = await bcrypt.hash(
+      req.body.password,
+      await bcrypt.genSalt(10),
+    );
     await user.save();
   } catch {
-    return res.status(400).json({ code: 'RESET_LINK_INVALID', message: RESET_LINK_INVALID_MESSAGE });
+    return res.status(400).json({
+      code: 'RESET_LINK_INVALID',
+      message: RESET_LINK_INVALID_MESSAGE,
+    });
   }
 
   // Every existing session must re-authenticate with the new password, and
   // any access token already issued dies now rather than at its own TTL.
   await revokeAllForUser(RefreshToken, user._id).catch((revokeErr) => {
-    logger.error({ err: revokeErr }, 'Failed to revoke sessions after password reset');
+    logger.error(
+      { err: revokeErr },
+      'Failed to revoke sessions after password reset',
+    );
   });
   await bumpTokenVersion(User, user._id).catch((err) => {
     logger.error({ err }, 'Failed to bump tokenVersion after password reset');
@@ -166,22 +179,23 @@ const resetPassword = asyncHandler(async (req, res) => {
 const changePassword = asyncHandler(async (req, res) => {
   const userId = req.user?.id ?? req.user?._id;
   if (!userId) {
-    return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
+    return res
+      .status(401)
+      .json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
   }
 
-  const schema = Joi.object({
-    currentPassword: Joi.string().min(8).required(),
-    newPassword: Joi.string().min(8).required(),
-  });
-
-  const { error, value } = schema.validate(req.body || {});
+  const { error, value } = changePasswordSchema.validate(req.body || {});
   if (error) {
     return res.status(400).json(validationBody(error));
   }
 
-  const user = await User.findById(userId).select('+failedLoginAttempts +lockUntil');
+  const user = await User.findById(userId).select(
+    '+failedLoginAttempts +lockUntil',
+  );
   if (!user) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'User not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'User not found' });
   }
 
   if (isAccountLocked(user)) {
@@ -191,7 +205,10 @@ const changePassword = asyncHandler(async (req, res) => {
   const isMatch = await bcrypt.compare(value.currentPassword, user.password);
   if (!isMatch) {
     await recordFailedPassword(User, user._id);
-    return res.status(400).json({ code: 'CURRENT_PASSWORD_INCORRECT', message: 'Current password is incorrect' });
+    return res.status(400).json({
+      code: 'CURRENT_PASSWORD_INCORRECT',
+      message: 'Current password is incorrect',
+    });
   }
   await clearFailedPasswords(User, user);
 
@@ -200,7 +217,10 @@ const changePassword = asyncHandler(async (req, res) => {
   await user.save();
 
   await revokeAllForUser(RefreshToken, user._id).catch((revokeErr) => {
-    logger.error({ err: revokeErr }, 'Failed to revoke sessions after password change');
+    logger.error(
+      { err: revokeErr },
+      'Failed to revoke sessions after password change',
+    );
   });
   await bumpTokenVersion(User, user._id).catch((err) => {
     logger.error({ err }, 'Failed to bump tokenVersion after password change');

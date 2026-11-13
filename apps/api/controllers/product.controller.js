@@ -1,18 +1,19 @@
 const asyncHandler = require('express-async-handler');
 const { validationBody } = require('../utils/errors');
 const {
-  Product,
-  validateCreateProduct,
-  validateUpdateProduct,
   resolveProductBadges,
 } = require('../models/Product');
+const productRepository = require('../repositories/product.repository');
+const {
+  validateCreateProduct,
+  validateUpdateProduct,
+} = require('../validators/product.validator');
 const { parsePagination } = require('../utils/pagination');
 const {
   validateProductListQuery,
   isTruthyFlag,
   buildProductMatch,
   buildProductSort,
-  buildFacetPipeline,
   normalizeFacets,
 } = require('../utils/productQuery');
 
@@ -74,22 +75,17 @@ const getAllProducts = asyncHandler(async (req, res) => {
     { defaultLimit: 12, maxLimit: 100 },
   );
 
-  const [products, total, facetRows] = await Promise.all([
-    Product.find(match)
-      .populate('brand', ['name', 'slug', 'logo'])
-      .sort(sortObj)
-      .skip(skip)
-      .limit(limitNum)
-      .lean(),
-    Product.countDocuments(match),
-    wantFacets
-      ? Product.aggregate(
-          buildFacetPipeline(
-            buildProductMatch(query, { isStaff, withFacetFilters: false }),
-          ),
-        )
-      : Promise.resolve(null),
-  ]);
+  const facetMatch = wantFacets
+    ? buildProductMatch(query, { isStaff, withFacetFilters: false })
+    : null;
+  const { products, total, facetRows } = await productRepository.findProducts({
+    match,
+    sort: sortObj,
+    skip,
+    limit: limitNum,
+    wantFacets,
+    facetMatch,
+  });
 
   const pages = Math.ceil(total / limitNum);
   const data = products.map((product) => ({
@@ -120,13 +116,7 @@ const getAllProducts = asyncHandler(async (req, res) => {
  * @returns {Promise<void>} JSON product document
  */
 const getProductById = asyncHandler(async (req, res) => {
-  const product = await Product.findById(req.params.id).populate('brand', [
-    'name',
-    'slug',
-    'logo',
-    'website',
-    'country',
-  ]);
+  const product = await productRepository.findProductById(req.params.id);
 
   if (!product) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });
@@ -159,7 +149,7 @@ const createProduct = asyncHandler(async (req, res) => {
     return res.status(400).json(validationBody(error));
   }
 
-  const product = new Product({
+  const result = await productRepository.createProduct({
     title: req.body.title,
     brand: req.body.brand,
     description: req.body.description,
@@ -179,8 +169,6 @@ const createProduct = asyncHandler(async (req, res) => {
     featured: req.body.featured || false,
     badges: req.body.badges || [],
   });
-
-  const result = await product.save();
   const lean = result.toObject ? result.toObject() : result;
   res.status(201).json({
     ...lean,
@@ -228,13 +216,10 @@ const updateProduct = asyncHandler(async (req, res) => {
     filter.updatedAt = new Date(req.body.expectedUpdatedAt);
   }
 
-  const product = await Product.findOneAndUpdate(filter, updateData, {
-    new: true,
-    runValidators: true,
-  });
+  const product = await productRepository.updateProduct(filter, updateData);
 
   if (!product) {
-    if (filter.updatedAt && (await Product.exists({ _id: req.params.id }))) {
+    if (filter.updatedAt && (await productRepository.productExists(req.params.id))) {
       return res.status(409).json({
         message:
           'This product changed since you opened it (stock may have sold). Reopen it to load the current values, then save again.',
@@ -265,11 +250,7 @@ const deleteProduct = asyncHandler(async (req, res) => {
   // at the product (a hard delete left them populating as null, which
   // crashed dashboard pages). Inactive products are hidden from the
   // storefront and rejected at checkout; staff can reactivate them.
-  const product = await Product.findByIdAndUpdate(
-    req.params.id,
-    { $set: { isActive: false } },
-    { new: true },
-  );
+  const product = await productRepository.deactivateProduct(req.params.id);
 
   if (!product) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Product not found' });

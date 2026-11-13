@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 
 const {
@@ -18,7 +18,7 @@ const {
  */
 router.get(
   '/users',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('users:read'),
   getAllUsers,
 );
@@ -31,7 +31,7 @@ router.get(
  */
 router.get(
   '/users/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('users:read'),
   getUserById,
 );
@@ -44,7 +44,7 @@ router.get(
  */
 router.put(
   '/users/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('users:write'),
   updateUser,
 );
@@ -57,7 +57,7 @@ router.put(
  */
 router.delete(
   '/users/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('users:delete'),
   deleteUser,
 );

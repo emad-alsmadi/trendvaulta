@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
 
 const {
   addToWishlist,
@@ -10,9 +10,9 @@ const {
 } = require('../controllers/wishlist.controller');
 
 // All wishlist routes require authentication
-router.post('/wishlist/:productId', verfiyToken, addToWishlist);
-router.delete('/wishlist/:productId', verfiyToken, removeFromWishlist);
-router.get('/wishlist/my', verfiyToken, getMyWishlist);
-router.get('/wishlist/check/:productId', verfiyToken, checkWishlist);
+router.post('/wishlist/:productId', verifyToken, addToWishlist);
+router.delete('/wishlist/:productId', verifyToken, removeFromWishlist);
+router.get('/wishlist/my', verifyToken, getMyWishlist);
+router.get('/wishlist/check/:productId', verifyToken, checkWishlist);
 
 module.exports = router;

@@ -1,6 +1,6 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { quoteOrderLines } = require('./commerce');
+const { quoteOrderLines } = require('./commerce.service');
 
 const simple = {
   _id: 'p1',

@@ -43,7 +43,7 @@ function getFromAddress() {
 /**
  * Storefront order page (the account area lives under /user/*). Callers
  * pass `opts.orderUrl` when the order needs another link, e.g. a guest
- * order's tokenised page (utils/guestOrders.js orderEmailTarget).
+ * order's tokenised page (services/guestOrders.service.js orderEmailTarget).
  */
 function orderPageUrl(orderId, override) {
   if (override) return override;
@@ -290,7 +290,7 @@ function frontendUrl() {
   return process.env.FRONTEND_URL || 'http://localhost:3001';
 }
 
-/** Storefront link that confirms an email address (utils/emailVerification.js). */
+/** Storefront link that confirms an email address (services/emailVerification.service.js). */
 function verifyEmailUrl(token) {
   return `${frontendUrl()}/auth/verify-email?token=${encodeURIComponent(token)}`;
 }

@@ -1,7 +1,7 @@
 /**
  * Sessions the API has ended, and roles changed behind a live token. The old
  * access token is still unexpired in every test here, so only the
- * per-request account check (verfiyToken, and its strict optional variant on
+ * per-request account check (verifyToken, and its strict optional variant on
  * the invoice route) stands between it and the data.
  */
 const { describe, before, after, beforeEach } = require('node:test');
@@ -20,7 +20,7 @@ const {
   createOrder,
   checkoutBody,
 } = require('./setup');
-const { invalidateStoreSettingsCache } = require('../utils/commerce');
+const { invalidateStoreSettingsCache } = require('../services/commerce.service');
 
 function get(path, token) {
   const req = request(app).get(path);

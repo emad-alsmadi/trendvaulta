@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const {
   restoreStockForCanceledOrder,
   restoreStockOnce,
-} = require('./commerce');
+} = require('./commerce.service');
 
 describe('restoreStockForCanceledOrder', () => {
   it('increments product-level stock', async () => {

@@ -1,34 +1,28 @@
 const asyncHandler = require('express-async-handler');
 const { validationBody } = require('../utils/errors');
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
+const { User } = require('../models/User');
 const {
-  User,
+  validateUpdateProfile,
   validateCreateAddress,
   validateUpdateAddress,
-} = require('../models/User');
+} = require('../validators/user.validator');
 const bcrypt = require('bcryptjs');
-const Joi = require('joi');
 const logger = require('../utils/logger');
 // Module object, not destructured, so tests can observe the notice
 const mail = require('../utils/mail');
 const {
   isEmailVerified,
   startEmailVerification,
-} = require('../utils/emailVerification');
+} = require('../services/emailVerification.service');
 const { getUserPermissions } = require('../middlewares/rolePermissions');
 const {
   LOCKED_RESPONSE,
   isAccountLocked,
   recordFailedPassword,
   clearFailedPasswords,
-} = require('../utils/loginLockout');
+} = require('../services/loginLockout.service');
 
-const updateProfileSchema = Joi.object({
-  username: Joi.string().trim().min(3).max(200).required(),
-  email: Joi.string().trim().lowercase().email().max(100).required(),
-  // Required (checked in the controller) only when the email changes.
-  currentPassword: Joi.string().max(128).allow('').optional(),
-});
 const {
   MAX_ADDRESSES,
   shouldBecomeDefault,
@@ -47,12 +41,16 @@ const {
 const getProfile = asyncHandler(async (req, res) => {
   const userId = req.user?.id ?? req.user?._id;
   if (!userId) {
-    return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
+    return res
+      .status(401)
+      .json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
   }
 
   const user = await User.findById(userId).select('-password').lean();
   if (!user) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'User not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'User not found' });
   }
 
   res.status(200).json({
@@ -70,10 +68,12 @@ const getProfile = asyncHandler(async (req, res) => {
 const updateProfile = asyncHandler(async (req, res) => {
   const userId = req.user?.id ?? req.user?._id;
   if (!userId) {
-    return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
+    return res
+      .status(401)
+      .json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
   }
 
-  const { error, value } = updateProfileSchema.validate(req.body || {});
+  const { error, value } = validateUpdateProfile(req.body || {});
   if (error) {
     return res.status(400).json(validationBody(error));
   }
@@ -84,7 +84,9 @@ const updateProfile = asyncHandler(async (req, res) => {
     '+failedLoginAttempts +lockUntil',
   );
   if (!current) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'User not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'User not found' });
   }
 
   // Changing the email is an account takeover step (new email → reset the
@@ -100,7 +102,10 @@ const updateProfile = asyncHandler(async (req, res) => {
     if (isAccountLocked(current)) {
       return res.status(429).json(LOCKED_RESPONSE);
     }
-    const passwordOk = await bcrypt.compare(value.currentPassword, current.password);
+    const passwordOk = await bcrypt.compare(
+      value.currentPassword,
+      current.password,
+    );
     if (!passwordOk) {
       await recordFailedPassword(User, current._id);
       return res.status(400).json({
@@ -145,14 +150,19 @@ const updateProfile = asyncHandler(async (req, res) => {
     .lean();
 
   if (!updatedUser) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'User not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'User not found' });
   }
 
   if (emailChanged) {
     // The new address must be confirmed again, and the old one is told, so
     // a takeover through a stolen session can't go unnoticed. Best effort.
     await startEmailVerification(User, updatedUser).catch((err) =>
-      logger.error({ err }, 'Could not start email verification after an email change'),
+      logger.error(
+        { err },
+        'Could not start email verification after an email change',
+      ),
     );
     updatedUser.emailVerifiedAt = null;
     await mail
@@ -175,12 +185,16 @@ const updateProfile = asyncHandler(async (req, res) => {
 const getAddresses = asyncHandler(async (req, res) => {
   const userId = req.user?.id ?? req.user?._id;
   if (!userId) {
-    return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
+    return res
+      .status(401)
+      .json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
   }
 
   const user = await User.findById(userId).select('addresses').lean();
   if (!user) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'User not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'User not found' });
   }
 
   res.status(200).json({ data: toPublicAddresses(user.addresses) });
@@ -195,7 +209,9 @@ const getAddresses = asyncHandler(async (req, res) => {
 const createAddress = asyncHandler(async (req, res) => {
   const userId = req.user?.id ?? req.user?._id;
   if (!userId) {
-    return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
+    return res
+      .status(401)
+      .json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
   }
 
   const { error, value } = validateCreateAddress(req.body);
@@ -205,7 +221,9 @@ const createAddress = asyncHandler(async (req, res) => {
 
   const user = await User.findById(userId).select('addresses');
   if (!user) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'User not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'User not found' });
   }
 
   if (!canAddAddress(user.addresses.length)) {
@@ -253,7 +271,9 @@ const createAddress = asyncHandler(async (req, res) => {
 const updateAddress = asyncHandler(async (req, res) => {
   const userId = req.user?.id ?? req.user?._id;
   if (!userId) {
-    return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
+    return res
+      .status(401)
+      .json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
   }
 
   const { error, value } = validateUpdateAddress(req.body);
@@ -263,12 +283,16 @@ const updateAddress = asyncHandler(async (req, res) => {
 
   const user = await User.findById(userId).select('addresses');
   if (!user) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'User not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'User not found' });
   }
 
   const addr = user.addresses.id(req.params.addressId);
   if (!addr) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'Address not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'Address not found' });
   }
 
   if (value.isDefault === true) {
@@ -288,7 +312,10 @@ const updateAddress = asyncHandler(async (req, res) => {
 
   // If this was the only default and got explicitly unset, keep it default
   // (there must always be a default once any address exists).
-  if (value.isDefault === false && pickDefaultToPromote(user.addresses) === String(addr._id)) {
+  if (
+    value.isDefault === false &&
+    pickDefaultToPromote(user.addresses) === String(addr._id)
+  ) {
     addr.isDefault = true;
   }
 
@@ -309,17 +336,23 @@ const updateAddress = asyncHandler(async (req, res) => {
 const deleteAddress = asyncHandler(async (req, res) => {
   const userId = req.user?.id ?? req.user?._id;
   if (!userId) {
-    return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
+    return res
+      .status(401)
+      .json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
   }
 
   const user = await User.findById(userId).select('addresses');
   if (!user) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'User not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'User not found' });
   }
 
   const addr = user.addresses.id(req.params.addressId);
   if (!addr) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'Address not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'Address not found' });
   }
 
   addr.deleteOne();
@@ -344,17 +377,23 @@ const deleteAddress = asyncHandler(async (req, res) => {
 const setDefaultAddress = asyncHandler(async (req, res) => {
   const userId = req.user?.id ?? req.user?._id;
   if (!userId) {
-    return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
+    return res
+      .status(401)
+      .json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
   }
 
   const user = await User.findById(userId).select('addresses');
   if (!user) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'User not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'User not found' });
   }
 
   const addr = user.addresses.id(req.params.addressId);
   if (!addr) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'Address not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'Address not found' });
   }
 
   user.addresses.forEach((a) => {

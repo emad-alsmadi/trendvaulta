@@ -9,7 +9,7 @@ const {
   changePassword,
 } = require('../controllers/password.controller');
 
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
 
 router.post(
   '/password/forgot-password',
@@ -24,7 +24,7 @@ router.post(
 );
 router.post(
   '/password/change',
-  verfiyToken,
+  verifyToken,
   passwordRateLimit,
   changePassword,
 );

@@ -2,11 +2,13 @@ const asyncHandler = require('express-async-handler');
 const { validationBody } = require('../utils/errors');
 const {
   ShippingZone,
-  validateShippingZone,
-  validateShippingMethod,
   zoneMatchesAddress,
 } = require('../models/ShippingZone');
-const { invalidateStoreSettingsCache } = require('../utils/commerce');
+const {
+  validateShippingZone,
+  validateShippingMethod,
+} = require('../validators/shippingZone.validator');
+const { invalidateStoreSettingsCache } = require('../services/commerce.service');
 
 const getShippingZones = asyncHandler(async (_req, res) => {
   const zones = await ShippingZone.find({ isActive: true })

@@ -5,7 +5,7 @@ const {
   rotateRefreshToken,
   revokeRefreshToken,
   revokeAllForUser,
-} = require('./refreshTokens');
+} = require('./refreshTokens.service');
 
 function makeDoc(overrides = {}) {
   return {

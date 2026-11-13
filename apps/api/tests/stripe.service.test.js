@@ -1,6 +1,6 @@
 const { describe, it, mock } = require('node:test');
 const assert = require('node:assert/strict');
-const { refundPaymentIntent } = require('./stripe.service');
+const { refundPaymentIntent } = require('../services/stripe.service');
 
 function fakeStripe() {
   return {

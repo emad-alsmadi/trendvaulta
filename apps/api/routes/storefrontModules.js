@@ -8,7 +8,7 @@ const {
   updateStorefrontModule,
   deleteStorefrontModule,
 } = require('../controllers/storefrontModule.controller');
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 const { validate } = require('../middlewares/validate');
 const {
@@ -22,33 +22,33 @@ router.get('/storefront/modules', getStorefrontModules);
 // Admin endpoints
 router.get(
   '/storefront-modules/admin',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:read'),
   getAllStorefrontModules,
 );
 router.get(
   '/storefront-modules/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:read'),
   getStorefrontModuleById,
 );
 router.post(
   '/storefront-modules',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:write'),
   validate(createStorefrontModuleSchema),
   createStorefrontModule,
 );
 router.put(
   '/storefront-modules/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:write'),
   validate(updateStorefrontModuleSchema),
   updateStorefrontModule,
 );
 router.delete(
   '/storefront-modules/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:delete'),
   deleteStorefrontModule,
 );

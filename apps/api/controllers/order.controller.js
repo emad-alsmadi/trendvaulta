@@ -1,10 +1,14 @@
 const asyncHandler = require('express-async-handler');
 const { validationBody } = require('../utils/errors');
 const mongoose = require('mongoose');
-const logger = require('../utils/logger');
-const Joi = require('joi');
-const { Order, validateCreateOrder } = require('../models/Order');
+const { Order } = require('../models/Order');
 const { Product } = require('../models/Product');
+const orderRepository = require('../repositories/order.repository');
+const {
+  validateCreateOrder,
+  validateOrderTracking,
+  validateOrderStatus,
+} = require('../validators/order.validator');
 const { serializeOrder, serializeOrders } = require('../utils/serializeOrder');
 const {
   buildNormalizedOrderLines,
@@ -15,10 +19,8 @@ const {
   loadValidCouponByCode,
   calculateCouponDiscount,
   checkCouponUsage,
-  decrementStockForPaidOrder,
-  restoreStockOnce,
   getStoreSettings,
-} = require('../utils/commerce');
+} = require('../services/commerce.service');
 const {
   INVOICEABLE_PAYMENT_STATUSES,
   INVOICE_CSP,
@@ -30,28 +32,21 @@ const {
   getUserPermissions,
   hasPermission,
 } = require('../middlewares/rolePermissions');
-const { isValidGuestToken, orderEmailTarget } = require('../utils/guestOrders');
+const { isValidGuestToken } = require('../services/guestOrders.service');
 const {
-  sendOrderShippedEmail,
-  sendOrderDeliveredEmail,
-  sendOrderCanceledEmail,
-  sendOrderRefundedEmail,
-} = require('../utils/mail');
-const {
-  getStripeOrThrow,
-  refundPaymentIntent,
-} = require('../services/stripe.service');
-const {
-  ORDER_STATUSES,
   canCustomerCancel,
-  canTransitionOrderStatus,
   getAllowedNextStatuses,
-  hasOrderShipped,
 } = require('../utils/orderTransitions');
 const { buildSort } = require('../utils/sort');
-const { canCustomerReturn, RETURN_TRANSITIONS } = require('../utils/returns');
-const { normalizeSearchTerm } = require('../utils/search');
-const { User } = require('../models/User');
+const { canCustomerReturn } = require('../utils/returns');
+const {
+  findCustomerOrder,
+  returnEligibility,
+  buildAdminOrdersQuery,
+  updateOrderTrackingInfo,
+  transitionOrderStatus,
+  cancelCustomerOrder,
+} = require('../services/order.service');
 
 /** Columns the admin order table may sort on; all are indexed (models/Order.js). */
 const ORDER_SORT_FIELDS = [
@@ -77,7 +72,9 @@ const createOrder = asyncHandler(async (req, res) => {
 
   const userId = req.user?.id ?? req.user?._id;
   if (!userId) {
-    return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
+    return res
+      .status(401)
+      .json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
   }
 
   const { error, value } = validateCreateOrder(req.body);
@@ -101,11 +98,19 @@ const createOrder = asyncHandler(async (req, res) => {
     const coupon = await loadValidCouponByCode(couponCode);
     const result = calculateCouponDiscount(coupon, itemsPrice);
     if (!result.valid) {
-      return res.status(400).json({ code: result.code, ...(result.params && { params: result.params }), message: result.message });
+      return res.status(400).json({
+        code: result.code,
+        ...(result.params && { params: result.params }),
+        message: result.message,
+      });
     }
     const usage = await checkCouponUsage(coupon, userId);
     if (!usage.valid) {
-      return res.status(400).json({ code: usage.code, ...(usage.params && { params: usage.params }), message: usage.message });
+      return res.status(400).json({
+        code: usage.code,
+        ...(usage.params && { params: usage.params }),
+        message: usage.message,
+      });
     }
     discountAmount = result.discountAmount;
     couponId = coupon._id;
@@ -127,7 +132,7 @@ const createOrder = asyncHandler(async (req, res) => {
     taxPrice,
   });
 
-  const order = await Order.create({
+  const order = await orderRepository.createOrder({
     user: userId,
     items: normalizedItems,
     shippingAddress: {
@@ -153,29 +158,22 @@ const createOrder = asyncHandler(async (req, res) => {
 const getMyOrders = asyncHandler(async (req, res) => {
   const userId = req.user?.id ?? req.user?._id;
   if (!userId) {
-    return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
+    return res
+      .status(401)
+      .json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
   }
 
-  const orders = await Order.find({ user: userId })
-    .sort({ createdAt: -1 })
-    .lean();
+  const orders = await orderRepository.findCustomerOrders(userId);
 
   res.status(200).json(serializeOrders(orders));
 });
 
-/** `canReturn` plus, once delivered, the date the return window closes. */
-function returnEligibility(order) {
-  const verdict = canCustomerReturn(order);
-  return {
-    canReturn: verdict.ok,
-    returnWindowEndsAt: verdict.windowEndsAt ? verdict.windowEndsAt.toISOString() : undefined,
-  };
-}
-
 const getOrderById = asyncHandler(async (req, res) => {
   const userId = req.user?.id ?? req.user?._id;
   if (!userId) {
-    return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
+    return res
+      .status(401)
+      .json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
   }
 
   const isStaff =
@@ -186,9 +184,11 @@ const getOrderById = asyncHandler(async (req, res) => {
     ? { _id: req.params.id }
     : { _id: req.params.id, user: userId };
 
-  const order = await Order.findOne(query).lean();
+  const order = await orderRepository.findOrder(query);
   if (!order) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
 
   const serialized = serializeOrder(order);
@@ -210,77 +210,27 @@ const getOrderById = asyncHandler(async (req, res) => {
  * @access Private (orders:read)
  */
 const getAllOrders = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 20, status, paymentStatus, q } = req.query;
+  const { page = 1, limit = 20 } = req.query;
   const sort = buildSort(req.query.sort, req.query.order, ORDER_SORT_FIELDS);
 
-  const query = {};
-  if (status && ORDER_STATUSES.includes(String(status))) {
-    query.status = String(status);
-  }
-  if (
-    paymentStatus &&
-    ['unpaid', 'pending', 'paid', 'failed', 'refunded'].includes(
-      String(paymentStatus),
-    )
-  ) {
-    query.paymentStatus = String(paymentStatus);
-  }
-  // An order id matches exactly; anything else is treated as a customer email
-  // or username. A term that matches nothing must return nothing — dropping
-  // the filter instead would answer a failed search with the whole list.
-  const term = normalizeSearchTerm(q);
-  if (term) {
-    if (/^[a-f\d]{24}$/i.test(term)) {
-      query._id = term;
-    } else {
-      const customers = await User.find({
-        $or: [
-          { email: { $regex: term, $options: 'i' } },
-          { username: { $regex: term, $options: 'i' } },
-        ],
-      })
-        .select('_id')
-        .limit(200)
-        .lean();
-      // Account orders of matching customers, and guest orders by email
-      query.$or = [
-        { user: { $in: customers.map((u) => u._id) } },
-        { guestEmail: { $regex: term, $options: 'i' } },
-      ];
-    }
-  }
-
-  // Returns queue: orders whose return is at a given step.
-  const returnStatus =
-    typeof req.query.returnStatus === 'string' ? req.query.returnStatus : '';
-  if (Object.prototype.hasOwnProperty.call(RETURN_TRANSITIONS, returnStatus)) {
-    query['returnRequest.status'] = returnStatus;
-  }
-
-  // One customer's history (the Users screen links here). Combined with an
-  // email search it must narrow, not replace: both filters have to hold.
-  const customerId = typeof req.query.user === 'string' ? req.query.user : '';
-  if (/^[a-f\d]{24}$/i.test(customerId)) {
-    const matched = query.user?.$in;
-    query.user =
-      !matched || matched.some((id) => String(id) === customerId)
-        ? customerId
-        : { $in: [] };
-  }
+  const { query } = await buildAdminOrdersQuery({
+    status: req.query.status,
+    paymentStatus: req.query.paymentStatus,
+    q: req.query.q,
+    returnStatus: req.query.returnStatus,
+    user: req.query.user,
+  });
 
   const pageNum = Math.max(1, parseInt(page, 10) || 1);
   const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
   const skip = (pageNum - 1) * limitNum;
 
-  const [orders, total] = await Promise.all([
-    Order.find(query)
-      .populate('user', 'username email')
-      .sort(sort)
-      .skip(skip)
-      .limit(limitNum)
-      .lean(),
-    Order.countDocuments(query),
-  ]);
+  const { orders, total } = await orderRepository.findAdminOrders(
+    query,
+    sort,
+    skip,
+    limitNum,
+  );
 
   const data = serializeOrders(orders).map((o) => ({
     ...o,
@@ -304,78 +254,19 @@ const getAllOrders = asyncHandler(async (req, res) => {
  * @access Private (orders:write)
  */
 const updateOrderTracking = asyncHandler(async (req, res) => {
-  const schema = Joi.object({
-    trackingNumber: Joi.string().trim().allow('').optional(),
-    trackingCarrier: Joi.string().trim().allow('').optional(),
-    trackingUrl: Joi.string().trim().allow('').optional(),
-    trackingEvent: Joi.object({
-      status: Joi.string()
-        .valid(
-          'picked_up',
-          'in_transit',
-          'out_for_delivery',
-          'delivered',
-          'exception',
-        )
-        .required(),
-      description: Joi.string().trim().allow('').optional(),
-      location: Joi.string().trim().allow('').optional(),
-    }).optional(),
-  });
-  const { error, value } = schema.validate(req.body || {});
+  const { error, value } = validateOrderTracking(req.body || {});
   if (error) {
     return res.status(400).json(validationBody(error));
   }
 
-  const order = await Order.findById(req.params.id);
-  if (!order) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
+  const result = await updateOrderTrackingInfo(req.params.id, value);
+  if (!result.ok) {
+    return res.status(result.status).json(result.body);
   }
 
-  const hadTrackingNumber = Boolean(order.trackingNumber);
-
-  // Update basic tracking fields
-  if (value.trackingNumber !== undefined)
-    order.trackingNumber = value.trackingNumber;
-  if (value.trackingCarrier !== undefined)
-    order.trackingCarrier = value.trackingCarrier;
-  if (value.trackingUrl !== undefined) order.trackingUrl = value.trackingUrl;
-
-  // Add tracking event if provided
-  if (value.trackingEvent) {
-    order.trackingEvents.push({
-      status: value.trackingEvent.status,
-      description: value.trackingEvent.description || '',
-      location: value.trackingEvent.location || '',
-      timestamp: new Date(),
-    });
-  }
-
-  await order.save();
-
-  // The status change only emails "shipped" when a tracking number already
-  // exists; if it is added afterwards, send it now (once: first number only).
-  if (
-    order.status === 'shipped' &&
-    !hadTrackingNumber &&
-    order.trackingNumber
-  ) {
-    const { to, orderUrl } = await orderEmailTarget(order, User);
-    if (to) {
-      await sendOrderShippedEmail({
-        to,
-        orderUrl,
-        orderId: order._id,
-        trackingNumber: order.trackingNumber,
-        trackingCarrier: order.trackingCarrier,
-      }).catch(() => {});
-    }
-  }
-
-  const serialized = serializeOrder(order);
   res.status(200).json({
     message: 'Tracking information updated',
-    data: serialized,
+    data: serializeOrder(result.order),
   });
 });
 
@@ -391,259 +282,26 @@ const updateOrderTracking = asyncHandler(async (req, res) => {
  * @access Private (orders:write)
  */
 const updateOrderStatus = asyncHandler(async (req, res) => {
-  const schema = Joi.object({
-    status: Joi.string()
-      .valid(...ORDER_STATUSES)
-      .required(),
-  });
-  const { error, value } = schema.validate(req.body || {});
+  const { error, value } = validateOrderStatus(req.body || {});
   if (error) {
     return res.status(400).json(validationBody(error));
   }
 
-  // Reassigned to the claimed (post-transition) document below.
-  let order = await Order.findById(req.params.id);
-  if (!order) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
+  const result = await transitionOrderStatus(req.params.id, value.status);
+  if (!result.ok) {
+    return res.status(result.status).json(result.body);
   }
 
-  const transition = canTransitionOrderStatus(order.status, value.status);
-  if (!transition.ok) {
-    return res.status(400).json({ code: transition.code, ...(transition.params && { params: transition.params }), message: transition.message });
-  }
-
-  const paymentCaptured =
-    order.paymentStatus === 'paid' || order.paymentStatus === 'refunded';
-
-  if (value.status === 'paid' && order.paymentStatus !== 'paid') {
-    return res.status(400).json({
-      code: 'ORDER_NOT_PAID',
-      message:
-        'This order has not been paid. Payment status is set by Stripe only.',
-    });
-  }
-
-  if (value.status === 'refunded' && !paymentCaptured) {
-    return res.status(400).json({
-      code: 'NO_PAYMENT_TO_REFUND',
-      message: 'This order has no captured payment to refund',
-    });
-  }
-
-  // Guard: pending+paid is an inconsistent state — do not cancel via this path
-  if (value.status === 'canceled' && order.status === 'pending') {
-    if (order.paymentStatus === 'paid') {
-      return res.status(400).json({
-        code: 'CANCEL_PAID_PENDING',
-        message: 'Cannot cancel a paid order from pending state',
-      });
-    }
-  }
-
-  // Claim the transition with a conditional update on the state validated
-  // above (same pattern as cancelOrder): a concurrent customer cancel or
-  // Stripe webhook makes this a 409 instead of both sides acting on a stale
-  // read (e.g. refunding + restocking an order that was just shipped).
-  const claimSet = { status: value.status };
-  // Leaving needs_attention clears the reason unless a new one is set below
-  if (order.status === 'needs_attention') claimSet.attentionReason = '';
-  if (value.status === 'shipped' && !order.shippedAt) claimSet.shippedAt = new Date();
-  if (value.status === 'delivered' && !order.deliveredAt) {
-    claimSet.deliveredAt = new Date();
-  }
-  const previous = order;
-  const claimed = await Order.findOneAndUpdate(
-    {
-      _id: previous._id,
-      status: previous.status,
-      paymentStatus: previous.paymentStatus,
-    },
-    { $set: claimSet },
-    { new: true },
-  );
-  if (!claimed) {
-    return res.status(409).json({
-      code: 'STALE_UPDATE',
-      message: 'This order was just updated. Refresh and try again.',
-    });
-  }
-
-  // Resolving needs_attention → paid: inventory must actually be available
-  // now. A checkout reservation that was released (canceled, then paid late)
-  // is stockDecremented AND stockRestored, and holds nothing.
-  const holdsStock = claimed.stockDecremented && !claimed.stockRestored;
-  if (value.status === 'paid' && !holdsStock) {
-    try {
-      await decrementStockForPaidOrder(Product, claimed);
-      claimed.stockDecremented = true;
-      // Held again, so a later cancel/refund must be able to restock it
-      claimed.stockRestored = false;
-    } catch (stockErr) {
-      // Undo the claim so the order stays flagged for staff
-      await Order.updateOne(
-        { _id: claimed._id, status: 'paid' },
-        {
-          $set: {
-            status: previous.status,
-            attentionReason: previous.attentionReason,
-          },
-        },
-      );
-      if (stockErr?.statusCode !== 409) throw stockErr;
-      return res.status(409).json({
-        code: 'OUT_OF_STOCK_AFTER_PAYMENT',
-        message: `${stockErr.message}. Restock the product or refund the order.`,
-      });
-    }
-  }
-
-  const releasesOrder =
-    value.status === 'canceled' || value.status === 'refunded';
-  const autoRefund = process.env.AUTO_REFUND_ON_CANCEL !== 'false';
-  let refundedNow = false;
-  order = claimed;
-
-  // Admin cancel of an unpaid order: close the open Checkout session so the
-  // customer can't pay for it afterwards (as the customer cancel does).
-  if (
-    value.status === 'canceled' &&
-    order.paymentStatus !== 'paid' &&
-    order.stripeSessionId
-  ) {
-    try {
-      await getStripeOrThrow().checkout.sessions.expire(order.stripeSessionId);
-    } catch {
-      // already expired/completed, or Stripe not configured
-    }
-  }
-
-  if (releasesOrder && order.paymentStatus === 'paid') {
-    if (!order.paymentIntentId || !autoRefund) {
-      order.attentionReason = 'manual_refund_required';
-    } else {
-      try {
-        const stripe = getStripeOrThrow();
-        const refund = await refundPaymentIntent(stripe, order.paymentIntentId);
-        order.paymentStatus = 'refunded';
-        order.refundId = refund?.id || '';
-        order.refundedAt = new Date();
-        order.refundAmount = Number(refund?.amount || 0) / 100;
-        refundedNow = true;
-        // Persist the refund trail before any further step can fail
-        await order.save();
-      } catch (refundErr) {
-        logger.error(
-          { err: refundErr },
-          `Stripe refund failed for order ${order._id}`,
-        );
-        order.status = 'needs_attention';
-        order.attentionReason = 'refund_failed';
-        await order.save();
-        return res.status(502).json({
-          message:
-            'The Stripe refund could not be created. The order was flagged for manual review; please retry or refund it from the Stripe dashboard.',
-          attentionReason: 'refund_failed',
-        });
-      }
-    }
-  }
-
-  // Restock only goods that never left the warehouse; a shipped/delivered
-  // order is restocked line by line when its return is received.
-  let stockRestoredNow = false;
-  if (releasesOrder && !hasOrderShipped(previous)) {
-    stockRestoredNow = await restoreStockOnce(Order, Product, order);
-    if (stockRestoredNow) order.stockRestored = true;
-  }
-
-  await order.save();
-
-  // Send email notifications based on status change: the account email,
-  // or the guest's with their order link.
-  const { to: userEmail, orderUrl } = await orderEmailTarget(order, User);
-  if (userEmail) {
-    if (value.status === 'shipped' && order.trackingNumber) {
-      await sendOrderShippedEmail({
-        to: userEmail,
-        orderUrl,
-        orderId: order._id,
-        trackingNumber: order.trackingNumber,
-        trackingCarrier: order.trackingCarrier,
-      }).catch(() => {});
-    } else if (value.status === 'delivered') {
-      await sendOrderDeliveredEmail({
-        to: userEmail,
-        orderUrl,
-        orderId: order._id,
-      }).catch(() => {});
-    } else if (value.status === 'canceled') {
-      await sendOrderCanceledEmail({
-        to: userEmail,
-        orderUrl,
-        orderId: order._id,
-      }).catch(() => {});
-    } else if (value.status === 'refunded' && order.refundAmount > 0) {
-      await sendOrderRefundedEmail({
-        to: userEmail,
-        orderUrl,
-        orderId: order._id,
-        refundAmount: order.refundAmount,
-      }).catch(() => {});
-    }
-  }
-
-  const serialized = serializeOrder(order);
-  let message = `Order status updated to ${value.status}`;
-  if (refundedNow && stockRestoredNow) {
-    message = 'Order refunded via Stripe and inventory restored';
-  } else if (refundedNow) {
-    message = 'Order refunded via Stripe';
-  } else if (stockRestoredNow) {
-    message = 'Order canceled and inventory restored';
-  } else if (order.attentionReason === 'manual_refund_required') {
-    message = `Order ${value.status}; the payment must be refunded manually in Stripe`;
-  }
-
+  const serialized = serializeOrder(result.order);
   res.status(200).json({
     ...serialized,
     allowedNextStatuses: getAllowedNextStatuses(serialized.status),
-    stockRestored: stockRestoredNow || Boolean(order.stockRestored),
-    refunded: refundedNow || order.paymentStatus === 'refunded',
-    message,
+    stockRestored:
+      result.stockRestoredNow || Boolean(result.order.stockRestored),
+    refunded: result.refundedNow || result.order.paymentStatus === 'refunded',
+    message: result.message,
   });
 });
-
-/**
- * Customer: cancel their own order before it ships.
- *
- * Order of operations matters here:
- * 1. The cancel is *claimed* with a conditional update on the status we read,
- *    so a double click, a second tab, or staff shipping the order at the same
- *    moment cannot both win — the loser gets 409 instead of a refund on a
- *    shipped parcel.
- * 2. Only then is money moved. The refund goes through refundPaymentIntent,
- *    whose idempotency key makes a retried refund a no-op at Stripe.
- * 3. A refund that cannot be issued automatically never un-cancels the
- *    order: it is flagged for staff, and the customer is told a person will
- *    finish it.
- *
- * @route POST /api/orders/:id/cancel
- * @access Private (order owner)
- */
-/**
- * The order behind a customer action: the caller's own order, or a guest
- * order whose token matches (utils/guestOrders.js). null otherwise.
- */
-async function findCustomerOrder(req, orderId, guestToken) {
-  if (!mongoose.isValidObjectId(orderId)) return null;
-  if (req.user?.id) {
-    const own = await Order.findOne({ _id: orderId, user: req.user.id });
-    if (own) return own;
-  }
-  if (!guestToken) return null;
-  const order = await Order.findById(orderId);
-  return isValidGuestToken(order, guestToken) ? order : null;
-}
 
 /**
  * Guest order page: the order behind an emailed (or checkout) link.
@@ -654,9 +312,13 @@ async function findCustomerOrder(req, orderId, guestToken) {
  */
 const getGuestOrder = asyncHandler(async (req, res) => {
   const { orderId, token } = req.body || {};
-  const order = mongoose.isValidObjectId(orderId) ? await Order.findById(orderId) : null;
+  const order = mongoose.isValidObjectId(orderId)
+    ? await orderRepository.findOrderById(orderId)
+    : null;
   if (!isValidGuestToken(order, token)) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
   res.status(200).json({
     ...serializeOrder(order),
@@ -666,104 +328,33 @@ const getGuestOrder = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * Customer: cancel their own order before it ships.
+ * @route POST /api/orders/:id/cancel
+ * @access Private (order owner)
+ */
 const cancelOrder = asyncHandler(async (req, res) => {
   const guestToken = req.body?.guestToken;
   if (!req.user?.id && !guestToken) {
-    return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
-  }
-  // Owner- or token-scoped: someone else's order is "not found", not
-  // "forbidden", so the endpoint does not confirm which ids exist.
-  const order = await findCustomerOrder(req, req.params.id, guestToken);
-  if (!order) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
+    return res
+      .status(401)
+      .json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
   }
 
-  const allowed = canCustomerCancel(order);
-  if (!allowed.ok) {
-    return res.status(400).json({ code: allowed.code, ...(allowed.params && { params: allowed.params }), message: allowed.message });
+  const result = await cancelCustomerOrder(req.params.id, {
+    userId: req.user?.id,
+    guestToken,
+  });
+  if (!result.ok) {
+    return res.status(result.status).json(result.body);
   }
 
-  const claimed = await Order.findOneAndUpdate(
-    {
-      _id: order._id,
-      status: order.status,
-      paymentStatus: order.paymentStatus,
-    },
-    { $set: { status: 'canceled' } },
-    { new: true },
-  );
-  if (!claimed) {
-    return res.status(409).json({
-      code: 'STALE_UPDATE',
-      message: 'This order was just updated. Please refresh and try again.',
-    });
-  }
-
-  // Unpaid: close the open Checkout session so the customer cannot pay for
-  // an order they just canceled. Best effort — if it already completed, the
-  // webhook flags the order as paid_after_cancel for staff.
-  if (claimed.paymentStatus !== 'paid' && claimed.stripeSessionId) {
-    try {
-      await getStripeOrThrow().checkout.sessions.expire(claimed.stripeSessionId);
-    } catch {
-      // already expired/completed, or Stripe not configured
-    }
-  }
-
-  let refundedNow = false;
-  let refundPending = false;
-  if (claimed.paymentStatus === 'paid') {
-    const autoRefund = process.env.AUTO_REFUND_ON_CANCEL !== 'false';
-    if (!claimed.paymentIntentId || !autoRefund) {
-      // Same outcome as a staff cancel without auto-refund (updateOrderStatus).
-      claimed.attentionReason = 'manual_refund_required';
-      refundPending = true;
-    } else {
-      try {
-        const refund = await refundPaymentIntent(
-          getStripeOrThrow(),
-          claimed.paymentIntentId,
-        );
-        claimed.paymentStatus = 'refunded';
-        claimed.refundId = refund?.id || '';
-        claimed.refundedAt = new Date();
-        claimed.refundAmount = Number(refund?.amount || 0) / 100;
-        refundedNow = true;
-      } catch (refundErr) {
-        logger.error(
-          { err: refundErr },
-          `Stripe refund failed for order ${claimed._id}`,
-        );
-        claimed.status = 'needs_attention';
-        claimed.attentionReason = 'refund_failed';
-        refundPending = true;
-      }
-    }
-    // Persist the refund trail (or the flag) before anything else can fail.
-    await claimed.save();
-  }
-
-  const stockRestoredNow = await restoreStockOnce(Order, Product, claimed);
-  if (stockRestoredNow) claimed.stockRestored = true;
-
-  const { to, orderUrl } = await orderEmailTarget(claimed, User);
-  if (to) {
-    await sendOrderCanceledEmail({ to, orderUrl, orderId: claimed._id }).catch(() => {});
-  }
-
-  let message = 'Order canceled.';
-  if (refundedNow) {
-    message = 'Order canceled. Your refund has been issued and should appear in 5–10 business days.';
-  } else if (refundPending) {
-    message = 'Order canceled. Our team will issue your refund shortly — no action is needed from you.';
-  }
-
-  res.status(refundPending ? 202 : 200).json({
-    ...serializeOrder(claimed),
+  res.status(result.refundPending ? 202 : 200).json({
+    ...serializeOrder(result.order),
     canCancel: false,
-    refunded: refundedNow || claimed.paymentStatus === 'refunded',
-    refundPending,
-    message,
+    refunded: result.refundedNow || result.order.paymentStatus === 'refunded',
+    refundPending: result.refundPending,
+    message: result.message,
   });
 });
 
@@ -778,20 +369,29 @@ const cancelOrder = asyncHandler(async (req, res) => {
  */
 const getOrderInvoice = asyncHandler(async (req, res) => {
   if (!mongoose.isValidObjectId(req.params.id)) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
   const guestToken = req.get('x-guest-token');
   if (!req.user?.id && !guestToken) {
-    return res.status(401).json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
+    return res
+      .status(401)
+      .json({ code: 'UNAUTHORIZED', message: 'Token is not valid!' });
   }
-  const isStaff = hasPermission(getUserPermissions(req.user?.roles), 'orders:read');
+  const isStaff = hasPermission(
+    getUserPermissions(req.user?.roles),
+    'orders:read',
+  );
   // Someone else's order is "not found", so ids can't be probed
   const found = isStaff
-    ? await Order.findById(req.params.id)
-    : await findCustomerOrder(req, req.params.id, guestToken);
+    ? await orderRepository.findOrderById(req.params.id)
+    : await findCustomerOrder(req.user?.id, req.params.id, guestToken);
   const order = found ? found.toObject() : null;
   if (!order) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'Order not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'Order not found' });
   }
 
   if (!INVOICEABLE_PAYMENT_STATUSES.includes(order.paymentStatus)) {
@@ -810,7 +410,8 @@ const getOrderInvoice = asyncHandler(async (req, res) => {
     order,
     settings,
     locale: resolveInvoiceLocale(req.query.lang),
-    storefrontUrl: process.env.PUBLIC_FRONTEND_URL || process.env.FRONTEND_URL || '',
+    storefrontUrl:
+      process.env.PUBLIC_FRONTEND_URL || process.env.FRONTEND_URL || '',
   });
 
   res.set({

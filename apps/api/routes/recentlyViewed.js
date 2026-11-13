@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
 const { validate } = require('../middlewares/validate');
 const {
   trackRecentlyViewedSchema,
@@ -13,10 +13,10 @@ const {
 // JWT required — anonymous clients keep localStorage only
 router.post(
   '/me/recently-viewed',
-  verfiyToken,
+  verifyToken,
   validate(trackRecentlyViewedSchema),
   trackRecentlyViewed,
 );
-router.get('/me/recently-viewed', verfiyToken, getRecentlyViewed);
+router.get('/me/recently-viewed', verifyToken, getRecentlyViewed);
 
 module.exports = router;

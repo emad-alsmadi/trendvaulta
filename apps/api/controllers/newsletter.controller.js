@@ -11,7 +11,7 @@ const {
   newsletterLinks,
   verifyConfirmToken,
   verifyUnsubscribeToken,
-} = require('../utils/newsletterTokens');
+} = require('../services/newsletterTokens.service');
 const { sendNewsletterConfirmEmail } = require('../utils/mail');
 
 const invalidLink = (res) =>

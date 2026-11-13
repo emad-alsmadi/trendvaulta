@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
-const Joi = require('joi');
 const jwt = require('jsonwebtoken');
+const {
+  validateRegisterUser,
+  validateLoginUser,
+  validateUpdateUser,
+  validateCreateAddress,
+  validateUpdateAddress,
+} = require('../validators/user.validator');
 
 // Saved address book entry. Same field names/constraints as Order's
 // ShippingAddressSchema (apps/api/models/Order.js) so it maps directly onto
@@ -125,8 +131,8 @@ const UserSchema = new mongoose.Schema(
     },
     // Bumped whenever every access token already issued to this account
     // must die immediately rather than linger up to 15 minutes (disable,
-    // role change, password change/reset — see utils/refreshTokens.js
-    // bumpTokenVersion). Carried in the JWT; verfiyToken rejects a token
+    // role change, password change/reset — see services/refreshTokens.service.js
+    // bumpTokenVersion). Carried in the JWT; verifyToken rejects a token
     // whose version doesn't match the current one.
     tokenVersion: {
       type: Number,
@@ -139,7 +145,7 @@ const UserSchema = new mongoose.Schema(
       enum: ['en', 'ar'],
       default: 'en',
     },
-    // Email ownership (utils/emailVerification.js). No default on purpose:
+    // Email ownership (services/emailVerification.service.js). No default on purpose:
     // accounts created before verification existed have no such field and
     // count as verified (grandfathered); new sign-ups and email changes set
     // it to null until the link is opened. Token stored hashed, single-use.
@@ -174,7 +180,7 @@ const UserSchema = new mongoose.Schema(
 
 // Short-lived on purpose: this JWT cannot be revoked server-side once issued,
 // so a small blast radius matters more than avoiding refresh calls. Sessions
-// stay alive via the refresh token (see utils/refreshTokens.js), which *can*
+// stay alive via the refresh token (see services/refreshTokens.service.js), which *can*
 // be revoked/rotated.
 const ACCESS_TOKEN_TTL = '15m';
 
@@ -184,7 +190,7 @@ UserSchema.methods.generateToken = function() {
       id: String(this._id),
       roles: this._doc.roles,
       // Defaults to 0 for a doc fetched before this field existed, matching
-      // the schema default — verfiyToken compares against the same default.
+      // the schema default — verifyToken compares against the same default.
       tokenVersion: this._doc.tokenVersion ?? 0,
     },
     process.env.JWT_SECRET_KEY,
@@ -192,67 +198,6 @@ UserSchema.methods.generateToken = function() {
   );
 };
 const User = mongoose.model('User', UserSchema);
-
-// Validate Register User
-const validateRegisterUser = (obj) => {
-  const schema = Joi.object({
-    email: Joi.string().trim().min(5).max(100).required().email(),
-    username: Joi.string().trim().min(2).max(200).required(),
-    password: Joi.string().trim().min(8).max(100).required(),
-    // Public registration must never accept client-supplied roles
-    roles: Joi.any().forbidden(),
-  });
-  return schema.validate(obj, { stripUnknown: true });
-};
-// Validate Login User
-const validateLoginUser = (obj) => {
-  const schema = Joi.object({
-    email: Joi.string().trim().min(5).max(100).required().email(),
-    password: Joi.string().trim().min(8).max(100).required(),
-  });
-  return schema.validate(obj);
-};
-// Validate Update User
-const validateUpdateUser = (obj) => {
-  const schema = Joi.object({
-    email: Joi.string().trim().min(5).max(100).email(),
-    username: Joi.string().trim().min(2).max(200),
-    password: Joi.string().trim().min(8).max(100),
-    roles: Joi.array().items(Joi.string().valid('user', 'admin', 'moderator')),
-    disabled: Joi.boolean(),
-    adminNotes: Joi.string().trim().max(2000).allow(''),
-  }).min(1);
-  return schema.validate(obj);
-};
-// Validate Create Address
-const validateCreateAddress = (obj) => {
-  const schema = Joi.object({
-    label: Joi.string().trim().max(40).allow('').optional(),
-    name: Joi.string().trim().min(2).max(200).required(),
-    phone: Joi.string().trim().min(6).max(30).required(),
-    address: Joi.string().trim().min(5).max(300).required(),
-    city: Joi.string().trim().min(2).max(100).required(),
-    zip: Joi.string().trim().min(2).max(20).required(),
-    country: Joi.string().trim().length(2).uppercase().allow('').optional(),
-    isDefault: Joi.boolean().optional(),
-  });
-  return schema.validate(obj);
-};
-
-// Validate Update Address
-const validateUpdateAddress = (obj) => {
-  const schema = Joi.object({
-    label: Joi.string().trim().max(40).allow(''),
-    name: Joi.string().trim().min(2).max(200),
-    phone: Joi.string().trim().min(6).max(30),
-    address: Joi.string().trim().min(5).max(300),
-    city: Joi.string().trim().min(2).max(100),
-    zip: Joi.string().trim().min(2).max(20),
-    country: Joi.string().trim().length(2).uppercase().allow(''),
-    isDefault: Joi.boolean(),
-  }).min(1);
-  return schema.validate(obj);
-};
 
 module.exports = {
   User,

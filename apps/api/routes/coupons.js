@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 const { optionalVerifyToken } = require('../middlewares/optionalVerifyToken');
 const { couponValidateRateLimit } = require('../middlewares/rateLimit');
@@ -30,34 +30,34 @@ router.get('/coupons/code/:code', couponValidateRateLimit, getCouponByCode);
 // Admin routes
 router.get(
   '/coupons',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('coupons:read'),
   getAllCoupons,
 );
 router.get(
   '/coupons/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('coupons:read'),
   getCouponById,
 );
 
 router.post(
   '/coupons',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('coupons:write'),
   createCoupon,
 );
 
 router.put(
   '/coupons/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('coupons:write'),
   updateCoupon,
 );
 
 router.delete(
   '/coupons/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('coupons:delete'),
   deleteCoupon,
 );
@@ -65,7 +65,7 @@ router.delete(
 // Usage is incremented on paid webhook/verify — admin-only manual bump for ops
 router.post(
   '/coupons/:id/use',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('coupons:write'),
   incrementCouponUsage,
 );

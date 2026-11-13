@@ -1,7 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const router = express.Router();
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
 const { getUserPermissions } = require('../middlewares/rolePermissions');
 const { uploadImage } = require('../controllers/upload.controller');
 
@@ -61,7 +61,7 @@ const handleUpload = (req, res, next) => {
 
 router.post(
   '/uploads',
-  verfiyToken,
+  verifyToken,
   requireProductsOrBrandsWrite,
   handleUpload,
   uploadImage,

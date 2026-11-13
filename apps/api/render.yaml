@@ -44,7 +44,7 @@ services:
       # Rate limiting (middlewares/rateLimit.js) — requests per IP per window.
       # AUTH stays at 30/min until the Vercel→Render proxy hop count is known
       # (all shoppers may share Vercel's IP); brute force is capped per
-      # account by utils/loginLockout.js regardless.
+      # account by services/loginLockout.service.js regardless.
       - key: RATE_LIMIT_AUTH_MAX
         value: 30
       - key: RATE_LIMIT_PASSWORD_MAX
@@ -59,7 +59,7 @@ services:
         value: 120
       - key: RATE_LIMIT_QUOTE_MAX
         value: 120
-      # Shipping (utils/commerce.js)
+      # Shipping (services/commerce.service.js)
       - key: SHIPPING_FLAT_USD
         value: 5
       # Email: the API reads SMTP_* (see controllers/password.controller.js, utils/mail.js)

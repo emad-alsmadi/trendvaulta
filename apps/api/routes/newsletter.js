@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 const { newsletterRateLimit } = require('../middlewares/rateLimit');
 
@@ -14,7 +14,7 @@ const {
 // Admin (static segment first)
 router.get(
   '/newsletter/admin',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:read'),
   getAdminSubscribers,
 );

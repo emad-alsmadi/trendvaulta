@@ -1,6 +1,6 @@
 const { describe, it, mock } = require('node:test');
 const assert = require('node:assert/strict');
-const { incrementSalesCountForPaidOrder } = require('./commerce');
+const { incrementSalesCountForPaidOrder } = require('./commerce.service');
 
 describe('incrementSalesCountForPaidOrder', () => {
   it('increments salesCount by line qty', async () => {

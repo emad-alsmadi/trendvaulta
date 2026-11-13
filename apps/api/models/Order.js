@@ -1,5 +1,10 @@
 const mongoose = require('mongoose');
-const Joi = require('joi');
+const {
+  orderItemSchema,
+  orderItemsSchema,
+  validateCreateOrder,
+  validateQuote,
+} = require('../validators/order.validator');
 
 const OrderItemSchema = new mongoose.Schema(
   {
@@ -91,7 +96,7 @@ const OrderSchema = new mongoose.Schema(
   {
     // null for a guest order (plan P0-03), which carries guestEmail instead.
     // A guest order is attached to an account once someone registers and
-    // confirms that same email (utils/guestOrders.js attachGuestOrders).
+    // confirms that same email (services/guestOrders.service.js attachGuestOrders).
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -436,75 +441,6 @@ OrderSchema.index(
 );
 
 const Order = mongoose.model('Order', OrderSchema);
-
-/** Shared client line shape: productId/qty/variant hints only (server prices lines). */
-const orderItemSchema = Joi.object({
-  productId: Joi.string().hex().length(24).required(),
-  qty: Joi.number().integer().min(1).required(),
-  variant: Joi.object({
-    size: Joi.string().trim().allow('', null),
-    color: Joi.string().trim().allow('', null),
-    colorCode: Joi.string().trim().allow('', null),
-    sku: Joi.string().trim().allow('', null),
-  }).optional(),
-  // Client price/title/cover ignored by server — allowed for backward compat only
-  title: Joi.any().strip(),
-  price: Joi.any().strip(),
-});
-
-const orderItemsSchema = Joi.array().items(orderItemSchema).min(1).required();
-
-const validateCreateOrder = (obj) => {
-  const schema = Joi.object({
-    items: orderItemsSchema,
-    shippingAddress: Joi.object({
-      name: Joi.string().trim().min(2).max(200).required(),
-      phone: Joi.string().trim().min(6).max(30).required(),
-      address: Joi.string().trim().min(5).max(300).required(),
-      city: Joi.string().trim().min(2).max(100).required(),
-      zip: Joi.string().trim().min(2).max(20).required(),
-      country: Joi.string().trim().length(2).uppercase().optional(),
-      notes: Joi.string().trim().max(500).allow('').optional(),
-    }).required(),
-    // Client shippingPrice/taxPrice ignored — use delivery / shippingMethod
-    delivery: Joi.boolean().optional(),
-    shippingMethod: Joi.string().trim().max(50).optional(),
-    couponCode: Joi.string().trim().max(50).allow('', null).optional(),
-    // Guest checkout only (no session): where the receipt and order link go.
-    // Ignored for signed-in shoppers, whose account email is used.
-    email: Joi.string().trim().lowercase().email().max(100).optional(),
-    // Storefront language, for a guest's order emails
-    locale: Joi.string().valid('en', 'ar').optional(),
-    shippingPrice: Joi.any().strip(),
-    taxPrice: Joi.any().strip(),
-  });
-
-  return schema.validate(obj, { stripUnknown: true });
-};
-
-/**
- * POST /payments/quote body. Same line shape as createOrder, but the client's
- * last-seen unit price is kept so the server can flag price drift.
- */
-const validateQuote = (obj) => {
-  const schema = Joi.object({
-    items: Joi.array()
-      .items(orderItemSchema.keys({ price: Joi.number().min(0).optional() }))
-      .min(1)
-      .max(100)
-      .required(),
-    couponCode: Joi.string().trim().max(50).allow('', null).optional(),
-    delivery: Joi.boolean().optional(),
-    shippingMethod: Joi.string().trim().max(50).optional(),
-    shippingAddress: Joi.object({
-      country: Joi.string().trim().length(2).uppercase().optional(),
-      zip: Joi.string().trim().min(2).max(20).optional(),
-      city: Joi.string().trim().min(2).max(100).optional(),
-    }).optional(),
-  });
-
-  return schema.validate(obj, { stripUnknown: true });
-};
 
 module.exports = {
   Order,

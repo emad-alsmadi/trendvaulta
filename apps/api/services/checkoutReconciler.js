@@ -1,5 +1,5 @@
 const logger = require('../utils/logger');
-const { reconcileStaleCheckouts } = require('../controllers/payment.controller');
+const { reconcileStaleCheckouts } = require('./payment.service');
 
 const DEFAULT_INTERVAL_MS = 5 * 60 * 1000;
 

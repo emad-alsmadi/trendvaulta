@@ -16,7 +16,7 @@ const {
   calculateCouponDiscount,
   checkCouponUsage,
   loadValidCouponByCode,
-} = require('../utils/commerce');
+} = require('../services/commerce.service');
 
 /**
  * Get all coupons with pagination.
@@ -77,7 +77,7 @@ const getAllCoupons = asyncHandler(async (req, res) => {
  * @access Private (admin only)
  * @param {import('express').Request} req
  * @param {import('express').Response} res
- * @returns {Promise<void>} JSON coupon document
+ * @returns {Promise<void>} JSON { data: coupon } envelope
  */
 const getCouponById = asyncHandler(async (req, res) => {
   const coupon = await Coupon.findById(req.params.id);
@@ -86,7 +86,7 @@ const getCouponById = asyncHandler(async (req, res) => {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Coupon not found' });
   }
 
-  res.status(200).json(coupon);
+  res.status(200).json({ data: coupon });
 });
 
 /**
@@ -96,7 +96,7 @@ const getCouponById = asyncHandler(async (req, res) => {
  * @access Public
  * @param {import('express').Request} req
  * @param {import('express').Response} res
- * @returns {Promise<void>} JSON coupon document
+ * @returns {Promise<void>} JSON { data: coupon } envelope
  */
 const getCouponByCode = asyncHandler(async (req, res) => {
   const { code } = req.params;
@@ -114,7 +114,7 @@ const getCouponByCode = asyncHandler(async (req, res) => {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Coupon not found' });
   }
 
-  res.status(200).json(coupon);
+  res.status(200).json({ data: coupon });
 });
 
 /**
@@ -124,7 +124,7 @@ const getCouponByCode = asyncHandler(async (req, res) => {
  * @access Private (admin only)
  * @param {import('express').Request} req
  * @param {import('express').Response} res
- * @returns {Promise<void>} JSON created coupon document
+ * @returns {Promise<void>} JSON { data: coupon } envelope
  */
 const createCoupon = asyncHandler(async (req, res) => {
   const error = validateCreateCoupon(req.body);
@@ -153,7 +153,7 @@ const createCoupon = asyncHandler(async (req, res) => {
   });
 
   const result = await coupon.save();
-  res.status(201).json(result);
+  res.status(201).json({ data: result });
 });
 
 /**
@@ -163,7 +163,7 @@ const createCoupon = asyncHandler(async (req, res) => {
  * @access Private (admin only)
  * @param {import('express').Request} req
  * @param {import('express').Response} res
- * @returns {Promise<void>} JSON updated coupon document
+ * @returns {Promise<void>} JSON { data: coupon } envelope
  */
 const updateCoupon = asyncHandler(async (req, res) => {
   const error = validateUpdateCoupon(req.body);
@@ -230,7 +230,7 @@ const updateCoupon = asyncHandler(async (req, res) => {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Coupon not found' });
   }
 
-  res.status(200).json(coupon);
+  res.status(200).json({ data: coupon });
 });
 
 /**
@@ -240,7 +240,7 @@ const updateCoupon = asyncHandler(async (req, res) => {
  * @access Private (admin only)
  * @param {import('express').Request} req
  * @param {import('express').Response} res
- * @returns {Promise<void>} JSON confirmation message
+ * @returns {Promise<void>} JSON { message, data: coupon } envelope
  */
 const deleteCoupon = asyncHandler(async (req, res) => {
   const coupon = await Coupon.findByIdAndUpdate(
@@ -253,7 +253,7 @@ const deleteCoupon = asyncHandler(async (req, res) => {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Coupon not found' });
   }
 
-  res.status(200).json({ message: 'Coupon has been deactivated' });
+  res.status(200).json({ message: 'Coupon has been deactivated', data: coupon });
 });
 
 /**
@@ -317,7 +317,7 @@ const validateCoupon = asyncHandler(async (req, res) => {
  * @access Private
  * @param {import('express').Request} req
  * @param {import('express').Response} res
- * @returns {Promise<void>} JSON updated coupon document
+ * @returns {Promise<void>} JSON { data: coupon } envelope
  */
 const incrementCouponUsage = asyncHandler(async (req, res) => {
   const coupon = await Coupon.findByIdAndUpdate(
@@ -330,7 +330,7 @@ const incrementCouponUsage = asyncHandler(async (req, res) => {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Coupon not found' });
   }
 
-  res.status(200).json(coupon);
+  res.status(200).json({ data: coupon });
 });
 
 module.exports = {

@@ -48,7 +48,7 @@ apps/api/
 ├── routes/           # One router per resource, all mounted under /api
 ├── controllers/      # Business logic and response contracts
 ├── models/           # Mongoose schemas + Joi validators
-├── middlewares/      # verfiyToken (JWT), checkRolePermission (RBAC), rateLimit, cors, logger
+├── middlewares/      # verifyToken (JWT), checkRolePermission (RBAC), rateLimit, cors, logger
 ├── services/         # stripe.service.js, storage.service.js (local disk / Cloudinary)
 ├── utils/            # commerce (totals/shipping), mail, order transitions, serializers
 ├── tests/            # Integration test setup (mongodb-memory-server)
@@ -56,7 +56,7 @@ apps/api/
 └── data.js           # Seed data generators
 ```
 
-Conventions: JWT via `Authorization: Bearer <token>` (`verfiyToken`, existing spelling); admin routes add `checkRolePermission('<resource>:<action>')`; success shapes vary per controller (`{ message, data }`, `{ data, meta }`, bare documents — confirm per controller); errors from the central handler are `{ success: false, message, code, details?, requestId? }`, and every response carries an `X-Request-Id` header.
+Conventions: JWT via `Authorization: Bearer <token>` (`verifyToken`); admin routes add `checkRolePermission('<resource>:<action>')`; success shapes vary per controller (`{ message, data }`, `{ data, meta }`, bare documents — confirm per controller); errors from the central handler are `{ success: false, message, code, details?, requestId? }`, and every response carries an `X-Request-Id` header.
 
 ## Health
 

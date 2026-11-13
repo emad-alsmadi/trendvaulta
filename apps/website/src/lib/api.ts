@@ -299,7 +299,7 @@ export const authApi = {
 
 /**
  * Addresses API - The signed-in user's saved address book.
- * Every route is behind `verfiyToken`; the API returns public address shapes
+ * Every route is behind `verifyToken`; the API returns public address shapes
  * (never the password) under `data`.
  */
 export const addressesApi = {
@@ -726,8 +726,8 @@ export const brandsApi = {
    * @returns Brand details
    */
   getBrandById: async (id: string): Promise<Brand> => {
-    const { data } = await api.get(`/brands/${id}`);
-    return data;
+    const { data } = await api.get<{ data: Brand }>(`/brands/${id}`);
+    return data.data;
   },
 };
 
@@ -794,8 +794,7 @@ export type StorefrontOffer = {
 };
 
 export type OffersResponse = {
-  message: string;
-  results: StorefrontOffer[];
+  data: StorefrontOffer[];
 };
 
 /**

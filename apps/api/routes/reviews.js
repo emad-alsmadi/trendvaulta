@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 
 const {
@@ -23,31 +23,31 @@ router.get('/reviews/product/:productId', getProductReviews);
 // Admin (before /:reviewId patterns)
 router.get(
   '/reviews/admin',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('reviews:read'),
   getAdminReviews,
 );
 router.put(
   '/reviews/admin/:reviewId/reply',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('reviews:write'),
   replyToReview,
 );
 router.patch(
   '/reviews/admin/:reviewId/status',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('reviews:write'),
   moderateReview,
 );
 router.delete(
   '/reviews/admin/:reviewId/reply',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('reviews:write'),
   deleteReviewReply,
 );
 router.delete(
   '/reviews/admin/:reviewId',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('reviews:delete'),
   adminDeleteReview,
 );
@@ -55,16 +55,16 @@ router.delete(
 // Authenticated customer
 router.post(
   '/reviews',
-  verfiyToken,
+  verifyToken,
   createReview,
 );
 router.put(
   '/reviews/:reviewId',
-  verfiyToken,
+  verifyToken,
   updateReview,
 );
-router.delete('/reviews/:reviewId', verfiyToken, deleteReview);
-router.get('/reviews/my/:productId', verfiyToken, getMyReview);
-router.get('/reviews/my', verfiyToken, getMyReviews);
+router.delete('/reviews/:reviewId', verifyToken, deleteReview);
+router.get('/reviews/my/:productId', verifyToken, getMyReview);
+router.get('/reviews/my', verifyToken, getMyReviews);
 
 module.exports = router;

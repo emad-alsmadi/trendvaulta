@@ -117,7 +117,7 @@ assume a client's types are complete or current.
 ### API (`apps/api`)
 
 - REST under `/api/`
-- JWT auth (`verfiyToken`), Joi validation, Mongoose
+- JWT auth (`verifyToken`), Joi validation, Mongoose
 - Stripe Checkout + webhook
 - Nodemailer (password reset; order confirmation and status emails)
 - Default port `3000` (`PORT` env override)

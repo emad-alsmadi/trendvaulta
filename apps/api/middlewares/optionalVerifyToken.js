@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { resolveActiveUser } = require('./verfiyToken');
+const { resolveActiveUser } = require('./verifyToken');
 
 // The verified payload of the request's Bearer token, or null when there is
 // no token or it doesn't verify (bad signature, expired).
@@ -25,10 +25,10 @@ const decodeBearer = (req) => {
  * Used for public catalog routes that unlock staff-only filters when authenticated.
  *
  * SEC-111: the legacy `token:` header fallback is gone, matching
- * verfiyToken.js. Unlike verfiyToken.js, this does NOT re-check
+ * verifyToken.js. Unlike verifyToken.js, this does NOT re-check
  * disabled/tokenVersion against the DB — it only ever unlocks staff-only
  * filters or associates a request with an account on otherwise-public
- * routes, never a permission check (checkRolePermission uses verfiyToken),
+ * routes, never a permission check (checkRolePermission uses verifyToken),
  * so the extra DB read on every public catalog request isn't worth it here.
  * A route that does decide access to someone else's data from req.user
  * must use optionalVerifyTokenStrict below instead.
@@ -42,7 +42,7 @@ const optionalVerifyToken = (req, _res, next) => {
 /**
  * optionalVerifyToken for a route that does decide access to someone else's
  * data from the token (the invoice's staff branch reads any order). The
- * account is re-checked exactly as verfiyToken does; a token it would reject
+ * account is re-checked exactly as verifyToken does; a token it would reject
  * is treated as absent rather than failing the request, so a guest token on
  * the same request still works. Only requests carrying a token pay the DB
  * read.

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 const {
   getAdminStats,
@@ -15,7 +15,7 @@ const {
  */
 router.get(
   '/admin/stats',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('orders:read'),
   getAdminStats,
 );
@@ -26,7 +26,7 @@ router.get(
  */
 router.get(
   '/admin/analytics',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('orders:read'),
   getAdminAnalytics,
 );
@@ -37,7 +37,7 @@ router.get(
  */
 router.get(
   '/admin/low-stock',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('products:read'),
   getLowStockProducts,
 );

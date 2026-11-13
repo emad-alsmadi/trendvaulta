@@ -32,7 +32,7 @@ const { Subscriber } = require('../models/Subscriber');
 const {
   createConfirmToken,
   createUnsubscribeToken,
-} = require('../utils/newsletterTokens');
+} = require('../services/newsletterTokens.service');
 const { ContactMessage } = require('../models/ContactMessage');
 const { Review } = require('../models/Review');
 

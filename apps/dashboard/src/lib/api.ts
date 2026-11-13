@@ -717,16 +717,16 @@ export const adminBrandsApi = {
   },
 
   createBrand: async (payload: BrandFormPayload): Promise<AdminBrand> => {
-    const { data } = await api.post<AdminBrand>('/brands', payload);
-    return data;
+    const { data } = await api.post<{ data: AdminBrand }>('/brands', payload);
+    return data.data;
   },
 
   updateBrand: async (
     id: string,
     payload: Partial<BrandFormPayload>,
   ): Promise<AdminBrand> => {
-    const { data } = await api.put<AdminBrand>(`/brands/${id}`, payload);
-    return data;
+    const { data } = await api.put<{ data: AdminBrand }>(`/brands/${id}`, payload);
+    return data.data;
   },
 
   deleteBrand: async (id: string): Promise<{ message: string }> => {
@@ -981,16 +981,16 @@ export const adminCouponsApi = {
   },
 
   createCoupon: async (payload: CouponPayload): Promise<AdminCoupon> => {
-    const { data } = await api.post<AdminCoupon>('/coupons', payload);
-    return data;
+    const { data } = await api.post<{ data: AdminCoupon }>('/coupons', payload);
+    return data.data;
   },
 
   updateCoupon: async (
     id: string,
     payload: Partial<CouponPayload>,
   ): Promise<AdminCoupon> => {
-    const { data } = await api.put<AdminCoupon>(`/coupons/${id}`, payload);
-    return data;
+    const { data } = await api.put<{ data: AdminCoupon }>(`/coupons/${id}`, payload);
+    return data.data;
   },
 
   deleteCoupon: async (id: string): Promise<{ message: string }> => {
@@ -1041,16 +1041,16 @@ export const adminOffersApi = {
   },
 
   createOffer: async (payload: OfferPayload): Promise<AdminOffer> => {
-    const { data } = await api.post<AdminOffer>('/offers', payload);
-    return data;
+    const { data } = await api.post<{ data: AdminOffer }>('/offers', payload);
+    return data.data;
   },
 
   updateOffer: async (
     id: string,
     payload: Partial<OfferPayload>,
   ): Promise<AdminOffer> => {
-    const { data } = await api.put<AdminOffer>(`/offers/${id}`, payload);
-    return data;
+    const { data } = await api.put<{ data: AdminOffer }>(`/offers/${id}`, payload);
+    return data.data;
   },
 
   deleteOffer: async (id: string): Promise<{ message: string }> => {
@@ -1231,19 +1231,19 @@ export const adminHelpTopicsApi = {
   createHelpTopic: async (
     payload: HelpTopicPayload,
   ): Promise<AdminHelpTopic> => {
-    const { data } = await api.post<AdminHelpTopic>('/help-topics', payload);
-    return data;
+    const { data } = await api.post<{ data: AdminHelpTopic }>('/help-topics', payload);
+    return data.data;
   },
 
   updateHelpTopic: async (
     id: string,
     payload: Partial<HelpTopicPayload>,
   ): Promise<AdminHelpTopic> => {
-    const { data } = await api.put<AdminHelpTopic>(
+    const { data } = await api.put<{ data: AdminHelpTopic }>(
       `/help-topics/${id}`,
       payload,
     );
-    return data;
+    return data.data;
   },
 
   deleteHelpTopic: async (id: string): Promise<{ message: string }> => {
@@ -1375,16 +1375,16 @@ export const adminContentApi = {
   },
 
   createContent: async (payload: ContentPayload): Promise<AdminContent> => {
-    const { data } = await api.post<AdminContent>('/content', payload);
-    return data;
+    const { data } = await api.post<{ data: AdminContent }>('/content', payload);
+    return data.data;
   },
 
   updateContent: async (
     id: string,
     payload: Partial<ContentPayload>,
   ): Promise<AdminContent> => {
-    const { data } = await api.put<AdminContent>(`/content/${id}`, payload);
-    return data;
+    const { data } = await api.put<{ data: AdminContent }>(`/content/${id}`, payload);
+    return data.data;
   },
 
   deleteContent: async (id: string): Promise<{ message: string }> => {

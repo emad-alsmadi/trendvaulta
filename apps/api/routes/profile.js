@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
 const {
   getProfile,
   updateProfile,
@@ -18,7 +18,7 @@ const { updateLocale } = require('../controllers/locale.controller');
  * @method GET
  * @access private
  */
-router.get('/auth/profile', verfiyToken, getProfile);
+router.get('/auth/profile', verifyToken, getProfile);
 
 /**
  * @desc Update current user profile (username, email)
@@ -26,7 +26,7 @@ router.get('/auth/profile', verfiyToken, getProfile);
  * @method PUT
  * @access private
  */
-router.put('/auth/profile', verfiyToken, updateProfile);
+router.put('/auth/profile', verifyToken, updateProfile);
 
 /**
  * @desc Remember the storefront language for the customer's emails (P1-02)
@@ -34,7 +34,7 @@ router.put('/auth/profile', verfiyToken, updateProfile);
  * @method PUT
  * @access private
  */
-router.put('/auth/locale', verfiyToken, updateLocale);
+router.put('/auth/locale', verifyToken, updateLocale);
 
 /**
  * @desc Address book for the current user
@@ -44,8 +44,8 @@ router.put('/auth/locale', verfiyToken, updateLocale);
  */
 router
   .route('/auth/addresses')
-  .get(verfiyToken, getAddresses)
-  .post(verfiyToken, createAddress);
+  .get(verifyToken, getAddresses)
+  .post(verifyToken, createAddress);
 
 /**
  * @desc Update / remove a single saved address
@@ -55,8 +55,8 @@ router
  */
 router
   .route('/auth/addresses/:addressId')
-  .put(verfiyToken, updateAddress)
-  .delete(verfiyToken, deleteAddress);
+  .put(verifyToken, updateAddress)
+  .delete(verifyToken, deleteAddress);
 
 /**
  * @desc Promote a saved address to the default
@@ -64,6 +64,6 @@ router
  * @method PATCH
  * @access private
  */
-router.patch('/auth/addresses/:addressId/default', verfiyToken, setDefaultAddress);
+router.patch('/auth/addresses/:addressId/default', verifyToken, setDefaultAddress);
 
 module.exports = router;

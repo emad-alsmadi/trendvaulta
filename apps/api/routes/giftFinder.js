@@ -8,7 +8,7 @@ const {
   updateGiftFinderConfig,
   deleteGiftFinderConfig,
 } = require('../controllers/giftFinder.controller');
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 const { validate } = require('../middlewares/validate');
 const {
@@ -22,33 +22,33 @@ router.get('/storefront/gift-finder', getGiftFinderConfig);
 // Admin endpoints
 router.get(
   '/gift-finder/admin',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:read'),
   getAllGiftFinderConfigs,
 );
 router.get(
   '/gift-finder/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:read'),
   getGiftFinderConfigById,
 );
 router.post(
   '/gift-finder',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:write'),
   validate(createGiftFinderConfigSchema),
   createGiftFinderConfig,
 );
 router.put(
   '/gift-finder/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:write'),
   validate(updateGiftFinderConfigSchema),
   updateGiftFinderConfig,
 );
 router.delete(
   '/gift-finder/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:delete'),
   deleteGiftFinderConfig,
 );

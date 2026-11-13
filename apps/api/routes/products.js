@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
 const { optionalVerifyToken } = require('../middlewares/optionalVerifyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 
@@ -17,21 +17,21 @@ router.get('/products/:id', optionalVerifyToken, getProductById);
 
 router.post(
   '/products',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('products:write'),
   createProduct,
 );
 
 router.put(
   '/products/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('products:write'),
   updateProduct,
 );
 
 router.delete(
   '/products/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('products:delete'),
   deleteProduct,
 );

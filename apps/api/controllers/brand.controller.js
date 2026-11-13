@@ -1,13 +1,12 @@
 const asyncHandler = require('express-async-handler');
 const { validationBody } = require('../utils/errors');
-const {
-  Brand,
-  validateCreateBrand,
-  validateUpdateBrand,
-} = require('../models/Brand');
-const mongoose = require('mongoose');
 const { normalizeSearchTerm } = require('../utils/search');
 const { buildSort } = require('../utils/sort');
+const {
+  validateCreateBrand,
+  validateUpdateBrand,
+} = require('../validators/brand.validator');
+const brandRepository = require('../repositories/brand.repository');
 
 /** Columns the brand list may sort on. */
 const BRAND_SORT_FIELDS = ['name', 'createdAt', 'country'];
@@ -91,14 +90,12 @@ const getAllBrands = asyncHandler(async (req, res) => {
   const limitNum = Math.min(maxLimit, Math.max(1, parseInt(limit, 10) || 20));
   const skip = (pageNum - 1) * limitNum;
 
-  const [brands, total] = await Promise.all([
-    Brand.find(query)
-      .sort(sortObj)
-      .skip(skip)
-      .limit(limitNum)
-      .lean(),
-    Brand.countDocuments(query),
-  ]);
+  const { brands, total } = await brandRepository.findBrands(
+    query,
+    sortObj,
+    skip,
+    limitNum,
+  );
 
   const pages = Math.ceil(total / limitNum);
 
@@ -120,15 +117,11 @@ const getAllBrands = asyncHandler(async (req, res) => {
  * @access Public
  * @param {import('express').Request} req
  * @param {import('express').Response} res
- * @returns {Promise<void>} JSON brand document
+ * @returns {Promise<void>} JSON { data: brand } envelope
  */
 const getBrandById = asyncHandler(async (req, res) => {
   const idOrSlug = String(req.params.id || '').trim();
-  const brand = await Brand.findOne(
-    mongoose.isValidObjectId(idOrSlug)
-      ? { $or: [{ _id: idOrSlug }, { slug: idOrSlug }] }
-      : { slug: idOrSlug },
-  );
+  const brand = await brandRepository.findBrandByIdOrSlug(idOrSlug);
 
   // Deactivated brands are hidden from shoppers (as in the list), but staff
   // can still open them.
@@ -139,7 +132,7 @@ const getBrandById = asyncHandler(async (req, res) => {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Brand not found' });
   }
 
-  res.status(200).json(brand);
+  res.status(200).json({ data: brand });
 });
 
 /**
@@ -149,7 +142,7 @@ const getBrandById = asyncHandler(async (req, res) => {
  * @access Private (requires brands:write permission)
  * @param {import('express').Request} req
  * @param {import('express').Response} res
- * @returns {Promise<void>} JSON created brand document
+ * @returns {Promise<void>} JSON { data: brand } envelope
  */
 const createBrand = asyncHandler(async (req, res) => {
   const error = validateCreateBrand(req.body);
@@ -157,7 +150,7 @@ const createBrand = asyncHandler(async (req, res) => {
     return res.status(400).json(validationBody(error));
   }
 
-  const brand = new Brand({
+  const result = await brandRepository.createBrand({
     name: req.body.name,
     slug: req.body.slug,
     description: req.body.description,
@@ -167,9 +160,7 @@ const createBrand = asyncHandler(async (req, res) => {
     isActive: req.body.isActive !== undefined ? req.body.isActive : true,
     featured: req.body.featured || false,
   });
-
-  const result = await brand.save();
-  res.status(201).json(result);
+  res.status(201).json({ data: result });
 });
 
 /**
@@ -179,7 +170,7 @@ const createBrand = asyncHandler(async (req, res) => {
  * @access Private (requires brands:write permission)
  * @param {import('express').Request} req
  * @param {import('express').Response} res
- * @returns {Promise<void>} JSON updated brand document
+ * @returns {Promise<void>} JSON { data: brand } envelope
  */
 const updateBrand = asyncHandler(async (req, res) => {
   const error = validateUpdateBrand(req.body);
@@ -199,17 +190,13 @@ const updateBrand = asyncHandler(async (req, res) => {
     }
   });
 
-  const brand = await Brand.findByIdAndUpdate(
-    req.params.id,
-    updateData,
-    { new: true },
-  );
+  const brand = await brandRepository.updateBrand(req.params.id, updateData);
 
   if (!brand) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Brand not found' });
   }
 
-  res.status(200).json(brand);
+  res.status(200).json({ data: brand });
 });
 
 /**
@@ -218,22 +205,18 @@ const updateBrand = asyncHandler(async (req, res) => {
  * @route DELETE /api/brands/:id
  * @access Private (requires brands:delete permission)
  * @param {import('express').Response} res
- * @returns {Promise<void>} JSON confirmation message
+ * @returns {Promise<void>} JSON { message, data: brand } envelope
  */
 const deleteBrand = asyncHandler(async (req, res) => {
   // Soft delete: products keep their brand reference (a hard delete left
   // them with brand: null). Staff can reactivate the brand later.
-  const brand = await Brand.findByIdAndUpdate(
-    req.params.id,
-    { $set: { isActive: false } },
-    { new: true },
-  );
+  const brand = await brandRepository.deactivateBrand(req.params.id);
 
   if (!brand) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'Brand not found' });
   }
 
-  res.status(200).json({ message: 'Brand has been deactivated' });
+  res.status(200).json({ message: 'Brand has been deactivated', data: brand });
 });
 
 module.exports = {

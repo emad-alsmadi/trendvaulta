@@ -5,7 +5,7 @@ const {
   SINGLETON_ID,
   validateUpdateStoreSettings,
 } = require('../models/StoreSettings');
-const { invalidateStoreSettingsCache } = require('../utils/commerce');
+const { invalidateStoreSettingsCache } = require('../services/commerce.service');
 
 /**
  * Fetch the singleton store settings document, creating it with defaults

@@ -6,7 +6,7 @@ const {
   emailVerificationRateLimit,
 } = require('../middlewares/rateLimit');
 const { validate } = require('../middlewares/validate');
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
 const { refreshSchema } = require('../validators/auth.validator');
 
 const {
@@ -31,7 +31,7 @@ router.post('/auth/verify-email', emailVerificationRateLimit, verifyEmail);
 router.post(
   '/auth/verify-email/resend',
   emailVerificationRateLimit,
-  verfiyToken,
+  verifyToken,
   resendVerificationEmail,
 );
 

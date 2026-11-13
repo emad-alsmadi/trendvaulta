@@ -2,17 +2,19 @@ const asyncHandler = require('express-async-handler');
 const { validationBody } = require('../utils/errors');
 const {
   Review,
-  validateCreateReview,
-  validateUpdateReview,
-  validateReviewReply,
-  validateReviewStatus,
 } = require('../models/Review');
 const { Product } = require('../models/Product');
 const { Order } = require('../models/Order');
 const { User } = require('../models/User');
 const { buildSort } = require('../utils/sort');
-const { EMAIL_NOT_VERIFIED, hasVerifiedEmail } = require('../utils/emailVerification');
+const { EMAIL_NOT_VERIFIED, hasVerifiedEmail } = require('../services/emailVerification.service');
 const { normalizeSearchTerm } = require('../utils/search');
+const {
+  validateCreateReview,
+  validateUpdateReview,
+  validateReviewReply,
+  validateReviewStatus,
+} = require('../validators/review.validator');
 
 /** Columns the admin review table may sort on. */
 const REVIEW_SORT_FIELDS = ['createdAt', 'rating'];

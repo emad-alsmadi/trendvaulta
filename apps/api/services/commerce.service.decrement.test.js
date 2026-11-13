@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const {
   decrementStockForPaidOrder,
   buildVariantMatch,
-} = require('./commerce');
+} = require('./commerce.service');
 
 describe('buildVariantMatch', () => {
   it('matches by size/color and sku when given', () => {
@@ -25,9 +25,12 @@ describe('buildVariantMatch', () => {
   });
 
   it('ignores null keys and empty sku', () => {
-    assert.deepEqual(buildVariantMatch({ size: null, color: 'Blue', sku: '' }), {
-      color: 'Blue',
-    });
+    assert.deepEqual(
+      buildVariantMatch({ size: null, color: 'Blue', sku: '' }),
+      {
+        color: 'Blue',
+      },
+    );
   });
 });
 
@@ -91,7 +94,10 @@ describe('decrementStockForPaidOrder', () => {
         decrementStockForPaidOrder(Product, {
           items: [{ productId: 'p2', qty: 2, variant: { size: 'M' } }],
         }),
-      (err) => err.statusCode === 409 && /Tee/.test(err.message),
+      (err) =>
+        err.statusCode === 409 &&
+        err.code === 'INSUFFICIENT_STOCK' &&
+        /Tee/.test(err.message),
     );
   });
 
@@ -115,7 +121,7 @@ describe('decrementStockForPaidOrder', () => {
             { productId: 'p2', qty: 9 },
           ],
         }),
-      (err) => err.statusCode === 409,
+      (err) => err.statusCode === 409 && err.code === 'INSUFFICIENT_STOCK',
     );
 
     // Rollback of p1 via product-level $inc

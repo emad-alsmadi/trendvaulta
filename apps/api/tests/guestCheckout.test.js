@@ -35,7 +35,7 @@ const {
 const { Order } = require('../models/Order');
 const mail = require('../utils/mail');
 const { User } = require('../models/User');
-const { guestOrderToken, isValidGuestToken, orderEmailTarget } = require('../utils/guestOrders');
+const { guestOrderToken, isValidGuestToken, orderEmailTarget } = require('../services/guestOrders.service');
 
 const GUEST = 'Guest.Shopper@Example.com';
 

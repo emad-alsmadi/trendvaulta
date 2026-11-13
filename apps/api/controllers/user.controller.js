@@ -2,12 +2,14 @@ const crypto = require('crypto');
 const { validationBody } = require('../utils/errors');
 const asyncHandler = require('express-async-handler');
 const bcrypt = require('bcryptjs');
-const { User, validateUpdateUser } = require('../models/User');
+const { User } = require('../models/User');
 const { RefreshToken } = require('../models/RefreshToken');
 const { Wishlist } = require('../models/Wishlist');
 const { RecentlyViewed } = require('../models/RecentlyViewed');
 const { Subscriber } = require('../models/Subscriber');
-const { revokeAllForUser, bumpTokenVersion } = require('../utils/refreshTokens');
+const { revokeAllForUser, bumpTokenVersion } = require('../services/refreshTokens.service');
+const { validateUpdateUser } = require('../validators/user.validator');
+const userRepository = require('../repositories/user.repository');
 const { parsePagination } = require('../utils/pagination');
 const { normalizeSearchTerm } = require('../utils/search');
 const { buildSort } = require('../utils/sort');
@@ -36,7 +38,7 @@ function userProjection(req) {
  * disabling/deleting) `userId` would lock the store out of the dashboard.
  */
 async function isLastAdmin(userId) {
-  const otherAdmins = await User.countDocuments({
+  const otherAdmins = await userRepository.countUsers({
     _id: { $ne: userId },
     roles: 'admin',
     disabled: { $ne: true },
@@ -76,10 +78,13 @@ const getAllUsers = asyncHandler(async (req, res) => {
     query.roles = role;
   }
 
-  const [users, total] = await Promise.all([
-    User.find(query).select(userProjection(req)).sort(sort).skip(skip).limit(limit).lean(),
-    User.countDocuments(query),
-  ]);
+  const { users, total } = await userRepository.findUsers({
+    match: query,
+    select: userProjection(req),
+    sort,
+    skip,
+    limit,
+  });
 
   res.status(200).json({
     data: users,
@@ -97,7 +102,7 @@ const getAllUsers = asyncHandler(async (req, res) => {
  * @returns {Promise<void>} JSON user document (password excluded)
  */
 const getUserById = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id).select(userProjection(req));
+  const user = await userRepository.findUserById(req.params.id, userProjection(req));
   if (user) {
     res.status(200).json(user);
   } else {
@@ -144,7 +149,7 @@ const updateUser = asyncHandler(async (req, res) => {
     (update.roles !== undefined && !update.roles.includes('admin')) ||
     update.disabled === true;
   if (losesAdmin) {
-    const target = await User.findById(req.params.id).select('roles').lean();
+    const target = await userRepository.findUserById(req.params.id, 'roles');
     if (target?.roles?.includes('admin')) {
       if (String(req.params.id) === String(req.user?.id)) {
         return res
@@ -173,11 +178,11 @@ const updateUser = asyncHandler(async (req, res) => {
     update.password = await bcrypt.hash(req.body.password, salt);
   }
 
-  const updatedUser = await User.findByIdAndUpdate(
+  const updatedUser = await userRepository.updateUser(
     req.params.id,
-    { $set: update },
-    { new: true },
-  ).select('-password +adminNotes');
+    update,
+    '-password +adminNotes',
+  );
 
   if (!updatedUser) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'User not found' });
@@ -186,7 +191,7 @@ const updateUser = asyncHandler(async (req, res) => {
   // Disabling, a new password or a role change ends every session now:
   // refresh tokens are revoked, and tokenVersion bumped so the stateless
   // access token (which carries the old roles) is rejected immediately by
-  // verfiyToken instead of staying valid for up to its 15-minute TTL.
+  // verifyToken instead of staying valid for up to its 15-minute TTL.
   if (update.password || update.disabled || update.roles !== undefined) {
     await revokeAllForUser(RefreshToken, updatedUser._id);
     await bumpTokenVersion(User, updatedUser._id);
@@ -209,7 +214,7 @@ const deleteUser = asyncHandler(async (req, res) => {
     return res.status(400).json({ code: 'CANNOT_DELETE_SELF', message: 'You cannot delete your own account' });
   }
 
-  const user = await User.findById(req.params.id).select('email roles').lean();
+  const user = await userRepository.findUserById(req.params.id, 'email roles');
   if (!user) {
     return res.status(404).json({ code: 'NOT_FOUND', message: 'User not found' });
   }
@@ -228,7 +233,7 @@ const deleteUser = asyncHandler(async (req, res) => {
     crypto.randomBytes(32).toString('hex'),
     10,
   );
-  await User.updateOne(
+  await userRepository.updateOne(
     { _id: user._id },
     {
       $set: {

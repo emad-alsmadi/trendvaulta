@@ -8,7 +8,7 @@ const {
   updateLookbook,
   deleteLookbook,
 } = require('../controllers/lookbook.controller');
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 const { validate } = require('../middlewares/validate');
 const {
@@ -22,33 +22,33 @@ router.get('/storefront/lookbooks', getLookbooks);
 // Admin endpoints
 router.get(
   '/lookbooks/admin',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:read'),
   getAllLookbooks,
 );
 router.get(
   '/lookbooks/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:read'),
   getLookbookById,
 );
 router.post(
   '/lookbooks',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:write'),
   validate(createLookbookSchema),
   createLookbook,
 );
 router.put(
   '/lookbooks/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:write'),
   validate(updateLookbookSchema),
   updateLookbook,
 );
 router.delete(
   '/lookbooks/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:delete'),
   deleteLookbook,
 );

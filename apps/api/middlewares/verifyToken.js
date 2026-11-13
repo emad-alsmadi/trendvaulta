@@ -26,10 +26,10 @@ const resolveActiveUser = async (decoded) => {
 // Also re-checks the account on every request: the access JWT is otherwise
 // stateless and can't be revoked early, so a disabled account or one whose
 // tokenVersion was bumped (role change, password change/reset — see
-// utils/refreshTokens.js bumpTokenVersion) would otherwise keep working for
+// services/refreshTokens.service.js bumpTokenVersion) would otherwise keep working for
 // up to its full 15-minute TTL after the admin action. This trades a small
 // per-request DB read for closing that window immediately.
-const verfiyToken = async (req, res, next) => {
+const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   const token =
     authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
@@ -55,6 +55,6 @@ const verfiyToken = async (req, res, next) => {
 };
 
 module.exports = {
-  verfiyToken,
+  verifyToken,
   resolveActiveUser,
 };

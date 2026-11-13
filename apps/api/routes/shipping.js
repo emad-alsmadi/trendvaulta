@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 
 const {
@@ -24,56 +24,56 @@ router.get('/shipping/methods', getShippingMethodsForAddress);
 
 router.get(
   '/admin/shipping/zones',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('shipping:read'),
   getAllShippingZonesAdmin,
 );
 
 router.post(
   '/admin/shipping/zones',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('shipping:write'),
   createShippingZone,
 );
 
 router.get(
   '/admin/shipping/zones/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('shipping:read'),
   getShippingZoneById,
 );
 
 router.put(
   '/admin/shipping/zones/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('shipping:write'),
   updateShippingZone,
 );
 
 router.delete(
   '/admin/shipping/zones/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('shipping:write'),
   deleteShippingZone,
 );
 
 router.post(
   '/admin/shipping/zones/:id/methods',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('shipping:write'),
   addShippingMethod,
 );
 
 router.put(
   '/admin/shipping/zones/:id/methods/:methodId',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('shipping:write'),
   updateShippingMethod,
 );
 
 router.delete(
   '/admin/shipping/zones/:id/methods/:methodId',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('shipping:write'),
   deleteShippingMethod,
 );

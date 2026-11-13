@@ -199,7 +199,7 @@ const qaVoteRateLimit = rateLimit({
 });
 
 // Email confirmation links and "resend" (which sends mail). Resend is also
-// limited to one per minute per account (utils/emailVerification.js).
+// limited to one per minute per account (services/emailVerification.service.js).
 const emailVerificationRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: Number(process.env.RATE_LIMIT_EMAIL_VERIFY_MAX) || 20,

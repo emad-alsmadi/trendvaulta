@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 const { contactRateLimit } = require('../middlewares/rateLimit');
 
@@ -13,13 +13,13 @@ const {
 // Admin (static segment first)
 router.get(
   '/contact/admin',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:read'),
   getAdminContactMessages,
 );
 router.patch(
   '/contact/admin/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:write'),
   updateContactMessage,
 );

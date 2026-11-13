@@ -22,7 +22,7 @@ const {
 } = require('./setup');
 const { Order } = require('../models/Order');
 const { StoreSettings, SINGLETON_ID } = require('../models/StoreSettings');
-const { invalidateStoreSettingsCache } = require('../utils/commerce');
+const { invalidateStoreSettingsCache } = require('../services/commerce.service');
 const { ensureInvoiceNumber } = require('../utils/invoice');
 
 function getInvoice(token, orderId, query = {}) {

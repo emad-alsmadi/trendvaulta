@@ -1,5 +1,9 @@
 const mongoose = require('mongoose');
-const Joi = require('joi');
+const {
+  validateSubscribe,
+  validateConfirm,
+  validateUnsubscribe,
+} = require('../validators/subscriber.validator');
 
 const SubscriberSchema = new mongoose.Schema(
   {
@@ -35,31 +39,6 @@ const SubscriberSchema = new mongoose.Schema(
 // second explicit schema.index() on the same key only warns at boot.
 
 const Subscriber = mongoose.model('Subscriber', SubscriberSchema);
-
-const validateSubscribe = (obj) => {
-  const schema = Joi.object({
-    email: Joi.string().trim().min(5).max(100).required().email(),
-    source: Joi.string().valid('footer', 'checkout', 'other').optional(),
-  });
-  return schema.validate(obj);
-};
-
-const validateConfirm = (obj) => {
-  const schema = Joi.object({
-    email: Joi.string().trim().min(5).max(100).required().email(),
-    exp: Joi.number().integer().required(),
-    token: Joi.string().trim().max(200).required(),
-  });
-  return schema.validate(obj);
-};
-
-const validateUnsubscribe = (obj) => {
-  const schema = Joi.object({
-    email: Joi.string().trim().min(5).max(100).required().email(),
-    token: Joi.string().trim().max(200).required(),
-  });
-  return schema.validate(obj);
-};
 
 module.exports = {
   Subscriber,

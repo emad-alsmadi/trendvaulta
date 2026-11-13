@@ -136,7 +136,7 @@ async function revokeAllForUser(RefreshToken, userId) {
 /**
  * Invalidates every access token already issued to this user (SEC-111):
  * the access JWT carries `tokenVersion` and can't be revoked by itself, so
- * bumping the counter on the User document is what makes verfiyToken's
+ * bumping the counter on the User document is what makes verifyToken's
  * per-request DB check reject it before its 15-minute TTL would otherwise
  * expire it naturally. Call this alongside revokeAllForUser at every point
  * that already kills refresh sessions (disable, role change, password

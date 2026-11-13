@@ -8,7 +8,7 @@ const {
   updateBundle,
   deleteBundle,
 } = require('../controllers/bundle.controller');
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 const { validate } = require('../middlewares/validate');
 const {
@@ -22,33 +22,33 @@ router.get('/products/:id/bundles', getProductBundles);
 // Admin endpoints
 router.get(
   '/bundles/admin',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:read'),
   getAllBundles,
 );
 router.get(
   '/bundles/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:read'),
   getBundleById,
 );
 router.post(
   '/bundles',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:write'),
   validate(createBundleSchema),
   createBundle,
 );
 router.put(
   '/bundles/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:write'),
   validate(updateBundleSchema),
   updateBundle,
 );
 router.delete(
   '/bundles/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:delete'),
   deleteBundle,
 );

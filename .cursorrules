@@ -47,7 +47,7 @@ trendvaulta/
 - Storefront: `apps/website/src/lib/api.ts` (+ domain hooks)
 - Dashboard: `apps/dashboard/src/lib/api.ts`
 - Backend routes under `apps/api/routes/`, mounted in `apps/api/app.js`
-- JWT via `verfiyToken` middleware (note existing spelling)
+- JWT via `verifyToken` middleware
 - Response shapes vary per controller (confirm per controller); errors are `{ success: false, message, code, details?, requestId? }`
 
 ## Domain

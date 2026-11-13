@@ -13,7 +13,7 @@
 const crypto = require('node:crypto');
 // Called through the module object (not destructured) so tests can capture
 // the emailed link.
-const mail = require('./mail');
+const mail = require('../utils/mail');
 
 const TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 const RESEND_COOLDOWN_MS = 60 * 1000;

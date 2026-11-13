@@ -38,7 +38,7 @@ export function useActiveOffers(limit = 12) {
     queryKey: offersKey(params),
     queryFn: async () => {
       const res = await offersApi.getOffers(params);
-      return (res.results ?? []).map(mapOfferToDeal);
+      return (res.data ?? []).map(mapOfferToDeal);
     },
     staleTime: 60_000,
   });
@@ -52,7 +52,7 @@ export function useOffersList(limit = 24) {
     queryKey: [...offersKey(params), 'raw'] as const,
     queryFn: async () => {
       const res = await offersApi.getOffers(params);
-      return res.results ?? [];
+      return res.data ?? [];
     },
     staleTime: 60_000,
   });

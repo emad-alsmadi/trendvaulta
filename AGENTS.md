@@ -86,7 +86,7 @@ Examples:
 
 ### API Patterns
 
-- Auth: JWT via `verfiyToken` (existing spelling)
+- Auth: JWT via `verifyToken`
 - Response shapes vary per controller (`{ message, data }`, `{ data, meta }`, bare documents) — confirm per controller. Errors from the central handler are `{ success: false, message, code, details?, requestId? }`
 - Pagination: check controller for `page` / `limit` / `total` naming
 - Uploads: only if existing Multer pattern exists for that resource

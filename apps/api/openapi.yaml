@@ -1,0 +1,919 @@
+openapi: 3.0.3
+info:
+  title: TrendVaulta API
+  version: 1.0.0
+  description: |
+    Backend API for the TrendVaulta storefront (products & brands catalog).
+
+    Conventions:
+    - All routes are mounted under `/api`.
+    - Auth uses `Authorization: Bearer <token>` (15-minute access JWT).
+      Refresh tokens rotate via `POST /api/auth/refresh`.
+    - Success response shapes vary per controller (`{ message, data }`,
+      `{ data, meta }`, bare documents) — confirm per endpoint.
+    - Errors from the central handler:
+      `{ success: false, message, code, details?, requestId? }`.
+      Many controllers return `{ code, message }` directly instead.
+    - Rate limits are IP/user keyed sliding windows (see
+      `docs/RATE_LIMITING.md`).
+servers:
+  - url: http://localhost:3000/api
+    description: Local development
+  - url: https://{host}/api
+    description: Production
+    variables:
+      host:
+        default: api.trendvaulta.com
+
+tags:
+  - name: Auth
+  - name: Products
+  - name: Orders
+  - name: Payments
+  - name: Webhooks
+
+paths:
+  # ------------------------------------------------------------------ Auth --
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new customer account
+      description: Creates a `user` account and returns access + refresh tokens. Sends a verification email (best effort).
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, username, password]
+              properties:
+                email: { type: string, format: email, maxLength: 100 }
+                username: { type: string, minLength: 2, maxLength: 200 }
+                password: { type: string, minLength: 8, maxLength: 100 }
+      responses:
+        '201':
+          description: Account created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/AuthSession'
+                  - type: object
+                    properties:
+                      message: { type: string, example: User is Created }
+        '400':
+          description: Validation error or email already registered (`EMAIL_TAKEN`)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in
+      description: |
+        Returns access + refresh tokens. Unknown emails get bcrypt timing
+        parity so registration cannot be probed. Locked accounts return 429
+        (`LOCKED_RESPONSE`); disabled accounts return 403 (`ACCOUNT_DISABLED`).
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/AuthSession'
+                  - type: object
+                    properties:
+                      message: { type: string, example: User is Login }
+        '400': { $ref: '#/components/responses/InvalidCredentials' }
+        '403':
+          description: Account disabled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429':
+          description: Account locked after repeated failures
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Rotate tokens
+      description: Exchanges a valid refresh token for a new access token and a new refresh token (rotation — the old one is revoked).
+      operationId: refresh
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken: { type: string }
+      responses:
+        '200':
+          description: New token pair
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  refreshToken: { type: string }
+        '401':
+          description: Refresh token invalid or revoked
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke a refresh token
+      operationId: logout
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken: { type: string }
+      responses:
+        '200': { description: Token revoked }
+
+  /auth/verify-email:
+    post:
+      tags: [Auth]
+      summary: Confirm an email address from the emailed link
+      operationId: verifyEmail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        '200': { description: Email verified }
+        '400': { description: Invalid or expired token }
+
+  /auth/verify-email/resend:
+    post:
+      tags: [Auth]
+      summary: Resend the email verification link (signed-in user)
+      security: [{ bearerAuth: [] }]
+      operationId: resendVerificationEmail
+      responses:
+        '200': { description: Verification email queued }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # -------------------------------------------------------------- Products --
+  /products:
+    get:
+      tags: [Products]
+      summary: List products
+      description: |
+        Filtering, sorting, facets and pagination. All params optional and
+        combinable. Malformed numeric params return 400; unknown facet values
+        are ignored. Staff filters (`includeInactive`, `isActive`) require a
+        Bearer token with product read access.
+      operationId: listProducts
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: q, in: query, schema: { type: string }, description: Search title/description }
+        - { name: minPrice, in: query, schema: { type: number } }
+        - { name: maxPrice, in: query, schema: { type: number } }
+        - { name: category, in: query, schema: { type: string, enum: [makeup, perfumes, clothing, skincare, accessories, home] } }
+        - { name: subcategory, in: query, schema: { type: string } }
+        - { name: brand, in: query, schema: { type: string }, description: Brand id — single, comma-separated or repeated }
+        - { name: size, in: query, schema: { type: string }, description: Variant facet, comma-separated or repeated }
+        - { name: color, in: query, schema: { type: string }, description: Case-insensitive variant color }
+        - { name: minRating, in: query, schema: { type: number, minimum: 0, maximum: 5 } }
+        - { name: inStock, in: query, schema: { type: boolean } }
+        - { name: onSale, in: query, schema: { type: boolean } }
+        - { name: featured, in: query, schema: { type: boolean } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+        - { name: sort, in: query, schema: { type: string }, description: '`newest` \| `price_asc` \| `price_desc` \| `rating` \| `bestselling` \| `featured`, or legacy `-field` syntax' }
+        - { name: facets, in: query, schema: { type: boolean }, description: Adds `meta.facets` disjunctive counts }
+        - { name: includeInactive, in: query, schema: { type: boolean }, description: Staff only }
+        - { name: isActive, in: query, schema: { type: boolean }, description: Staff only }
+      responses:
+        '200':
+          description: Product page
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/Product' } }
+                  meta:
+                    type: object
+                    properties:
+                      page: { type: integer }
+                      limit: { type: integer }
+                      total: { type: integer }
+                      facets: { type: object }
+        '400': { $ref: '#/components/responses/ValidationError' }
+
+    post:
+      tags: [Products]
+      summary: Create a product (staff)
+      security: [{ bearerAuth: [] }]
+      operationId: createProduct
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProductInput' }
+      responses:
+        '201': { description: Product created }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /products/{id}:
+    get:
+      tags: [Products]
+      summary: Get a product by id
+      security: [{ bearerAuth: [] }]
+      operationId: getProduct
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, pattern: '^[0-9a-f]{24}$' } }
+      responses:
+        '200':
+          description: Product
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+    put:
+      tags: [Products]
+      summary: Update a product (staff)
+      description: Same shape as create; all fields optional. `expectedUpdatedAt` enables optimistic concurrency.
+      security: [{ bearerAuth: [] }]
+      operationId: updateProduct
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProductInput' }
+      responses:
+        '200': { description: Product updated }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+    delete:
+      tags: [Products]
+      summary: Delete a product (staff)
+      security: [{ bearerAuth: [] }]
+      operationId: deleteProduct
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Product deleted }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ---------------------------------------------------------------- Orders --
+  /orders:
+    post:
+      tags: [Orders]
+      summary: Create an order (cash/on-account; paid orders go through checkout-session)
+      security: [{ bearerAuth: [] }]
+      operationId: createOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateOrderRequest' }
+      responses:
+        '201':
+          description: Order created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+
+    get:
+      tags: [Orders]
+      summary: List all orders (staff, `orders:read`)
+      security: [{ bearerAuth: [] }]
+      operationId: listOrders
+      parameters:
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 20 } }
+        - { name: status, in: query, schema: { type: string } }
+        - { name: paymentStatus, in: query, schema: { type: string } }
+      responses:
+        '200': { description: Paginated orders }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /orders/my:
+    get:
+      tags: [Orders]
+      summary: List the signed-in customer's orders
+      security: [{ bearerAuth: [] }]
+      operationId: myOrders
+      parameters:
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, default: 20 } }
+      responses:
+        '200': { description: Paginated orders }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /orders/{id}:
+    get:
+      tags: [Orders]
+      summary: Get an order (owner or staff)
+      security: [{ bearerAuth: [] }]
+      operationId: getOrder
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: Order
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /orders/guest/lookup:
+    post:
+      tags: [Orders]
+      summary: Guest order lookup
+      description: Returns the order behind an emailed link. POST keeps the token out of URLs and access logs.
+      operationId: guestOrderLookup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderId, token]
+              properties:
+                orderId: { type: string }
+                token: { type: string }
+      responses:
+        '200':
+          description: Order + `canCancel`/`canReturn` capability flags
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '404':
+          description: Unknown order or invalid token (indistinguishable)
+
+  /orders/{id}/cancel:
+    post:
+      tags: [Orders]
+      summary: Cancel an order before it ships
+      description: Owner session, or a guest's `guestToken` in the body. Paid orders trigger a Stripe refund when enabled; inventory is restocked once.
+      operationId: cancelOrder
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                guestToken: { type: string }
+      responses:
+        '200': { description: Canceled; `refunded`/`refundPending` flags included }
+        '202': { description: Canceled; refund pending asynchronously }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { description: Order can no longer be canceled }
+
+  /orders/{id}/status:
+    patch:
+      tags: [Orders]
+      summary: Transition order status (staff, `orders:write`)
+      description: |
+        Allowed transitions are enforced by the state machine
+        (`utils/orderTransitions.js`). `needs_attention → paid` re-checks
+        stock atomically; cancel/refund transitions restock once and issue
+        a Stripe refund when enabled.
+      security: [{ bearerAuth: [] }]
+      operationId: updateOrderStatus
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [pending, paid, processing, shipped, delivered, canceled, refunded, needs_attention]
+      responses:
+        '200': { description: Updated order }
+        '400': { description: Illegal transition }
+        '409': { description: '`OUT_OF_STOCK_AFTER_PAYMENT` or concurrent-modification conflict' }
+
+  /orders/{id}/tracking:
+    patch:
+      tags: [Orders]
+      summary: Update tracking info (staff, `orders:write`)
+      security: [{ bearerAuth: [] }]
+      operationId: updateOrderTracking
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                trackingNumber: { type: string }
+                trackingCarrier: { type: string }
+                trackingUrl: { type: string }
+                trackingEvent:
+                  type: object
+                  required: [status]
+                  properties:
+                    status:
+                      type: string
+                      enum: [picked_up, in_transit, out_for_delivery, delivered, exception]
+                    description: { type: string }
+                    location: { type: string }
+      responses:
+        '200': { description: Updated order }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /orders/{id}/invoice:
+    get:
+      tags: [Orders]
+      summary: Order invoice
+      description: Owner/staff session, or a guest's `X-Guest-Token` header. Assigns `invoiceNumber` on first view for paid orders.
+      security: [{ bearerAuth: [] }]
+      operationId: getOrderInvoice
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: X-Guest-Token, in: header, schema: { type: string } }
+      responses:
+        '200': { description: Invoice payload }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { description: Order not yet paid (no invoice) }
+
+  /orders/{id}/return:
+    post:
+      tags: [Orders]
+      summary: Create a return request (order owner, delivered orders only)
+      security: [{ bearerAuth: [] }]
+      operationId: createReturnRequest
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason, items]
+              properties:
+                reason: { type: string, minLength: 1, maxLength: 500 }
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [productId, qty]
+                    properties:
+                      productId: { type: string, pattern: '^[0-9a-f]{24}$' }
+                      qty: { type: integer, minimum: 1 }
+                      reason: { type: string, maxLength: 500 }
+      responses:
+        '201': { description: Return request created }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { description: Order not eligible for return }
+
+    get:
+      tags: [Orders]
+      summary: Get the return request for an order (owner or staff)
+      security: [{ bearerAuth: [] }]
+      operationId: getReturnRequest
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Return request state }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+    patch:
+      tags: [Orders]
+      summary: Transition a return request (staff, `orders:write`)
+      security: [{ bearerAuth: [] }]
+      operationId: updateReturnRequest
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [approved, rejected, received, refunded]
+                notes: { type: string, maxLength: 500 }
+                instructions: { type: string, maxLength: 2000 }
+                refundAmount: { type: number, exclusiveMinimum: 0 }
+      responses:
+        '200': { description: Updated return state }
+        '400': { description: Illegal transition }
+        '409': { description: Concurrent status change }
+
+  # -------------------------------------------------------------- Payments --
+  /payments/setup-status:
+    get:
+      tags: [Payments]
+      summary: Stripe configuration readiness
+      operationId: paymentsSetupStatus
+      responses:
+        '200':
+          description: '`{ ready: boolean }` — whether checkout can run'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ready: { type: boolean }
+
+  /payments/quote:
+    post:
+      tags: [Payments]
+      summary: Price a cart server-side (creates nothing)
+      description: Same normalization as checkout so the quote matches what is charged. Reports stock/price drift as `warnings`.
+      operationId: quoteOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/QuoteRequest' }
+      responses:
+        '200':
+          description: Priced cart
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  lines: { type: array, items: { type: object } }
+                  itemsPrice: { type: number }
+                  discountAmount: { type: number }
+                  couponValid: { type: boolean }
+                  couponMessage: { type: string, nullable: true }
+                  shippingPrice: { type: number }
+                  taxPrice: { type: number }
+                  totalPrice: { type: number }
+                  warnings: { type: array, items: { type: string } }
+        '400': { $ref: '#/components/responses/ValidationError' }
+
+  /payments/checkout-session:
+    post:
+      tags: [Payments]
+      summary: Create a Stripe Checkout session
+      description: |
+        Signed-in user, or guest checkout with `email` in the body.
+        Prices lines server-side, validates coupon + stock, reserves stock
+        atomically (Mongo transaction on replica sets), then returns the
+        Stripe hosted-checkout URL. On failure the reservation is released.
+      operationId: createCheckoutSession
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateOrderRequest' }
+      responses:
+        '200':
+          description: Stripe Checkout URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url: { type: string, format: uri }
+        '400':
+          description: '`GUEST_EMAIL_REQUIRED`, coupon/validation errors'
+        '409':
+          description: '`OUT_OF_STOCK` — reservation failed'
+        '502': { description: Stripe session creation failed }
+
+  /payments/verify-payment:
+    post:
+      tags: [Payments]
+      summary: Verify a payment after returning from Stripe
+      description: Owner session, or guest `guestToken` for that order. Marks the order paid when Stripe confirms; safe to retry.
+      operationId: verifyPayment
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderId]
+              properties:
+                orderId: { type: string, pattern: '^[0-9a-f]{24}$' }
+                guestToken: { type: string }
+      responses:
+        '200':
+          description: '`{ paymentStatus, verified?, alreadyPaid?, sessionStatus? }`'
+        '400': { description: Missing/invalid orderId or no Stripe session }
+        '401': { description: Not authorized for this order }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ------------------------------------------------------------- Webhooks --
+  /webhooks/stripe:
+    post:
+      tags: [Webhooks]
+      summary: Stripe webhook endpoint
+      description: |
+        Raw-body endpoint (mounted outside `/api` JSON parsing). Signature
+        verified with `STRIPE_WEBHOOK_SECRET`; events are idempotent via
+        `StripeWebhookEvent` claims. `checkout.session.completed` marks the
+        order paid and applies side effects (stock, coupon, sales count,
+        invoice, confirmation email) — atomically on replica sets.
+      operationId: stripeWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200':
+          description: '`{ received: true }` (duplicates also return 200)'
+        '400': { description: Invalid signature/payload }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    Unauthorized:
+      description: Missing/invalid/expired token or revoked session
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Authenticated but missing the required permission
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    InvalidCredentials:
+      description: Wrong email/password (`INVALID_CREDENTIALS`)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        message: { type: string }
+        code: { type: string, example: VALIDATION_ERROR }
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }
+        requestId: { type: string }
+
+    AuthSession:
+      type: object
+      properties:
+        _id: { type: string }
+        email: { type: string, format: email }
+        username: { type: string }
+        roles:
+          type: array
+          items: { type: string, enum: [user, admin, moderator] }
+        emailVerified: { type: boolean }
+        token:
+          type: string
+          description: 15-minute access JWT
+        refreshToken:
+          type: string
+          description: Rotating refresh token
+
+    Address:
+      type: object
+      required: [name, phone, address, city, zip]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 200 }
+        phone: { type: string, minLength: 6, maxLength: 30 }
+        address: { type: string, minLength: 5, maxLength: 300 }
+        city: { type: string, minLength: 2, maxLength: 100 }
+        zip: { type: string, minLength: 2, maxLength: 20 }
+        country: { type: string, minLength: 2, maxLength: 2, description: ISO alpha-2 }
+        notes: { type: string, maxLength: 500 }
+
+    OrderItemInput:
+      type: object
+      required: [productId, qty]
+      description: Client supplies ids/qty/variant hints only — the server prices every line.
+      properties:
+        productId: { type: string, pattern: '^[0-9a-f]{24}$' }
+        qty: { type: integer, minimum: 1 }
+        variant:
+          type: object
+          properties:
+            size: { type: string }
+            color: { type: string }
+            colorCode: { type: string }
+            sku: { type: string }
+
+    CreateOrderRequest:
+      type: object
+      required: [items, shippingAddress]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: { $ref: '#/components/schemas/OrderItemInput' }
+        shippingAddress: { $ref: '#/components/schemas/Address' }
+        delivery: { type: boolean, description: '`false` = pickup/digital' }
+        shippingMethod: { type: string, maxLength: 50 }
+        couponCode: { type: string, maxLength: 50, nullable: true }
+        email:
+          type: string
+          format: email
+          description: Required for guest checkout; ignored for signed-in users
+        locale: { type: string, enum: [en, ar] }
+
+    QuoteRequest:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            allOf:
+              - $ref: '#/components/schemas/OrderItemInput'
+              - type: object
+                properties:
+                  price: { type: number, minimum: 0, description: Hint only — server reprices }
+        couponCode: { type: string, maxLength: 50, nullable: true }
+        delivery: { type: boolean }
+        shippingMethod: { type: string, maxLength: 50 }
+        shippingAddress:
+          type: object
+          properties:
+            country: { type: string, minLength: 2, maxLength: 2 }
+            zip: { type: string, maxLength: 20 }
+            city: { type: string, maxLength: 100 }
+
+    Product:
+      type: object
+      properties:
+        _id: { type: string }
+        title: { type: string }
+        brand: { type: string, description: Brand id or populated brand }
+        description: { type: string }
+        price: { type: number }
+        basePrice: { type: number }
+        cover: { type: string }
+        images: { type: array, items: { type: string } }
+        category:
+          type: string
+          enum: [makeup, perfumes, clothing, skincare, accessories, home]
+        subcategory: { type: string }
+        variants:
+          type: array
+          items:
+            type: object
+            properties:
+              size: { type: string }
+              color: { type: string }
+              colorCode: { type: string }
+              stock: { type: integer }
+              price: { type: number }
+              sku: { type: string }
+        stock: { type: integer }
+        sku: { type: string }
+        isActive: { type: boolean }
+        featured: { type: boolean }
+        badges:
+          type: array
+          items: { type: string, enum: [bestseller, new, lowStock] }
+        averageRating: { type: number }
+        salesCount: { type: integer }
+
+    ProductInput:
+      type: object
+      required: [title, brand, description, price, cover, category, subcategory]
+      properties:
+        title: { type: string, minLength: 3, maxLength: 200 }
+        brand: { type: string, pattern: '^[0-9a-f]{24}$' }
+        description: { type: string, minLength: 3, maxLength: 2000 }
+        price: { type: number, minimum: 0 }
+        cover: { type: string }
+        images: { type: array, items: { type: string } }
+        category:
+          type: string
+          enum: [makeup, perfumes, clothing, skincare, accessories, home]
+        subcategory: { type: string }
+        variants:
+          type: array
+          items:
+            type: object
+            properties:
+              size: { type: string }
+              color: { type: string }
+              colorCode: { type: string }
+              stock: { type: integer, minimum: 0, default: 0 }
+              price: { type: number, minimum: 0 }
+              sku: { type: string }
+        stock: { type: integer, minimum: 0, default: 0 }
+        sku: { type: string }
+        isActive: { type: boolean, default: true }
+        featured: { type: boolean, default: false }
+        badges:
+          type: array
+          items: { type: string, enum: [bestseller, new, lowStock] }
+        expectedUpdatedAt:
+          type: string
+          format: date-time
+          description: Update only — optimistic concurrency token
+
+    Order:
+      type: object
+      description: Serialized order; exact fields vary by endpoint (list vs detail).
+      properties:
+        _id: { type: string }
+        user: { type: string, description: User id (absent for guest orders) }
+        guestEmail: { type: string, format: email }
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              productId: { type: string }
+              title: { type: string }
+              price: { type: number }
+              qty: { type: integer }
+              variant: { type: object }
+        shippingAddress: { $ref: '#/components/schemas/Address' }
+        status:
+          type: string
+          enum: [pending, paid, processing, shipped, delivered, canceled, refunded, needs_attention]
+        paymentStatus:
+          type: string
+          enum: [pending, paid, refunded]
+        itemsPrice: { type: number }
+        shippingPrice: { type: number }
+        taxPrice: { type: number }
+        discountAmount: { type: number }
+        couponCode: { type: string }
+        totalPrice: { type: number }
+        invoiceNumber: { type: string }
+        trackingNumber: { type: string }
+        trackingCarrier: { type: string }
+        trackingUrl: { type: string }
+        canCancel: { type: boolean, description: Present on customer-facing reads }
+        canReturn: { type: boolean }
+        returnNeedsAccount: { type: boolean }

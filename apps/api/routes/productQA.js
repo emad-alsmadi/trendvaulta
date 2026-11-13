@@ -9,7 +9,7 @@ const {
   markHelpful,
   deleteProductQA,
 } = require('../controllers/productQA.controller');
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
 const { validate } = require('../middlewares/validate');
 const {
@@ -28,7 +28,7 @@ router.get('/products/:id/qa', getProductQA);
 // Public endpoint - submit a question (requires auth)
 router.post(
   '/products/:id/qa',
-  verfiyToken,
+  verifyToken,
   qaQuestionRateLimit,
   validate(createProductQuestionSchema),
   createProductQuestion,
@@ -37,7 +37,7 @@ router.post(
 // Public endpoint - mark as helpful (requires auth)
 router.post(
   '/qa/:id/helpful',
-  verfiyToken,
+  verifyToken,
   qaVoteRateLimit,
   validate(markHelpfulSchema),
   markHelpful,
@@ -46,26 +46,26 @@ router.post(
 // Admin endpoints
 router.get(
   '/qa/admin',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:read'),
   getAllProductQA,
 );
 router.get(
   '/qa/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:read'),
   getProductQAById,
 );
 router.put(
   '/qa/:id/answer',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:write'),
   validate(answerProductQASchema),
   answerProductQuestion,
 );
 router.delete(
   '/qa/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:delete'),
   deleteProductQA,
 );
