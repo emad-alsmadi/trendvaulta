@@ -27,9 +27,37 @@ servers:
 
 tags:
   - name: Auth
+  - name: Profile
+  - name: Password
   - name: Products
+  - name: Brands
+  - name: Categories
   - name: Orders
   - name: Payments
+  - name: Coupons
+  - name: Reviews
+  - name: Wishlist
+  - name: ProductQA
+  - name: Bundles
+  - name: Content
+  - name: Offers
+  - name: HelpTopics
+  - name: Lookbooks
+  - name: GiftFinder
+  - name: Testimonials
+  - name: StorefrontModules
+  - name: Storefront
+  - name: Newsletter
+  - name: Contact
+  - name: Shipping
+  - name: Uploads
+  - name: Users
+  - name: AdminStats
+  - name: Settings
+  - name: Recommendations
+  - name: RecentlyViewed
+  - name: Sitemap
+  - name: Ops
   - name: Webhooks
 
 paths:
@@ -48,9 +76,11 @@ paths:
               type: object
               required: [email, username, password]
               properties:
-                email: { type: string, format: email, maxLength: 100 }
-                username: { type: string, minLength: 2, maxLength: 200 }
-                password: { type: string, minLength: 8, maxLength: 100 }
+                email: { type: string, format: email }
+                username: { type: string, minLength: 3, maxLength: 30 }
+                password: { type: string, minLength: 8 }
+                firstName: { type: string }
+                lastName: { type: string }
       responses:
         '201':
           description: Account created
@@ -59,23 +89,14 @@ paths:
               schema:
                 allOf:
                   - $ref: '#/components/schemas/AuthSession'
-                  - type: object
-                    properties:
-                      message: { type: string, example: User is Created }
-        '400':
-          description: Validation error or email already registered (`EMAIL_TAKEN`)
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { description: Email or username already exists }
 
   /auth/login:
     post:
       tags: [Auth]
-      summary: Log in
-      description: |
-        Returns access + refresh tokens. Unknown emails get bcrypt timing
-        parity so registration cannot be probed. Locked accounts return 429
-        (`LOCKED_RESPONSE`); disabled accounts return 403 (`ACCOUNT_DISABLED`).
+      summary: Log in with email and password
+      description: Returns access + refresh tokens. Rate-limited.
       operationId: login
       requestBody:
         required: true
@@ -89,33 +110,21 @@ paths:
                 password: { type: string }
       responses:
         '200':
-          description: Authenticated
+          description: Login successful
           content:
             application/json:
               schema:
                 allOf:
                   - $ref: '#/components/schemas/AuthSession'
-                  - type: object
-                    properties:
-                      message: { type: string, example: User is Login }
-        '400': { $ref: '#/components/responses/InvalidCredentials' }
-        '403':
-          description: Account disabled
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
-        '429':
-          description: Account locked after repeated failures
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
+        '401': { $ref: '#/components/responses/InvalidCredentials' }
+        '429': { description: Too many attempts }
 
   /auth/refresh:
     post:
       tags: [Auth]
-      summary: Rotate tokens
-      description: Exchanges a valid refresh token for a new access token and a new refresh token (rotation — the old one is revoked).
-      operationId: refresh
+      summary: Rotate refresh token
+      description: Exchanges a valid refresh token for a new access + refresh token pair. The old refresh token is revoked.
+      operationId: refreshToken
       requestBody:
         required: true
         content:
@@ -127,7 +136,7 @@ paths:
                 refreshToken: { type: string }
       responses:
         '200':
-          description: New token pair
+          description: New tokens issued
           content:
             application/json:
               schema:
@@ -135,31 +144,32 @@ paths:
                 properties:
                   token: { type: string }
                   refreshToken: { type: string }
-        '401':
-          description: Refresh token invalid or revoked
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
+        '401': { description: Invalid or expired refresh token }
 
   /auth/logout:
     post:
       tags: [Auth]
-      summary: Revoke a refresh token
+      summary: Log out (revoke refresh token)
+      description: Revokes the provided refresh token. Access token remains valid until expiry.
       operationId: logout
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
+              required: [refreshToken]
               properties:
                 refreshToken: { type: string }
       responses:
-        '200': { description: Token revoked }
+        '200': { description: Logged out }
+        '401': { description: Invalid token }
 
   /auth/verify-email:
     post:
       tags: [Auth]
-      summary: Confirm an email address from the emailed link
+      summary: Verify email address
+      description: Verifies the email using the token sent during registration.
       operationId: verifyEmail
       requestBody:
         required: true
@@ -177,67 +187,316 @@ paths:
   /auth/verify-email/resend:
     post:
       tags: [Auth]
-      summary: Resend the email verification link (signed-in user)
-      security: [{ bearerAuth: [] }]
-      operationId: resendVerificationEmail
+      summary: Resend verification email
+      description: Sends a new verification email to the registered address.
+      operationId: resendVerification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
       responses:
-        '200': { description: Verification email queued }
+        '200': { description: Verification email sent }
+        '429': { description: Rate limited }
+
+  # ---------------------------------------------------------------- Profile --
+  /auth/profile:
+    get:
+      tags: [Profile]
+      summary: Get current user profile
+      operationId: getProfile
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id: { type: string }
+                  email: { type: string, format: email }
+                  username: { type: string }
+                  firstName: { type: string }
+                  lastName: { type: string }
+                  roles:
+                    type: array
+                    items: { type: string }
+                  emailVerified: { type: boolean }
+                  addresses:
+                    type: array
+                    items: { $ref: '#/components/schemas/Address' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    put:
+      tags: [Profile]
+      summary: Update current user profile
+      operationId: updateProfile
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username: { type: string, minLength: 3, maxLength: 30 }
+                email: { type: string, format: email }
+                firstName: { type: string }
+                lastName: { type: string }
+      responses:
+        '200': { description: Profile updated }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /auth/locale:
+    put:
+      tags: [Profile]
+      summary: Update user locale preference
+      operationId: updateLocale
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [locale]
+              properties:
+                locale: { type: string, enum: [en, ar] }
+      responses:
+        '200': { description: Locale updated }
+        '400': { description: Invalid locale }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /auth/addresses:
+    get:
+      tags: [Profile]
+      summary: List saved addresses
+      operationId: getAddresses
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Address list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  addresses:
+                    type: array
+                    items: { $ref: '#/components/schemas/Address' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Profile]
+      summary: Add a new address
+      operationId: createAddress
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Address' }
+      responses:
+        '201': { description: Address created }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /auth/addresses/{addressId}:
+    put:
+      tags: [Profile]
+      summary: Update a saved address
+      operationId: updateAddress
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: addressId
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Address' }
+      responses:
+        '200': { description: Address updated }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Profile]
+      summary: Delete a saved address
+      operationId: deleteAddress
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: addressId
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Address deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /auth/addresses/{addressId}/default:
+    patch:
+      tags: [Profile]
+      summary: Set address as default
+      operationId: setDefaultAddress
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: addressId
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Default address set }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # -------------------------------------------------------------- Password --
+  /password/forgot-password:
+    post:
+      tags: [Password]
+      summary: Request password reset link
+      operationId: forgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        '200': { description: Reset link sent (if account exists) }
+        '429': { description: Rate limited }
+
+  /password/reset-password/{userId}/{token}:
+    post:
+      tags: [Password]
+      summary: Reset password with token
+      operationId: resetPassword
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+        - name: token
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string, minLength: 8 }
+      responses:
+        '200': { description: Password reset successful }
+        '400': { description: Invalid or expired token }
+
+  /password/change:
+    post:
+      tags: [Password]
+      summary: Change password (authenticated)
+      operationId: changePassword
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword: { type: string }
+                newPassword: { type: string, minLength: 8 }
+      responses:
+        '200': { description: Password changed }
+        '400': { description: Current password incorrect }
         '401': { $ref: '#/components/responses/Unauthorized' }
 
   # -------------------------------------------------------------- Products --
   /products:
     get:
       tags: [Products]
-      summary: List products
+      summary: List products with filtering, facets, and pagination
       description: |
-        Filtering, sorting, facets and pagination. All params optional and
-        combinable. Malformed numeric params return 400; unknown facet values
-        are ignored. Staff filters (`includeInactive`, `isActive`) require a
-        Bearer token with product read access.
+        Public catalog endpoint. Supports query params for search, category,
+        brand, price range, variants, sort, and pagination. Anonymous callers
+        see only active products.
       operationId: listProducts
-      security: [{ bearerAuth: [] }]
       parameters:
-        - { name: q, in: query, schema: { type: string }, description: Search title/description }
-        - { name: minPrice, in: query, schema: { type: number } }
-        - { name: maxPrice, in: query, schema: { type: number } }
-        - { name: category, in: query, schema: { type: string, enum: [makeup, perfumes, clothing, skincare, accessories, home] } }
-        - { name: subcategory, in: query, schema: { type: string } }
-        - { name: brand, in: query, schema: { type: string }, description: Brand id — single, comma-separated or repeated }
-        - { name: size, in: query, schema: { type: string }, description: Variant facet, comma-separated or repeated }
-        - { name: color, in: query, schema: { type: string }, description: Case-insensitive variant color }
-        - { name: minRating, in: query, schema: { type: number, minimum: 0, maximum: 5 } }
-        - { name: inStock, in: query, schema: { type: boolean } }
-        - { name: onSale, in: query, schema: { type: boolean } }
-        - { name: featured, in: query, schema: { type: boolean } }
-        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
-        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
-        - { name: sort, in: query, schema: { type: string }, description: '`newest` \| `price_asc` \| `price_desc` \| `rating` \| `bestselling` \| `featured`, or legacy `-field` syntax' }
-        - { name: facets, in: query, schema: { type: boolean }, description: Adds `meta.facets` disjunctive counts }
-        - { name: includeInactive, in: query, schema: { type: boolean }, description: Staff only }
-        - { name: isActive, in: query, schema: { type: boolean }, description: Staff only }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: brand
+          in: query
+          schema: { type: string }
+        - name: minPrice
+          in: query
+          schema: { type: number }
+        - name: maxPrice
+          in: query
+          schema: { type: number }
+        - name: inStock
+          in: query
+          schema: { type: boolean }
+        - name: onSale
+          in: query
+          schema: { type: boolean }
+        - name: featured
+          in: query
+          schema: { type: boolean }
+        - name: sort
+          in: query
+          schema:
+            {
+              type: string,
+              enum: [newest, price_asc, price_desc, bestselling, rating],
+            }
       responses:
         '200':
-          description: Product page
+          description: Paginated product list with facets
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  data: { type: array, items: { $ref: '#/components/schemas/Product' } }
-                  meta:
+                  products:
+                    type: array
+                    items: { $ref: '#/components/schemas/Product' }
+                  total: { type: integer }
+                  page: { type: integer }
+                  limit: { type: integer }
+                  facets:
                     type: object
                     properties:
-                      page: { type: integer }
-                      limit: { type: integer }
-                      total: { type: integer }
-                      facets: { type: object }
-        '400': { $ref: '#/components/responses/ValidationError' }
-
+                      categories: { type: object }
+                      brands: { type: object }
+                      priceRange: { type: object }
     post:
       tags: [Products]
-      summary: Create a product (staff)
-      security: [{ bearerAuth: [] }]
+      summary: Create a product (admin)
       operationId: createProduct
+      security: [{ bearerAuth: [] }]
       requestBody:
         required: true
         content:
@@ -246,32 +505,36 @@ paths:
       responses:
         '201': { description: Product created }
         '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
   /products/{id}:
     get:
       tags: [Products]
-      summary: Get a product by id
-      security: [{ bearerAuth: [] }]
+      summary: Get product by ID
       operationId: getProduct
       parameters:
-        - { name: id, in: path, required: true, schema: { type: string, pattern: '^[0-9a-f]{24}$' } }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
       responses:
         '200':
-          description: Product
+          description: Product details
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Product' }
         '404': { $ref: '#/components/responses/NotFound' }
-
     put:
       tags: [Products]
-      summary: Update a product (staff)
-      description: Same shape as create; all fields optional. `expectedUpdatedAt` enables optimistic concurrency.
-      security: [{ bearerAuth: [] }]
+      summary: Update a product (admin)
       operationId: updateProduct
+      security: [{ bearerAuth: [] }]
       parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
       requestBody:
         required: true
         content:
@@ -280,26 +543,298 @@ paths:
       responses:
         '200': { description: Product updated }
         '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
-
     delete:
       tags: [Products]
-      summary: Delete a product (staff)
-      security: [{ bearerAuth: [] }]
+      summary: Delete a product (admin)
       operationId: deleteProduct
+      security: [{ bearerAuth: [] }]
       parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
       responses:
         '200': { description: Product deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
 
-  # ---------------------------------------------------------------- Orders --
+  # --------------------------------------------------------------- Brands --
+  /brands:
+    get:
+      tags: [Brands]
+      summary: List all brands
+      operationId: listBrands
+      responses:
+        '200':
+          description: Brand list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  brands:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id: { type: string }
+                        name: { type: string }
+                        slug: { type: string }
+                        logo: { type: string }
+                        description: { type: string }
+                        isActive: { type: boolean }
+    post:
+      tags: [Brands]
+      summary: Create a brand (admin)
+      operationId: createBrand
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, slug]
+              properties:
+                name: { type: string }
+                slug: { type: string }
+                logo: { type: string }
+                description: { type: string }
+                isActive: { type: boolean, default: true }
+      responses:
+        '201': { description: Brand created }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /brands/{id}:
+    get:
+      tags: [Brands]
+      summary: Get brand by ID
+      operationId: getBrand
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200':
+          description: Brand details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id: { type: string }
+                  name: { type: string }
+                  slug: { type: string }
+                  logo: { type: string }
+                  description: { type: string }
+                  isActive: { type: boolean }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Brands]
+      summary: Update a brand (admin)
+      operationId: updateBrand
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                slug: { type: string }
+                logo: { type: string }
+                description: { type: string }
+                isActive: { type: boolean }
+      responses:
+        '200': { description: Brand updated }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Brands]
+      summary: Delete a brand (admin)
+      operationId: deleteBrand
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Brand deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ------------------------------------------------------------ Categories --
+  /storefront/categories:
+    get:
+      tags: [Categories]
+      summary: List storefront categories
+      operationId: getStorefrontCategories
+      responses:
+        '200':
+          description: Category list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  categories:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id: { type: string }
+                        name: { type: string }
+                        slug: { type: string }
+                        image: { type: string }
+                        order: { type: integer }
+
+  /categories/admin:
+    get:
+      tags: [Categories]
+      summary: List all categories (admin)
+      operationId: getAdminCategories
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: All categories }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /categories:
+    post:
+      tags: [Categories]
+      summary: Create a category (admin)
+      operationId: createCategory
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, slug]
+              properties:
+                name: { type: string }
+                slug: { type: string }
+                image: { type: string }
+                order: { type: integer }
+      responses:
+        '201': { description: Category created }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /categories/{id}:
+    put:
+      tags: [Categories]
+      summary: Update a category (admin)
+      operationId: updateCategory
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                slug: { type: string }
+                image: { type: string }
+                order: { type: integer }
+      responses:
+        '200': { description: Category updated }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Categories]
+      summary: Delete a category (admin)
+      operationId: deleteCategory
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Category deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # --------------------------------------------------------------- Orders --
   /orders:
+    get:
+      tags: [Orders]
+      summary: List all orders (admin)
+      operationId: getAllOrders
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: paymentStatus
+          in: query
+          schema: { type: string }
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: startDate
+          in: query
+          schema: { type: string, format: date }
+        - name: endDate
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Order list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orders:
+                    type: array
+                    items: { $ref: '#/components/schemas/Order' }
+                  total: { type: integer }
+                  page: { type: integer }
+                  limit: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
     post:
       tags: [Orders]
-      summary: Create an order (cash/on-account; paid orders go through checkout-session)
-      security: [{ bearerAuth: [] }]
+      summary: Create an order
+      description: Creates an order with validated items, pricing, and optional coupon. Returns order details for checkout.
       operationId: createOrder
+      security: [{ bearerAuth: [] }]
       requestBody:
         required: true
         content:
@@ -310,112 +845,128 @@ paths:
           description: Order created
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Order' }
+              schema:
+                type: object
+                properties:
+                  order: { $ref: '#/components/schemas/Order' }
+                  checkoutUrl:
+                    type: string
+                    description: Stripe Checkout URL (if payment required)
         '400': { $ref: '#/components/responses/ValidationError' }
-
-    get:
-      tags: [Orders]
-      summary: List all orders (staff, `orders:read`)
-      security: [{ bearerAuth: [] }]
-      operationId: listOrders
-      parameters:
-        - { name: page, in: query, schema: { type: integer, default: 1 } }
-        - { name: limit, in: query, schema: { type: integer, default: 20 } }
-        - { name: status, in: query, schema: { type: string } }
-        - { name: paymentStatus, in: query, schema: { type: string } }
-      responses:
-        '200': { description: Paginated orders }
-        '403': { $ref: '#/components/responses/Forbidden' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
 
   /orders/my:
     get:
       tags: [Orders]
-      summary: List the signed-in customer's orders
+      summary: List current user's orders
+      operationId: getMyOrders
       security: [{ bearerAuth: [] }]
-      operationId: myOrders
       parameters:
-        - { name: page, in: query, schema: { type: integer, default: 1 } }
-        - { name: limit, in: query, schema: { type: integer, default: 20 } }
-      responses:
-        '200': { description: Paginated orders }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-
-  /orders/{id}:
-    get:
-      tags: [Orders]
-      summary: Get an order (owner or staff)
-      security: [{ bearerAuth: [] }]
-      operationId: getOrder
-      parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: status
+          in: query
+          schema: { type: string }
       responses:
         '200':
-          description: Order
+          description: Order list
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Order' }
-        '404': { $ref: '#/components/responses/NotFound' }
+              schema:
+                type: object
+                properties:
+                  orders:
+                    type: array
+                    items: { $ref: '#/components/schemas/Order' }
+                  total: { type: integer }
+                  page: { type: integer }
+                  limit: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
 
   /orders/guest/lookup:
     post:
       tags: [Orders]
-      summary: Guest order lookup
-      description: Returns the order behind an emailed link. POST keeps the token out of URLs and access logs.
-      operationId: guestOrderLookup
+      summary: Look up guest order by email and order ID
+      description: Returns order details for guest checkout verification. Requires email and order ID.
+      operationId: getGuestOrder
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [orderId, token]
+              required: [email, orderId]
               properties:
-                orderId: { type: string }
-                token: { type: string }
+                email: { type: string, format: email }
+                orderId: { type: string, pattern: '^[0-9a-f]{24}$' }
       responses:
         '200':
-          description: Order + `canCancel`/`canReturn` capability flags
+          description: Order details
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Order' }
-        '404':
-          description: Unknown order or invalid token (indistinguishable)
+              schema:
+                type: object
+                properties:
+                  order: { $ref: '#/components/schemas/Order' }
+        '404': { description: Order not found }
+
+  /orders/{id}:
+    get:
+      tags: [Orders]
+      summary: Get order by ID
+      operationId: getOrderById
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200':
+          description: Order details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  order: { $ref: '#/components/schemas/Order' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   /orders/{id}/cancel:
     post:
       tags: [Orders]
-      summary: Cancel an order before it ships
-      description: Owner session, or a guest's `guestToken` in the body. Paid orders trigger a Stripe refund when enabled; inventory is restocked once.
+      summary: Cancel an order
+      description: Cancels a pending or paid order. Restocks items and may trigger refund.
       operationId: cancelOrder
       security: [{ bearerAuth: [] }]
       parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                guestToken: { type: string }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
       responses:
-        '200': { description: Canceled; `refunded`/`refundPending` flags included }
-        '202': { description: Canceled; refund pending asynchronously }
+        '200': { description: Order canceled }
+        '400': { description: Order cannot be canceled }
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '409': { description: Order can no longer be canceled }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   /orders/{id}/status:
     patch:
       tags: [Orders]
-      summary: Transition order status (staff, `orders:write`)
-      description: |
-        Allowed transitions are enforced by the state machine
-        (`utils/orderTransitions.js`). `needs_attention → paid` re-checks
-        stock atomically; cancel/refund transitions restock once and issue
-        a Stripe refund when enabled.
-      security: [{ bearerAuth: [] }]
+      summary: Update order status (admin)
+      description: Transitions order status. Supports needs_attention resolution.
       operationId: updateOrderStatus
+      security: [{ bearerAuth: [] }]
       parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
       requestBody:
         required: true
         content:
@@ -426,20 +977,35 @@ paths:
               properties:
                 status:
                   type: string
-                  enum: [pending, paid, processing, shipped, delivered, canceled, refunded, needs_attention]
+                  enum:
+                    [
+                      pending,
+                      paid,
+                      processing,
+                      shipped,
+                      delivered,
+                      canceled,
+                      refunded,
+                      needs_attention,
+                    ]
       responses:
-        '200': { description: Updated order }
-        '400': { description: Illegal transition }
-        '409': { description: '`OUT_OF_STOCK_AFTER_PAYMENT` or concurrent-modification conflict' }
+        '200': { description: Status updated }
+        '400': { description: Invalid transition }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   /orders/{id}/tracking:
     patch:
       tags: [Orders]
-      summary: Update tracking info (staff, `orders:write`)
+      summary: Update tracking info (admin)
+      operationId: updateTracking
       security: [{ bearerAuth: [] }]
-      operationId: updateOrderTracking
       parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
       requestBody:
         required: true
         content:
@@ -449,85 +1015,90 @@ paths:
               properties:
                 trackingNumber: { type: string }
                 trackingCarrier: { type: string }
-                trackingUrl: { type: string }
-                trackingEvent:
-                  type: object
-                  required: [status]
-                  properties:
-                    status:
-                      type: string
-                      enum: [picked_up, in_transit, out_for_delivery, delivered, exception]
-                    description: { type: string }
-                    location: { type: string }
+                trackingUrl: { type: string, format: uri }
       responses:
-        '200': { description: Updated order }
+        '200': { description: Tracking updated }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
 
   /orders/{id}/invoice:
     get:
       tags: [Orders]
-      summary: Order invoice
-      description: Owner/staff session, or a guest's `X-Guest-Token` header. Assigns `invoiceNumber` on first view for paid orders.
-      security: [{ bearerAuth: [] }]
+      summary: Get order invoice (HTML)
+      description: Returns a printable HTML invoice for the order.
       operationId: getOrderInvoice
       parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
-        - { name: X-Guest-Token, in: header, schema: { type: string } }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
       responses:
-        '200': { description: Invoice payload }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '409': { description: Order not yet paid (no invoice) }
+        '200':
+          description: HTML invoice
+          content:
+            text/html:
+              schema: { type: string }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   /orders/{id}/return:
     post:
       tags: [Orders]
-      summary: Create a return request (order owner, delivered orders only)
-      security: [{ bearerAuth: [] }]
+      summary: Request a return for order items
       operationId: createReturnRequest
+      security: [{ bearerAuth: [] }]
       parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [reason, items]
+              required: [items, reason]
               properties:
-                reason: { type: string, minLength: 1, maxLength: 500 }
                 items:
                   type: array
-                  minItems: 1
                   items:
                     type: object
                     required: [productId, qty]
                     properties:
-                      productId: { type: string, pattern: '^[0-9a-f]{24}$' }
+                      productId: { type: string }
                       qty: { type: integer, minimum: 1 }
-                      reason: { type: string, maxLength: 500 }
+                reason: { type: string, maxLength: 500 }
       responses:
         '201': { description: Return request created }
         '400': { $ref: '#/components/responses/ValidationError' }
-        '409': { description: Order not eligible for return }
-
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
     get:
       tags: [Orders]
-      summary: Get the return request for an order (owner or staff)
-      security: [{ bearerAuth: [] }]
+      summary: Get return request status
       operationId: getReturnRequest
+      security: [{ bearerAuth: [] }]
       parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
       responses:
-        '200': { description: Return request state }
+        '200': { description: Return request details }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
-
     patch:
       tags: [Orders]
-      summary: Transition a return request (staff, `orders:write`)
-      security: [{ bearerAuth: [] }]
+      summary: Update return request status (admin)
       operationId: updateReturnRequest
+      security: [{ bearerAuth: [] }]
       parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
       requestBody:
         required: true
         content:
@@ -538,36 +1109,38 @@ paths:
               properties:
                 status:
                   type: string
-                  enum: [approved, rejected, received, refunded]
-                notes: { type: string, maxLength: 500 }
-                instructions: { type: string, maxLength: 2000 }
-                refundAmount: { type: number, exclusiveMinimum: 0 }
+                  enum: [pending, approved, rejected, refunded]
+                refundAmount: { type: number }
+                adminNotes: { type: string }
       responses:
-        '200': { description: Updated return state }
-        '400': { description: Illegal transition }
-        '409': { description: Concurrent status change }
+        '200': { description: Return request updated }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   # -------------------------------------------------------------- Payments --
   /payments/setup-status:
     get:
       tags: [Payments]
-      summary: Stripe configuration readiness
-      operationId: paymentsSetupStatus
+      summary: Check if payments are configured
+      operationId: getPaymentsSetupStatus
       responses:
         '200':
-          description: '`{ ready: boolean }` — whether checkout can run'
+          description: Payment setup status
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  ready: { type: boolean }
+                  configured: { type: boolean }
+                  stripeEnabled: { type: boolean }
 
   /payments/quote:
     post:
       tags: [Payments]
-      summary: Price a cart server-side (creates nothing)
-      description: Same normalization as checkout so the quote matches what is charged. Reports stock/price drift as `warnings`.
+      summary: Get order price quote
+      description: Calculates pricing, shipping, tax, and discounts without creating an order.
       operationId: quoteOrder
       requestBody:
         required: true
@@ -576,60 +1149,28 @@ paths:
             schema: { $ref: '#/components/schemas/QuoteRequest' }
       responses:
         '200':
-          description: Priced cart
+          description: Price quote
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  lines: { type: array, items: { type: object } }
                   itemsPrice: { type: number }
-                  discountAmount: { type: number }
-                  couponValid: { type: boolean }
-                  couponMessage: { type: string, nullable: true }
                   shippingPrice: { type: number }
                   taxPrice: { type: number }
+                  discountAmount: { type: number }
                   totalPrice: { type: number }
-                  warnings: { type: array, items: { type: string } }
+                  warnings:
+                    type: array
+                    items: { type: string }
         '400': { $ref: '#/components/responses/ValidationError' }
 
   /payments/checkout-session:
     post:
       tags: [Payments]
-      summary: Create a Stripe Checkout session
-      description: |
-        Signed-in user, or guest checkout with `email` in the body.
-        Prices lines server-side, validates coupon + stock, reserves stock
-        atomically (Mongo transaction on replica sets), then returns the
-        Stripe hosted-checkout URL. On failure the reservation is released.
+      summary: Create Stripe Checkout session
+      description: Creates a Stripe Checkout session for order payment. Returns checkout URL.
       operationId: createCheckoutSession
-      security: [{ bearerAuth: [] }]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/CreateOrderRequest' }
-      responses:
-        '200':
-          description: Stripe Checkout URL
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  url: { type: string, format: uri }
-        '400':
-          description: '`GUEST_EMAIL_REQUIRED`, coupon/validation errors'
-        '409':
-          description: '`OUT_OF_STOCK` — reservation failed'
-        '502': { description: Stripe session creation failed }
-
-  /payments/verify-payment:
-    post:
-      tags: [Payments]
-      summary: Verify a payment after returning from Stripe
-      description: Owner session, or guest `guestToken` for that order. Marks the order paid when Stripe confirms; safe to retry.
-      operationId: verifyPayment
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
@@ -640,13 +1181,2611 @@ paths:
               required: [orderId]
               properties:
                 orderId: { type: string, pattern: '^[0-9a-f]{24}$' }
-                guestToken: { type: string }
       responses:
         '200':
-          description: '`{ paymentStatus, verified?, alreadyPaid?, sessionStatus? }`'
-        '400': { description: Missing/invalid orderId or no Stripe session }
-        '401': { description: Not authorized for this order }
+          description: Checkout session created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  checkoutUrl: { type: string, format: uri }
+                  sessionId: { type: string }
+        '400': { description: Order cannot be paid }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
+
+  /payments/verify-payment:
+    post:
+      tags: [Payments]
+      summary: Verify payment after checkout
+      description: Verifies Stripe payment status and marks order as paid if successful.
+      operationId: verifyPayment
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderId, sessionId]
+              properties:
+                orderId: { type: string, pattern: '^[0-9a-f]{24}$' }
+                sessionId: { type: string }
+      responses:
+        '200':
+          description: Payment verified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  paid: { type: boolean }
+                  order: { $ref: '#/components/schemas/Order' }
+        '400': { description: Payment not completed }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # --------------------------------------------------------------- Coupons --
+  /coupons/validate:
+    post:
+      tags: [Coupons]
+      summary: Validate a coupon code
+      description: Checks if a coupon is valid for the given order context.
+      operationId: validateCoupon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, maxLength: 50 }
+                items:
+                  type: array
+                  items: { $ref: '#/components/schemas/OrderItemInput' }
+                subtotal: { type: number }
+      responses:
+        '200':
+          description: Coupon validation result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid: { type: boolean }
+                  discount: { type: number }
+                  message: { type: string }
+        '400': { $ref: '#/components/responses/ValidationError' }
+
+  /coupons/code/{code}:
+    get:
+      tags: [Coupons]
+      summary: Get coupon by code
+      operationId: getCouponByCode
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Coupon details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id: { type: string }
+                  code: { type: string }
+                  type: { type: string, enum: [percentage, fixed] }
+                  value: { type: number }
+                  minOrderAmount: { type: number }
+                  maxDiscount: { type: number }
+                  usageLimit: { type: integer }
+                  usedCount: { type: integer }
+                  expiresAt: { type: string, format: date-time }
+                  isActive: { type: boolean }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /coupons:
+    get:
+      tags: [Coupons]
+      summary: List all coupons (admin)
+      operationId: getAllCoupons
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Coupon list }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Coupons]
+      summary: Create a coupon (admin)
+      operationId: createCoupon
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, type, value]
+              properties:
+                code: { type: string, maxLength: 50 }
+                type: { type: string, enum: [percentage, fixed] }
+                value: { type: number, minimum: 0 }
+                minOrderAmount: { type: number }
+                maxDiscount: { type: number }
+                usageLimit: { type: integer }
+                expiresAt: { type: string, format: date-time }
+                isActive: { type: boolean, default: true }
+      responses:
+        '201': { description: Coupon created }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /coupons/{id}:
+    get:
+      tags: [Coupons]
+      summary: Get coupon by ID (admin)
+      operationId: getCouponById
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Coupon details }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Coupons]
+      summary: Update a coupon (admin)
+      operationId: updateCoupon
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code: { type: string }
+                type: { type: string, enum: [percentage, fixed] }
+                value: { type: number }
+                minOrderAmount: { type: number }
+                maxDiscount: { type: number }
+                usageLimit: { type: integer }
+                expiresAt: { type: string, format: date-time }
+                isActive: { type: boolean }
+      responses:
+        '200': { description: Coupon updated }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Coupons]
+      summary: Delete a coupon (admin)
+      operationId: deleteCoupon
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Coupon deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /coupons/{id}/use:
+    post:
+      tags: [Coupons]
+      summary: Increment coupon usage count (admin)
+      operationId: incrementCouponUsage
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Usage incremented }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # --------------------------------------------------------------- Reviews --
+  /reviews/product/{productId}:
+    get:
+      tags: [Reviews]
+      summary: Get reviews for a product
+      operationId: getProductReviews
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Review list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reviews:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id: { type: string }
+                        user: { type: object }
+                        rating: { type: integer }
+                        title: { type: string }
+                        comment: { type: string }
+                        isVerified: { type: boolean }
+                        helpfulCount: { type: integer }
+                        createdAt: { type: string, format: date-time }
+                  total: { type: integer }
+                  averageRating: { type: number }
+
+  /reviews/admin:
+    get:
+      tags: [Reviews]
+      summary: List all reviews (admin)
+      operationId: getAdminReviews
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer }
+        - name: limit
+          in: query
+          schema: { type: integer }
+        - name: status
+          in: query
+          schema: { type: string, enum: [pending, approved, rejected] }
+      responses:
+        '200': { description: Review list }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /reviews/admin/{reviewId}/reply:
+    put:
+      tags: [Reviews]
+      summary: Reply to a review (admin)
+      operationId: replyToReview
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: reviewId
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reply]
+              properties:
+                reply: { type: string, maxLength: 1000 }
+      responses:
+        '200': { description: Reply added }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Reviews]
+      summary: Delete review reply (admin)
+      operationId: deleteReviewReply
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: reviewId
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Reply deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /reviews/admin/{reviewId}/status:
+    patch:
+      tags: [Reviews]
+      summary: Moderate review status (admin)
+      operationId: moderateReview
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: reviewId
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [pending, approved, rejected] }
+      responses:
+        '200': { description: Status updated }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /reviews/admin/{reviewId}:
+    delete:
+      tags: [Reviews]
+      summary: Delete a review (admin)
+      operationId: adminDeleteReview
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: reviewId
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Review deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /reviews:
+    post:
+      tags: [Reviews]
+      summary: Create a review
+      operationId: createReview
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productId, rating]
+              properties:
+                productId: { type: string, pattern: '^[0-9a-f]{24}$' }
+                rating: { type: integer, minimum: 1, maximum: 5 }
+                title: { type: string, maxLength: 100 }
+                comment: { type: string, maxLength: 1000 }
+      responses:
+        '201': { description: Review created }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /reviews/{reviewId}:
+    put:
+      tags: [Reviews]
+      summary: Update a review
+      operationId: updateReview
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: reviewId
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rating: { type: integer, minimum: 1, maximum: 5 }
+                title: { type: string, maxLength: 100 }
+                comment: { type: string, maxLength: 1000 }
+      responses:
+        '200': { description: Review updated }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Reviews]
+      summary: Delete a review
+      operationId: deleteReview
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: reviewId
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Review deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /reviews/my/{productId}:
+    get:
+      tags: [Reviews]
+      summary: Get current user's review for a product
+      operationId: getMyReview
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Review or null }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /reviews/my:
+    get:
+      tags: [Reviews]
+      summary: List current user's reviews
+      operationId: getMyReviews
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer }
+        - name: limit
+          in: query
+          schema: { type: integer }
+      responses:
+        '200': { description: Review list }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ------------------------------------------------------------- Wishlist --
+  /wishlist/{productId}:
+    post:
+      tags: [Wishlist]
+      summary: Add product to wishlist
+      operationId: addToWishlist
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Added to wishlist }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Wishlist]
+      summary: Remove product from wishlist
+      operationId: removeFromWishlist
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Removed from wishlist }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /wishlist/my:
+    get:
+      tags: [Wishlist]
+      summary: Get current user's wishlist
+      operationId: getMyWishlist
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Wishlist items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Product' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /wishlist/check/{productId}:
+    get:
+      tags: [Wishlist]
+      summary: Check if product is in wishlist
+      operationId: checkWishlist
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200':
+          description: Wishlist status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  inWishlist: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ------------------------------------------------------------- ProductQA --
+  /products/{id}/qa:
+    get:
+      tags: [ProductQA]
+      summary: Get Q&A for a product
+      operationId: getProductQA
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200':
+          description: Q&A list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  questions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id: { type: string }
+                        question: { type: string }
+                        answer: { type: string }
+                        askedBy: { type: object }
+                        answeredBy: { type: object }
+                        helpfulCount: { type: integer }
+                        createdAt: { type: string, format: date-time }
+    post:
+      tags: [ProductQA]
+      summary: Ask a question about a product
+      operationId: createProductQuestion
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question]
+              properties:
+                question: { type: string, minLength: 10, maxLength: 500 }
+      responses:
+        '201': { description: Question submitted }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /qa/{id}/helpful:
+    post:
+      tags: [ProductQA]
+      summary: Mark Q&A as helpful
+      operationId: markHelpful
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [helpful]
+              properties:
+                helpful: { type: boolean }
+      responses:
+        '200': { description: Helpful count updated }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /qa/admin:
+    get:
+      tags: [ProductQA]
+      summary: List all Q&A (admin)
+      operationId: getAllProductQA
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer }
+        - name: limit
+          in: query
+          schema: { type: integer }
+        - name: status
+          in: query
+          schema: { type: string, enum: [pending, approved, rejected] }
+      responses:
+        '200': { description: Q&A list }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /qa/{id}:
+    get:
+      tags: [ProductQA]
+      summary: Get Q&A by ID (admin)
+      operationId: getProductQAById
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Q&A details }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [ProductQA]
+      summary: Delete Q&A (admin)
+      operationId: deleteProductQA
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Q&A deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /qa/{id}/answer:
+    put:
+      tags: [ProductQA]
+      summary: Answer a question (admin)
+      operationId: answerProductQuestion
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [answer]
+              properties:
+                answer: { type: string, minLength: 10, maxLength: 1000 }
+      responses:
+        '200': { description: Answer saved }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # --------------------------------------------------------------- Bundles --
+  /products/{id}/bundles:
+    get:
+      tags: [Bundles]
+      summary: Get bundles for a product
+      operationId: getProductBundles
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200':
+          description: Bundle list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bundles:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id: { type: string }
+                        name: { type: string }
+                        description: { type: string }
+                        products:
+                          type: array
+                          items: { type: string }
+                        discount: { type: number }
+                        isActive: { type: boolean }
+
+  /bundles/admin:
+    get:
+      tags: [Bundles]
+      summary: List all bundles (admin)
+      operationId: getAllBundles
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Bundle list }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /bundles/{id}:
+    get:
+      tags: [Bundles]
+      summary: Get bundle by ID (admin)
+      operationId: getBundleById
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Bundle details }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Bundles]
+      summary: Update a bundle (admin)
+      operationId: updateBundle
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                description: { type: string }
+                products: { type: array, items: { type: string } }
+                discount: { type: number }
+                isActive: { type: boolean }
+      responses:
+        '200': { description: Bundle updated }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Bundles]
+      summary: Delete a bundle (admin)
+      operationId: deleteBundle
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Bundle deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /bundles:
+    post:
+      tags: [Bundles]
+      summary: Create a bundle (admin)
+      operationId: createBundle
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, products]
+              properties:
+                name: { type: string }
+                description: { type: string }
+                products: { type: array, items: { type: string }, minItems: 1 }
+                discount: { type: number }
+                isActive: { type: boolean, default: true }
+      responses:
+        '201': { description: Bundle created }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # --------------------------------------------------------------- Content --
+  /content:
+    get:
+      tags: [Content]
+      summary: Get storefront content by type
+      operationId: getContent
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Content items }
+        '400': { description: Missing type parameter }
+    post:
+      tags: [Content]
+      summary: Create content (admin)
+      operationId: createContent
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, title]
+              properties:
+                type: { type: string }
+                title: { type: string }
+                content: { type: string }
+                image: { type: string }
+                link: { type: string }
+                order: { type: integer }
+                isActive: { type: boolean, default: true }
+      responses:
+        '201': { description: Content created }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /content/admin:
+    get:
+      tags: [Content]
+      summary: List all content (admin)
+      operationId: getAllContent
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: type
+          in: query
+          schema: { type: string }
+      responses:
+        '200': { description: Content list }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /content/{id}:
+    get:
+      tags: [Content]
+      summary: Get content by ID (admin)
+      operationId: getContentById
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Content details }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Content]
+      summary: Update content (admin)
+      operationId: updateContent
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type: { type: string }
+                title: { type: string }
+                content: { type: string }
+                image: { type: string }
+                link: { type: string }
+                order: { type: integer }
+                isActive: { type: boolean }
+      responses:
+        '200': { description: Content updated }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Content]
+      summary: Delete content (admin)
+      operationId: deleteContent
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Content deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # --------------------------------------------------------------- Offers --
+  /offers:
+    get:
+      tags: [Offers]
+      summary: List active offers
+      operationId: getOffers
+      responses:
+        '200':
+          description: Offer list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  offers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id: { type: string }
+                        title: { type: string }
+                        description: { type: string }
+                        image: { type: string }
+                        link: { type: string }
+                        discount: { type: number }
+                        startsAt: { type: string, format: date-time }
+                        endsAt: { type: string, format: date-time }
+                        isActive: { type: boolean }
+    post:
+      tags: [Offers]
+      summary: Create an offer (admin)
+      operationId: createOffer
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title: { type: string }
+                description: { type: string }
+                image: { type: string }
+                link: { type: string }
+                discount: { type: number }
+                startsAt: { type: string, format: date-time }
+                endsAt: { type: string, format: date-time }
+                isActive: { type: boolean, default: true }
+      responses:
+        '201': { description: Offer created }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /offers/admin:
+    get:
+      tags: [Offers]
+      summary: List all offers (admin)
+      operationId: getAllOffers
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Offer list }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /offers/{id}:
+    get:
+      tags: [Offers]
+      summary: Get offer by ID (admin)
+      operationId: getOfferById
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Offer details }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Offers]
+      summary: Update an offer (admin)
+      operationId: updateOffer
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                description: { type: string }
+                image: { type: string }
+                link: { type: string }
+                discount: { type: number }
+                startsAt: { type: string, format: date-time }
+                endsAt: { type: string, format: date-time }
+                isActive: { type: boolean }
+      responses:
+        '200': { description: Offer updated }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Offers]
+      summary: Delete an offer (admin)
+      operationId: deleteOffer
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Offer deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ----------------------------------------------------------- HelpTopics --
+  /storefront/help:
+    get:
+      tags: [HelpTopics]
+      summary: List help topics
+      operationId: getHelpTopics
+      responses:
+        '200':
+          description: Help topic list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  topics:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id: { type: string }
+                        title: { type: string }
+                        slug: { type: string }
+                        content: { type: string }
+                        order: { type: integer }
+                        isActive: { type: boolean }
+
+  /help-topics/admin:
+    get:
+      tags: [HelpTopics]
+      summary: List all help topics (admin)
+      operationId: getAllHelpTopics
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Help topic list }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /help-topics/{id}:
+    get:
+      tags: [HelpTopics]
+      summary: Get help topic by ID (admin)
+      operationId: getHelpTopicById
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Help topic details }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [HelpTopics]
+      summary: Update a help topic (admin)
+      operationId: updateHelpTopic
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                slug: { type: string }
+                content: { type: string }
+                order: { type: integer }
+                isActive: { type: boolean }
+      responses:
+        '200': { description: Help topic updated }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [HelpTopics]
+      summary: Delete a help topic (admin)
+      operationId: deleteHelpTopic
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Help topic deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /help-topics:
+    post:
+      tags: [HelpTopics]
+      summary: Create a help topic (admin)
+      operationId: createHelpTopic
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, content]
+              properties:
+                title: { type: string }
+                slug: { type: string }
+                content: { type: string }
+                order: { type: integer }
+                isActive: { type: boolean, default: true }
+      responses:
+        '201': { description: Help topic created }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ------------------------------------------------------------- Lookbooks --
+  /storefront/lookbooks:
+    get:
+      tags: [Lookbooks]
+      summary: List active lookbooks
+      operationId: getLookbooks
+      responses:
+        '200':
+          description: Lookbook list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  lookbooks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id: { type: string }
+                        title: { type: string }
+                        description: { type: string }
+                        coverImage: { type: string }
+                        images:
+                          type: array
+                          items: { type: string }
+                        isActive: { type: boolean }
+
+  /lookbooks/admin:
+    get:
+      tags: [Lookbooks]
+      summary: List all lookbooks (admin)
+      operationId: getAllLookbooks
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Lookbook list }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /lookbooks/{id}:
+    get:
+      tags: [Lookbooks]
+      summary: Get lookbook by ID (admin)
+      operationId: getLookbookById
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Lookbook details }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Lookbooks]
+      summary: Update a lookbook (admin)
+      operationId: updateLookbook
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                description: { type: string }
+                coverImage: { type: string }
+                images: { type: array, items: { type: string } }
+                isActive: { type: boolean }
+      responses:
+        '200': { description: Lookbook updated }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Lookbooks]
+      summary: Delete a lookbook (admin)
+      operationId: deleteLookbook
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Lookbook deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /lookbooks:
+    post:
+      tags: [Lookbooks]
+      summary: Create a lookbook (admin)
+      operationId: createLookbook
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title: { type: string }
+                description: { type: string }
+                coverImage: { type: string }
+                images: { type: array, items: { type: string } }
+                isActive: { type: boolean, default: true }
+      responses:
+        '201': { description: Lookbook created }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ---------------------------------------------------------- GiftFinder --
+  /storefront/gift-finder:
+    get:
+      tags: [GiftFinder]
+      summary: Get gift finder configuration
+      operationId: getGiftFinderConfig
+      responses:
+        '200':
+          description: Gift finder config
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _id: { type: string }
+                  title: { type: string }
+                  description: { type: string }
+                  questions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        question: { type: string }
+                        options:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              label: { type: string }
+                              value: { type: string }
+                  isActive: { type: boolean }
+
+  /gift-finder/admin:
+    get:
+      tags: [GiftFinder]
+      summary: List all gift finder configs (admin)
+      operationId: getAllGiftFinderConfigs
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Config list }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /gift-finder/{id}:
+    get:
+      tags: [GiftFinder]
+      summary: Get gift finder config by ID (admin)
+      operationId: getGiftFinderConfigById
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Config details }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [GiftFinder]
+      summary: Update gift finder config (admin)
+      operationId: updateGiftFinderConfig
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                description: { type: string }
+                questions: { type: array }
+                isActive: { type: boolean }
+      responses:
+        '200': { description: Config updated }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [GiftFinder]
+      summary: Delete gift finder config (admin)
+      operationId: deleteGiftFinderConfig
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Config deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /gift-finder:
+    post:
+      tags: [GiftFinder]
+      summary: Create gift finder config (admin)
+      operationId: createGiftFinderConfig
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title: { type: string }
+                description: { type: string }
+                questions: { type: array }
+                isActive: { type: boolean, default: true }
+      responses:
+        '201': { description: Config created }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # -------------------------------------------------------- Testimonials --
+  /storefront/testimonials:
+    get:
+      tags: [Testimonials]
+      summary: List active testimonials
+      operationId: getTestimonials
+      responses:
+        '200':
+          description: Testimonial list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  testimonials:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id: { type: string }
+                        name: { type: string }
+                        role: { type: string }
+                        content: { type: string }
+                        rating: { type: integer }
+                        avatar: { type: string }
+                        isActive: { type: boolean }
+
+  /testimonials/admin:
+    get:
+      tags: [Testimonials]
+      summary: List all testimonials (admin)
+      operationId: getAllTestimonials
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Testimonial list }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /testimonials/{id}:
+    get:
+      tags: [Testimonials]
+      summary: Get testimonial by ID (admin)
+      operationId: getTestimonialById
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Testimonial details }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Testimonials]
+      summary: Update a testimonial (admin)
+      operationId: updateTestimonial
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                role: { type: string }
+                content: { type: string }
+                rating: { type: integer }
+                avatar: { type: string }
+                isActive: { type: boolean }
+      responses:
+        '200': { description: Testimonial updated }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Testimonials]
+      summary: Delete a testimonial (admin)
+      operationId: deleteTestimonial
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Testimonial deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /testimonials:
+    post:
+      tags: [Testimonials]
+      summary: Create a testimonial (admin)
+      operationId: createTestimonial
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, content]
+              properties:
+                name: { type: string }
+                role: { type: string }
+                content: { type: string }
+                rating: { type: integer }
+                avatar: { type: string }
+                isActive: { type: boolean, default: true }
+      responses:
+        '201': { description: Testimonial created }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ------------------------------------------------------ StorefrontModules --
+  /storefront/modules:
+    get:
+      tags: [StorefrontModules]
+      summary: List active storefront modules
+      operationId: getStorefrontModules
+      responses:
+        '200':
+          description: Module list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  modules:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id: { type: string }
+                        type: { type: string }
+                        title: { type: string }
+                        content: { type: string }
+                        image: { type: string }
+                        link: { type: string }
+                        order: { type: integer }
+                        isActive: { type: boolean }
+
+  /storefront-modules/admin:
+    get:
+      tags: [StorefrontModules]
+      summary: List all storefront modules (admin)
+      operationId: getAllStorefrontModules
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Module list }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /storefront-modules/{id}:
+    get:
+      tags: [StorefrontModules]
+      summary: Get storefront module by ID (admin)
+      operationId: getStorefrontModuleById
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Module details }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [StorefrontModules]
+      summary: Update a storefront module (admin)
+      operationId: updateStorefrontModule
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type: { type: string }
+                title: { type: string }
+                content: { type: string }
+                image: { type: string }
+                link: { type: string }
+                order: { type: integer }
+                isActive: { type: boolean }
+      responses:
+        '200': { description: Module updated }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [StorefrontModules]
+      summary: Delete a storefront module (admin)
+      operationId: deleteStorefrontModule
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Module deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /storefront-modules:
+    post:
+      tags: [StorefrontModules]
+      summary: Create a storefront module (admin)
+      operationId: createStorefrontModule
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, title]
+              properties:
+                type: { type: string }
+                title: { type: string }
+                content: { type: string }
+                image: { type: string }
+                link: { type: string }
+                order: { type: integer }
+                isActive: { type: boolean, default: true }
+      responses:
+        '201': { description: Module created }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ------------------------------------------------------------ Storefront --
+  /storefront/home:
+    get:
+      tags: [Storefront]
+      summary: Get storefront home page data
+      operationId: getStorefrontHome
+      responses:
+        '200':
+          description: Home page data (hero, featured products, categories, etc.)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hero:
+                    type: object
+                    properties:
+                      title: { type: string }
+                      subtitle: { type: string }
+                      image: { type: string }
+                      link: { type: string }
+                  featuredProducts:
+                    type: array
+                    items: { $ref: '#/components/schemas/Product' }
+                  categories:
+                    type: array
+                    items: { type: object }
+                  testimonials:
+                    type: array
+                    items: { type: object }
+
+  /storefront/trust:
+    get:
+      tags: [Storefront]
+      summary: Get trust badges/content
+      operationId: getStorefrontTrust
+      responses:
+        '200':
+          description: Trust content
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        icon: { type: string }
+                        title: { type: string }
+                        description: { type: string }
+
+  /storefront/why-choose-us:
+    get:
+      tags: [Storefront]
+      summary: Get "Why Choose Us" content
+      operationId: getWhyChooseUs
+      responses:
+        '200':
+          description: Why choose us content
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        icon: { type: string }
+                        title: { type: string }
+                        description: { type: string }
+
+  # ------------------------------------------------------------- Newsletter --
+  /newsletter:
+    post:
+      tags: [Newsletter]
+      summary: Subscribe to newsletter
+      operationId: subscribe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        '200': { description: Subscription confirmation sent }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '429': { description: Rate limited }
+
+  /newsletter/confirm:
+    post:
+      tags: [Newsletter]
+      summary: Confirm newsletter subscription
+      operationId: confirmNewsletter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        '200': { description: Subscription confirmed }
+        '400': { description: Invalid or expired token }
+
+  /newsletter/unsubscribe:
+    post:
+      tags: [Newsletter]
+      summary: Unsubscribe from newsletter
+      operationId: unsubscribe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        '200': { description: Unsubscribed }
+        '400': { description: Invalid token }
+
+  /newsletter/admin:
+    get:
+      tags: [Newsletter]
+      summary: List subscribers (admin)
+      operationId: getAdminSubscribers
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer }
+        - name: limit
+          in: query
+          schema: { type: integer }
+        - name: status
+          in: query
+          schema: { type: string, enum: [pending, confirmed, unsubscribed] }
+      responses:
+        '200': { description: Subscriber list }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # --------------------------------------------------------------- Contact --
+  /contact:
+    post:
+      tags: [Contact]
+      summary: Submit contact form
+      operationId: createContactMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, message]
+              properties:
+                name: { type: string, minLength: 2, maxLength: 100 }
+                email: { type: string, format: email }
+                subject: { type: string, maxLength: 200 }
+                message: { type: string, minLength: 10, maxLength: 2000 }
+      responses:
+        '201': { description: Message sent }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '429': { description: Rate limited }
+
+  /contact/admin:
+    get:
+      tags: [Contact]
+      summary: List contact messages (admin)
+      operationId: getAdminContactMessages
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer }
+        - name: limit
+          in: query
+          schema: { type: integer }
+        - name: status
+          in: query
+          schema: { type: string, enum: [new, read, replied, archived] }
+      responses:
+        '200': { description: Message list }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /contact/admin/{id}:
+    patch:
+      tags: [Contact]
+      summary: Update contact message status (admin)
+      operationId: updateContactMessage
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [new, read, replied, archived] }
+      responses:
+        '200': { description: Status updated }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # --------------------------------------------------------------- Shipping --
+  /shipping/zones:
+    get:
+      tags: [Shipping]
+      summary: List active shipping zones
+      operationId: getShippingZones
+      responses:
+        '200':
+          description: Shipping zone list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  zones:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id: { type: string }
+                        name: { type: string }
+                        description: { type: string }
+                        regions: { type: array, items: { type: string } }
+                        methods:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              name: { type: string }
+                              price: { type: number }
+                              estimatedDays: { type: string }
+                              isActive: { type: boolean }
+                        isActive: { type: boolean }
+
+  /shipping/methods:
+    get:
+      tags: [Shipping]
+      summary: Get shipping methods for address
+      operationId: getShippingMethodsForAddress
+      parameters:
+        - name: country
+          in: query
+          required: true
+          schema: { type: string }
+        - name: zip
+          in: query
+          schema: { type: string }
+        - name: city
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Available shipping methods
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  methods:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        zoneId: { type: string }
+                        zoneName: { type: string }
+                        method:
+                          type: object
+                          properties:
+                            name: { type: string }
+                            price: { type: number }
+                            estimatedDays: { type: string }
+
+  /admin/shipping/zones:
+    get:
+      tags: [Shipping]
+      summary: List all shipping zones (admin)
+      operationId: getAllShippingZonesAdmin
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: All zones }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Shipping]
+      summary: Create shipping zone (admin)
+      operationId: createShippingZone
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                description: { type: string }
+                regions: { type: array, items: { type: string } }
+                methods:
+                  type: array
+                  items:
+                    type: object
+                    required: [name, price]
+                    properties:
+                      name: { type: string }
+                      price: { type: number, minimum: 0 }
+                      estimatedDays: { type: string }
+                      isActive: { type: boolean, default: true }
+                isActive: { type: boolean, default: true }
+      responses:
+        '201': { description: Zone created }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/shipping/zones/{id}:
+    get:
+      tags: [Shipping]
+      summary: Get shipping zone by ID (admin)
+      operationId: getShippingZoneById
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Zone details }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Shipping]
+      summary: Update shipping zone (admin)
+      operationId: updateShippingZone
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                description: { type: string }
+                regions: { type: array, items: { type: string } }
+                methods: { type: array }
+                isActive: { type: boolean }
+      responses:
+        '200': { description: Zone updated }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Shipping]
+      summary: Delete shipping zone (admin)
+      operationId: deleteShippingZone
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Zone deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/shipping/zones/{id}/methods:
+    post:
+      tags: [Shipping]
+      summary: Add shipping method to zone (admin)
+      operationId: addShippingMethod
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, price]
+              properties:
+                name: { type: string }
+                price: { type: number, minimum: 0 }
+                estimatedDays: { type: string }
+                isActive: { type: boolean, default: true }
+      responses:
+        '201': { description: Method added }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/shipping/zones/{id}/methods/{methodId}:
+    put:
+      tags: [Shipping]
+      summary: Update shipping method (admin)
+      operationId: updateShippingMethod
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+        - name: methodId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                price: { type: number }
+                estimatedDays: { type: string }
+                isActive: { type: boolean }
+      responses:
+        '200': { description: Method updated }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Shipping]
+      summary: Delete shipping method (admin)
+      operationId: deleteShippingMethod
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+        - name: methodId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Method deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # --------------------------------------------------------------- Uploads --
+  /uploads:
+    post:
+      tags: [Uploads]
+      summary: Upload an image
+      description: Uploads a product/brand image. Returns the file URL.
+      operationId: uploadImage
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: JPEG, PNG, WEBP, or GIF (max 5MB)
+      responses:
+        '200':
+          description: Upload successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url: { type: string }
+                  filename: { type: string }
+        '400': { description: Invalid file type or size }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ----------------------------------------------------------------- Users --
+  /users:
+    get:
+      tags: [Users]
+      summary: List all users (admin)
+      operationId: getAllUsers
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer }
+        - name: limit
+          in: query
+          schema: { type: integer }
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: role
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: User list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id: { type: string }
+                        email: { type: string }
+                        username: { type: string }
+                        roles:
+                          type: array
+                          items: { type: string }
+                        emailVerified: { type: boolean }
+                        createdAt: { type: string, format: date-time }
+                  total: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /users/{id}:
+    get:
+      tags: [Users]
+      summary: Get user by ID (admin)
+      operationId: getUserById
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: User details }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Users]
+      summary: Update user (admin)
+      operationId: updateUser
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string, format: email }
+                username: { type: string }
+                roles:
+                  type: array
+                  items: { type: string, enum: [user, admin, moderator] }
+                isActive: { type: boolean }
+      responses:
+        '200': { description: User updated }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Users]
+      summary: Delete user (admin)
+      operationId: deleteUser
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: User deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ------------------------------------------------------------ AdminStats --
+  /admin/stats:
+    get:
+      tags: [AdminStats]
+      summary: Get admin dashboard stats
+      operationId: getAdminStats
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalOrders: { type: integer }
+                  totalRevenue: { type: number }
+                  totalProducts: { type: integer }
+                  totalUsers: { type: integer }
+                  pendingOrders: { type: integer }
+                  lowStockProducts: { type: integer }
+                  recentOrders:
+                    type: array
+                    items: { $ref: '#/components/schemas/Order' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/analytics:
+    get:
+      tags: [AdminStats]
+      summary: Get sales analytics
+      operationId: getAdminAnalytics
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: period
+          in: query
+          schema:
+            { type: string, enum: [day, week, month, year], default: month }
+      responses:
+        '200':
+          description: Analytics data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  revenue:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date: { type: string }
+                        amount: { type: number }
+                  orders:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date: { type: string }
+                        count: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/low-stock:
+    get:
+      tags: [AdminStats]
+      summary: Get low stock products
+      operationId: getLowStockProducts
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: threshold
+          in: query
+          schema: { type: integer, default: 5 }
+      responses:
+        '200':
+          description: Low stock products
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  products:
+                    type: array
+                    items: { $ref: '#/components/schemas/Product' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # -------------------------------------------------------------- Settings --
+  /admin/settings:
+    get:
+      tags: [Settings]
+      summary: Get store settings
+      operationId: getSettings
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Store settings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  storeName: { type: string }
+                  storeEmail: { type: string }
+                  storePhone: { type: string }
+                  storeAddress: { type: string }
+                  currency: { type: string }
+                  timezone: { type: string }
+                  socialLinks:
+                    type: object
+                    properties:
+                      facebook: { type: string }
+                      instagram: { type: string }
+                      twitter: { type: string }
+                  maintenanceMode: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    put:
+      tags: [Settings]
+      summary: Update store settings
+      operationId: updateSettings
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                storeName: { type: string }
+                storeEmail: { type: string, format: email }
+                storePhone: { type: string }
+                storeAddress: { type: string }
+                currency: { type: string }
+                timezone: { type: string }
+                socialLinks: { type: object }
+                maintenanceMode: { type: boolean }
+      responses:
+        '200': { description: Settings updated }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # -------------------------------------------------------- Recommendations --
+  /recommendations:
+    get:
+      tags: [Recommendations]
+      summary: Get product recommendations
+      operationId: getRecommendations
+      parameters:
+        - name: productId
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 10 }
+      responses:
+        '200':
+          description: Recommended products
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  recommendations:
+                    type: array
+                    items: { $ref: '#/components/schemas/Product' }
+
+  # --------------------------------------------------------- RecentlyViewed --
+  /me/recently-viewed:
+    post:
+      tags: [RecentlyViewed]
+      summary: Track recently viewed product
+      operationId: trackRecentlyViewed
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productId]
+              properties:
+                productId: { type: string, pattern: '^[0-9a-f]{24}$' }
+      responses:
+        '200': { description: Tracked }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    get:
+      tags: [RecentlyViewed]
+      summary: Get recently viewed products
+      operationId: getRecentlyViewed
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 10 }
+      responses:
+        '200':
+          description: Recently viewed products
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  products:
+                    type: array
+                    items: { $ref: '#/components/schemas/Product' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # --------------------------------------------------------------- Sitemap --
+  /sitemap.xml:
+    get:
+      tags: [Sitemap]
+      summary: Get sitemap index
+      operationId: getSitemapIndex
+      responses:
+        '200':
+          description: Sitemap index XML
+          content:
+            application/xml:
+              schema: { type: string }
+
+  /sitemaps/{file}:
+    get:
+      tags: [Sitemap]
+      summary: Get sitemap shard
+      operationId: getSitemapShard
+      parameters:
+        - name: file
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Sitemap XML
+          content:
+            application/xml:
+              schema: { type: string }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ------------------------------------------------------------------- Ops --
+  /trendvaulta:
+    get:
+      tags: [Ops]
+      summary: Liveness check
+      operationId: getTrendvaulta
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  service: { type: string, example: trendvaulta-api }
+                  timestamp: { type: string, format: date-time }
+
+  /ready:
+    get:
+      tags: [Ops]
+      summary: Readiness check
+      operationId: getReady
+      responses:
+        '200':
+          description: Service is ready (MongoDB connected)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ready }
+                  service: { type: string }
+                  db: { type: string, example: connected }
+                  timestamp: { type: string, format: date-time }
+        '503':
+          description: Service not ready (MongoDB disconnected)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: not_ready }
+                  service: { type: string }
+                  db: { type: string, example: disconnected }
+                  timestamp: { type: string, format: date-time }
 
   # ------------------------------------------------------------- Webhooks --
   /webhooks/stripe:
@@ -746,7 +3885,8 @@ components:
         address: { type: string, minLength: 5, maxLength: 300 }
         city: { type: string, minLength: 2, maxLength: 100 }
         zip: { type: string, minLength: 2, maxLength: 20 }
-        country: { type: string, minLength: 2, maxLength: 2, description: ISO alpha-2 }
+        country:
+          { type: string, minLength: 2, maxLength: 2, description: ISO alpha-2 }
         notes: { type: string, maxLength: 500 }
 
     OrderItemInput:
@@ -796,7 +3936,12 @@ components:
               - $ref: '#/components/schemas/OrderItemInput'
               - type: object
                 properties:
-                  price: { type: number, minimum: 0, description: Hint only — server reprices }
+                  price:
+                    {
+                      type: number,
+                      minimum: 0,
+                      description: Hint only — server reprices,
+                    }
         couponCode: { type: string, maxLength: 50, nullable: true }
         delivery: { type: boolean }
         shippingMethod: { type: string, maxLength: 50 }
@@ -900,7 +4045,17 @@ components:
         shippingAddress: { $ref: '#/components/schemas/Address' }
         status:
           type: string
-          enum: [pending, paid, processing, shipped, delivered, canceled, refunded, needs_attention]
+          enum:
+            [
+              pending,
+              paid,
+              processing,
+              shipped,
+              delivered,
+              canceled,
+              refunded,
+              needs_attention,
+            ]
         paymentStatus:
           type: string
           enum: [pending, paid, refunded]
@@ -914,6 +4069,7 @@ components:
         trackingNumber: { type: string }
         trackingCarrier: { type: string }
         trackingUrl: { type: string }
-        canCancel: { type: boolean, description: Present on customer-facing reads }
+        canCancel:
+          { type: boolean, description: Present on customer-facing reads }
         canReturn: { type: boolean }
         returnNeedsAccount: { type: boolean }
