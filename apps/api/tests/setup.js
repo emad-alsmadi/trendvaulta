@@ -1,7 +1,7 @@
 /**
  * Shared harness for API integration tests (node --test + supertest).
  *
- * - Boots an in-memory MongoDB (mongodb-memory-server) or, when
+ * - Boots an in-memory MongoDB replica set (mongodb-memory-server) or, when
  *   MONGO_TEST_URL is set, connects to that server using a unique database
  *   that is dropped afterwards. When neither is possible the DB-backed tests
  *   are skipped with a clear reason instead of failing.
@@ -136,14 +136,21 @@ const fakeStripe = {
     constructEvent(body, signature, secret) {
       stripeMock.calls.constructEvent.push({ signature, secret });
       if (!signature || signature === 'invalid') {
-        throw new Error('No signatures found matching the expected signature for payload');
+        throw new Error(
+          'No signatures found matching the expected signature for payload',
+        );
       }
-      return JSON.parse(Buffer.isBuffer(body) ? body.toString('utf8') : String(body));
+      return JSON.parse(
+        Buffer.isBuffer(body) ? body.toString('utf8') : String(body),
+      );
     },
   },
 };
 
-const stripeServicePath = path.resolve(__dirname, '../services/stripe.service.js');
+const stripeServicePath = path.resolve(
+  __dirname,
+  '../services/stripe.service.js',
+);
 const realStripeService = require(stripeServicePath);
 require.cache[stripeServicePath].exports = {
   ...realStripeService,
@@ -156,7 +163,10 @@ require.cache[stripeServicePath].exports = {
 // fixed it would crash every HTTP test that reaches a mounted router, so the
 // integration suites run with a pass-through logger. tests/requestLogger.test.js
 // exercises the real middleware and stays red until the bug is fixed.
-const requestLoggerPath = path.resolve(__dirname, '../middlewares/requestLogger.js');
+const requestLoggerPath = path.resolve(
+  __dirname,
+  '../middlewares/requestLogger.js',
+);
 if (process.env.TEST_REAL_REQUEST_LOGGER !== 'true') {
   require.cache[requestLoggerPath] = {
     id: requestLoggerPath,
@@ -192,8 +202,12 @@ async function connectDb() {
     if (process.env.MONGO_TEST_URL) {
       uri = process.env.MONGO_TEST_URL;
     } else {
-      const { MongoMemoryServer } = require('mongodb-memory-server');
-      state.memoryServer = await MongoMemoryServer.create();
+      // Single-node replica set so multi-document transactions work —
+      // services/payment.service.js uses them on replica-set deployments.
+      const { MongoMemoryReplSet } = require('mongodb-memory-server');
+      state.memoryServer = await MongoMemoryReplSet.create({
+        replSet: { count: 1 },
+      });
       uri = state.memoryServer.getUri();
     }
     await mongoose.connect(uri, {
@@ -320,7 +334,13 @@ function checkoutBody(items, extra = {}) {
 }
 
 /** Directly persist an order (bypasses Stripe) for admin/order tests. */
-async function createOrder({ user, product, qty = 1, variant, ...overrides } = {}) {
+async function createOrder({
+  user,
+  product,
+  qty = 1,
+  variant,
+  ...overrides
+} = {}) {
   const price = Number(product.price);
   const items = [
     {
@@ -353,7 +373,10 @@ async function createOrder({ user, product, qty = 1, variant, ...overrides } = {
 // ---------------------------------------------------------------------------
 // Stripe event helpers
 // ---------------------------------------------------------------------------
-function completedSession(order, { paymentIntentId = 'pi_test_1', sessionId } = {}) {
+function completedSession(
+  order,
+  { paymentIntentId = 'pi_test_1', sessionId } = {},
+) {
   return {
     id: sessionId || order.stripeSessionId || `cs_test_manual_${order._id}`,
     object: 'checkout.session',
