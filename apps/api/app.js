@@ -88,6 +88,18 @@ app.use(
   }),
 );
 
+// OpenAPI documentation — served only in non-production to avoid exposing
+// the API surface in production. Set API_DOCS_ENABLED=true to override.
+if (
+  process.env.NODE_ENV !== 'production' ||
+  process.env.API_DOCS_ENABLED === 'true'
+) {
+  const swaggerUi = require('swagger-ui-express');
+  const YAML = require('yamljs');
+  const swaggerDocument = YAML.load(path.join(__dirname, 'openapi.yaml'));
+  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+}
+
 // Liveness/readiness probe for the platform's health checks. Kept above the
 // routers and outside /api so it is never rate limited or auth gated. Reports
 // 503 while Mongo is not connected so a rolling deploy holds traffic back.
