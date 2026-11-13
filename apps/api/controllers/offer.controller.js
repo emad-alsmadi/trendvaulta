@@ -29,13 +29,12 @@ const getOffers = asyncHandler(async (req, res) => {
   const results = await Offer.find(query)
     .sort({ sortOrder: 1, createdAt: -1 })
     .limit(limitNum)
-    .select('title subtitle badge href imageUrl translations endsAt active sortOrder')
+    .select(
+      'title subtitle badge href imageUrl translations endsAt active sortOrder',
+    )
     .lean();
 
-  res.status(200).json({
-    message: 'ok',
-    results,
-  });
+  res.status(200).json({ data: results });
 });
 
 /**
@@ -85,101 +84,26 @@ const getOfferById = asyncHandler(async (req, res) => {
   const offer = await Offer.findById(req.params.id);
 
   if (!offer) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'Offer not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'Offer not found' });
   }
 
-  res.status(200).json(offer);
+  res.status(200).json({ data: offer });
 });
-
-function parseOfferBody(body, { partial = false } = {}) {
-  const errors = [];
-  const data = {};
-
-  if (!partial || body.title !== undefined) {
-    const title = typeof body.title === 'string' ? body.title.trim() : '';
-    if (!title) errors.push('title is required');
-    else data.title = title;
-  }
-
-  if (!partial || body.href !== undefined) {
-    const href = typeof body.href === 'string' ? body.href.trim() : '';
-    if (!href) errors.push('href is required');
-    else data.href = href;
-  }
-
-  if (body.subtitle !== undefined) {
-    data.subtitle =
-      typeof body.subtitle === 'string' ? body.subtitle.trim() : '';
-  }
-
-  if (body.badge !== undefined) {
-    data.badge = typeof body.badge === 'string' ? body.badge.trim() : '';
-  }
-
-  if (body.imageUrl !== undefined) {
-    data.imageUrl =
-      typeof body.imageUrl === 'string' ? body.imageUrl.trim() : '';
-  }
-
-  if (body.endsAt !== undefined) {
-    if (body.endsAt === null || body.endsAt === '') {
-      data.endsAt = null;
-    } else {
-      const d = new Date(body.endsAt);
-      if (Number.isNaN(d.getTime())) errors.push('endsAt must be a valid date');
-      else data.endsAt = d;
-    }
-  }
-
-  if (body.active !== undefined) {
-    data.active = Boolean(body.active);
-  }
-
-  if (body.sortOrder !== undefined) {
-    const n = Number(body.sortOrder);
-    if (Number.isNaN(n)) errors.push('sortOrder must be a number');
-    else data.sortOrder = n;
-  }
-
-  // Optional Arabic translation — all fields optional, any can be blank to
-  // fall back to the English title/subtitle/badge on the storefront.
-  if (body.translations !== undefined) {
-    const ar = body.translations?.ar || {};
-    const arTitle = typeof ar.title === 'string' ? ar.title.trim() : '';
-    const arSubtitle = typeof ar.subtitle === 'string' ? ar.subtitle.trim() : '';
-    const arBadge = typeof ar.badge === 'string' ? ar.badge.trim() : '';
-    data.translations = { ar: { title: arTitle, subtitle: arSubtitle, badge: arBadge } };
-  }
-
-  return { data, errors };
-}
 
 /**
  * Create a new offer.
+ * Body is Joi-validated at the route (validators/offer.validator.js).
  *
  * @route POST /api/offers
  * @access Private (offers:write)
  */
 const createOffer = asyncHandler(async (req, res) => {
-  const { data, errors } = parseOfferBody(req.body, { partial: false });
-  if (errors.length) {
-    return res.status(400).json({ code: 'VALIDATION_ERROR', message: errors[0] });
-  }
-
-  const offer = new Offer({
-    title: data.title,
-    href: data.href,
-    subtitle: data.subtitle ?? '',
-    badge: data.badge ?? '',
-    imageUrl: data.imageUrl ?? '',
-    translations: data.translations,
-    endsAt: data.endsAt !== undefined ? data.endsAt : null,
-    active: data.active !== undefined ? data.active : true,
-    sortOrder: data.sortOrder !== undefined ? data.sortOrder : 0,
-  });
+  const offer = new Offer(req.body);
 
   const result = await offer.save();
-  res.status(201).json(result);
+  res.status(201).json({ data: result });
 });
 
 /**
@@ -189,24 +113,17 @@ const createOffer = asyncHandler(async (req, res) => {
  * @access Private (offers:write)
  */
 const updateOffer = asyncHandler(async (req, res) => {
-  const { data, errors } = parseOfferBody(req.body, { partial: true });
-  if (errors.length) {
-    return res.status(400).json({ code: 'VALIDATION_ERROR', message: errors[0] });
-  }
-
-  if (Object.keys(data).length === 0) {
-    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'No fields to update' });
-  }
-
-  const offer = await Offer.findByIdAndUpdate(req.params.id, data, {
+  const offer = await Offer.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
   });
 
   if (!offer) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'Offer not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'Offer not found' });
   }
 
-  res.status(200).json(offer);
+  res.status(200).json({ data: offer });
 });
 
 /**
@@ -223,10 +140,12 @@ const deleteOffer = asyncHandler(async (req, res) => {
   );
 
   if (!offer) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'Offer not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'Offer not found' });
   }
 
-  res.status(200).json({ message: 'Offer has been deactivated' });
+  res.status(200).json({ message: 'Offer has been deactivated', data: offer });
 });
 
 module.exports = {

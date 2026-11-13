@@ -1,7 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
+const { validate } = require('../middlewares/validate');
+const {
+  createHelpTopicSchema,
+  updateHelpTopicSchema,
+} = require('../validators/helpTopic.validator');
 
 const {
   getHelpTopics,
@@ -18,35 +23,37 @@ router.get('/storefront/help', getHelpTopics);
 // Admin routes (static segment before :id)
 router.get(
   '/help-topics/admin',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:read'),
   getAllHelpTopics,
 );
 
 router.get(
   '/help-topics/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:read'),
   getHelpTopicById,
 );
 
 router.post(
   '/help-topics',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:write'),
+  validate(createHelpTopicSchema),
   createHelpTopic,
 );
 
 router.put(
   '/help-topics/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:write'),
+  validate(updateHelpTopicSchema),
   updateHelpTopic,
 );
 
 router.delete(
   '/help-topics/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:delete'),
   deleteHelpTopic,
 );

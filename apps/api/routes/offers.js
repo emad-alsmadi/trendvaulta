@@ -1,7 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
+const { validate } = require('../middlewares/validate');
+const {
+  createOfferSchema,
+  updateOfferSchema,
+} = require('../validators/offer.validator');
 
 const {
   getOffers,
@@ -18,35 +23,37 @@ router.get('/offers', getOffers);
 // Admin routes (static segment before :id)
 router.get(
   '/offers/admin',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('offers:read'),
   getAllOffers,
 );
 
 router.get(
   '/offers/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('offers:read'),
   getOfferById,
 );
 
 router.post(
   '/offers',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('offers:write'),
+  validate(createOfferSchema),
   createOffer,
 );
 
 router.put(
   '/offers/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('offers:write'),
+  validate(updateOfferSchema),
   updateOffer,
 );
 
 router.delete(
   '/offers/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('offers:delete'),
   deleteOffer,
 );

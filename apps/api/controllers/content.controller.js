@@ -15,24 +15,35 @@ const getContent = asyncHandler(async (req, res) => {
   const { type } = req.query;
 
   if (!type) {
-    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'type query parameter is required' });
+    return res.status(400).json({
+      code: 'VALIDATION_ERROR',
+      message: 'type query parameter is required',
+    });
   }
 
-  const validTypes = ['SHIPPING', 'RETURNS', 'PRIVACY', 'TERMS', 'STOREFRONT_TRUST'];
+  const validTypes = [
+    'SHIPPING',
+    'RETURNS',
+    'PRIVACY',
+    'TERMS',
+    'STOREFRONT_TRUST',
+  ];
   if (!validTypes.includes(type)) {
-    return res.status(400).json({ code: 'VALIDATION_ERROR', message: `Invalid type. Must be one of: ${validTypes.join(', ')}` });
+    return res.status(400).json({
+      code: 'VALIDATION_ERROR',
+      message: `Invalid type. Must be one of: ${validTypes.join(', ')}`,
+    });
   }
 
   const content = await Content.findOne({ type, active: true }).lean();
 
   if (!content) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'Content not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'Content not found' });
   }
 
-  res.status(200).json({
-    message: 'ok',
-    data: content,
-  });
+  res.status(200).json({ data: content });
 });
 
 /**
@@ -82,71 +93,23 @@ const getContentById = asyncHandler(async (req, res) => {
   const content = await Content.findById(req.params.id);
 
   if (!content) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'Content not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'Content not found' });
   }
 
-  res.status(200).json(content);
+  res.status(200).json({ data: content });
 });
-
-function parseContentBody(body, { partial = false } = {}) {
-  const errors = [];
-  const data = {};
-
-  if (!partial || body.type !== undefined) {
-    const type = typeof body.type === 'string' ? body.type.trim() : '';
-    const validTypes = ['SHIPPING', 'RETURNS', 'PRIVACY', 'TERMS', 'STOREFRONT_TRUST'];
-    if (!type) errors.push('type is required');
-    else if (!validTypes.includes(type)) errors.push(`Invalid type. Must be one of: ${validTypes.join(', ')}`);
-    else data.type = type;
-  }
-
-  if (!partial || body.title !== undefined) {
-    const title = typeof body.title === 'string' ? body.title.trim() : '';
-    if (!title) errors.push('title is required');
-    else data.title = title;
-  }
-
-  if (!partial || body.body !== undefined) {
-    const bodyText = typeof body.body === 'string' ? body.body.trim() : '';
-    if (!bodyText) errors.push('body is required');
-    else data.body = bodyText;
-  }
-
-  if (body.active !== undefined) {
-    data.active = Boolean(body.active);
-  }
-
-  // Optional Arabic translation — both fields optional, either can be
-  // blank to fall back to the English title/body on the storefront.
-  if (body.translations !== undefined) {
-    const ar = body.translations?.ar || {};
-    const arTitle = typeof ar.title === 'string' ? ar.title.trim() : '';
-    const arBody = typeof ar.body === 'string' ? ar.body.trim() : '';
-    data.translations = { ar: { title: arTitle, body: arBody } };
-  }
-
-  return { data, errors };
-}
 
 /**
  * Create new content.
+ * Body is Joi-validated at the route (validators/content.validator.js).
  *
  * @route POST /api/content
  * @access Private (admin)
  */
 const createContent = asyncHandler(async (req, res) => {
-  const { data, errors } = parseContentBody(req.body, { partial: false });
-  if (errors.length) {
-    return res.status(400).json({ code: 'VALIDATION_ERROR', message: errors[0] });
-  }
-
-  const content = new Content({
-    type: data.type,
-    title: data.title,
-    body: data.body,
-    translations: data.translations,
-    active: data.active !== undefined ? data.active : true,
-  });
+  const content = new Content(req.body);
   // Fail on bad input (e.g. title > 200) before touching the live page.
   await content.validate();
 
@@ -155,18 +118,21 @@ const createContent = asyncHandler(async (req, res) => {
   // switched off first, so switch it back on if the save still fails.
   let replacedIds = [];
   if (content.active) {
-    const live = await Content.find({ type: data.type, active: true })
+    const live = await Content.find({ type: content.type, active: true })
       .select('_id')
       .lean();
     replacedIds = live.map((doc) => doc._id);
     if (replacedIds.length) {
-      await Content.updateMany({ _id: { $in: replacedIds } }, { active: false });
+      await Content.updateMany(
+        { _id: { $in: replacedIds } },
+        { active: false },
+      );
     }
   }
 
   try {
     const result = await content.save();
-    res.status(201).json(result);
+    res.status(201).json({ data: result });
   } catch (err) {
     if (replacedIds.length) {
       await Content.updateMany(
@@ -185,32 +151,25 @@ const createContent = asyncHandler(async (req, res) => {
  * @access Private (admin)
  */
 const updateContent = asyncHandler(async (req, res) => {
-  const { data, errors } = parseContentBody(req.body, { partial: true });
-  if (errors.length) {
-    return res.status(400).json({ code: 'VALIDATION_ERROR', message: errors[0] });
-  }
-
-  if (Object.keys(data).length === 0) {
-    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'No fields to update' });
-  }
-
   // If updating type to a new value, deactivate other active content of that type
-  if (data.type) {
+  if (req.body.type) {
     await Content.updateMany(
-      { type: data.type, active: true, _id: { $ne: req.params.id } },
-      { active: false }
+      { type: req.body.type, active: true, _id: { $ne: req.params.id } },
+      { active: false },
     );
   }
 
-  const content = await Content.findByIdAndUpdate(req.params.id, data, {
+  const content = await Content.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
   });
 
   if (!content) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'Content not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'Content not found' });
   }
 
-  res.status(200).json(content);
+  res.status(200).json({ data: content });
 });
 
 /**
@@ -227,10 +186,14 @@ const deleteContent = asyncHandler(async (req, res) => {
   );
 
   if (!content) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'Content not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'Content not found' });
   }
 
-  res.status(200).json({ message: 'Content has been deactivated' });
+  res
+    .status(200)
+    .json({ message: 'Content has been deactivated', data: content });
 });
 
 module.exports = {

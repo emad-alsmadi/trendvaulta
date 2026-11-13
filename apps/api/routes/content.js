@@ -1,7 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { verfiyToken } = require('../middlewares/verfiyToken');
+const { verifyToken } = require('../middlewares/verifyToken');
 const { checkRolePermission } = require('../middlewares/checkRolePermission');
+const { validate } = require('../middlewares/validate');
+const {
+  createContentSchema,
+  updateContentSchema,
+} = require('../validators/content.validator');
 
 const {
   getContent,
@@ -18,35 +23,37 @@ router.get('/content', getContent);
 // Admin routes (static segment before :id)
 router.get(
   '/content/admin',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:read'),
   getAllContent,
 );
 
 router.get(
   '/content/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:read'),
   getContentById,
 );
 
 router.post(
   '/content',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:write'),
+  validate(createContentSchema),
   createContent,
 );
 
 router.put(
   '/content/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:write'),
+  validate(updateContentSchema),
   updateContent,
 );
 
 router.delete(
   '/content/:id',
-  verfiyToken,
+  verifyToken,
   checkRolePermission('content:delete'),
   deleteContent,
 );

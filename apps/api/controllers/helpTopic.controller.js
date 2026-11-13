@@ -27,10 +27,7 @@ const getHelpTopics = asyncHandler(async (req, res) => {
     .select('id title description href icon translations active sortOrder')
     .lean();
 
-  res.status(200).json({
-    message: 'ok',
-    topics: results,
-  });
+  res.status(200).json({ data: results });
 });
 
 /**
@@ -80,90 +77,26 @@ const getHelpTopicById = asyncHandler(async (req, res) => {
   const topic = await HelpTopic.findById(req.params.id);
 
   if (!topic) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'Help topic not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'Help topic not found' });
   }
 
-  res.status(200).json(topic);
+  res.status(200).json({ data: topic });
 });
-
-function parseHelpTopicBody(body, { partial = false } = {}) {
-  const errors = [];
-  const data = {};
-
-  if (!partial || body.id !== undefined) {
-    const id = typeof body.id === 'string' ? body.id.trim() : '';
-    if (!id) errors.push('id is required');
-    else data.id = id;
-  }
-
-  if (!partial || body.title !== undefined) {
-    const title = typeof body.title === 'string' ? body.title.trim() : '';
-    if (!title) errors.push('title is required');
-    else data.title = title;
-  }
-
-  if (!partial || body.href !== undefined) {
-    const href = typeof body.href === 'string' ? body.href.trim() : '';
-    if (!href) errors.push('href is required');
-    else data.href = href;
-  }
-
-  if (body.description !== undefined) {
-    data.description =
-      typeof body.description === 'string' ? body.description.trim() : '';
-  }
-
-  if (body.icon !== undefined) {
-    data.icon = typeof body.icon === 'string' ? body.icon.trim() : '';
-  }
-
-  if (body.active !== undefined) {
-    data.active = Boolean(body.active);
-  }
-
-  if (body.sortOrder !== undefined) {
-    const n = Number(body.sortOrder);
-    if (Number.isNaN(n)) errors.push('sortOrder must be a number');
-    else data.sortOrder = n;
-  }
-
-  // Optional Arabic translation — both fields optional, either can be
-  // blank to fall back to the English title/description on the storefront.
-  if (body.translations !== undefined) {
-    const ar = body.translations?.ar || {};
-    const arTitle = typeof ar.title === 'string' ? ar.title.trim() : '';
-    const arDescription = typeof ar.description === 'string' ? ar.description.trim() : '';
-    data.translations = { ar: { title: arTitle, description: arDescription } };
-  }
-
-  return { data, errors };
-}
 
 /**
  * Create a new help topic.
+ * Body is Joi-validated at the route (validators/helpTopic.validator.js).
  *
  * @route POST /api/help-topics
  * @access Private (admin)
  */
 const createHelpTopic = asyncHandler(async (req, res) => {
-  const { data, errors } = parseHelpTopicBody(req.body, { partial: false });
-  if (errors.length) {
-    return res.status(400).json({ code: 'VALIDATION_ERROR', message: errors[0] });
-  }
-
-  const topic = new HelpTopic({
-    id: data.id,
-    title: data.title,
-    href: data.href,
-    description: data.description ?? '',
-    icon: data.icon ?? '',
-    translations: data.translations,
-    active: data.active !== undefined ? data.active : true,
-    sortOrder: data.sortOrder !== undefined ? data.sortOrder : 0,
-  });
+  const topic = new HelpTopic(req.body);
 
   const result = await topic.save();
-  res.status(201).json(result);
+  res.status(201).json({ data: result });
 });
 
 /**
@@ -173,24 +106,17 @@ const createHelpTopic = asyncHandler(async (req, res) => {
  * @access Private (admin)
  */
 const updateHelpTopic = asyncHandler(async (req, res) => {
-  const { data, errors } = parseHelpTopicBody(req.body, { partial: true });
-  if (errors.length) {
-    return res.status(400).json({ code: 'VALIDATION_ERROR', message: errors[0] });
-  }
-
-  if (Object.keys(data).length === 0) {
-    return res.status(400).json({ code: 'VALIDATION_ERROR', message: 'No fields to update' });
-  }
-
-  const topic = await HelpTopic.findByIdAndUpdate(req.params.id, data, {
+  const topic = await HelpTopic.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
   });
 
   if (!topic) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'Help topic not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'Help topic not found' });
   }
 
-  res.status(200).json(topic);
+  res.status(200).json({ data: topic });
 });
 
 /**
@@ -207,10 +133,14 @@ const deleteHelpTopic = asyncHandler(async (req, res) => {
   );
 
   if (!topic) {
-    return res.status(404).json({ code: 'NOT_FOUND', message: 'Help topic not found' });
+    return res
+      .status(404)
+      .json({ code: 'NOT_FOUND', message: 'Help topic not found' });
   }
 
-  res.status(200).json({ message: 'Help topic has been deactivated' });
+  res
+    .status(200)
+    .json({ message: 'Help topic has been deactivated', data: topic });
 });
 
 module.exports = {
